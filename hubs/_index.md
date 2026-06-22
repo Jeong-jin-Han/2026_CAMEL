@@ -24,5 +24,8 @@ SSD-list 논문 위키의 마스터 진입점. 다축(토픽·학회·연도)으
 - [[Smart-Infinity]] — HPCA'24, near-storage LLM training, 2.11×
 - [[Sparse Checkpointing for Fast and Reliable MoE Training]] — NSDI'26, MoE sparse checkpointing (MoEvement), 8×
 
+## 🧭 Insights (교수님 framing — 논문과 별개)
+- [[Communication Tax]] — *Compute Can't Handle the Truth* (Myoungsoo Jung, Panmnesia Tech Report, arXiv 2507.07223). communication tax → CXL composable → CXL-over-XLink. **발표 4편을 관통하는 상위 맥락.**
+
 ## 진행 현황
-- deep: 4 / stub: 0 / 남은 SSD-list: ~71 (Pass 1 대기)
+- deep: 4 / insights: 1 / stub: 0 / 남은 SSD-list: ~71 (Pass 1 대기)
