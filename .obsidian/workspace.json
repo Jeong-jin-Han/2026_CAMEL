@@ -35,12 +35,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "workflow/paper_wiki.md",
+                "file": "papers/Sparse Checkpointing for Fast and Reliable MoE Training/Sparse Checkpointing for Fast and Reliable MoE Training.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "paper_wiki"
+              "title": "Sparse Checkpointing for Fast and Reliable MoE Training"
             }
           }
         ]
@@ -116,7 +116,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "workflow/paper_wiki.md",
+                "file": "papers/Sparse Checkpointing for Fast and Reliable MoE Training/Sparse Checkpointing for Fast and Reliable MoE Training.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -126,7 +126,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for paper_wiki"
+              "title": "Backlinks for Sparse Checkpointing for Fast and Reliable MoE Training"
             }
           },
           {
@@ -135,12 +135,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "workflow/paper_wiki.md",
+                "file": "papers/Sparse Checkpointing for Fast and Reliable MoE Training/Sparse Checkpointing for Fast and Reliable MoE Training.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from paper_wiki"
+              "title": "Outgoing links from Sparse Checkpointing for Fast and Reliable MoE Training"
             }
           },
           {
@@ -178,13 +178,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "workflow/paper_wiki.md",
+                "file": "papers/Sparse Checkpointing for Fast and Reliable MoE Training/Sparse Checkpointing for Fast and Reliable MoE Training.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of paper_wiki"
+              "title": "Outline of Sparse Checkpointing for Fast and Reliable MoE Training"
             }
           },
           {
@@ -216,12 +216,14 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "5f50a74fe5cecc07",
+  "active": "cb557382138c9a7f",
   "lastOpenFiles": [
+    "papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System.md",
+    "papers/SkyByte - Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design/SkyByte - Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design.md",
+    "workflow/paper_wiki.md",
     "index.md",
     "index.md.tmp.3508464.fbedf4dc01ac",
     "workflow/pdf_summary.md",
-    "workflow/paper_wiki.md",
     "hubs/_index.md.tmp.3391362.501af2537bfd",
     "workflow/paper_wiki.md.tmp.3391362.5c4224681f6e",
     "papers/XHarvest - Rethinking High-Performance and Cost-Efficient SSD Architecture with CXL-Driven Harvesting/XHarvest - Rethinking High-Performance and Cost-Efficient SSD Architecture with CXL-Driven Harvesting.md.tmp.3391362.47b875ce8d61",
@@ -242,9 +244,7 @@
     "hubs/topics/LLM Systems.md",
     "hubs/topics/CXL.md",
     "papers/Sparse Checkpointing for Fast and Reliable MoE Training/Sparse Checkpointing for Fast and Reliable MoE Training.md",
-    "papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System.md",
     "papers/XHarvest - Rethinking High-Performance and Cost-Efficient SSD Architecture with CXL-Driven Harvesting/XHarvest - Rethinking High-Performance and Cost-Efficient SSD Architecture with CXL-Driven Harvesting.md",
-    "papers/SkyByte - Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design/SkyByte - Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design.md",
     "pdf_summary.md",
     "Welcome.md",
     "tmp/README.md",

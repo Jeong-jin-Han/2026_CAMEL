@@ -1,5 +1,2 @@
 tmp/
 workflow/
-
-# PDFs are kept local only (not published to the Quartz site)
-*.pdf
