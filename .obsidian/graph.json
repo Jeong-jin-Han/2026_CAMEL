@@ -22,6 +22,13 @@
       }
     },
     {
+      "query": "path:concepts",
+      "color": {
+        "a": 1,
+        "rgb": 2282478
+      }
+    },
+    {
       "query": "path:hubs",
       "color": {
         "a": 1,
