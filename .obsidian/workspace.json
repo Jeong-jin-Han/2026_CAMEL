@@ -192,6 +192,7 @@
   },
   "active": "cb557382138c9a7f",
   "lastOpenFiles": [
+    "index.md.tmp.12933.165dd67f2177",
     "index.md.tmp.58717.c50d03a788e8",
     "workflow/paper_wiki.md.tmp.12933.4167ffbd9273",
     "papers/Sparse Checkpointing for Fast and Reliable MoE Training/Sparse Checkpointing for Fast and Reliable MoE Training.md",
@@ -203,7 +204,6 @@
     "papers/Midas Touch - Invalid-Data Assisted Reliability and Performance Boost for 3d High-Density Flash/Midas_Touch_Invalid-Data_Assisted_Reliability_and_Performance_Boost_for_3d_High-Density_Flash.pdf",
     "papers/MaxEmbed - Maximizing SSD bandwidth utilization for huge embedding models serving/3622781.3674172.pdf",
     "papers/Lincoln - Real-Time 50~100B LLM Inference on Consumer Devices with LPDDR-Interfaced, Compute-Enabled Flash Memory/Lincoln_Real-Time_50100B_LLM_Inference_on_Consumer_Devices_with_LPDDR-Interfaced_Compute-Enabled_Flash_Memory.pdf",
-    "papers/LightPool - A NVMe-oF-based High-performance and Lightweight Storage Pool Architecture for Cloud-Native Distributed Database/LightPool - A NVMe-oF-based High-performance and Lightweight Storage Pool Architecture for Cloud-Native Distributed Database.pdf",
     "hubs/venues/SOSP.md",
     "hubs/venues/OSDI.md",
     "hubs/venues/MICRO.md",
