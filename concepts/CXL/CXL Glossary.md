@@ -29,7 +29,8 @@ tags:
 - **LD-ID** *(2.0~)* — logical device 식별자.
 - **Fabric Manager (FM)** *(2.0~)* — 풀 할당·바인딩·패브릭 구성을 관리.
 - **Single-/Multi-level switching** *(2.0 / 3.0)* — switch 1단 / 계단식 다단.
-- **PBR (Port-Based Routing)** *(3.0~)* — 포트 기반 라우팅으로 대규모(최대 4,096노드) 패브릭. (기존 **HBR** Hierarchy-Based Routing의 한계 돌파.)
+- **HBR (Hierarchy-Based Routing)** *(~2.0)* — PCIe 전통 방식. 호스트를 뿌리로 한 **트리의 계층 위치**로 라우팅. single-host 트리라 노드 수·토폴로지가 제한됨.
+- **PBR (Port-Based Routing)** *(3.0~)* — 각 endpoint에 고유 **포트 ID**를 줘서 그 ID로 라우팅. 트리에서 분리되어 mesh·multi-host 토폴로지 + **12-bit ID → 최대 4,096노드** 가능. 개념 설명: [[CXL 3.0#🔎 PBR이란? (Port-Based Routing)]]
 - **Back-Invalidation (BI)** *(3.0~)* — 하드웨어가 캐시 사본을 무효화하는 snoop. **sharing 일관성의 핵심.**
 - **HDM-DB** *(3.0~)* — BI 기반 device-managed coherence HDM.
 - **GFAM (Global Fabric-Attached Memory)** *(3.0~)* — 패브릭에 붙어 다수 호스트가 접근하는 대규모 공유 메모리.

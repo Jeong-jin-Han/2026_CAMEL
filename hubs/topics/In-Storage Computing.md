@@ -9,6 +9,10 @@ tags: [meta/hub, hub/topic]
 
 ## Papers
 - [[Smart-Infinity]] — HPCA'24, near-storage LLM optimizer update (SmartSSD FPGA)
+- [[Conduit]] — HPCA'26, programmer-transparent NDP (controller/PuD/IFP)
+- [[InstAttention]] — HPCA'25, in-storage attention offloading (LLM)
+- [[CIPHERMATCH]] — ASPLOS'25, homomorphic encryption string matching in-flash
+- [[DockerSSD]] — HPCA'24, containerized in-storage processing
 
 > Pass 1에서 나머지(Conduit, BeaconGNN, DockerSSD, OmniCache, CrossBit, Ares-Flash, CIPHERMATCH, OptimStore, AiF, In-Storage RAG 등) 추가 예정.
 

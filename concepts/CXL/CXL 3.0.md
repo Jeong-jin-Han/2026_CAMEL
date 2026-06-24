@@ -20,13 +20,26 @@ tags:
 - **Multi-level switching**: switch를 **계단식(cascading)** 으로 쌓아 leaf/spine(fat-tree) 패브릭 구성.
 - **Memory Sharing** ⭐: **같은 메모리 영역을 여러 호스트가 동시에** 하드웨어 일관성으로 공유. (`HDM-DB`)
 - **Back-Invalidation (BI)**: 하드웨어가 캐시 사본을 무효화하는 snoop → sharing의 일관성을 보장하는 핵심 메커니즘.
-- **PBR (Port-Based Routing)** ⭐: 포트 기반 라우팅으로 **최대 4,096 노드** 규모 패브릭. (기존 계층기반 HBR의 한계 돌파.)
+- **PBR (Port-Based Routing)** ⭐: 목적지 **포트 ID**로 라우팅 → 트리 구조에서 벗어나 **최대 4,096 노드** 패브릭 구성. (아래 "PBR이란?" 참고.)
 - **GFAM (Global Fabric-Attached Memory)**: 패브릭에 붙어 다수 호스트/장치가 접근하는 대규모 공유 메모리.
 - **P2P (Peer-to-Peer)**: 장치 간 직접 통신/메모리 접근(호스트 우회).
 - **MHD (Multi-Headed Device)**: 한 장치가 여러 호스트 포트(head)에 직접 연결.
 
 > [!important] 2.0 → 3.0 핵심 차이
 > **pooling(2.0, 돌려쓰기) → sharing(3.0, 동시 공유)**. 이걸 가능케 한 게 **Back-Invalidation**. 규모를 키운 게 **PBR**.
+
+### 🔎 PBR이란? (Port-Based Routing)
+한 줄: **"어디로 보낼지를 *목적지 포트 번호*로 정하는 라우팅 방식."** 이게 왜 큰일이냐면 — 패브릭이 트리(나무) 구조에서 풀려나기 때문이다.
+
+- **기존 HBR (Hierarchy-Based Routing)**: PCIe 전통 방식. 패킷을 **호스트를 뿌리로 하는 트리 구조의 위치(계층 주소)** 로 라우팅한다. 한 호스트 아래 가지를 따라가는 구조라 ① 여러 호스트가 대등하게 얽힌 토폴로지를 못 만들고 ② 주소 비트가 위치에 묶여 **노드 수가 적게 제한**된다. (single-host tree)
+- **PBR (Port-Based Routing)**: 패브릭의 모든 endpoint(호스트·장치·메모리)에 **고유한 포트 ID**를 부여하고, switch는 그 **ID를 보고** 목적지로 전달한다. 라우팅이 트리 위치에서 **분리(decouple)** 되므로:
+  - **mesh·spine-leaf 같은 비-트리 토폴로지**와 **다단 switch 캐스케이딩** 가능,
+  - **여러 호스트가 대등하게** 같은 패브릭에 참여(multi-host),
+  - **12-bit PBR ID → 최대 4,096개** endpoint 주소 지정 (2¹² = 4096).
+
+> 비유: HBR = "○○빌딩 3층 305호"처럼 **위치(경로)로 찾기** → 건물 구조 밖으로 못 나감. PBR = **우편번호/전화번호처럼 고유 ID로 찾기** → 어디에 있든, 망이 아무리 커도 ID만 알면 배달. 그래서 도시(데이터센터) 규모로 확장된다.
+
+→ 즉 **sharing**(여러 호스트가 같은 메모리)을 *대규모로* 가능하게 한 게 PBR이고, 이게 [[Communication Tax]]의 "composable fabric"·"CXL-over-XLink supercluster"의 라우팅 토대다.
 
 ## 새 용어
 - **PBR** — Port-Based Routing (vs HBR Hierarchy-Based Routing).
