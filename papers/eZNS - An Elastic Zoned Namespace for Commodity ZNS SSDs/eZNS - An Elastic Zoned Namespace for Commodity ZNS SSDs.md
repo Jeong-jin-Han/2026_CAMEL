@@ -17,7 +17,7 @@ tags:
 
 # eZNS: An Elastic Zoned Namespace for Commodity ZNS SSDs
 
-> **OSDI 2023** · `cluster/zns` · Source: [eZNS - An Elastic Zoned Namespace for Commodity ZNS SSDs.pdf](eZNS%20-%20An%20Elastic%20Zoned%20Namespace%20for%20Commodity%20ZNS%20SSDs.pdf)
+> **OSDI 2023** · `cluster/zns` · Source: [eZNS - An Elastic Zoned Namespace for Commodity ZNS SSDs.pdf](<eZNS - An Elastic Zoned Namespace for Commodity ZNS SSDs.pdf>)
 
 저자: Jaehong Min, Chenxingyu Zhao (University of Washington), Ming Liu (University of Wisconsin-Madison), Arvind Krishnamurthy (University of Washington)
 

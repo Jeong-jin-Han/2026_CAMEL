@@ -16,7 +16,7 @@ tags:
 
 # ScalaAFA: Constructing User-Space All-Flash Array Engine with Holistic Designs
 
-> **ATC 2024** · `cluster/infra` · Source: [ScalaAFA - Constructing User-Space All-Flash Array Engine with Holistic Designs.pdf](ScalaAFA%20-%20Constructing%20User-Space%20All-Flash%20Array%20Engine%20with%20Holistic%20Designs.pdf)
+> **ATC 2024** · `cluster/infra` · Source: [ScalaAFA - Constructing User-Space All-Flash Array Engine with Holistic Designs.pdf](<ScalaAFA - Constructing User-Space All-Flash Array Engine with Holistic Designs.pdf>)
 
 저자: Shushu Yi (Peking Univ. & Zhongguancun Lab), Xiurui Pan (Peking Univ.), Qiao Li (Xiamen Univ.), Qiang Li (Alibaba), Chenxi Wang (UCAS), Bo Mao (Xiamen Univ.), Myoungsoo Jung (KAIST & Panmnesia), Jie Zhang (Peking Univ. & Zhongguancun Lab)
 

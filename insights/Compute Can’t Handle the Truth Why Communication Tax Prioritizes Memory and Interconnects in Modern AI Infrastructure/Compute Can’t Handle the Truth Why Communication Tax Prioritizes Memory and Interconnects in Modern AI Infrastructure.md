@@ -24,7 +24,7 @@ tags:
 
 > **Panmnesia Technical Report · 2025** · `insight` · arXiv [2507.07223](https://arxiv.org/abs/2507.07223) · 76 pages
 > Author: **Myoungsoo Jung** (CAMEL / Panmnesia)
-> Source: [Compute Can't Handle the Truth ....pdf](<Compute Can’t Handle the Truth Why Communication Tax Prioritizes Memory and Interconnects in Modern AI Infrastructure.pdf>)
+> Source: [Compute Can't Handle the Truth ....pdf](<Compute Can't Handle the Truth ....pdf>)
 
 > [!abstract] 이 문서를 따로 두는 이유
 > 일반 학회 논문이 아니라 **교수님의 직관·연구 방향이 담긴 framing 문서**다. SSD-list의 CXL·near-storage·checkpointing 논문들이 "왜 중요한가"를 위에서 설명한다. → `papers/`가 아닌 `insights/`에 분리.

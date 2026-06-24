@@ -17,7 +17,7 @@ tags:
 
 # AnyKey: A Key-Value SSD for All Workload Types
 
-> **ASPLOS 2025** · `cluster/kvlsm` · Source: [AnyKey - A Key-Value SSD for All Workload Types.pdf](AnyKey%20-%20A%20Key-Value%20SSD%20for%20All%20Workload%20Types.pdf)
+> **ASPLOS 2025** · `cluster/kvlsm` · Source: [AnyKey - A Key-Value SSD for All Workload Types.pdf](<AnyKey - A Key-Value SSD for All Workload Types.pdf>)
 
 **저자:** Chanyoung Park, Jungho Lee, Kyungtae Kang (Hanyang University) · Chun-Yi Liu (Micron Technology Inc.) · Mahmut Taylan Kandemir (Pennsylvania State University) · Wonil Choi (Hanyang University, corresponding author)
 

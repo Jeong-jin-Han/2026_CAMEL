@@ -17,7 +17,7 @@ tags:
 
 # Sleeping with One Eye Open: Fast, Sustainable Storage with Sandman
 
-> **SOSP 2025** · `cluster/fs` · Source: [Sleeping with One Eye Open - Fast, Sustainable Storage with Sandman.pdf](Sleeping%20with%20One%20Eye%20Open%20-%20Fast,%20Sustainable%20Storage%20with%20Sandman.pdf)
+> **SOSP 2025** · `cluster/fs` · Source: [Sleeping with One Eye Open - Fast, Sustainable Storage with Sandman.pdf](<Sleeping with One Eye Open - Fast, Sustainable Storage with Sandman.pdf>)
 
 저자: Yanbo Zhou (UC San Diego), Erci Xu (Shanghai Jiao Tong University, 교신저자), Anisa Su (UC San Diego), Jim Harris (Samsung Semiconductor, 현 NVIDIA), Adam Manzanares (Samsung Semiconductor), Steven Swanson (UC San Diego)
 

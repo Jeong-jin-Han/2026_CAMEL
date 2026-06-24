@@ -1,6 +1,6 @@
 ---
 title: "Rethinking the Request-to-IO Transformation Process of File Systems for Full Utilization of High-Bandwidth SSDs"
-aliases: [Rethinking the Request-to-IO, OrchFS]
+aliases: [OrchFS, Rethinking Request-to-IO]
 description: "고대역폭 SSD의 쓰기 비효율 3대 원인(page-alignment·page cache·IO 동시성)을 규명하고, 소용량 NVM을 보조로 활용해 요청을 SSD-page 정렬 IO와 잔여 NVM IO로 분할·오케스트레이션하는 이종-IO 파일시스템 OrchFS 제안."
 venue: FAST
 year: 2025
@@ -17,7 +17,7 @@ tags:
 
 # Rethinking the Request-to-IO Transformation Process of File Systems for Full Utilization of High-Bandwidth SSDs
 
-> **FAST 2025** · `cluster/fs` · Source: [Rethinking the Request-to-IO Transformation Process of File Systems for Full Utilization of High-Bandwidth SSDs.pdf](Rethinking the Request-to-IO Transformation Process of File Systems for Full Utilization of High-Bandwidth SSDs.pdf)
+> **FAST 2025** · `cluster/fs` · Source: [Rethinking the Request-to-IO Transformation Process of File Systems for Full Utilization of High-Bandwidth SSDs.pdf](<Rethinking the Request-to-IO Transformation Process of File Systems for Full Utilization of High-Bandwidth SSDs.pdf>)
 
 저자: Yekang Zhan, Haichuan Hu, Xiangrui Yang, Qiang Cao (교신, Huazhong University of Science and Technology), Hong Jiang (University of Texas at Arlington), Shaohua Wang, Jie Yao (HUST)
 

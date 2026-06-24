@@ -18,7 +18,7 @@ tags:
 
 # ScaleSwap: A Scalable OS Swap System for All-Flash Swap Arrays
 
-> **FAST 2026** · `cluster/fs` · Source: [ScaleSwap - A Scalable OS Swap System for All-Flash Swap Arrays.pdf](ScaleSwap%20-%20A%20Scalable%20OS%20Swap%20System%20for%20All-Flash%20Swap%20Arrays.pdf)
+> **FAST 2026** · `cluster/fs` · Source: [ScaleSwap - A Scalable OS Swap System for All-Flash Swap Arrays.pdf](<ScaleSwap - A Scalable OS Swap System for All-Flash Swap Arrays.pdf>)
 >
 > 저자: Taehwan Ahn, Chanhyeong Yu, Sangjin Lee, Yongseok Son (Chung-Ang University, Systems and Storage Laboratory). 교신저자: Yongseok Son.
 

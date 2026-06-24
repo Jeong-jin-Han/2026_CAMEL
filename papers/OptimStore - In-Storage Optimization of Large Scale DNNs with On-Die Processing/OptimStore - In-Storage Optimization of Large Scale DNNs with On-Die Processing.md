@@ -17,7 +17,7 @@ tags:
 
 # OptimStore: In-Storage Optimization of Large Scale DNNs with On-Die Processing
 
-> **HPCA 2023** · `cluster/isc` · Source: [OptimStore - In-Storage Optimization of Large Scale DNNs with On-Die Processing.pdf](OptimStore - In-Storage Optimization of Large Scale DNNs with On-Die Processing.pdf)
+> **HPCA 2023** · `cluster/isc` · Source: [OptimStore - In-Storage Optimization of Large Scale DNNs with On-Die Processing.pdf](<OptimStore - In-Storage Optimization of Large Scale DNNs with On-Die Processing.pdf>)
 
 **저자**: Junkyum Kim (SAIT, Samsung / KAIST), Myeonggu Kang (KAIST), Yunki Han (KAIST), Yang-gon Kim (KAIST / System LSI, Samsung), Lee-sup Kim (KAIST)
 

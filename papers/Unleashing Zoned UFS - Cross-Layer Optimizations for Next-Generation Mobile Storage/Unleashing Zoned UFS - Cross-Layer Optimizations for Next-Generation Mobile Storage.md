@@ -18,7 +18,7 @@ tags:
 
 # Unleashing Zoned UFS: Cross-Layer Optimizations for Next-Generation Mobile Storage
 
-> **FAST 2026** · `cluster/zns` · Source: [Unleashing Zoned UFS - Cross-Layer Optimizations for Next-Generation Mobile Storage.pdf](Unleashing%20Zoned%20UFS%20-%20Cross-Layer%20Optimizations%20for%20Next-Generation%20Mobile%20Storage.pdf)
+> **FAST 2026** · `cluster/zns` · Source: [Unleashing Zoned UFS - Cross-Layer Optimizations for Next-Generation Mobile Storage.pdf](<Unleashing Zoned UFS - Cross-Layer Optimizations for Next-Generation Mobile Storage.pdf>)
 
 저자: Jungae Kim, Sungjin Park, Jinwoo Kim, Jieun Kim, Iksung Oh (SK hynix Inc.) · Jaegeuk Kim, Chul Lee, Bart Van Assche, Daeho Jeong, Konstantin Vyshetsky (Google) · Kyu-Jin Cho, Jin-Soo Kim (Seoul National University)
 

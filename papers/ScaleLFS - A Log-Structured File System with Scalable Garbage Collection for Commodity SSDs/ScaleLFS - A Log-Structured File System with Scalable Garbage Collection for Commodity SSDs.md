@@ -17,7 +17,7 @@ tags:
 
 # ScaleLFS: A Log-Structured File System with Scalable Garbage Collection for Commodity SSDs
 
-> **FAST 2025** · `cluster/fs` · Source: [ScaleLFS - A Log-Structured File System with Scalable Garbage Collection for Commodity SSDs.pdf](ScaleLFS%20-%20A%20Log-Structured%20File%20System%20with%20Scalable%20Garbage%20Collection%20for%20Commodity%20SSDs.pdf)
+> **FAST 2025** · `cluster/fs` · Source: [ScaleLFS - A Log-Structured File System with Scalable Garbage Collection for Commodity SSDs.pdf](<ScaleLFS - A Log-Structured File System with Scalable Garbage Collection for Commodity SSDs.pdf>)
 
 저자: Jin Yong Ha (Seoul National University), Sangjin Lee (Chung-Ang University), Hyeonsang Eom (Seoul National University), Yongseok Son (Chung-Ang University, 교신저자)
 

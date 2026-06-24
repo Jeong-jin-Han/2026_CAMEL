@@ -17,7 +17,7 @@ tags:
 
 # RiF: Improving Read Performance of Modern SSDs Using an On-Die Early-Retry Engine
 
-> **HPCA 2024** · `cluster/reliability` · Source: [RiF - Improving Read Performance of Modern SSDs Using an On-Die Early-Retry Engine.pdf](RiF%20-%20Improving%20Read%20Performance%20of%20Modern%20SSDs%20Using%20an%20On-Die%20Early-Retry%20Engine.pdf)
+> **HPCA 2024** · `cluster/reliability` · Source: [RiF - Improving Read Performance of Modern SSDs Using an On-Die Early-Retry Engine.pdf](<RiF - Improving Read Performance of Modern SSDs Using an On-Die Early-Retry Engine.pdf>)
 
 저자: Myoungjun Chun¹*, Jaeyong Lee¹*, Myungsuk Kim², Jisung Park³, Jihong Kim¹ (¹Seoul National University, ²Kyungpook National University, ³POSTECH; *공동 1저자)
 

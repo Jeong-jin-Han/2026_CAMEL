@@ -18,7 +18,7 @@ tags:
 
 # NVMePass: A Lightweight, High-performance and Scalable NVMe Virtualization Architecture with I/O Queues Passthrough
 
-> **HPCA 2025** · `cluster/infra` · Source: [NVMePass - A Lightweight, High-performance and Scalable NVMe Virtualization Architecture with I-O Queues Passthrough.pdf](NVMePass%20-%20A%20Lightweight,%20High-performance%20and%20Scalable%20NVMe%20Virtualization%20Architecture%20with%20I-O%20Queues%20Passthrough.pdf)
+> **HPCA 2025** · `cluster/infra` · Source: [NVMePass - A Lightweight, High-performance and Scalable NVMe Virtualization Architecture with I-O Queues Passthrough.pdf](<NVMePass - A Lightweight, High-performance and Scalable NVMe Virtualization Architecture with I-O Queues Passthrough.pdf>)
 
 저자: Yiquan Chen, Zhen Jin (공동 1저자), Yijing Wang, Yi Chen, Jiexiong Xu, Hao Yu, Jinlong Chen, Wenhai Lin, Kanghua Fang, Keyao Zhang, Chengkun Wei, Qiang Liu, Yuan Xie, Wenzhi Chen — Zhejiang University, Alibaba Group, University of Michigan, HKUST
 

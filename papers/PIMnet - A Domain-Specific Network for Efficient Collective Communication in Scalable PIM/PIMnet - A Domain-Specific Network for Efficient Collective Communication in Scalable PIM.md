@@ -17,7 +17,7 @@ tags:
 
 # PIMnet: A Domain-Specific Network for Efficient Collective Communication in Scalable PIM
 
-> **HPCA 2025** · `cluster/isc` · Source: [PIMnet - A Domain-Specific Network for Efficient Collective Communication in Scalable PIM.pdf](PIMnet%20-%20A%20Domain-Specific%20Network%20for%20Efficient%20Collective%20Communication%20in%20Scalable%20PIM.pdf)
+> **HPCA 2025** · `cluster/isc` · Source: [PIMnet - A Domain-Specific Network for Efficient Collective Communication in Scalable PIM.pdf](<PIMnet - A Domain-Specific Network for Efficient Collective Communication in Scalable PIM.pdf>)
 
 저자: Hyojun Son, Gilbert Jonatan, Xiangyu Wu, Haeyoon Cho, Kaustubh Shivdikar, José L. Abellán, Ajay Joshi, David Kaeli, John Kim (KAIST, Northeastern University, Universidad de Murcia, Boston University)
 

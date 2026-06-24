@@ -18,7 +18,7 @@ tags:
 
 # LightPool: A NVMe-oF-based High-performance and Lightweight Storage Pool Architecture for Cloud-Native Distributed Database
 
-> **HPCA 2024** · `cluster/infra` · Source: [LightPool - A NVMe-oF-based High-performance and Lightweight Storage Pool Architecture for Cloud-Native Distributed Database.pdf](LightPool%20-%20A%20NVMe-oF-based%20High-performance%20and%20Lightweight%20Storage%20Pool%20Architecture%20for%20Cloud-Native%20Distributed%20Database.pdf)
+> **HPCA 2024** · `cluster/infra` · Source: [LightPool - A NVMe-oF-based High-performance and Lightweight Storage Pool Architecture for Cloud-Native Distributed Database.pdf](<LightPool - A NVMe-oF-based High-performance and Lightweight Storage Pool Architecture for Cloud-Native Distributed Database.pdf>)
 
 저자: Jiexiong Xu, Yiquan Chen, Yijing Wang, Wenhui Shi, Guoju Fang, Yi Chen, Huasheng Liao, Yang Wang, Hai Lin, Zhen Jin, Qiang Liu, Wenzhi Chen — Zhejiang University, Alibaba Group, AntGroup
 

@@ -17,7 +17,7 @@ tags:
 
 # DPAS: A Prompt, Accurate and Safe I/O Completion Method for SSDs
 
-> **FAST 2026** · `cluster/fs` · Source: [DPAS - A Prompt, Accurate and Safe I-O Completion Method for SSDs.pdf](DPAS%20-%20A%20Prompt,%20Accurate%20and%20Safe%20I-O%20Completion%20Method%20for%20SSDs.pdf)
+> **FAST 2026** · `cluster/fs` · Source: [DPAS - A Prompt, Accurate and Safe I-O Completion Method for SSDs.pdf](<DPAS - A Prompt, Accurate and Safe I-O Completion Method for SSDs.pdf>)
 
 **저자**: Dongjoo Seo (UC Irvine), Jihyeon Jung, Yeohwan Yoon (Kookmin Univ.), Ping-Xiang Chen (UC Irvine), Yongsoo Joo (Kookmin Univ., 교신저자), Sung-Soo Lim (Kookmin Univ.), Nikil Dutt (UC Irvine)
 

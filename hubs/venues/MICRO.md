@@ -8,7 +8,8 @@ tags: [meta/hub, hub/venue]
 IEEE/ACM International Symposium on Microarchitecture.
 
 ## Papers (this wiki)
-- [[CrossBit]] — 2025 *(stub)*
-- [[DEAR]] — 2025 *(stub)*
-- [[Ares-Flash]] — 2024 *(stub)*
-- [[BABOL]] — 2024 *(stub)*
+
+- [[CrossBit]] — MICRO 2025
+- [[DEAR]] — MICRO 2025
+- [[Ares-Flash]] — MICRO 2024
+- [[BABOL]] — MICRO 2024

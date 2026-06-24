@@ -8,13 +8,20 @@ tags: [meta/hub, hub/topic]
 연산을 데이터(스토리지) 근처로 옮기는 near-data / near-storage / computational storage 계열. 데이터 이동 비용·대역폭 병목을 연산 위치 변경으로 회피.
 
 ## Papers
-- [[Smart-Infinity]] — HPCA'24, near-storage LLM optimizer update (SmartSSD FPGA)
-- [[Conduit]] — HPCA'26, programmer-transparent NDP (controller/PuD/IFP)
-- [[InstAttention]] — HPCA'25, in-storage attention offloading (LLM)
-- [[CIPHERMATCH]] — ASPLOS'25, homomorphic encryption string matching in-flash
-- [[DockerSSD]] — HPCA'24, containerized in-storage processing
 
-> Pass 1에서 나머지(Conduit, BeaconGNN, DockerSSD, OmniCache, CrossBit, Ares-Flash, CIPHERMATCH, OptimStore, AiF, In-Storage RAG 등) 추가 예정.
+- [[Conduit]] — HPCA 2026
+- [[AiF]] — ISCA 2025
+- [[CIPHERMATCH]] — ASPLOS 2025
+- [[CrossBit]] — MICRO 2025
+- [[InstAttention]] — HPCA 2025
+- [[Lincoln]] — HPCA 2025
+- [[PIMnet]] — HPCA 2025
+- [[RAGX]] — ISCA 2025
+- [[Ares-Flash]] — MICRO 2024
+- [[AttAcc]] — ASPLOS 2024
+- [[BeaconGNN]] — HPCA 2024
+- [[OmniCache]] — FAST 2024
+- [[OptimStore]] — HPCA 2023
 
 ## 인접 토픽
 [[CXL]] · [[LLM Systems]]

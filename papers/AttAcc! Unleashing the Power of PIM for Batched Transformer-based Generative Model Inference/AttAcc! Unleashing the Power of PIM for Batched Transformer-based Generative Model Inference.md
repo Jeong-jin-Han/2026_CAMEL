@@ -1,6 +1,6 @@
 ---
 title: "AttAcc! Unleashing the Power of PIM for Batched Transformer-based Generative Model Inference"
-aliases: [AttAcc! Unleashing the]
+aliases: [AttAcc]
 description: "배치된 TbGM 추론에서 memory-bound한 attention layer를 HBM 기반 PIM(AttAcc)으로, compute-bound한 FC layer를 GPU/TPU로 처리하는 GPU-PIM 이종 시스템 제안."
 venue: ASPLOS
 year: 2024
@@ -18,7 +18,7 @@ tags:
 
 # AttAcc! Unleashing the Power of PIM for Batched Transformer-based Generative Model Inference
 
-> **ASPLOS 2024** · `cluster/isc` · Source: [AttAcc! Unleashing the Power of PIM for Batched Transformer-based Generative Model Inference.pdf](AttAcc!%20Unleashing%20the%20Power%20of%20PIM%20for%20Batched%20Transformer-based%20Generative%20Model%20Inference.pdf)
+> **ASPLOS 2024** · `cluster/isc` · Source: [AttAcc! Unleashing the Power of PIM for Batched Transformer-based Generative Model Inference.pdf](<AttAcc! Unleashing the Power of PIM for Batched Transformer-based Generative Model Inference.pdf>)
 
 **저자**: Jaehyun Park\*, Jaewan Choi\*, Kwanhee Kyung, Michael Jaemin Kim, Yongsuk Kwon, Nam Sung Kim, Jung Ho Ahn (Seoul National University; University of Illinois Urbana-Champaign). (\*동등 기여)
 

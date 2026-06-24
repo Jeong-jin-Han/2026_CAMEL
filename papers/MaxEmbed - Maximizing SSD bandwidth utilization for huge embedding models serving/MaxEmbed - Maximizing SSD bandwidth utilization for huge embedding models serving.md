@@ -18,7 +18,7 @@ tags:
 
 # MaxEmbed: Maximizing SSD bandwidth utilization for huge embedding models serving
 
-> **ASPLOS 2025** · `cluster/llm` · Source: [MaxEmbed - Maximizing SSD bandwidth utilization for huge embedding models serving.pdf](MaxEmbed%20-%20Maximizing%20SSD%20bandwidth%20utilization%20for%20huge%20embedding%20models%20serving.pdf)
+> **ASPLOS 2025** · `cluster/llm` · Source: [MaxEmbed - Maximizing SSD bandwidth utilization for huge embedding models serving.pdf](<MaxEmbed - Maximizing SSD bandwidth utilization for huge embedding models serving.pdf>)
 
 **저자**: Ruwen Fan, Minhui Xie\*, Haodi Jiang, Youyou Lu\* (Department of Computer Science and Technology, Tsinghua University). \*교신저자: Minhui Xie, Youyou Lu.
 

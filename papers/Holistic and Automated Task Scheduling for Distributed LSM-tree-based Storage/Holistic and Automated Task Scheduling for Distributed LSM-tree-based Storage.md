@@ -1,6 +1,6 @@
 ---
 title: "Holistic and Automated Task Scheduling for Distributed LSM-tree-based Storage"
-aliases: [Holistic and Automated, HATS]
+aliases: [HATS, Holistic LSM Scheduling]
 description: "분산 LSM-tree KV store에서 foreground read와 background compaction을 통합 스케줄링해 latency fluctuation을 완화하는 HATS 프레임워크 (FAST 2026)"
 venue: FAST
 year: 2026
@@ -18,7 +18,7 @@ tags:
 
 # Holistic and Automated Task Scheduling for Distributed LSM-tree-based Storage
 
-> **FAST 2026** · `cluster/kvlsm` · Source: [Holistic and Automated Task Scheduling for Distributed LSM-tree-based Storage.pdf](Holistic%20and%20Automated%20Task%20Scheduling%20for%20Distributed%20LSM-tree-based%20Storage.pdf)
+> **FAST 2026** · `cluster/kvlsm` · Source: [Holistic and Automated Task Scheduling for Distributed LSM-tree-based Storage.pdf](<Holistic and Automated Task Scheduling for Distributed LSM-tree-based Storage.pdf>)
 
 **저자**: Yuanming Ren, Siyuan Sheng, Zhang Cao (The Chinese University of Hong Kong), Yongkun Li (University of Science and Technology of China), Patrick P. C. Lee (The Chinese University of Hong Kong). 교신저자: Patrick P. C. Lee. 코드: https://github.com/adslabcuhk/hats
 

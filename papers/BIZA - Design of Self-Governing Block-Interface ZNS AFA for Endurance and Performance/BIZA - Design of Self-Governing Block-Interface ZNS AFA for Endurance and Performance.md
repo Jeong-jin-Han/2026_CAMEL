@@ -17,7 +17,7 @@ tags:
 
 # BIZA: Design of Self-Governing Block-Interface ZNS AFA for Endurance and Performance
 
-> **SOSP 2024** · `cluster/zns` · Source: [BIZA - Design of Self-Governing Block-Interface ZNS AFA for Endurance and Performance.pdf](BIZA - Design of Self-Governing Block-Interface ZNS AFA for Endurance and Performance.pdf)
+> **SOSP 2024** · `cluster/zns` · Source: [BIZA - Design of Self-Governing Block-Interface ZNS AFA for Endurance and Performance.pdf](<BIZA - Design of Self-Governing Block-Interface ZNS AFA for Endurance and Performance.pdf>)
 
 **저자**: Shushu Yi, Shaocong Sun, Li Peng, Yingbo Sun, Ming-Chang Yang, Zhichao Cao, Qiao Li, Myoungsoo Jung, Ke Zhou, Jie Zhang (Peking University, CUHK, Arizona State University, Xiamen University, KAIST and Panmnesia, WNLO/HUST). 코드: https://github.com/ChaseLab-PKU/BIZA
 

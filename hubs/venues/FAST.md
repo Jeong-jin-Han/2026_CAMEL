@@ -8,8 +8,29 @@ tags: [meta/hub, hub/venue]
 USENIX Conference on File and Storage Technologies.
 
 ## Papers (this wiki)
-- [[Getting the MOST]] — 2026, mirror-optimized storage tiering
-- [[Mooncake]] — 2025, KVCache-centric LLM serving
-- [[AegonKV]] — 2025, KV-separated LSM with SmartSSD GC offloading
 
-> 26S-list의 다른 FAST 논문 다수는 arXiv preprint가 없어 보류(추적: `tmp/batch36_tracker.md`). 기관망 PDF 확보 시 추가.
+- [[Bidaw]] — FAST 2026
+- [[DisCoGC]] — FAST 2026
+- [[DPAS]] — FAST 2026
+- [[FailureMiner]] — FAST 2026
+- [[Getting the MOST]] — FAST 2026
+- [[HATS]] — FAST 2026
+- [[ScaleSwap]] — FAST 2026
+- [[SolidAttention]] — FAST 2026
+- [[Unleashing Zoned UFS]] — FAST 2026
+- [[WARP]] — FAST 2026
+- [[WSBuffer]] — FAST 2026
+- [[AegonKV]] — FAST 2025
+- [[Ananke]] — FAST 2025
+- [[AWUPF Rediscovered]] — FAST 2025
+- [[D2FS]] — FAST 2025
+- [[DJFS]] — FAST 2025
+- [[DNA data storage]] — FAST 2025
+- [[FusionANNS]] — FAST 2025
+- [[IMPRESS]] — FAST 2025
+- [[Mooncake]] — FAST 2025
+- [[OrchFS]] — FAST 2025
+- [[ScaleLFS]] — FAST 2025
+- [[ELECT]] — FAST 2024
+- [[No File Fragmentation]] — FAST 2024
+- [[OmniCache]] — FAST 2024

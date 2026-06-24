@@ -1,6 +1,6 @@
 ---
 title: "Discard-Based Garbage Collection for Distributed Log-Structured Storage Systems in ByteDance"
-aliases: [Discard-Based Garbage Collection, DisCoGC]
+aliases: [DisCoGC, Discard-Based GC]
 description: "compaction-only GC의 write/space amplification trade-off를 깨기 위해 discard와 compaction을 결합한 DisCoGC를 제안, ByteDance 프로덕션에서 TCO 약 20% 절감."
 venue: FAST
 year: 2026
@@ -18,7 +18,7 @@ tags:
 
 # Discard-Based Garbage Collection for Distributed Log-Structured Storage Systems in ByteDance
 
-> **FAST 2026** · `cluster/fs` · Source: [Discard-Based Garbage Collection for Distributed Log-Structured Storage Systems in ByteDance.pdf](Discard-Based Garbage Collection for Distributed Log-Structured Storage Systems in ByteDance.pdf)
+> **FAST 2026** · `cluster/fs` · Source: [Discard-Based Garbage Collection for Distributed Log-Structured Storage Systems in ByteDance.pdf](<Discard-Based Garbage Collection for Distributed Log-Structured Storage Systems in ByteDance.pdf>)
 
 저자: Runhua Bian, Liqiang Zhang, Jinxin Liu, Jiacheng Zhang, Jianong Zhong, Jiahao Gu, Hao Guo, Zhihong Guo, Yunhao Li, Fenghao Zhang, Jiangkun Zhao, Yangming Chen, Guojun Li, Ruwen Fan, Haijia Shen, Chengyu Dong, Yao Wang, Rui Shi, Jiwu Shu, Youyou Lu (ByteDance / Tsinghua University; 교신저자 Youyou Lu)
 

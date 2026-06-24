@@ -17,7 +17,7 @@ tags:
 
 # Z-LFS: A Zoned Namespace-tailored Log-structured File System for Commodity Small-zone ZNS SSDs
 
-> **ATC 2025** · `cluster/zns` · Source: [Z-LFS - A Zoned Namespace-tailored Log-structured File System for Commodity Small-zone ZNS SSDs.pdf](Z-LFS%20-%20A%20Zoned%20Namespace-tailored%20Log-structured%20File%20System%20for%20Commodity%20Small-zone%20ZNS%20SSDs.pdf)
+> **ATC 2025** · `cluster/zns` · Source: [Z-LFS - A Zoned Namespace-tailored Log-structured File System for Commodity Small-zone ZNS SSDs.pdf](<Z-LFS - A Zoned Namespace-tailored Log-structured File System for Commodity Small-zone ZNS SSDs.pdf>)
 
 **저자**: Inhwi Hwang (Seoul National University), Sangjin Lee (Chung-Ang University), Sunggon Kim (Seoul National University of Science and Technology), Hyeonsang Eom (Seoul National University), Yongseok Son (Chung-Ang University, 교신저자)
 

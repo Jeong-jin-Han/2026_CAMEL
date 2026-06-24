@@ -18,7 +18,7 @@ tags:
 
 # ColdCode: Cold Data Encoding for Enhanced Reliability and Lifetime in 3D NAND Flash
 
-> **EUROSYS 2026** · `cluster/reliability` · Source: [ColdCode - Cold Data Encoding for Enhanced Reliability and Lifetime in 3D NAND Flash.pdf](ColdCode%20-%20Cold%20Data%20Encoding%20for%20Enhanced%20Reliability%20and%20Lifetime%20in%203D%20NAND%20Flash.pdf)
+> **EUROSYS 2026** · `cluster/reliability` · Source: [ColdCode - Cold Data Encoding for Enhanced Reliability and Lifetime in 3D NAND Flash.pdf](<ColdCode - Cold Data Encoding for Enhanced Reliability and Lifetime in 3D NAND Flash.pdf>)
 
 저자: Qiao Li\*, Shangyu Wu\* (MBZUAI), Zheng Wan (Xiamen Univ.), Yufei Cui (McGill), Jie Zhang (Peking Univ., 교신저자), Chun Jason Xue (MBZUAI). (\* 공동 1저자)
 

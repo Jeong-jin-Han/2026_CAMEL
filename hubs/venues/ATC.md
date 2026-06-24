@@ -8,6 +8,10 @@ tags: [meta/hub, hub/venue]
 USENIX Annual Technical Conference.
 
 ## Papers (this wiki)
-- [[HotRAP]] — 2025, hot record retention/promotion for LSM-trees
 
-> 26S-list의 다른 ATC 논문은 arXiv preprint 미확인 → 추적: `tmp/batch2_tracker.md`.
+- [[DecouKV]] — ATC 2025
+- [[HotRAP]] — ATC 2025
+- [[Z-LFS]] — ATC 2025
+- [[Ethane]] — ATC 2024
+- [[FastCommit]] — ATC 2024
+- [[ScalaAFA]] — ATC 2024

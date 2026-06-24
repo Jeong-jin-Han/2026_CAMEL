@@ -1,6 +1,6 @@
 ---
 title: "Achieving Low-Latency Graph-Based Vector Search via Aligning Best-First Search Algorithm with SSD"
-aliases: [Graph-Based Vector Search OSDI25, PipeANN, PipeSearch]
+aliases: [PipeANN, Graph-Based Vector Search OSDI25]
 description: "Best-first search를 SSD I/O 특성과 정렬해 compute-I/O를 겹치고 I/O 파이프라인 활용도를 높여 on-disk graph-based ANNS의 지연을 낮추는 시스템 PipeANN."
 venue: OSDI
 year: 2025

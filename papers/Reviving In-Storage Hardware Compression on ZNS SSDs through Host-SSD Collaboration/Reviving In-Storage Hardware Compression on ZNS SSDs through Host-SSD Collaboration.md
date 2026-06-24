@@ -1,6 +1,6 @@
 ---
 title: "Reviving In-Storage Hardware Compression on ZNS SSDs through Host-SSD Collaboration"
-aliases: [Reviving In-Storage Hardware, CCZNS]
+aliases: [CCZNS, Reviving ZNS Compression]
 description: "ZNS SSD에서 압축 실행은 SSD에 두고 인덱싱은 호스트로 분리하는 host-SSD 협력형 압축 인터페이스(CCZNS) 설계"
 venue: HPCA
 year: 2025
@@ -18,7 +18,7 @@ tags:
 
 # Reviving In-Storage Hardware Compression on ZNS SSDs through Host-SSD Collaboration
 
-> **HPCA 2025** · `cluster/zns` · Source: [Reviving In-Storage Hardware Compression on ZNS SSDs through Host-SSD Collaboration.pdf](Reviving%20In-Storage%20Hardware%20Compression%20on%20ZNS%20SSDs%20through%20Host-SSD%20Collaboration.pdf)
+> **HPCA 2025** · `cluster/zns` · Source: [Reviving In-Storage Hardware Compression on ZNS SSDs through Host-SSD Collaboration.pdf](<Reviving In-Storage Hardware Compression on ZNS SSDs through Host-SSD Collaboration.pdf>)
 
 저자: Yingjia Wang, Tao Lu, Yuhong Liang, Xiang Chen, Ming-Chang Yang (The Chinese University of Hong Kong; DapuStor Corporation)
 

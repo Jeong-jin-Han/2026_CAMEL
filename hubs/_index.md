@@ -46,8 +46,9 @@ SSD-list 논문 위키의 마스터 진입점. 다축(토픽·학회·연도)으
 - [[Communication Tax]] — *Compute Can't Handle the Truth* (Myoungsoo Jung, Panmnesia Tech Report, arXiv 2507.07223). communication tax → CXL composable → CXL-over-XLink. **발표 4편을 관통하는 상위 맥락.**
 
 ## 진행 현황
-- **SSD-list 75편 전체 위키 등재 완료** = deep **18** (mine 4 + 배치① 5 + 배치② 7 + 추가 2) + stub **57**
-- 추가 deep (사용자 PDF 제공분): [[Achieving Low-Latency Graph-Based Vector Search via Aligning Best-First Search Algorithm with SSD]] (PipeANN, OSDI'25) · [[AegonKV]] (FAST'25)
-- insights: 1 / concepts: CXL 9
-- stub 59편 = arXiv 미공개 → 메타데이터·cluster·허브 링크만, **PDF 확보 시 deep 승격**
+- 🎉 **SSD-list 75편 전부 deep 정독·노트 완료** (deep 75 / stub 0)
+  - mine 4 + arXiv 자동 확보분 + 사용자 PDF 제공분(나머지 전부)
+  - 모든 노트: 한국어 본문 + 원문 영어 인용 + 접이식 토글 + Q&A 자가점검
+- insights: 1 ([[Communication Tax]]) / concepts: CXL 9
 - 추적: `tmp/batch36_tracker.md` · `tmp/batch2_tracker.md`
+- (참고) 허브의 curated "## Papers" 목록은 일부만 나열 — 나머지는 각 논문→허브 wikilink로 그래프·backlink에 자동 연결됨

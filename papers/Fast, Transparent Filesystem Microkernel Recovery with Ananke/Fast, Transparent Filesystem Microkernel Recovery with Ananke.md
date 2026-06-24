@@ -1,6 +1,6 @@
 ---
 title: "Fast, Transparent Filesystem Microkernel Recovery with Ananke"
-aliases: [Fast, Transparent Filesystem]
+aliases: [Ananke]
 description: "마이크로커널 파일시스템 프로세스 크래시(p-crash)를 p-log + AIM으로 투명·고속 복구해 애플리케이션이 손실 없이 계속 실행되게 하는 시스템 Ananke"
 venue: FAST
 year: 2025
@@ -18,7 +18,7 @@ tags:
 
 # Fast, Transparent Filesystem Microkernel Recovery with Ananke
 
-> **FAST 2025** · `cluster/fs` · Source: [Fast, Transparent Filesystem Microkernel Recovery with Ananke.pdf](Fast,%20Transparent%20Filesystem%20Microkernel%20Recovery%20with%20Ananke.pdf)
+> **FAST 2025** · `cluster/fs` · Source: [Fast, Transparent Filesystem Microkernel Recovery with Ananke.pdf](<Fast, Transparent Filesystem Microkernel Recovery with Ananke.pdf>)
 
 저자: Jing Liu (Microsoft Research), Yifan Dai, Andrea C. Arpaci-Dusseau, Remzi H. Arpaci-Dusseau (University of Wisconsin–Madison)
 

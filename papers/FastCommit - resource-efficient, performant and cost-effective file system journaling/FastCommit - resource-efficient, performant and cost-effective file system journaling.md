@@ -17,7 +17,7 @@ tags:
 
 # FastCommit: resource-efficient, performant and cost-effective file system journaling
 
-> **ATC 2024** · `cluster/fs` · Source: [FastCommit - resource-efficient, performant and cost-effective file system journaling.pdf](FastCommit%20-%20resource-efficient,%20performant%20and%20cost-effective%20file%20system%20journaling.pdf)
+> **ATC 2024** · `cluster/fs` · Source: [FastCommit - resource-efficient, performant and cost-effective file system journaling.pdf](<FastCommit - resource-efficient, performant and cost-effective file system journaling.pdf>)
 > 저자: Harshad Shirwadkar, Saurabh Kadekodi, Theodore Tso (Google)
 
 ## TL;DR

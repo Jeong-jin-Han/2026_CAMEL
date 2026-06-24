@@ -18,7 +18,7 @@ tags:
 
 # AiF: Accelerating On-Device LLM Inference Using In-Flash Processing
 
-> **ISCA 2025** · `cluster/isc` · Source: [AiF - Accelerating On-Device LLM Inference Using In-Flash Processing.pdf](AiF%20-%20Accelerating%20On-Device%20LLM%20Inference%20Using%20In-Flash%20Processing.pdf)
+> **ISCA 2025** · `cluster/isc` · Source: [AiF - Accelerating On-Device LLM Inference Using In-Flash Processing.pdf](<AiF - Accelerating On-Device LLM Inference Using In-Flash Processing.pdf>)
 
 저자: Jaeyong Lee, Hyeunjoo Kim, Sanghun Oh, Jihong Kim (Seoul National University), Myoungjun Chun (Soongsil University), Myungsuk Kim (Kyungpook National University). 교신저자: Jihong Kim.
 

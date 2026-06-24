@@ -20,7 +20,7 @@ tags:
 
 # InstAttention: In-Storage Attention Offloading for Cost-Effective Long-Context LLM Inference
 
-> **HPCA 2025** · cluster/isc · arXiv명 InstInfer · Source: [InstAttention - In-Storage Attention Offloading for Cost-Effective Long-Context LLM Inference.pdf](InstAttention%20-%20In-Storage%20Attention%20Offloading%20for%20Cost-Effective%20Long-Context%20LLM%20Inference.pdf)
+> **HPCA 2025** · cluster/isc · arXiv명 InstInfer · Source: [InstAttention - In-Storage Attention Offloading for Cost-Effective Long-Context LLM Inference.pdf](<InstAttention - In-Storage Attention Offloading for Cost-Effective Long-Context LLM Inference.pdf>)
 
 **저자:** Xiurui Pan, Endian Li, Qiao Li, Shengwen Liang, Yizhou Shan, Ke Zhou, Yingwei Luo, Xiaolin Wang, Jie Zhang
 (Peking University, Xiamen University, ICT/CAS, Huawei Cloud, Wuhan National Laboratory for Optoelectronics / HUST — Computer Hardware and System Evolution Laboratory)

@@ -18,7 +18,7 @@ tags:
 
 # DJFS: Directory-Granularity Filesystem Journaling for CMM-H SSDs
 
-> **FAST 2025** · `cluster/cxl` · Source: [DJFS - Directory-Granularity Filesystem Journaling for CMM-H SSDs.pdf](DJFS%20-%20Directory-Granularity%20Filesystem%20Journaling%20for%20CMM-H%20SSDs.pdf)
+> **FAST 2025** · `cluster/cxl` · Source: [DJFS - Directory-Granularity Filesystem Journaling for CMM-H SSDs.pdf](<DJFS - Directory-Granularity Filesystem Journaling for CMM-H SSDs.pdf>)
 
 저자: Seung Won Yoo, Myeongin Cheon, Bonmoo Koo, Youjip Won (KAIST); Joontaek Oh (University of Wisconsin–Madison); Wonseb Jeong, Hyunsub Song, Hyeonho Song, Donghun Lee (Samsung Electronics)
 

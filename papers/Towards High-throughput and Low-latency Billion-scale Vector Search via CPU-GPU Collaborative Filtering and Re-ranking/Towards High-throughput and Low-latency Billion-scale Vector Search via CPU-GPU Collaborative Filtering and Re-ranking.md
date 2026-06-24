@@ -1,6 +1,6 @@
 ---
 title: "Towards High-throughput and Low-latency Billion-scale Vector Search via CPU/GPU Collaborative Filtering and Re-ranking"
-aliases: [Towards High-throughput and, FusionANNS]
+aliases: [FusionANNS, Billion-scale Vector Search]
 description: "SSD+엔트리급 GPU 단일 장비로 billion-scale ANNS를 다층 인덱스·CPU/GPU 협력 필터링·휴리스틱 재순위로 고처리량·저지연·고정확·저비용 동시 달성 (FusionANNS)"
 venue: FAST
 year: 2025
@@ -18,7 +18,7 @@ tags:
 
 # Towards High-throughput and Low-latency Billion-scale Vector Search via CPU/GPU Collaborative Filtering and Re-ranking
 
-> **FAST 2025** · `cluster/search` · Source: [Towards High-throughput and Low-latency Billion-scale Vector Search via CPU-GPU Collaborative Filtering and Re-ranking.pdf](Towards%20High-throughput%20and%20Low-latency%20Billion-scale%20Vector%20Search%20via%20CPU-GPU%20Collaborative%20Filtering%20and%20Re-ranking.pdf)
+> **FAST 2025** · `cluster/search` · Source: [Towards High-throughput and Low-latency Billion-scale Vector Search via CPU-GPU Collaborative Filtering and Re-ranking.pdf](<Towards High-throughput and Low-latency Billion-scale Vector Search via CPU-GPU Collaborative Filtering and Re-ranking.pdf>)
 
 **저자**: Bing Tian, Haikun Liu(교신, hkliu@hust.edu.cn), Yuhang Tang, Shihai Xiao, Zhuohui Duan, Xiaofei Liao, Hai Jin, Xuecang Zhang, Junhua Zhu, Yu Zhang — Huazhong University of Science and Technology (HUST) & Huawei Technologies
 

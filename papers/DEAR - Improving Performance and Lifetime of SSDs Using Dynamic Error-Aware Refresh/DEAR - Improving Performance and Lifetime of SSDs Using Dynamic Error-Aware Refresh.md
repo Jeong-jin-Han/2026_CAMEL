@@ -18,7 +18,7 @@ tags:
 
 # DEAR: Improving Performance and Lifetime of SSDs Using Dynamic Error-Aware Refresh
 
-> **MICRO 2025** · `cluster/reliability` · Source: [DEAR - Improving Performance and Lifetime of SSDs Using Dynamic Error-Aware Refresh.pdf](DEAR%20-%20Improving%20Performance%20and%20Lifetime%20of%20SSDs%20Using%20Dynamic%20Error-Aware%20Refresh.pdf)
+> **MICRO 2025** · `cluster/reliability` · Source: [DEAR - Improving Performance and Lifetime of SSDs Using Dynamic Error-Aware Refresh.pdf](<DEAR - Improving Performance and Lifetime of SSDs Using Dynamic Error-Aware Refresh.pdf>)
 
 **저자**: Jaeyong Lee (Seoul National University), Beomjun Kim (Kyungpook National University), Myoungjun Chun (Soongsil University), Myungsuk Kim (Kyungpook National University), Jihong Kim (Seoul National University). 교신저자: Jihong Kim, Myungsuk Kim.
 

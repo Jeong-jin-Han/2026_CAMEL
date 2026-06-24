@@ -17,7 +17,7 @@ tags:
 
 # D2FS: Device-Driven Filesystem Garbage Collection
 
-> **FAST 2025** · `cluster/fs` · Source: [D2FS - Device-Driven Filesystem Garbage Collection.pdf](D2FS%20-%20Device-Driven%20Filesystem%20Garbage%20Collection.pdf)
+> **FAST 2025** · `cluster/fs` · Source: [D2FS - Device-Driven Filesystem Garbage Collection.pdf](<D2FS - Device-Driven Filesystem Garbage Collection.pdf>)
 
 저자: Juwon Kim, Seungjae Lee (KAIST), Joontaek Oh (Univ. of Wisconsin–Madison), Dongkun Shin (Sungkyunkwan Univ.), Youjip Won (KAIST)
 

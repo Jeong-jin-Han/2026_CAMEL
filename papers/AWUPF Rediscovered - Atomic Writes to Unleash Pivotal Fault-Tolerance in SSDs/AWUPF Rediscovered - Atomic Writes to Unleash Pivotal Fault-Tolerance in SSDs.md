@@ -18,7 +18,7 @@ tags:
 
 # AWUPF Rediscovered: Atomic Writes to Unleash Pivotal Fault-Tolerance in SSDs
 
-> **FAST 2025** · `cluster/fs` · Source: [AWUPF Rediscovered - Atomic Writes to Unleash Pivotal Fault-Tolerance in SSDs.pdf](AWUPF%20Rediscovered%20-%20Atomic%20Writes%20to%20Unleash%20Pivotal%20Fault-Tolerance%20in%20SSDs.pdf)
+> **FAST 2025** · `cluster/fs` · Source: [AWUPF Rediscovered - Atomic Writes to Unleash Pivotal Fault-Tolerance in SSDs.pdf](<AWUPF Rediscovered - Atomic Writes to Unleash Pivotal Fault-Tolerance in SSDs.pdf>)
 
 저자: Jiyune Jeon, Jongseok Kim (Sungkyunkwan University); Sam H. Noh (Virginia Tech); Euiseong Seo (Sungkyunkwan University)
 

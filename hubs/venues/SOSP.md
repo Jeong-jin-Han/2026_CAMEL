@@ -8,5 +8,6 @@ tags: [meta/hub, hub/venue]
 ACM Symposium on Operating Systems Principles.
 
 ## Papers (this wiki)
-- [[Sleeping with One Eye Open - Fast, Sustainable Storage with Sandman]] — 2025 *(stub)*
-- [[BIZA]] — 2024 *(stub)*
+
+- [[Sleeping with One Eye Open]] — SOSP 2025
+- [[BIZA]] — SOSP 2024

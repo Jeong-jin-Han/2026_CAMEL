@@ -17,7 +17,7 @@ tags:
 
 # Cheetah: Metadata Aggregation for Fast Object Storage without Distributed Ordering
 
-> **Eurosys 2025** · `cluster/fs` · Source: [Cheetah - Metadata Aggregation for Fast Object Storage without Distributed Ordering.pdf](Cheetah%20-%20Metadata%20Aggregation%20for%20Fast%20Object%20Storage%20without%20Distributed%20Ordering.pdf)
+> **Eurosys 2025** · `cluster/fs` · Source: [Cheetah - Metadata Aggregation for Fast Object Storage without Distributed Ordering.pdf](<Cheetah - Metadata Aggregation for Fast Object Storage without Distributed Ordering.pdf>)
 
 저자: Yiming Zhang (Shanghai Key Lab / NICE XLab, XMU), Li Wang (KylinSoft), Shengyun Liu (SJTU), Shun Gai · Haonan Wang (NICE XLab), Xin Yao · Meiling Wang (Huawei Theory Lab), Kai Chen (HKUST), Dongsheng Li (NUDT), Jiwu Shu (Tsinghua University) · (corresponding: Yiming Zhang)
 

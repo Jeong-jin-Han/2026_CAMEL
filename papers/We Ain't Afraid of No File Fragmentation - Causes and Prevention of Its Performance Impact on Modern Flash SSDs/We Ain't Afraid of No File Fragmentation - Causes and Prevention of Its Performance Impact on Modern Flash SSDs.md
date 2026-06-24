@@ -1,6 +1,6 @@
 ---
 title: "We Ain't Afraid of No File Fragmentation: Causes and Prevention of Its Performance Impact on Modern Flash SSDs"
-aliases: [We Ain't Afraid of No File Fragmentation]
+aliases: [No File Fragmentation]
 description: "Flash SSD에서 파일 단편화의 read 성능 저하 진짜 원인은 request splitting이 아니라 die-level collision이며, NVMe 확장+page-to-die 매핑으로 defrag 없이 해결"
 venue: FAST
 year: 2024
@@ -17,7 +17,7 @@ tags:
 
 # We Ain't Afraid of No File Fragmentation: Causes and Prevention of Its Performance Impact on Modern Flash SSDs
 
-> **FAST 2024** · `cluster/fs` · Source: [We Ain't Afraid of No File Fragmentation - Causes and Prevention of Its Performance Impact on Modern Flash SSDs.pdf](We%20Ain't%20Afraid%20of%20No%20File%20Fragmentation%20-%20Causes%20and%20Prevention%20of%20Its%20Performance%20Impact%20on%20Modern%20Flash%20SSDs.pdf)
+> **FAST 2024** · `cluster/fs` · Source: [We Ain't Afraid of No File Fragmentation - Causes and Prevention of Its Performance Impact on Modern Flash SSDs.pdf](<We Ain't Afraid of No File Fragmentation - Causes and Prevention of Its Performance Impact on Modern Flash SSDs.pdf>)
 
 저자: Yuhun Jun (Sungkyunkwan Univ. / Samsung Electronics), Shinhyun Park (Sungkyunkwan Univ.), Jeong-Uk Kang (Samsung Electronics), Sang-Hoon Kim (Ajou Univ.), Euiseong Seo (Sungkyunkwan Univ., 교신저자)
 

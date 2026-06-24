@@ -17,7 +17,7 @@ tags:
 
 # N-DIPPER: A Distributed Inter-die Peak Power Management Network for NAND Systems
 
-> **HPCA 2026** · `cluster/reliability` · Source: [N-DIPPER - A Distributed Inter-die Peak Power Management Network for NAND Systems.pdf](N-DIPPER%20-%20A%20Distributed%20Inter-die%20Peak%20Power%20Management%20Network%20for%20NAND%20Systems.pdf)
+> **HPCA 2026** · `cluster/reliability` · Source: [N-DIPPER - A Distributed Inter-die Peak Power Management Network for NAND Systems.pdf](<N-DIPPER - A Distributed Inter-die Peak Power Management Network for NAND Systems.pdf>)
 
 저자: Jinwoo Park, John Kim (KAIST)
 

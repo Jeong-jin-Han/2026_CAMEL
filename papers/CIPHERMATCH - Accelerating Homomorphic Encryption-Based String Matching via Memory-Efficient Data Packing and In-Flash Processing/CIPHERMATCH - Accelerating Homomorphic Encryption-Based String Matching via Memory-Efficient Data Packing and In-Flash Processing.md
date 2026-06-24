@@ -19,7 +19,7 @@ tags:
 
 # CIPHERMATCH: Accelerating Homomorphic Encryption-Based String Matching via Memory-Efficient Data Packing and In-Flash Processing
 
-> **ASPLOS 2025** · cluster/isc · Source: [CIPHERMATCH ….pdf](<CIPHERMATCH - Accelerating Homomorphic Encryption-Based String Matching via Memory-Efficient Data Packing and In-Flash Processing.pdf>)
+> **ASPLOS 2025** · cluster/isc · Source: [CIPHERMATCH ….pdf](<CIPHERMATCH ….pdf>)
 
 저자: Mayank Kabra, Rakesh Nadig, Harshita Gupta, Rahul Bera, Manos Frouzakis, Vamanan Arulchelvan, Yu Liang, Haiyu Mao, Mohammad Sadrosadati, Onur Mutlu (ETH Zurich, King's College London)
 

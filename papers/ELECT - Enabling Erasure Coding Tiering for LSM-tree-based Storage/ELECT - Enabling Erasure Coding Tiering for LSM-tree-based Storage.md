@@ -18,7 +18,7 @@ tags:
 
 # ELECT: Enabling Erasure Coding Tiering for LSM-tree-based Storage
 
-> **FAST 2024** · `cluster/kvlsm` · Source: [ELECT - Enabling Erasure Coding Tiering for LSM-tree-based Storage.pdf](ELECT%20-%20Enabling%20Erasure%20Coding%20Tiering%20for%20LSM-tree-based%20Storage.pdf)
+> **FAST 2024** · `cluster/kvlsm` · Source: [ELECT - Enabling Erasure Coding Tiering for LSM-tree-based Storage.pdf](<ELECT - Enabling Erasure Coding Tiering for LSM-tree-based Storage.pdf>)
 
 **저자:** Yanjing Ren, Yuanming Ren (The Chinese University of Hong Kong); Xiaolu Li, Yuchong Hu (Huazhong University of Science and Technology); Jingwei Li (University of Electronic Science and Technology of China, 교신저자); Patrick P. C. Lee (The Chinese University of Hong Kong)
 

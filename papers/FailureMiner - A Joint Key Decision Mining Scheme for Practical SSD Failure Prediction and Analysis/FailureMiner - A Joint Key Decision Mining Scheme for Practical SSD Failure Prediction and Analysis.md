@@ -17,7 +17,7 @@ tags:
 
 # FailureMiner: A Joint Key Decision Mining Scheme for Practical SSD Failure Prediction and Analysis
 
-> **FAST 2026** · `cluster/reliability` · Source: [FailureMiner - A Joint Key Decision Mining Scheme for Practical SSD Failure Prediction and Analysis.pdf](FailureMiner%20-%20A%20Joint%20Key%20Decision%20Mining%20Scheme%20for%20Practical%20SSD%20Failure%20Prediction%20and%20Analysis.pdf)
+> **FAST 2026** · `cluster/reliability` · Source: [FailureMiner - A Joint Key Decision Mining Scheme for Practical SSD Failure Prediction and Analysis.pdf](<FailureMiner - A Joint Key Decision Mining Scheme for Practical SSD Failure Prediction and Analysis.pdf>)
 
 **저자**: Shuyang Wang, Yuqi Zhang, Haonan Luo (Samsung R&D Institute China Xi'an); Kangkang Liu (Tencent); Gil Kim, JongSung Na, Claude Kim, Geunrok Oh, Kyle Choi (Samsung Electronics); Ni Xue, Xing He (Samsung R&D Institute China Xi'an)
 

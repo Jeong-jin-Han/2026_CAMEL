@@ -1,6 +1,6 @@
 ---
 title: "Fast and Synchronous Crash Consistency with Metadata Write-Once File System"
-aliases: [Fast and Synchronous, WOFS, WOLVES]
+aliases: [WOFS, Metadata Write-Once FS]
 description: "파일 연산마다 메타데이터를 체크섬 보호 package로 묶어 단일 ordering point로 한 번만 쓰는 metadata write-once 파일 시스템(WOFS/WOLVES)으로 PM에서 빠르고 동기적인 crash consistency 달성"
 venue: OSDI
 year: 2025
@@ -18,7 +18,7 @@ tags:
 
 # Fast and Synchronous Crash Consistency with Metadata Write-Once File System
 
-> **OSDI 2025** · `cluster/fs` · Source: [Fast and Synchronous Crash Consistency with Metadata Write-Once File System.pdf](Fast and Synchronous Crash Consistency with Metadata Write-Once File System.pdf)
+> **OSDI 2025** · `cluster/fs` · Source: [Fast and Synchronous Crash Consistency with Metadata Write-Once File System.pdf](<Fast and Synchronous Crash Consistency with Metadata Write-Once File System.pdf>)
 
 저자: Yanqi Pan, Wen Xia(교신저자), Yifeng Zhang, Xiangyu Zou, Hao Huang (Harbin Institute of Technology, Shenzhen) · Zhenhua Li (Tsinghua University) · Chentao Wu (Shanghai Jiao Tong University)
 

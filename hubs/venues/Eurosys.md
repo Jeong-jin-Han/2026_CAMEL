@@ -8,6 +8,10 @@ tags: [meta/hub, hub/venue]
 European Conference on Computer Systems.
 
 ## Papers (this wiki)
-- [[Flash Caches FDP]] — 2025, flash cache on NVMe FDP SSDs
 
-> 다른 EuroSys 논문은 arXiv preprint 미확인 → 추적: `tmp/batch2_tracker.md`.
+- [[ColdCode]] — Eurosys 2026
+- [[FastDelta]] — Eurosys 2026
+- [[Cheetah]] — Eurosys 2025
+- [[Flash Caches FDP]] — Eurosys 2025
+- [[Heimdall]] — Eurosys 2025
+- [[Pre-Stores]] — Eurosys 2025

@@ -18,7 +18,7 @@ tags:
 
 # Zebra: Efficient Redundant Array of Zoned Namespace SSDs Enabled by Zone Random Write Area (ZRWA)
 
-> **HPCA 2025** · `cluster/zns` · Source: [Zebra - Efficient Redundant Array of Zoned Namespace SSDs Enabled by Zone Random Write Area (ZRWA).pdf](Zebra%20-%20Efficient%20Redundant%20Array%20of%20Zoned%20Namespace%20SSDs%20Enabled%20by%20Zone%20Random%20Write%20Area%20(ZRWA).pdf)
+> **HPCA 2025** · `cluster/zns` · Source: [Zebra - Efficient Redundant Array of Zoned Namespace SSDs Enabled by Zone Random Write Area (ZRWA).pdf](<Zebra - Efficient Redundant Array of Zoned Namespace SSDs Enabled by Zone Random Write Area (ZRWA).pdf>)
 
 저자: Tianyang Jiang (Huawei), Guangyan Zhang† (Tsinghua University, BNRist), Xiaojian Liao (Beihang University), Yuqi Zhou (China University of Geosciences). †교신저자.
 

@@ -17,7 +17,7 @@ tags:
 
 # DNA data storage: A generative tool for Motif-based DNA storage
 
-> **FAST 2025** · `cluster/infra` · Source: [DNA data storage - A generative tool for Motif-based DNA storage.pdf](DNA%20data%20storage%20-%20A%20generative%20tool%20for%20Motif-based%20DNA%20storage.pdf)
+> **FAST 2025** · `cluster/infra` · Source: [DNA data storage - A generative tool for Motif-based DNA storage.pdf](<DNA data storage - A generative tool for Motif-based DNA storage.pdf>)
 
 저자: Samira Brunmayr, Omer S. Sella, Thomas Heinis (Imperial College London)
 

@@ -17,7 +17,7 @@ tags:
 
 # Midas Touch: Invalid-Data Assisted Reliability and Performance Boost for 3D High-Density Flash
 
-> **HPCA 2024** · `cluster/reliability` · Source: [Midas Touch - Invalid-Data Assisted Reliability and Performance Boost for 3d High-Density Flash.pdf](Midas Touch - Invalid-Data Assisted Reliability and Performance Boost for 3d High-Density Flash.pdf)
+> **HPCA 2024** · `cluster/reliability` · Source: [Midas Touch - Invalid-Data Assisted Reliability and Performance Boost for 3d High-Density Flash.pdf](<Midas Touch - Invalid-Data Assisted Reliability and Performance Boost for 3d High-Density Flash.pdf>)
 
 저자: Qiao Li, Hongyang Dang, Zheng Wan, Congming Gao(교신저자), Min Ye, Jie Zhang, Tei-Wei Kuo, Chun Jason Xue — Xiamen University, City University of Hong Kong, Peking University, National Taiwan University, MBZUAI
 

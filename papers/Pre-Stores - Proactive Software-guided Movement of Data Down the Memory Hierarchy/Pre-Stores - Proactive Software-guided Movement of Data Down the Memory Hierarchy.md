@@ -17,7 +17,7 @@ tags:
 
 # Pre-Stores: Proactive Software-guided Movement of Data Down the Memory Hierarchy
 
-> **EuroSys 2025** · `cluster/cxl` · Source: [Pre-Stores - Proactive Software-guided Movement of Data Down the Memory Hierarchy.pdf](Pre-Stores%20-%20Proactive%20Software-guided%20Movement%20of%20Data%20Down%20the%20Memory%20Hierarchy.pdf)
+> **EuroSys 2025** · `cluster/cxl` · Source: [Pre-Stores - Proactive Software-guided Movement of Data Down the Memory Hierarchy.pdf](<Pre-Stores - Proactive Software-guided Movement of Data Down the Memory Hierarchy.pdf>)
 
 **저자:** Xiaoxiang Wu (University of Sydney) · Baptiste Lepers (Inria, Grenoble / University of Neuchâtel) · Willy Zwaenepoel (University of Sydney)
 

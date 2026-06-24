@@ -18,7 +18,7 @@ tags:
 
 # Lincoln: Real-Time 50~100B LLM Inference on Consumer Devices with LPDDR-Interfaced, Compute-Enabled Flash Memory
 
-> **HPCA 2025** · `cluster/isc` · Source: [Lincoln - Real-Time 50~100B LLM Inference on Consumer Devices with LPDDR-Interfaced, Compute-Enabled Flash Memory.pdf](Lincoln%20-%20Real-Time%2050~100B%20LLM%20Inference%20on%20Consumer%20Devices%20with%20LPDDR-Interfaced,%20Compute-Enabled%20Flash%20Memory.pdf)
+> **HPCA 2025** · `cluster/isc` · Source: [Lincoln - Real-Time 50~100B LLM Inference on Consumer Devices with LPDDR-Interfaced, Compute-Enabled Flash Memory.pdf](<Lincoln - Real-Time 50~100B LLM Inference on Consumer Devices with LPDDR-Interfaced, Compute-Enabled Flash Memory.pdf>)
 
 **저자**: Weiyi Sun, Mingyu Gao, Zhaoshi Li, Aoyang Zhang, Iris Ying Chou, Jianfeng Zhu, Shaojun Wei, Leibo Liu (Tsinghua University / BNRist / Institute for Interdisciplinary Information Sciences / Shanghai Qi Zhi Institute / MetaX Technology). 교신저자: Leibo Liu, Jianfeng Zhu.
 

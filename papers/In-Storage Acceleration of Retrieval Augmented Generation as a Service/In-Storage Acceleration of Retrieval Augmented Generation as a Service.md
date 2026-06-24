@@ -1,6 +1,6 @@
 ---
 title: "In-Storage Acceleration of Retrieval Augmented Generation as a Service"
-aliases: [In-Storage Acceleration of]
+aliases: [RAGX, In-Storage RAG]
 description: "RAG 서비스의 병목인 Search & Retrieval을 SSD 내부의 형태변환(metamorphic) 가속기 RAGX로 가속해 NVMe/GPU 대비 최대 4.3x/1.5x end-to-end 처리량을 달성한 ISCA 2025 논문."
 venue: ISCA
 year: 2025
@@ -18,7 +18,7 @@ tags:
 
 # In-Storage Acceleration of Retrieval Augmented Generation as a Service
 
-> **ISCA 2025** · `cluster/isc` · Source: [In-Storage Acceleration of Retrieval Augmented Generation as a Service.pdf](In-Storage%20Acceleration%20of%20Retrieval%20Augmented%20Generation%20as%20a%20Service.pdf)
+> **ISCA 2025** · `cluster/isc` · Source: [In-Storage Acceleration of Retrieval Augmented Generation as a Service.pdf](<In-Storage Acceleration of Retrieval Augmented Generation as a Service.pdf>)
 
 저자: Rohan Mahapatra, Harsha Santhanam, Christopher Priebe, Hanyang Xu, Hadi Esmaeilzadeh (University of California San Diego)
 

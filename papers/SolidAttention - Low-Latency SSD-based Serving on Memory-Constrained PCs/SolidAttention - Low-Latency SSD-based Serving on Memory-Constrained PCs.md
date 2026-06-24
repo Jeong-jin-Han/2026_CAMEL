@@ -18,7 +18,7 @@ tags:
 
 # SolidAttention: Low-Latency SSD-based Serving on Memory-Constrained PCs
 
-> **FAST 2026** · `cluster/llm` · Source: [SolidAttention - Low-Latency SSD-based Serving on Memory-Constrained PCs.pdf](SolidAttention%20-%20Low-Latency%20SSD-based%20Serving%20on%20Memory-Constrained%20PCs.pdf)
+> **FAST 2026** · `cluster/llm` · Source: [SolidAttention - Low-Latency SSD-based Serving on Memory-Constrained PCs.pdf](<SolidAttention - Low-Latency SSD-based Serving on Memory-Constrained PCs.pdf>)
 
 저자: Xinrui Zheng, Dongliang Wei, Jianxiang Gao, Yixin Song, Zeyu Mi, Haibo Chen — Institute of Parallel and Distributed Systems (IPADS), Shanghai Jiao Tong University
 

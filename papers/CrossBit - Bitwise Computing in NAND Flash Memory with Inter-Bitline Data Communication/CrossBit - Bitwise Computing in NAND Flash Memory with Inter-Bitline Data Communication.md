@@ -17,7 +17,7 @@ tags:
 
 # CrossBit: Bitwise Computing in NAND Flash Memory with Inter-Bitline Data Communication
 
-> **MICRO 2025** · `cluster/isc` · Source: [CrossBit - Bitwise Computing in NAND Flash Memory with Inter-Bitline Data Communication.pdf](CrossBit%20-%20Bitwise%20Computing%20in%20NAND%20Flash%20Memory%20with%20Inter-Bitline%20Data%20Communication.pdf)
+> **MICRO 2025** · `cluster/isc` · Source: [CrossBit - Bitwise Computing in NAND Flash Memory with Inter-Bitline Data Communication.pdf](<CrossBit - Bitwise Computing in NAND Flash Memory with Inter-Bitline Data Communication.pdf>)
 
 **저자**: Hyunjin Kim, Seunghwan Song, Sukhyun Choi, Jeongin Choe, Sanghyeok Han, Jisung Park, Jinho Lee, Jae-Joon Kim (Seoul National University, Samsung Electronics, POSTECH)
 

@@ -8,7 +8,9 @@ tags: [meta/hub, hub/venue]
 International Symposium on Computer Architecture.
 
 ## Papers (this wiki)
-- [[XHarvest]] — 2025
-- [[Venice]] — 2023, SSD parallelism via conflict-free accesses
 
-> Pass 1에서 나머지 ISCA 논문 추가 예정 (AiF, ArtMem, In-Storage RAG, Venice 등).
+- [[AiF]] — ISCA 2025
+- [[ArtMem]] — ISCA 2025
+- [[RAGX]] — ISCA 2025
+- [[XHarvest]] — ISCA 2025 🟡
+- [[Venice]] — ISCA 2023

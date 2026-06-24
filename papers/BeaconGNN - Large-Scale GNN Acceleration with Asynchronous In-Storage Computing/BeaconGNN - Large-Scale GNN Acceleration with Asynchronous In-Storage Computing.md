@@ -17,7 +17,7 @@ tags:
 
 # BeaconGNN: Large-Scale GNN Acceleration with Out-of-Order Streaming In-Storage Computing
 
-> **HPCA 2024** · `cluster/isc` · Source: [BeaconGNN - Large-Scale GNN Acceleration with Asynchronous In-Storage Computing.pdf](BeaconGNN%20-%20Large-Scale%20GNN%20Acceleration%20with%20Asynchronous%20In-Storage%20Computing.pdf)
+> **HPCA 2024** · `cluster/isc` · Source: [BeaconGNN - Large-Scale GNN Acceleration with Asynchronous In-Storage Computing.pdf](<BeaconGNN - Large-Scale GNN Acceleration with Asynchronous In-Storage Computing.pdf>)
 
 저자: Yuyue Wang¹, Xiurui Pan², Yuda An², Jie Zhang²† (교신), Glenn Reinman¹† (교신) — ¹UCLA, ²Peking University
 

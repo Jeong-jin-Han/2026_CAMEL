@@ -18,7 +18,7 @@ tags:
 
 # Ethane: An Asymmetric File System for Disaggregated Persistent Memory
 
-> **ATC 2024** · `cluster/fs` · Source: [Ethane - An Asymmetric File System for Disaggregated Persistent Memory.pdf](Ethane%20-%20An%20Asymmetric%20File%20System%20for%20Disaggregated%20Persistent%20Memory.pdf)
+> **ATC 2024** · `cluster/fs` · Source: [Ethane - An Asymmetric File System for Disaggregated Persistent Memory.pdf](<Ethane - An Asymmetric File System for Disaggregated Persistent Memory.pdf>)
 
 저자: Miao Cai (Nanjing University of Aeronautics and Astronautics), Junru Shen (Hohai University), Baoliu Ye (State Key Laboratory for Novel Software Technology, Nanjing University)
 

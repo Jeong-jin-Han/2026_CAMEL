@@ -8,10 +8,20 @@ tags: [meta/hub, hub/venue]
 IEEE International Symposium on High-Performance Computer Architecture.
 
 ## Papers (this wiki)
-- [[SkyByte]] — 2025
-- [[InstAttention]] — 2025
-- [[Conduit]] — 2026
-- [[Smart-Infinity]] — 2024
-- [[DockerSSD]] — 2024
 
-> Pass 1에서 26S-list의 나머지 HPCA 논문 추가 예정 (Conduit, N-DIPPER, Lincoln, InstAttention, PIMnet, Zebra, NVMePass, Reviving ZNS Compression, LightPool, Midas Touch, RiF, DockerSSD, BeaconGNN, OptimStore 등).
+- [[Conduit]] — HPCA 2026
+- [[N-DIPPER]] — HPCA 2026
+- [[CCZNS]] — HPCA 2025
+- [[InstAttention]] — HPCA 2025
+- [[Lincoln]] — HPCA 2025
+- [[NVMePass]] — HPCA 2025
+- [[PIMnet]] — HPCA 2025
+- [[SkyByte]] — HPCA 2025 🟡
+- [[Zebra]] — HPCA 2025
+- [[BeaconGNN]] — HPCA 2024
+- [[DockerSSD]] — HPCA 2024
+- [[LightPool]] — HPCA 2024
+- [[Midas Touch]] — HPCA 2024
+- [[RiF]] — HPCA 2024
+- [[Smart-Infinity]] — HPCA 2024 🟡
+- [[OptimStore]] — HPCA 2023

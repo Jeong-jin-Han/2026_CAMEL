@@ -18,7 +18,7 @@ tags:
 
 # Getting the MOST out of your Storage Hierarchy with Mirror-Optimized Storage Tiering
 
-> **FAST 2026** · cluster/fs · Source: [Getting the MOST out of your Storage Hierarchy with Mirror-Optimized Storage Tiering.pdf](Getting%20the%20MOST%20out%20of%20your%20Storage%20Hierarchy%20with%20Mirror-Optimized%20Storage%20Tiering.pdf)
+> **FAST 2026** · cluster/fs · Source: [Getting the MOST out of your Storage Hierarchy with Mirror-Optimized Storage Tiering.pdf](<Getting the MOST out of your Storage Hierarchy with Mirror-Optimized Storage Tiering.pdf>)
 
 **저자:** Kaiwei Tu, Kan Wu (Google), Andrea C. Arpaci-Dusseau, Remzi H. Arpaci-Dusseau — University of Wisconsin–Madison, †Google
 

@@ -8,12 +8,13 @@ tags: [meta/hub, hub/topic]
 Zoned Namespace SSD · zoned storage · zone 관리 계열.
 
 ## Papers
-- [[Unleashing Zoned UFS]] — FAST'26 *(stub)*
-- [[Zebra]] — HPCA'25, ZNS redundant array (ZRWA) *(stub)*
-- [[Reviving In-Storage Hardware Compression on ZNS SSDs through Host-SSD Collaboration]] — HPCA'25 *(stub)*
-- [[Z-LFS]] — ATC'25, ZNS-tailored LFS *(stub)*
-- [[BIZA]] — SOSP'24, block-interface ZNS AFA *(stub)*
-- [[eZNS]] — OSDI'23, elastic ZNS *(stub)*
+
+- [[Unleashing Zoned UFS]] — FAST 2026
+- [[CCZNS]] — HPCA 2025
+- [[Z-LFS]] — ATC 2025
+- [[Zebra]] — HPCA 2025
+- [[BIZA]] — SOSP 2024
+- [[eZNS]] — OSDI 2023
 
 ## 인접 토픽
 [[File System]] · [[Reliability]]

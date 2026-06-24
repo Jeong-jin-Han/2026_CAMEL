@@ -17,7 +17,7 @@ tags:
 
 # Ares-Flash: Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory
 
-> **MICRO 2024** · `cluster/isc` · Source: [Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory.pdf](Ares-Flash%20-%20Efficient%20Parallel%20Integer%20Arithmetic%20Operations%20Using%20NAND%20Flash%20Memory.pdf)
+> **MICRO 2024** · `cluster/isc` · Source: [Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory.pdf](<Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory.pdf>)
 
 저자: Jian Chen (Tsinghua), Congming Gao (Xiamen, 교신), Youyou Lu (Tsinghua), Yuhao Zhang (Tsinghua), Jiwu Shu (Tsinghua, 교신)
 

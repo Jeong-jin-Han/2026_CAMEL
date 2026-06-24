@@ -17,7 +17,7 @@ tags:
 
 # BABOL: A Software-Defined NAND Flash Controller
 
-> **MICRO 2024** · `cluster/reliability` · Source: [BABOL - A Software-Defined NAND Flash Controller.pdf](BABOL%20-%20A%20Software-Defined%20NAND%20Flash%20Controller.pdf)
+> **MICRO 2024** · `cluster/reliability` · Source: [BABOL - A Software-Defined NAND Flash Controller.pdf](<BABOL - A Software-Defined NAND Flash Controller.pdf>)
 
 **저자**: Kibin Park, Alberto Lerner, Sangjin Lee, Philippe Bonnet, Yong Ho Song, Philippe Cudré-Mauroux, Jungwook Choi (Hanyang University, University of Fribourg, University of Copenhagen, Samsung Electronics)
 

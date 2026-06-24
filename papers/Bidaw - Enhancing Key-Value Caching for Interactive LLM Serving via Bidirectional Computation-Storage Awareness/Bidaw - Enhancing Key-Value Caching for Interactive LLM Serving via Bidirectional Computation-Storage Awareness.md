@@ -17,7 +17,7 @@ tags:
 
 # Bidaw: Enhancing Key-Value Caching for Interactive LLM Serving via Bidirectional Computation-Storage Awareness
 
-> **FAST 2026** · `cluster/llm` · Source: [Bidaw - Enhancing Key-Value Caching for Interactive LLM Serving via Bidirectional Computation-Storage Awareness.pdf](Bidaw%20-%20Enhancing%20Key-Value%20Caching%20for%20Interactive%20LLM%20Serving%20via%20Bidirectional%20Computation-Storage%20Awareness.pdf)
+> **FAST 2026** · `cluster/llm` · Source: [Bidaw - Enhancing Key-Value Caching for Interactive LLM Serving via Bidirectional Computation-Storage Awareness.pdf](<Bidaw - Enhancing Key-Value Caching for Interactive LLM Serving via Bidirectional Computation-Storage Awareness.pdf>)
 
 **저자**: Shipeng Hu, Guangyan Zhang (교신, Tsinghua University), Yuqi Zhou (China University of Geosciences Beijing), Yaya Wei, Ziyan Zhong (China Telecom Omni-channel Operation Center), Jike Chen (Tsinghua University)
 

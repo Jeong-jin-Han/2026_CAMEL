@@ -1,6 +1,6 @@
 ---
 title: "Mitigating Resource Usage Dependency in Sorting-based KV Stores on Hybrid Storage Devices via Operation Decoupling"
-aliases: [Mitigating Resource Usage, DecouKV]
+aliases: [DecouKV, Mitigating Resource KV]
 description: "정렬 기반 LSM KV의 flush/compaction을 CPU·I/O 작업으로 decoupling해 hybrid storage에서 자원 의존성과 write stall을 완화하는 DecouKV (ATC 2025)"
 venue: ATC
 year: 2025
@@ -17,7 +17,7 @@ tags:
 
 # Mitigating Resource Usage Dependency in Sorting-based KV Stores on Hybrid Storage Devices via Operation Decoupling
 
-> **ATC 2025** · cluster/kvlsm · Source: [Mitigating Resource Usage Dependency in Sorting-based KV Stores on Hybrid Storage Devices via Operation Decoupling.pdf](Mitigating%20Resource%20Usage%20Dependency%20in%20Sorting-based%20KV%20Stores%20on%20Hybrid%20Storage%20Devices%20via%20Operation%20Decoupling.pdf)
+> **ATC 2025** · cluster/kvlsm · Source: [Mitigating Resource Usage Dependency in Sorting-based KV Stores on Hybrid Storage Devices via Operation Decoupling.pdf](<Mitigating Resource Usage Dependency in Sorting-based KV Stores on Hybrid Storage Devices via Operation Decoupling.pdf>)
 
 저자: Qingyang Zhang, Yongkun Li (corresponding), Yubiao Pan, Haoting Tang, Yinlong Xu — University of Science and Technology of China; Huaqiao University; Anhui Provincial Key Laboratory of High Performance Computing
 

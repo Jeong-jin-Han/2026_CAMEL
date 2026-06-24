@@ -17,7 +17,7 @@ tags:
 
 # Heimdall: Optimizing Storage I/O Admission with Extensive Machine Learning Pipeline
 
-> **Eurosys 2025** · `cluster/fs` · Source: [Heimdall - Optimizing Storage I-O Admission with Extensive Machine Learning Pipeline.pdf](Heimdall%20-%20Optimizing%20Storage%20I-O%20Admission%20with%20Extensive%20Machine%20Learning%20Pipeline.pdf)
+> **Eurosys 2025** · `cluster/fs` · Source: [Heimdall - Optimizing Storage I-O Admission with Extensive Machine Learning Pipeline.pdf](<Heimdall - Optimizing Storage I-O Admission with Extensive Machine Learning Pipeline.pdf>)
 
 저자: Daniar H. Kurniawan, Rani Ayu Putri, Peiran Qin, Kahfi S. Zulkifli, Ray A. O. Sinurat, Janki Bhimani, Sandeep Madireddy, Achmad Imam Kistijantoro, Haryadi S. Gunawi (University of Chicago, Bandung Institute of Technology, Florida International University, Argonne National Laboratory 등)
 

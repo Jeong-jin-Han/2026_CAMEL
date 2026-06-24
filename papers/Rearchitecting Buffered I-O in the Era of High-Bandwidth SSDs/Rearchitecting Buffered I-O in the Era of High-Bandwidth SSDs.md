@@ -1,6 +1,6 @@
 ---
 title: "Rearchitecting Buffered I/O in the Era of High-Bandwidth SSDs"
-aliases: [Rearchitecting Buffered I/O, WSBuffer]
+aliases: [WSBuffer, Rearchitecting Buffered IO]
 description: "고대역폭 SSD에서 buffered I/O의 쓰기 병목을 scrap buffer로 재설계한 WSBuffer 제안"
 venue: FAST
 year: 2026
@@ -18,7 +18,7 @@ tags:
 
 # Rearchitecting Buffered I/O in the Era of High-Bandwidth SSDs
 
-> **FAST 2026** · `cluster/fs` · Source: [Rearchitecting Buffered I-O in the Era of High-Bandwidth SSDs.pdf](Rearchitecting%20Buffered%20I-O%20in%20the%20Era%20of%20High-Bandwidth%20SSDs.pdf)
+> **FAST 2026** · `cluster/fs` · Source: [Rearchitecting Buffered I-O in the Era of High-Bandwidth SSDs.pdf](<Rearchitecting Buffered I-O in the Era of High-Bandwidth SSDs.pdf>)
 
 **저자**: Yekang Zhan, Tianze Wang, Zheng Peng, Haichuan Hu, Jiahao Wu, Xiangrui Yang, Qiang Cao (교신, Huazhong University of Science and Technology), Hong Jiang (University of Texas at Arlington), Jie Yao (HUST)
 

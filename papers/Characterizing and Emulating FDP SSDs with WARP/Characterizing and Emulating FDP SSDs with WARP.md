@@ -1,6 +1,6 @@
 ---
 title: "Characterizing and Emulating FDP SSDs with WARP"
-aliases: [Characterizing and Emulating]
+aliases: [WARP, Characterizing FDP SSDs]
 description: "두 상용 FDP SSD를 cross-device/cross-workload로 특성화하고, FDP 동작을 재현·탐구하는 최초의 오픈 에뮬레이터 WARP를 제안한 논문"
 venue: FAST
 year: 2026
@@ -18,7 +18,7 @@ tags:
 
 # Characterizing and Emulating FDP SSDs with WARP
 
-> **FAST 2026** · `cluster/fs` · Source: [Characterizing and Emulating FDP SSDs with WARP.pdf](Characterizing and Emulating FDP SSDs with WARP.pdf)
+> **FAST 2026** · `cluster/fs` · Source: [Characterizing and Emulating FDP SSDs with WARP.pdf](<Characterizing and Emulating FDP SSDs with WARP.pdf>)
 
 저자: Inho Song, Shoaib Asif Qazi (Virginia Tech); Javier González (Samsung Electronics); Matias Bjørling (Western Digital); Sam H. Noh, Huaicheng Li (Virginia Tech)
 
