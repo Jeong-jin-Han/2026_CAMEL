@@ -31,6 +31,7 @@ SSD Internals Intensive Seminar (26S) 논문 위키. **75편 전부 정독(deep)
 ## 📚 배경 개념
 - CXL: [[CXL Overview]] · [[CXL 3.0]] · [[CXL 3.2]] · [[CXL 4.0]] · [[CXL SOTA & Roadmap]] · [[CXL Glossary]]
 - 비전: [[Communication Tax]] — 병목은 compute가 아니라 communication+memory (발표 4편 관통)
+- 교수님 랩 계보: [[LightPC]] (ISCA'22, full-system persistence 기반) → [[TrainingCXL]] (IEEE Micro'23, CXL type-2 추천모델 학습) → CXL-SSD 발표들([[SkyByte]]·[[XHarvest]])
 
 ## 🔬 랩 관심사 맵 (리스트 75편 분포)
 > 주의: 이건 **세미나 읽기 리스트**지 랩 publication이 아님 → 최근 SSD/storage 연구 지형을 넓게 본 것.
