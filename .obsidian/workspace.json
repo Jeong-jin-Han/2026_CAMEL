@@ -192,18 +192,20 @@
   },
   "active": "cb557382138c9a7f",
   "lastOpenFiles": [
+    "insights/LightPC/LightPC.md",
+    "insights/LightPC/LightPC.md.tmp.3450007.ae2c5ee2e89d",
+    "insights/자기소개_v3.md",
+    "insights/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL.md",
+    "insights/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL.md.tmp.3450007.fb9b725cf4ae",
+    "insights/LightPC/LightPC.pdf",
+    "insights/LightPC",
+    "insights/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL.pdf",
+    "insights/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL",
     "index.md.tmp.12933.165dd67f2177",
     "index.md.tmp.58717.c50d03a788e8",
     "workflow/paper_wiki.md.tmp.12933.4167ffbd9273",
     "papers/Sparse Checkpointing for Fast and Reliable MoE Training/Sparse Checkpointing for Fast and Reliable MoE Training.md",
     "papers/Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory/Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory.md.tmp.3391362.12151d0a83b5",
-    "papers/OmniCache - Collaborative Caching for Near-storage Accelerators/fast24-zhang-jian.pdf",
-    "papers/NVMePass - A Lightweight, High-performance and Scalable NVMe Virtualization Architecture with I-O Queues Passthrough/NVMePass_A_Lightweight_High-performance_and_Scalable_NVMe_Virtualization_Architecture_with_I_O_Queues_Passthrough.pdf",
-    "papers/N-DIPPER - A Distributed Inter-die Peak Power Management Network for NAND Systems/N-DIPPER_A_Distributed_Inter-Die_Peak_Power_Management_Network_for_Nand_Systems.pdf",
-    "papers/Mitigating Resource Usage Dependency in Sorting-based KV Stores on Hybrid Storage Devices via Operation Decoupling/atc25-zhang-qingyang.pdf",
-    "papers/Midas Touch - Invalid-Data Assisted Reliability and Performance Boost for 3d High-Density Flash/Midas_Touch_Invalid-Data_Assisted_Reliability_and_Performance_Boost_for_3d_High-Density_Flash.pdf",
-    "papers/MaxEmbed - Maximizing SSD bandwidth utilization for huge embedding models serving/3622781.3674172.pdf",
-    "papers/Lincoln - Real-Time 50~100B LLM Inference on Consumer Devices with LPDDR-Interfaced, Compute-Enabled Flash Memory/Lincoln_Real-Time_50100B_LLM_Inference_on_Consumer_Devices_with_LPDDR-Interfaced_Compute-Enabled_Flash_Memory.pdf",
     "hubs/venues/SOSP.md",
     "hubs/venues/OSDI.md",
     "hubs/venues/MICRO.md",
@@ -225,8 +227,6 @@
     "papers/BIZA - Design of Self-Governing Block-Interface ZNS AFA for Endurance and Performance/BIZA - Design of Self-Governing Block-Interface ZNS AFA for Endurance and Performance.md",
     "papers/BABOL - A Software-Defined NAND Flash Controller/BABOL - A Software-Defined NAND Flash Controller.md",
     "papers/Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory/Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory.md",
-    "papers/Sleeping with One Eye Open - Fast, Sustainable Storage with Sandman/Sleeping with One Eye Open - Fast, Sustainable Storage with Sandman.md",
-    "papers/Pre-Stores - Proactive Software-guided Movement of Data Down the Memory Hierarchy/Pre-Stores - Proactive Software-guided Movement of Data Down the Memory Hierarchy.md",
-    "papers/Cheetah - Metadata Aggregation for Fast Object Storage without Distributed Ordering/Cheetah - Metadata Aggregation for Fast Object Storage without Distributed Ordering.md"
+    "papers/Sleeping with One Eye Open - Fast, Sustainable Storage with Sandman/Sleeping with One Eye Open - Fast, Sustainable Storage with Sandman.md"
   ]
 }
