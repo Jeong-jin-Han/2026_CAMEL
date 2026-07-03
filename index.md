@@ -31,8 +31,11 @@ SSD Internals Intensive Seminar (26S) 논문 위키. **75편 전부 정독(deep)
 
 ## 📚 배경 개념
 - CXL: [[CXL Overview]] · [[CXL 3.0]] · [[CXL 3.2]] · [[CXL 4.0]] · [[CXL SOTA & Roadmap]] · [[CXL Glossary]]
+- 메모리 아키텍처 심화 (CXL/disaggregation/coherence — 내 연구 틀. *AT = Architecture*이지 Address Translation 아님): [[CXL Address Translation]] (주소 4종·HPA/DPA) → [[CXL Distributed Translation]] (변환 분산·control/data plane) → [[CXL Coherence]] (CXL.cache·용어) → [[CXL Multi-node Coherence]] (directory 난관·NVLink 비교) → [[PGAS]] (분할 전역 주소 공간·release consistency)
+- 내 연구 가설 (검증 전): [[Hypotheses]] — [[H1 — 워크로드 특화로 multi-node coherence 줄이기|H1: 왜 워크로드 특화]] → [[H2 — CXL 위에서 PGAS 재해석|H2: 어떻게 = CXL 위 PGAS]]
 - 비전: [[Communication Tax]] — 병목은 compute가 아니라 communication+memory (CXL 배경 이해용)
 - CXL 배경 reading (발표 focus 아님, 감 잡기용): [[LightPC]] (ISCA'22, full-system persistence) → [[TrainingCXL]] (IEEE Micro'23, CXL type-2 학습) · 발표 내 CXL 접점은 [[DJFS]] (CMM-H 위 FS, build로 증명)
+- CAMEL Lab CXL 연구 계보 (리스트 밖·내 CXL 연구 배경): [[CAMEL Lab CXL 연구 계보]] — DirectCXL(뿌리)부터 Panmnesia silicon·One-Chip vision까지 시간순 flow + 빈 자리(programming model)
 
 ## 🔬 랩 관심사 맵 (리스트 75편 분포)
 > 주의: 이건 **세미나 읽기 리스트**지 랩 publication이 아님 → 최근 SSD/storage 연구 지형을 넓게 본 것.
@@ -49,4 +52,5 @@ SSD Internals Intensive Seminar (26S) 논문 위키. **75편 전부 정독(deep)
 
 ## 진행 현황
 - deep: **75 / 75** · stub: 0 · 남은 SSD-list: 0 ✅
-- hubs: topic 9 · venue 10 · year 4 (전부 자동 채움) · concepts(CXL) 9 · insights 3
+- hubs: topic 9 · venue 10 · year 4 (전부 자동 채움) · concepts(CXL) 10 · insights 3 · hypotheses 2
+- CXL 계보 papers([[CAMEL Lab CXL 연구 계보]]): **17/19 정독+요약 완료** (미정독 2 = Panmnesia·One-Chip, 공개 PDF 없음)

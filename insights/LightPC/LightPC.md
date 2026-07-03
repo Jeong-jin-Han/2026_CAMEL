@@ -215,4 +215,4 @@ LightPC의 "firmware/DRAM buffer를 host로 끌어올려 매체를 직접 노출
 
 <자유 메모 영역 — 직접 추가>
 
-- (메모) 같은 저자군의 [TrainingCXL](<../Failure Tolerant Training With Persistent Memory Disaggregation Over CXL/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL.md>)은 LightPC의 "persistence-first" 철학을 CXL type-2 + 추천모델 학습이라는 응용으로 확장한 후속 격. LightPC(기반) → TrainingCXL(응용) → CXL-SSD 발표들(SkyByte/XHarvest)로 이어지는 계보로 읽으면 교수님 연구의 큰 그림이 잡힌다.
+- (메모) 같은 저자군의 [[TrainingCXL]]은 LightPC의 "persistence-first" 철학을 CXL type-2 + 추천모델 학습이라는 응용으로 확장한 후속 격. LightPC(기반) → TrainingCXL(응용) → CXL-SSD 발표들(SkyByte/XHarvest)로 이어지는 계보로 읽으면 교수님 연구의 큰 그림이 잡힌다.

@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart-Infinity: Fast Large Language Model Training using Near-Storage Processing on a Real System</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:220px;max-width:500px;overflow:hidden;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-has-table{max-width:none}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ng-chevron{font-size:9px;opacity:.5;flex-shrink:0;padding:2px 4px;border-radius:2px}
+.ng-chevron:hover{background:rgba(0,0,0,.08);opacity:.9}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">Smart-Infinity: Fast Large Language Model Training using Near-Storage Processing on a Real System</span>
+    <span id="tb-source">Hongsun Jang, Jaeyong Song, Jaewon Jung, Jaeyoung Park, Youngsok Kim, Jinho Lee · HPCA 2024 (IEEE Int'l Symposium on High-Performance Computer Architecture)</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_011,node_012" style="--color:#4B8BBE;border-radius:2px;left:100px;top:160px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">문제 — GPU 메모리 한계와 storage-offloaded training의 대역폭 병목</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">LLM은 파라미터 수 증가로 GPU 메모리 용량이 최대 제약이 되어, 연산이 아니라 용량 때문에 수십 개 GPU를 쓰는 낭비가 생긴다. 대안인 storage-offloaded training은 optimizer states·gradients를 host memory와 SSD로 내보내 GPU 용량 벽을 넘지만, SSD 대역폭이 GPU 메모리보다 수 배수 낮아 새 병목이 된다. 저자 측정으로는 전체 학습 시간의 88% 이상이 storage 데이터 전송에 소비된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§I, p.1</span></summary>
+<div class="ng-orig-text">According to our study, more than 88% of the total training time is consumed by transferring data from/to the storage. At a glance, combining multiple storage devices using RAID0 solution could alleviate the problem. However, such a method would fundamentally be bottlenecked by the limited number of PCIe lanes (or IO pins) of the host processor.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" data-children="node_013,node_014,node_015" style="--color:#4B8BBE;border-radius:2px;left:100px;top:460px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">핵심 통찰 — update 단계가 storage 대역폭 대부분 소비 + interconnect 병목</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">storage-offloaded 학습의 시간 대부분(&gt;80%)은 update 단계에서 optimizer states를 올리고 내리는 데 쓰인다. 게다가 RAID0로 SSD를 늘려도 4개를 넘으면 공유 system interconnect(PCIe) 대역폭이 상한이라 speedup이 포화한다. 그래서 저자의 1차 목표는 '공유 interconnect를 통과하는 host↔storage 전송량 자체를 줄이는 것'이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III, p.3</span></summary>
+<div class="ng-orig-text">As we described in Section II, we break down the storage offloaded training into forward (FW), backward (BW + Gradients Offload), and update (Update + Optimizer states Upload/Offload). Contrary to conventional training, the most time is spent on the update phase of over 80% the training time, due to the storage access overhead.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_016,node_017" style="--color:#4B8BBE;border-radius:2px;left:100px;top:760px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">SmartUpdate — update 연산을 CSD 내부 가속기로 이동 ((6+2)M→2M)</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">핵심 아이디어: CPU가 하던 파라미터 update 연산을 CSD 안의 FPGA로 내려보낸다(SmartUpdate). 그러면 optimizer states(6M)를 host로 올릴 필요가 없어 interconnect 통과 트래픽이 (6+2)M에서 2M으로 줄고, 여러 CSD의 내부 대역폭을 합산해 쓸 수 있다. Adam 기준 총 8M read/write가 update 시 2M read(갱신 파라미터)+backward 시 2M write(gradient)로 축소된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV, p.4</span></summary>
+<div class="ng-orig-text">we offload the update computation from the CPU to the accelerator in CSDs (SmartUpdate). From this, we can benefit from the fast aggregate bandwidth of CSDs, reducing the communication overhead of existing storage-offloaded LLM training methods from (6 + 2)M to 2M.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_004" data-children="node_018,node_019" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1060px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">Internal Data Transfer Handler — buffer 사전할당 + swap overlapping (OOM 회피)</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">SmartUpdate를 naive하게 짜면 tasklet마다 전체 메모리를 점유해 겹칠 수 없고, 억지로 겹치면 device OOM이 난다. 저자는 변수 buffer를 분리하고 급하지 않은 변수(momentum·variance)의 writeback을 지연시키는 handler를 제안한다. thread 0은 파라미터를 먼저 SSD로 쓰고, thread 1이 가장 큰 subgroup 크기로 사전할당된 같은 buffer를 재사용해 다음 로딩을 수행한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-B, p.5</span></summary>
+<div class="ng-orig-text">The key idea of the proposed handler is to separate the buffer for variables and lazily transfer non-urgent variables. ... Through the optimization, we obtain several benefits: 1) avoid reallocation of device memory, 2) the GPU can start forward/backward phases earlier, and 3) the data transfers to the SSDs are overlapped.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_020,node_021" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1360px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">SmartComp — CSD-보조 gradient 압축 (multiple CSD의 새 병목 제거)</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">SmartUpdate가 optimizer states 전송을 없애도 gradient(2M)는 여전히 공유 interconnect를 지나므로, CSD 수가 늘면 이게 새 병목이 된다. SmartComp는 GPU에서 gradient를 magnitude 기반 Top-K로 압축해 c%×2M만 보내고, CSD의 FPGA가 decompress한 뒤 update한다. DNN 학습이 gradient 오차에 관대하다는 점을 이용(기본 압축비 2%).</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-C, p.5</span></summary>
+<div class="ng-orig-text">SmartUpdate reduces a significant amount of the SSD traffic by removing the transfer of optimizer states to the host. Given multiple CSDs in the system, the optimizer states (6M) are transferred within the CSDs through the internal bandwidth linearly scaled by the number of CSDs. However, gradients (2M) still go through the system interconnect, which becomes a new bottleneck when the number of CSDs increases.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" data-children="node_022,node_023" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1660px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">Multiple CSD 워크로드 분배 — flatten + element-wise (architecture-agnostic)</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">여러 CSD로 확장하는 방법: optimizer state 갱신이 전부 element-wise 연산이므로, 모델 파라미터를 1차원으로 flatten해 CSD들에 균등 분배한다. 각 CSD가 자기 몫 파라미터를 소유하고, backward 후 생성된 gradient를 소유 CSD로 offload해 P2P로 update한다. flatten 덕분에 분배가 모델 구조(layer·hidden dim·head 수)와 무관해 채택이 간단하다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-D, p.6</span></summary>
+<div class="ng-orig-text">Because of using flattened model parameters, the distribution procedure is agnostic to the model architecture. This allows for a simple adoption of Smart-Infinity, where end users do not need to consider the model architecture information such as the layers, hidden dimensions, or number of heads.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_007" data-children="node_024,node_025" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1960px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">Accelerator 구조 — General Updater(Adam AXPBY) + Top-K Decompressor</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">FPGA 안 microarchitecture: updater는 여러 PE로 subgroup 단위 파라미터를 병렬 갱신하며, 핵심은 SIMD AXPBY 유닛(두 벡터를 계수 α·β로 곱해 더하는 general averaging)이다. 계수만 바꾸면 다양한 moving average를 표현해 SGD·AdaGrad·AdamW로 확장된다. decompressor는 Top-K 값을 index 위치로 '라우팅'만 하면 되어 산술 연산이 거의 없다(FPGA 자원 절약).</div><details class="ng-original"><summary>Original <span class="ng-loc">§V-A, p.7</span></summary>
+<div class="ng-orig-text">Therefore, we placed SIMD AXPBY units, which can handle general averaging operations. It takes two input vectors (i.e., A and B) and multiplies the dedicated coefficients (i.e., α and β) to them. ... Note that the updater can be extended to other optimizers such as SGD, AdaGrad, and AdamW because most optimizers use variations of moving averaging.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_008" data-children="node_026" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2260px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">Implementation — DeepSpeed + OpenCL + pybind11 (ready-to-use)</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">실제 시스템 통합: DeepSpeed ZeRO-Infinity의 파라미터 update 부분을 대체하는 callable module로 구현하고, distutils로 C/C++ 모듈을 붙였다. Xilinx OpenCL 확장(CL_MEM_EXT_PTR_XILINX)으로 FPGA-SSD 버퍼를 잇고, pread/pwrite system call로 SmartSSD 내부 P2P를 구동, pybind11로 torch.Tensor를 C++에 노출한다. 옵션만 지정하면 DeepSpeed 엔진 초기화 시 자동 컴파일되어 기존 코드를 무수정 실행.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VI, p.8</span></summary>
+<div class="ng-orig-text">Because of this, Smart-Infinity can be enabled by simply specifying an option, and automatic compilation starts when the DeepSpeed engine is initialized. This indicates that any LLM training codes implemented with DeepSpeed can be run with Smart-Infinity with no modification, making Smart-Infinity a practical and powerful framework.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_009" data-children="node_027,node_028,node_029,node_030,node_031" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2560px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">Evaluation — 최대 2.11× speedup, 대형 모델 확장성, 정확도 유지</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">SmartSSD(4TB NVMe + Kintex UltraScale+ KU15P FPGA) 최대 10개로 실측. SU+O+C가 baseline 대비 1.85×~1.98×(10 SSD), A100에서 최대 2.11× speedup. GPT-2 33B에서도 1.37×(6 SSD)·1.88×(10 SSD)로 확장성 유지. BLOOM·ViT 1.32×~1.85×. SmartUpdate는 baseline과 알고리즘적으로 동일해 정확도가 정확히 같고, SmartComp도 comparable. updater throughput은 7GB/s 이상으로 SSD read/write보다 빠르다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VII-C, p.10</span></summary>
+<div class="ng-orig-text">SmartComp provides 1.22×∼1.31× additional speedup over SmartUpdate, showing 1.85×∼1.98× speedup over the baseline. Through the breakdown results, we can find out that SmartComp successfully reduces the remaining gradient offloading time of the optimized SmartUpdate further.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" data-children="node_032,node_033,node_034,node_035" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2860px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">결론 &amp; feasibility 관점 — off-the-shelf 실물로 '가능함'을 증명</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Smart-Infinity는 각 CSD의 FPGA 가속기로 storage-offloaded LLM 학습의 전송 병목을 없애는 CSD 기반 프레임워크다. 전용 die를 가정하고 시뮬레이터로만 검증한 선행(GradPIM·OptimStore)과 달리, off-the-shelf 제품(SmartSSD)만으로 PyTorch에 완전 통합된 ready-to-use 실물이라는 점이 핵심 — 곧 feasibility-by-building의 대표 사례.</div><details class="ng-original"><summary>Original <span class="ng-loc">§X, p.13</span></summary>
+<div class="ng-orig-text">We propose Smart-Infinity, a novel CSD-based framework to accelerate storage-offloaded LLM training. ... Smart-Infinity has been fully integrated into PyTorch only with off-the-shelf products, making itself a ready-to-use solution.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#3A506B;border-radius:2px;left:500px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#3A506B 22%,transparent);color:#3A506B">Claim</span>
+    <span class="ng-title">학습 시간의 88%+가 storage 데이터 전송</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">storage-offloaded 학습의 근본 문제를 수치로 못박은 문장. 병목이 compute가 아니라 data movement임. RAID0로 SSD를 합쳐도 host PCIe lane 수가 상한이라 근본 해결이 안 됨.</div><details class="ng-original"><summary>Original <span class="ng-loc">§I, p.1</span></summary>
+<div class="ng-orig-text">According to our study, more than 88% of the total training time is consumed by transferring data from/to the storage.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#E5A835;border-radius:22px;left:500px;top:220px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title">왜 storage-offloaded인가? (배경)</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">GPU 메모리에 optimizer states까지 다 못 올리므로, ZeRO-Infinity류는 optimizer states·gradients를 host memory와 SSD로 내보내 GPU 용량 벽을 넘는다. FP16 파라미터 크기를 M이라 할 때 mixed precision Adam의 optimizer states(파라미터·momentum·variance FP32)가 6M을 차지하는 게 핵심 부담.</div><details class="ng-original"><summary>Original <span class="ng-loc">§II-A, p.2</span></summary>
+<div class="ng-orig-text">The FP32 optimizer states occupy 6M capacity (model parameter, momentum, and variance in FP32) under mixed precision training, regarding the FP16 model parameter size as M.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#1B998B;border-radius:2px;left:500px;top:360px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#1B998B 22%,transparent);color:#1B998B">Result</span>
+    <span class="ng-title">Fig 3a — update 단계가 학습 시간의 &gt;80%</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">ZeRO-Infinity baseline을 FW / BW+Grad Offload / Update+Opt Upload·Offload 세 구간으로 쪼갠 breakdown. 모델 크기(2.5B~20.5B) 무관하게 update 구간이 압도적(&gt;80%) → 여기를 없애는 게 최대 이득 지점.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III, p.3</span></summary>
+<div class="ng-orig-text">Contrary to conventional training, the most time is spent on the update phase of over 80% the training time, due to the storage access overhead. The data transfer portion is significant regardless of model sizes, so it is a critical issue to be addressed in storage-offloaded LLM training.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#1B998B;border-radius:2px;left:500px;top:460px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#1B998B 22%,transparent);color:#1B998B">Result</span>
+    <span class="ng-title">Fig 3b — RAID0 SSD 확장은 4개에서 포화</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">SSD를 RAID0로 늘려 대역폭을 키우는 소박한 해법의 한계 실측. 4개를 넘으면 공유 system interconnect(PCIe)가 상한이라 speedup이 포화 → 'SSD를 더 꽂는다'로는 못 푸는 문제. SmartUpdate가 interconnect를 우회(내부 대역폭 합산)해야 하는 이유.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III, p.3-4</span></summary>
+<div class="ng-orig-text">Figure 3(b) shows the normalized speedup of storage-offloaded training when increasing the number of SSDs using RAID0. Unfortunately, the speedup saturates after using more than four SSDs. Shared system interconnect becomes a new bottleneck when using more than four SSDs.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#3A506B;border-radius:2px;left:500px;top:560px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#3A506B 22%,transparent);color:#3A506B">Claim</span>
+    <span class="ng-title">1차 목표 = 공유 interconnect 통과 전송량 최소화</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">논문 전체를 관통하는 설계 목표. 문제를 '연산을 빠르게'가 아니라 '공유 interconnect를 지나는 host↔storage 전송량을 줄인다'로 규정 → SmartUpdate(optimizer states 제거)·SmartComp(gradient 압축)가 모두 이 목표의 파생.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III, p.4</span></summary>
+<div class="ng-orig-text">our primary goal is minimizing the data transfer between storage devices and host memory through the shared system interconnect, and we need to fully utilize 1) the aggregated internal bandwidth from multiple CSDs and 2) the computational ability of the accelerator in each CSD.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#2E86AB;border-radius:2px;left:500px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
+    <span class="ng-title">Table I — 통신량 (6+2)M → 2M</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Adam 기준 interconnect 트래픽 표. baseline(ZeRO-Inf)은 optimizer states 6M+6M, gradient 2M+2M. SmartUpdate는 update를 CSD 내부로 옮겨 optimizer states 통신을 없애고, update 시 2M read + backward 시 2M write만 남긴다. SmartComp는 gradient write를 c%×2M으로 더 줄임.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-A, p.4</span></summary>
+<div class="ng-orig-text">SmartUpdate minimizes the total communication volume through the system interconnect to only 2M read during the update phase for the updated parameters and 2M write during backward for the gradients.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#3A506B;border-radius:2px;left:500px;top:820px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#3A506B 22%,transparent);color:#3A506B">Claim</span>
+    <span class="ng-title">핵심 = CSD 개수 확장 시 내부 대역폭 합산</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">SmartUpdate의 진짜 이득은 CSD를 늘릴 때 나온다. 단일 CSD면 병목이 interconnect에서 CSD 내부 스위치로 옮겨질 뿐이지만, CSD가 늘면 FPGA-SSD 내부 대역폭이 선형 증가(공유 interconnect는 고정)해 전체 speedup을 견인. → 'aggregate internal bandwidth'가 Smart-Infinity의 원동력.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-A, p.4-5</span></summary>
+<div class="ng-orig-text">When SmartUpdate is used with a single CSD, the bottleneck simply moves from the system interconnect to the CSD-internal switch. However, the real advantage appears when scaling the number of CSDs. When the number of CSDs increases, the aggregate bandwidth between the FPGA and SSD increases linearly, while that of the system interconnect (PCIe) to the host stays constant.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#2E86AB;border-radius:2px;left:500px;top:1000px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
+    <span class="ng-title">2-thread buffer 재사용 + 지연 writeback</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">thread 0/1이 CPU에서 buffer를 관리. thread 0이 update를 마치면 GPU가 곧 필요로 하는 파라미터를 먼저 SSD로 쓰고, 급하지 않은 momentum·variance의 writeback은 미룬 뒤 thread 1에게 다음 subgroup 로딩을 넘긴다. buffer는 가장 큰 subgroup 크기로 사전할당되어 재사용 → 재할당·OOM 없이 전송을 겹침.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-B, p.5</span></summary>
+<div class="ng-orig-text">Thus, thread 0 defers the writeback of the remaining variables and signals thread 1 to start loading the model parameters of the next subgroup. Because we have preallocated the buffer for the largest subgroup size, thread 1 can directly reuse the same buffer.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#3A506B;border-radius:2px;left:500px;top:1120px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#3A506B 22%,transparent);color:#3A506B">Claim</span>
+    <span class="ng-title">naive overlap은 OOM → handler가 3가지 이득</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">subgroup 간 전송을 소박하게 겹치면 P2P용 추가 device memory가 필요해 OOM이 난다. handler는 이를 피하면서 ① device memory 재할당 회피, ② GPU가 forward/backward를 더 일찍 시작, ③ SSD로의 전송을 overlap — 세 이득을 동시에 얻는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-B, p.5</span></summary>
+<div class="ng-orig-text">Through the optimization, we obtain several benefits: 1) avoid reallocation of device memory, 2) the GPU can start forward/backward phases earlier, and 3) the data transfers to the SSDs are overlapped.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_020" style="--color:#2E86AB;border-radius:2px;left:500px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
+    <span class="ng-title">magnitude 기반 Top-K: GPU 압축 / FPGA 복원</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">역할 분담이 영리하다. 무거운 작업(sort로 상위 magnitude gradient 선택)은 강력한 GPU가, 가벼운 작업(index에 따라 값을 흩뿌리는 scatter=decompress)은 CSD의 lightweight FPGA가 맡는다. 압축 결과는 index 리스트 + value 리스트. 낮은 magnitude gradient는 0으로 대체(update 방향에 영향 작음).</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-C, p.6</span></summary>
+<div class="ng-orig-text">This is a viable choice because the relatively heavier job or sorting can be done in powerful GPUs, and the lightweight FPGAs in CSD perform the decompression part that only involves scattering the values according to the index.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#3A506B;border-radius:2px;left:500px;top:1420px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#3A506B 22%,transparent);color:#3A506B">Claim</span>
+    <span class="ng-title">gradient가 multiple CSD의 새 병목 → 압축이 정당</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">SmartUpdate로 optimizer states 통신은 사라지지만, gradient(2M)는 여전히 공유 interconnect를 지나 CSD 수가 늘면 지배적 병목이 된다. DNN 학습이 gradient 오차에 관대하고(gradient compression은 분산 학습의 사실상 표준), FPGA read가 write보다 빠르다는 점이 압축을 SmartComp로 정당화.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-C, p.5</span></summary>
+<div class="ng-orig-text">It is widely known that DNN training is tolerable to some degree of errors, especially the gradients. Gradient compression methods are widely used to mitigate communication overhead in neural network training, and it is almost a norm to train modern larger models in distributed settings.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_022" style="--color:#2E86AB;border-radius:2px;left:500px;top:1600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
+    <span class="ng-title">flatten → 균등 분배 → P2P element-wise update</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">모델 파라미터를 1차원으로 펼쳐 CSD들에 균등 분배하고, 각 CSD가 소유 파라미터(index i×D ~ (i+1)×D-1)를 담당. backward 후 gradient를 소유 CSD로 offload하면 그 CSD의 FPGA-SSD가 P2P로 update. optimizer state 갱신이 전부 element-wise이므로 이런 평면 분배가 성립.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-D, p.6</span></summary>
+<div class="ng-orig-text">Using this, Smart-Infinity flattens the model parameters and equally distributes them to the CSDs, where each CSD takes the responsibility to update the owned parameters. Then, the optimizer states are allocated and initialized at CSDs that own the associated parameters.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_023" style="--color:#3A506B;border-radius:2px;left:500px;top:1720px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#3A506B 22%,transparent);color:#3A506B">Claim</span>
+    <span class="ng-title">분배가 모델 구조와 무관 → 채택 단순</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">flatten 덕분에 CSD 분배가 layer·hidden dim·head 수 같은 아키텍처 정보에 의존하지 않는다. 사용자는 모델 구조를 신경 쓸 필요 없이 붙일 수 있어, 임의의 transformer 계열에 범용 적용 가능(BLOOM·ViT까지 되는 근거).</div><details class="ng-original"><summary>Original <span class="ng-loc">§IV-D, p.6</span></summary>
+<div class="ng-orig-text">Because of using flattened model parameters, the distribution procedure is agnostic to the model architecture. This allows for a simple adoption of Smart-Infinity, where end users do not need to consider the model architecture information such as the layers, hidden dimensions, or number of heads.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_024" style="--color:#2E86AB;border-radius:2px;left:500px;top:1900px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
+    <span class="ng-title">SIMD AXPBY 유닛 = general averaging (optimizer 범용)</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">updater는 두 입력 벡터에 계수 α·β를 곱해 더하는 SIMD AXPBY 유닛으로 구성. 계수만 바꾸면 momentum·variance 등 다양한 moving average를 표현하므로 Adam뿐 아니라 SGD·AdaGrad·AdamW로 확장된다(대부분 optimizer가 moving average 변형이라는 통찰). subgroup(가속기 DRAM 크기 D) 단위 병렬 처리.</div><details class="ng-original"><summary>Original <span class="ng-loc">§V-A, p.7</span></summary>
+<div class="ng-orig-text">The above procedure can be used for various averaging operations by changing the coefficients. ... Note that the updater can be extended to other optimizers such as SGD, AdaGrad, and AdamW because most optimizers use variations of moving averaging.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_025" style="--color:#2E86AB;border-radius:2px;left:500px;top:2020px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
+    <span class="ng-title">Top-K decompressor = 산술 없는 index 라우팅</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">decompressor는 compressed gradient의 (index, value) 쌍을 읽어 gradient buffer의 해당 위치에 값을 채우고 나머지는 0으로 둔다. 곱셈·덧셈 없이 '값을 올바른 위치로 라우팅'만 하므로 FPGA 자원 소모가 작다(LUT 여유 → 추가 확장 여지). Adam은 full matrix가 필요해 update 전에 먼저 decompress.</div><details class="ng-original"><summary>Original <span class="ng-loc">§V-B, p.7-8</span></summary>
+<div class="ng-orig-text">In the output vector, the partial Top-K elements of the target parameters selected in this iteration j are filled with their values, and the others are filled with zero. Until decompression finishes, the decompressor repeats.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_026" style="--color:#2E86AB;border-radius:2px;left:500px;top:2260px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
+    <span class="ng-title">DeepSpeed 대체 모듈 + OpenCL P2P + pybind11</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">DeepSpeed ZeRO-Infinity의 파라미터 update만 교체하는 callable module. Xilinx OpenCL 확장의 CL_MEM_EXT_PTR_XILINX로 FPGA-SSD 버퍼를 잡고, pread/pwrite로 SmartSSD 내부 P2P를 구동, pybind11로 torch.Tensor를 C++에 노출. gradient offload 경로를 해당 SSD로 향하게 조정. 옵션 지정만으로 활성화 → 무수정 적용.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VI, p.9</span></summary>
+<div class="ng-orig-text">We use pread/pwrite system call to the P2P buffer, which operates the direct internal P2P communication feature of SmartSSD.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_027" style="--color:#1B998B;border-radius:2px;left:500px;top:2360px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#1B998B 22%,transparent);color:#1B998B">Result</span>
+    <span class="ng-title">speedup — 최대 2.11× (A100), 1.85~1.98× (10 SSD)</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">SU(SmartUpdate)→SU+O(handler)→SU+O+C(SmartComp) 순으로 누적 향상. SU+O+C가 baseline 대비 1.85×~1.98×(10 SSD). GPT-2 8.4B·6 SSD에서 baseline update가 학습 시간의 75.57%를 차지하던 것을 제거. 연산 비중이 작은 고급 GPU(A100)에서 전송 절감 효과가 커져 최대 2.11×.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VII-C · §VII-E, p.10-11</span></summary>
+<div class="ng-orig-text">In GPT-2 8.4B model with 6 SSDs, the update time with the optimizer states communication time consumes 75.57% of the training time of the baseline. ... provides up to 2.11× speedup in the A100 GPU setting.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_028" style="--color:#1B998B;border-radius:2px;left:500px;top:2460px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#1B998B 22%,transparent);color:#1B998B">Result</span>
+    <span class="ng-title">대형 모델 확장성 — GPT-2 33B에서 1.88×</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">16.6B~33.0B로 키워도 speedup이 유지·증가. GPT-2 33.0B에서 baseline 대비 1.37×(6 SSD)·1.88×(10 SSD). transformer의 통신량이 파라미터 수에 비례하고 CSD를 더 쓸수록 큰 모델에도 speedup을 주므로 확장성이 있다(반면 baseline은 업/다운로드 오버헤드로 고통).</div><details class="ng-original"><summary>Original <span class="ng-loc">§VII-D, p.10</span></summary>
+<div class="ng-orig-text">Even with GPT-2 33.0B model, Smart-Infinity provides 1.37× and 1.88× speedup over the baseline using 6 SSDs and 10 SSDs, respectively.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_029" style="--color:#1B998B;border-radius:2px;left:500px;top:2560px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#1B998B 22%,transparent);color:#1B998B">Result</span>
+    <span class="ng-title">정확도 — SmartUpdate는 baseline과 완전 동일</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">핵심 신뢰성 근거. SmartUpdate는 baseline과 알고리즘적으로 동일해 정확도가 정확히 같다(연산 위치만 CPU→FPGA로 옮겼을 뿐). SmartComp는 lossy 압축이지만 GLUE(MNLI·QQP·SST-2·QNLI) 파인튜닝에서 baseline과 comparable → 속도 이득이 정확도를 희생하지 않음.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VII-J, p.12</span></summary>
+<div class="ng-orig-text">SmartUpdate is algorithmically identical to the baseline training, so the accuracy is exactly the same as the baseline. SmartComp adopts lossy compression, but achieves comparable accuracy in all datasets.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_030" style="--color:#1B998B;border-radius:2px;left:500px;top:2660px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#1B998B 22%,transparent);color:#1B998B">Result</span>
+    <span class="ng-title">throughput·비용 — updater &gt;7GB/s, GFLOPS/$ 증가</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">updater throughput이 7GB/s 이상으로 SSD read/write보다 충분히 높아 SSD가 병목을 결정(가속기가 발목 안 잡음). 비용 효율(GFLOPS/$)은 SmartSSD가 일반 SSD보다 6× 비싸 1~3 CSD에선 baseline보다 낮지만, 4개 초과부터 speedup이 커져 역전되고 CSD를 늘릴수록 계속 증가.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VII-H · §VII-I, p.11-12</span></summary>
+<div class="ng-orig-text">The throughput of the updater is above 7GB/s, which is sufficiently higher than the SSD read/write. ... When scaling the number of SmartSSDs, the GFLOPS/$ keeps increasing, showing the efficiency of Smart-Infinity.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_031" style="--color:#1B998B;border-radius:2px;left:500px;top:2760px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#1B998B 22%,transparent);color:#1B998B">Result</span>
+    <span class="ng-title">일반성 — 다른 optimizer·모델에도 성립</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">SGD·AdaGrad로 바꿔도 speedup 유지(SGD는 optimizer state가 3/4 적어 이득이 약간 작음). BLOOM·ViT에서도 1.32×~1.85×로 GPT-2·BERT와 유사 → 특정 모델/optimizer에 종속되지 않는 범용 가속. AXPBY 유닛 + flatten 분배가 이 일반성의 구조적 근거.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VII-G, p.11</span></summary>
+<div class="ng-orig-text">On such models, Smart-Infinity stably shows 1.32×∼1.85× speedup, similar to the results we have shown for GPT-2 and BERT.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_032" style="--color:#6B7280;border-radius:22px;left:920px;top:2820px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#6B7280 22%,transparent);color:#6B7280">Memo</span>
+    <span class="ng-title">★ 내 발표 프레임 연결 — feasibility-by-building 사다리 1단</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">내 세미나 4편 중 1편(7/9). 프레임=feasibility-by-building. Smart-Infinity의 증명 방식 = '시뮬레이터가 아니라 실물(SmartSSD×10 + FPGA + PyTorch 통합)로 real-system 실측' → 증명 강도 사다리의 첫 칸(real-system measurement). 6-질문 프레임 요약: Claim=update를 near-storage로 옮기면 storage 병목이 사라진다 / Artifact=DeepSpeed에 통합된 SmartSSD 기반 실물 / Crux=aggregate internal bandwidth vs 고정 interconnect(node_017) / Evidence=최대 2.11× + 정확도 동일 / Invariant=SmartUpdate는 알고리즘적으로 baseline과 동일(node_029) / Gap=upstream 전송 병목(node_033).</div><details class="ng-original"><summary>Original <span class="ng-loc">— (my note)</span></summary>
+<div class="ng-orig-text">(논문 밖 메모 — 내 발표 프레임. 원문 인용 아님.)</div></details></div>
+</div>
+<div class="ng-node" id="node-node_033" style="--color:#E24B4A;border-radius:22px;left:500px;top:2900px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#E24B4A 22%,transparent);color:#E24B4A">Gap / Idea</span>
+    <span class="ng-title">한계 — upstream 전송 병목 / 단일 CSD 손해 / PCIe topology 의존</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">저자 스스로 밝힌 gap: (1) 현재 병목은 CSD→host로 올라가는 갱신 파라미터(upstream) 전송 — 모델 압축(quantization/pruning)과 결합해 압축된 모델을 올리면 더 줄일 여지. (2) 단일 CSD에서는 대역폭 증가가 없고 FPGA 사용 오버헤드로 오히려 소폭 느려짐. (3) speedup이 PCIe topology(multi-GPU congested)에 따라 달라짐.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VIII-B, p.12</span></summary>
+<div class="ng-orig-text">As discussed in Section IV-C, the current bottleneck of Smart-Infinity is on the upstream model transfer from the CSD to the host. When Smart-Infinity is used for model compression, Smart-Infinity can perform compression and upload the compressed model, further reducing the bottleneck.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_034" style="--color:#9C6ADE;border-radius:22px;left:500px;top:3000px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#9C6ADE 22%,transparent);color:#9C6ADE">Ext. reference</span>
+    <span class="ng-title">선행 대비 — 시뮬레이터(GradPIM·OptimStore)와의 차별</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">관련 연구 중 GradPIM·OptimStore도 DNN 학습을 near-data로 가속하지만, 전용 memory/storage die를 가정하고 시뮬레이터로만 검증해 real-system 통합 이슈를 다루지 않는다. Smart-Infinity는 '여러 CSD를 실제로 써서 interconnect 병목을 푼 최초 연구'라고 주장 → 이 real-system·multi-CSD 실증이 feasibility 관점의 차별점.</div><details class="ng-original"><summary>Original <span class="ng-loc">§IX-A, p.13</span></summary>
+<div class="ng-orig-text">It is worth noting GradPIM [57] and OptimStore [58] as they both target DNN training similar to this work. However, they assume dedicated memory/storage die, making those solutions less practical. Moreover, they were only implemented on simulators and do not consider real system integration issues. ... Smart-Infinity is the first work using multiple CSDs to mitigate system interconnect bottlenecks in DNN training.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_035" style="--color:#E5A835;border-radius:22px;left:920px;top:2980px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title">열린 질문 — multi-node로 확장하면?</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▼</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">이 논문은 단일 노드 안 multiple CSD다. 내 관심(single→multi-node)에서 보면: CSD들이 노드를 넘어가면 (a) upstream 파라미터 전송이 노드 간 네트워크로 바뀌며 CXL Multi-node Coherence의 거리 문제와 만나고, (b) flatten 균등 분배가 노드 간 불균형(NUMA/거리)에서도 성립하는가? (c) SmartComp의 gradient 압축이 노드 간 통신에도 유효한가? → H1(워크로드 특화로 multi-node coherence 줄이기)과 연결되는 검증 질문.</div><details class="ng-original"><summary>Original <span class="ng-loc">— (my note)</span></summary>
+<div class="ng-orig-text">(논문 밖 질문 — 내 연구 방향. 원문 인용 아님.)</div></details></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":160,"children":["node_011","node_012"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":160},{"id":"node_002","lx":100,"ly":460,"children":["node_013","node_014","node_015"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":460},{"id":"node_003","lx":100,"ly":760,"children":["node_016","node_017"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":760},{"id":"node_004","lx":100,"ly":1060,"children":["node_018","node_019"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1060},{"id":"node_005","lx":100,"ly":1360,"children":["node_020","node_021"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1360},{"id":"node_006","lx":100,"ly":1660,"children":["node_022","node_023"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1660},{"id":"node_007","lx":100,"ly":1960,"children":["node_024","node_025"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1960},{"id":"node_008","lx":100,"ly":2260,"children":["node_026"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2260},{"id":"node_009","lx":100,"ly":2560,"children":["node_027","node_028","node_029","node_030","node_031"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2560},{"id":"node_010","lx":100,"ly":2860,"children":["node_032","node_033","node_034","node_035"],"template":"main_topic","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2860},{"id":"node_011","lx":500,"ly":100,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":100},{"id":"node_012","lx":500,"ly":220,"children":[],"template":"question","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":220},{"id":"node_013","lx":500,"ly":360,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":360},{"id":"node_014","lx":500,"ly":460,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":460},{"id":"node_015","lx":500,"ly":560,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":560},{"id":"node_016","lx":500,"ly":700,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":700},{"id":"node_017","lx":500,"ly":820,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":820},{"id":"node_018","lx":500,"ly":1000,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1000},{"id":"node_019","lx":500,"ly":1120,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1120},{"id":"node_020","lx":500,"ly":1300,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1300},{"id":"node_021","lx":500,"ly":1420,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1420},{"id":"node_022","lx":500,"ly":1600,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1600},{"id":"node_023","lx":500,"ly":1720,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1720},{"id":"node_024","lx":500,"ly":1900,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1900},{"id":"node_025","lx":500,"ly":2020,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2020},{"id":"node_026","lx":500,"ly":2260,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2260},{"id":"node_027","lx":500,"ly":2360,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2360},{"id":"node_028","lx":500,"ly":2460,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2460},{"id":"node_029","lx":500,"ly":2560,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2560},{"id":"node_030","lx":500,"ly":2660,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2660},{"id":"node_031","lx":500,"ly":2760,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":2760},{"id":"node_032","lx":920,"ly":2820,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":2820},{"id":"node_033","lx":500,"ly":2900,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":2900},{"id":"node_034","lx":500,"ly":3000,"children":[],"template":"reference","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":3000},{"id":"node_035","lx":920,"ly":2980,"children":[],"template":"question","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":2980}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_005","target":"node_006","type":"arrow","label":""},{"source":"node_006","target":"node_007","type":"arrow","label":""},{"source":"node_007","target":"node_008","type":"arrow","label":""},{"source":"node_008","target":"node_009","type":"arrow","label":""},{"source":"node_009","target":"node_010","type":"arrow","label":""},{"source":"node_001","target":"node_011","type":"line","label":""},{"source":"node_001","target":"node_012","type":"line","label":""},{"source":"node_002","target":"node_013","type":"line","label":""},{"source":"node_002","target":"node_014","type":"line","label":""},{"source":"node_002","target":"node_015","type":"line","label":""},{"source":"node_003","target":"node_016","type":"line","label":""},{"source":"node_003","target":"node_017","type":"line","label":""},{"source":"node_004","target":"node_018","type":"line","label":""},{"source":"node_004","target":"node_019","type":"line","label":""},{"source":"node_005","target":"node_020","type":"line","label":""},{"source":"node_005","target":"node_021","type":"line","label":""},{"source":"node_006","target":"node_022","type":"line","label":""},{"source":"node_006","target":"node_023","type":"line","label":""},{"source":"node_007","target":"node_024","type":"line","label":""},{"source":"node_007","target":"node_025","type":"line","label":""},{"source":"node_008","target":"node_026","type":"line","label":""},{"source":"node_009","target":"node_027","type":"line","label":""},{"source":"node_009","target":"node_028","type":"line","label":""},{"source":"node_009","target":"node_029","type":"line","label":""},{"source":"node_009","target":"node_030","type":"line","label":""},{"source":"node_009","target":"node_031","type":"line","label":""},{"source":"node_010","target":"node_032","type":"line","label":""},{"source":"node_010","target":"node_033","type":"line","label":""},{"source":"node_010","target":"node_034","type":"line","label":""},{"source":"node_033","target":"node_035","type":"line","label":"multi-node로"}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Chevron click = toggle this node only (no cascade, stopPropagation)
+function toggleFold(e, hdr) {
+  e.stopPropagation();
+  var body = hdr.nextElementSibling;
+  if (!body) return;
+  var chevron = hdr.querySelector('.ng-chevron');
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  if (chevron) chevron.textContent = expanding ? '▲' : '▼';
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// 펼치기용 하위 노드 수집 — main_topic 자식은 건너뜀 (그 하위도 포함 안 함)
+// outgoing + incoming(non-main) 양방향 edge 포함하여 다중 부모 sub-node를 지원
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // 직사각형(sharp/main) 자식은 포함하지 않음
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // outgoing: 이 노드에서 나가는 edge
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // incoming from non-main: non-main 노드가 이 노드를 향하는 edge (다중 부모 sub-node 지원)
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// <details> 토글(toggle items / original) 시 노드 높이가 변하므로 화살표 재계산
+// toggle 이벤트는 버블링하지 않아 capture phase 필요
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // 전체 펼치기 — main_topic는 포함하되 그 하위 main_topic는 skip
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Per-node drag with logical-position tracking
+function onNodeHeaderMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx += finalDX; nodeDatum.ly += finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+// 노드 위치를 원래 배치 그대로 유지 — 접기/펼치기 시 다른 노드를 밀지 않음
+function getNodeRootId(nodeId) {
+  var childToParent = getChildToParentMap();
+  var cur = nodeId;
+  while (childToParent[cur]) cur = childToParent[cur];
+  return cur;
+}
+function getChildToParentMap() {
+  var map = {};
+  NODES_DATA.forEach(function(n) {
+    (n.children || []).forEach(function(childId) { map[childId] = n.id; });
+  });
+  return map;
+}
+function recomputePositions() {
+  var childToParent = getChildToParentMap();
+  function rootOf(id) {
+    var cur = id;
+    while (childToParent[cur]) cur = childToParent[cur];
+    return cur;
+  }
+  function isDescendantOf(descendant, ancestor) {
+    var cur = descendant;
+    while (childToParent[cur]) {
+      cur = childToParent[cur];
+      if (cur === ancestor) return true;
+    }
+    return false;
+  }
+  var sorted = NODES_DATA.slice().sort(function(a, b) {
+    if (a.ly !== b.ly) return a.ly - b.ly;
+    return a.lx - b.lx;
+  });
+  var renderY = {};
+  sorted.forEach(function(n) {
+    var nIsMain = n.isMain;
+    var y = n.ly;
+    var nEl = document.getElementById('node-' + n.id);
+    var nW = nEl ? nEl.offsetWidth : 300;
+    sorted.forEach(function(other) {
+      if (other.id === n.id) return;
+      if (other.ly > n.ly) return;
+      if (other.ly === n.ly && other.lx >= n.lx) return;
+      var otherY = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+      var otherEl = document.getElementById('node-' + other.id);
+      var h = otherEl ? otherEl.offsetHeight : HEADER_H;
+      var otherBottom = otherY + h;
+      if (otherBottom <= y) return;
+      if (nIsMain && other.isMain) {
+        // Main → main: always push regardless of X offset
+        var naturalBottom = other.ly + (other.nodeHeight || HEADER_H);
+        var delta = (otherY + h) - naturalBottom;
+        var nodeNaturalY = n.naturalY !== undefined ? n.naturalY : n.ly;
+        y = Math.max(y, nodeNaturalY + delta, otherBottom + 20);
+      } else {
+        // Rounded pushes: only if X ranges actually overlap (different columns don't push each other)
+        var oW = otherEl ? otherEl.offsetWidth : 300;
+        if (!(n.lx < other.lx + oW && other.lx < n.lx + nW)) return;
+        if (nIsMain) {
+          // Rounded → main: skip only if descendant AND doesn't actually reach this node's Y
+          if (isDescendantOf(other.id, n.id) && otherBottom <= n.ly) return;
+          var wasPushed = otherY > other.ly;
+          if (!other.contentExpanded && !wasPushed) return;
+          y = Math.max(y, otherBottom + 48);
+        } else {
+          var wasPushed = otherY > other.ly;
+          if (!other.contentExpanded && !wasPushed) return;
+          var gap = (rootOf(other.id) === rootOf(n.id)) ? 20 : 48;
+          y = Math.max(y, otherBottom + gap);
+        }
+      }
+    });
+    renderY[n.id] = y;
+  });
+
+  // Pass 2: 서브노드가 부모 backbone 노드의 push delta만큼 따라 내려가도록 보정
+  // 부모 main 노드가 밀려 내려갔으면 자식 서브노드도 동일 delta 적용
+  NODES_DATA.forEach(function(n) {
+    if (n.isMain) return;
+    var parentMain = null;
+    var bestDist = Infinity;
+    NODES_DATA.forEach(function(m) {
+      if (!m.isMain) return;
+      var connected = m.children && m.children.indexOf(n.id) !== -1;
+      if (!connected) {
+        EDGES.some(function(e) {
+          if ((e.source === m.id && e.target === n.id) || (e.target === m.id && e.source === n.id)) {
+            connected = true; return true;
+          }
+        });
+      }
+      if (connected) {
+        var dist = Math.abs(m.ly - n.ly);
+        if (dist < bestDist) { bestDist = dist; parentMain = m; }
+      }
+    });
+    if (parentMain) {
+      var parentPush = (renderY[parentMain.id] !== undefined ? renderY[parentMain.id] : parentMain.ly) - parentMain.ly;
+      if (parentPush > 0) {
+        var cur = renderY[n.id] !== undefined ? renderY[n.id] : n.ly;
+        renderY[n.id] = Math.max(cur, n.ly + parentPush);
+      }
+    }
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 — 같은 소스·같은 X 컬럼 타겟들 간격 일관화
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  var ndMap = {};
+  NODES_DATA.forEach(function(n) { ndMap[n.id] = n; });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return ndMap[id]; });
+    if (targetIds.length < 2) return;
+    // X 컬럼별 서브그룹 분류
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = ndMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = ndMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    // 각 X 컬럼 서브그룹 내에서 순차 정렬
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var sorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : ndMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < sorted.length; i++) {
+        var minY = sorted[i-1].y + sorted[i-1].h + 20;
+        var newY = Math.max(sorted[i].y, minY);
+        sorted[i].y = newY;
+        renderY[sorted[i].id] = newY;
+      }
+    });
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = n.lx + 'px';
+    el.style.top  = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // 같은 source에서 나가는 line 엣지를 grouping → bus 라우팅 후보
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus 라우팅: source 하나 → 복수의 line 타겟이 모두 같은 방향(우측 or 좌측)일 때
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // 모두 오른쪽에 있는지 확인
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // 나머지 엣지: Bezier 곡선
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape') closeLightbox();});
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // KaTeX 먼저 렌더링해야 노드 높이가 정확함
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // 이미지 로드 후 노드 높이 재계산 (base64 이미지도 비동기로 높이 확정됨)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

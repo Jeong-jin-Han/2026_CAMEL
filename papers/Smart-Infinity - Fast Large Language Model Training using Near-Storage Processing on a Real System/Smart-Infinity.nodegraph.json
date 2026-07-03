@@ -1,0 +1,1010 @@
+{
+  "version": "1.0.0",
+  "title": "Smart-Infinity: Fast Large Language Model Training using Near-Storage Processing on a Real System",
+  "created": "2026-07-04T00:00:00Z",
+  "modified": "2026-07-04T00:00:00Z",
+  "source": {
+    "pdf": "Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System.pdf",
+    "authors": "Hongsun Jang, Jaeyong Song, Jaewon Jung, Jaeyoung Park, Youngsok Kim, Jinho Lee",
+    "venue": "HPCA 2024 (IEEE Int'l Symposium on High-Performance Computer Architecture)",
+    "doi": "arXiv:2403.06664",
+    "pages": 16
+  },
+  "nodeTemplates": {
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#2E86AB",
+      "icon": "tool",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#1B998B",
+      "icon": "chart-bar",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#3A506B",
+      "icon": "quote",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Ext. reference",
+      "color": "#9C6ADE",
+      "icon": "external-link",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#E24B4A",
+      "icon": "flame",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#6B7280",
+      "icon": "note",
+      "shape": "rounded"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "문제 — GPU 메모리 한계와 storage-offloaded training의 대역폭 병목",
+      "content": "LLM은 파라미터 수 증가로 GPU 메모리 용량이 최대 제약이 되어, 연산이 아니라 용량 때문에 수십 개 GPU를 쓰는 낭비가 생긴다. 대안인 storage-offloaded training은 optimizer states·gradients를 host memory와 SSD로 내보내 GPU 용량 벽을 넘지만, SSD 대역폭이 GPU 메모리보다 수 배수 낮아 새 병목이 된다. 저자 측정으로는 전체 학습 시간의 88% 이상이 storage 데이터 전송에 소비된다.",
+      "original": {
+        "text": "According to our study, more than 88% of the total training time is consumed by transferring data from/to the storage. At a glance, combining multiple storage devices using RAID0 solution could alleviate the problem. However, such a method would fundamentally be bottlenecked by the limited number of PCIe lanes (or IO pins) of the host processor.",
+        "location": "§I, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_011",
+        "node_012"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "핵심 통찰 — update 단계가 storage 대역폭 대부분 소비 + interconnect 병목",
+      "content": "storage-offloaded 학습의 시간 대부분(>80%)은 update 단계에서 optimizer states를 올리고 내리는 데 쓰인다. 게다가 RAID0로 SSD를 늘려도 4개를 넘으면 공유 system interconnect(PCIe) 대역폭이 상한이라 speedup이 포화한다. 그래서 저자의 1차 목표는 '공유 interconnect를 통과하는 host↔storage 전송량 자체를 줄이는 것'이다.",
+      "original": {
+        "text": "As we described in Section II, we break down the storage offloaded training into forward (FW), backward (BW + Gradients Offload), and update (Update + Optimizer states Upload/Offload). Contrary to conventional training, the most time is spent on the update phase of over 80% the training time, due to the storage access overhead.",
+        "location": "§III, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "children": [
+        "node_013",
+        "node_014",
+        "node_015"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "SmartUpdate — update 연산을 CSD 내부 가속기로 이동 ((6+2)M→2M)",
+      "content": "핵심 아이디어: CPU가 하던 파라미터 update 연산을 CSD 안의 FPGA로 내려보낸다(SmartUpdate). 그러면 optimizer states(6M)를 host로 올릴 필요가 없어 interconnect 통과 트래픽이 (6+2)M에서 2M으로 줄고, 여러 CSD의 내부 대역폭을 합산해 쓸 수 있다. Adam 기준 총 8M read/write가 update 시 2M read(갱신 파라미터)+backward 시 2M write(gradient)로 축소된다.",
+      "original": {
+        "text": "we offload the update computation from the CPU to the accelerator in CSDs (SmartUpdate). From this, we can benefit from the fast aggregate bandwidth of CSDs, reducing the communication overhead of existing storage-offloaded LLM training methods from (6 + 2)M to 2M.",
+        "location": "§IV, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 600
+      },
+      "children": [
+        "node_016",
+        "node_017"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "Internal Data Transfer Handler — buffer 사전할당 + swap overlapping (OOM 회피)",
+      "content": "SmartUpdate를 naive하게 짜면 tasklet마다 전체 메모리를 점유해 겹칠 수 없고, 억지로 겹치면 device OOM이 난다. 저자는 변수 buffer를 분리하고 급하지 않은 변수(momentum·variance)의 writeback을 지연시키는 handler를 제안한다. thread 0은 파라미터를 먼저 SSD로 쓰고, thread 1이 가장 큰 subgroup 크기로 사전할당된 같은 buffer를 재사용해 다음 로딩을 수행한다.",
+      "original": {
+        "text": "The key idea of the proposed handler is to separate the buffer for variables and lazily transfer non-urgent variables. ... Through the optimization, we obtain several benefits: 1) avoid reallocation of device memory, 2) the GPU can start forward/backward phases earlier, and 3) the data transfers to the SSDs are overlapped.",
+        "location": "§IV-B, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 900
+      },
+      "children": [
+        "node_018",
+        "node_019"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "SmartComp — CSD-보조 gradient 압축 (multiple CSD의 새 병목 제거)",
+      "content": "SmartUpdate가 optimizer states 전송을 없애도 gradient(2M)는 여전히 공유 interconnect를 지나므로, CSD 수가 늘면 이게 새 병목이 된다. SmartComp는 GPU에서 gradient를 magnitude 기반 Top-K로 압축해 c%×2M만 보내고, CSD의 FPGA가 decompress한 뒤 update한다. DNN 학습이 gradient 오차에 관대하다는 점을 이용(기본 압축비 2%).",
+      "original": {
+        "text": "SmartUpdate reduces a significant amount of the SSD traffic by removing the transfer of optimizer states to the host. Given multiple CSDs in the system, the optimizer states (6M) are transferred within the CSDs through the internal bandwidth linearly scaled by the number of CSDs. However, gradients (2M) still go through the system interconnect, which becomes a new bottleneck when the number of CSDs increases.",
+        "location": "§IV-C, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1200
+      },
+      "children": [
+        "node_020",
+        "node_021"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "main_topic",
+      "title": "Multiple CSD 워크로드 분배 — flatten + element-wise (architecture-agnostic)",
+      "content": "여러 CSD로 확장하는 방법: optimizer state 갱신이 전부 element-wise 연산이므로, 모델 파라미터를 1차원으로 flatten해 CSD들에 균등 분배한다. 각 CSD가 자기 몫 파라미터를 소유하고, backward 후 생성된 gradient를 소유 CSD로 offload해 P2P로 update한다. flatten 덕분에 분배가 모델 구조(layer·hidden dim·head 수)와 무관해 채택이 간단하다.",
+      "original": {
+        "text": "Because of using flattened model parameters, the distribution procedure is agnostic to the model architecture. This allows for a simple adoption of Smart-Infinity, where end users do not need to consider the model architecture information such as the layers, hidden dimensions, or number of heads.",
+        "location": "§IV-D, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1500
+      },
+      "children": [
+        "node_022",
+        "node_023"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "main_topic",
+      "title": "Accelerator 구조 — General Updater(Adam AXPBY) + Top-K Decompressor",
+      "content": "FPGA 안 microarchitecture: updater는 여러 PE로 subgroup 단위 파라미터를 병렬 갱신하며, 핵심은 SIMD AXPBY 유닛(두 벡터를 계수 α·β로 곱해 더하는 general averaging)이다. 계수만 바꾸면 다양한 moving average를 표현해 SGD·AdaGrad·AdamW로 확장된다. decompressor는 Top-K 값을 index 위치로 '라우팅'만 하면 되어 산술 연산이 거의 없다(FPGA 자원 절약).",
+      "original": {
+        "text": "Therefore, we placed SIMD AXPBY units, which can handle general averaging operations. It takes two input vectors (i.e., A and B) and multiplies the dedicated coefficients (i.e., α and β) to them. ... Note that the updater can be extended to other optimizers such as SGD, AdaGrad, and AdamW because most optimizers use variations of moving averaging.",
+        "location": "§V-A, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1800
+      },
+      "children": [
+        "node_024",
+        "node_025"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "main_topic",
+      "title": "Implementation — DeepSpeed + OpenCL + pybind11 (ready-to-use)",
+      "content": "실제 시스템 통합: DeepSpeed ZeRO-Infinity의 파라미터 update 부분을 대체하는 callable module로 구현하고, distutils로 C/C++ 모듈을 붙였다. Xilinx OpenCL 확장(CL_MEM_EXT_PTR_XILINX)으로 FPGA-SSD 버퍼를 잇고, pread/pwrite system call로 SmartSSD 내부 P2P를 구동, pybind11로 torch.Tensor를 C++에 노출한다. 옵션만 지정하면 DeepSpeed 엔진 초기화 시 자동 컴파일되어 기존 코드를 무수정 실행.",
+      "original": {
+        "text": "Because of this, Smart-Infinity can be enabled by simply specifying an option, and automatic compilation starts when the DeepSpeed engine is initialized. This indicates that any LLM training codes implemented with DeepSpeed can be run with Smart-Infinity with no modification, making Smart-Infinity a practical and powerful framework.",
+        "location": "§VI, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 2100
+      },
+      "children": [
+        "node_026"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "main_topic",
+      "title": "Evaluation — 최대 2.11× speedup, 대형 모델 확장성, 정확도 유지",
+      "content": "SmartSSD(4TB NVMe + Kintex UltraScale+ KU15P FPGA) 최대 10개로 실측. SU+O+C가 baseline 대비 1.85×~1.98×(10 SSD), A100에서 최대 2.11× speedup. GPT-2 33B에서도 1.37×(6 SSD)·1.88×(10 SSD)로 확장성 유지. BLOOM·ViT 1.32×~1.85×. SmartUpdate는 baseline과 알고리즘적으로 동일해 정확도가 정확히 같고, SmartComp도 comparable. updater throughput은 7GB/s 이상으로 SSD read/write보다 빠르다.",
+      "original": {
+        "text": "SmartComp provides 1.22×∼1.31× additional speedup over SmartUpdate, showing 1.85×∼1.98× speedup over the baseline. Through the breakdown results, we can find out that SmartComp successfully reduces the remaining gradient offloading time of the optimized SmartUpdate further.",
+        "location": "§VII-C, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 2400
+      },
+      "children": [
+        "node_027",
+        "node_028",
+        "node_029",
+        "node_030",
+        "node_031"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "main_topic",
+      "title": "결론 & feasibility 관점 — off-the-shelf 실물로 '가능함'을 증명",
+      "content": "Smart-Infinity는 각 CSD의 FPGA 가속기로 storage-offloaded LLM 학습의 전송 병목을 없애는 CSD 기반 프레임워크다. 전용 die를 가정하고 시뮬레이터로만 검증한 선행(GradPIM·OptimStore)과 달리, off-the-shelf 제품(SmartSSD)만으로 PyTorch에 완전 통합된 ready-to-use 실물이라는 점이 핵심 — 곧 feasibility-by-building의 대표 사례.",
+      "original": {
+        "text": "We propose Smart-Infinity, a novel CSD-based framework to accelerate storage-offloaded LLM training. ... Smart-Infinity has been fully integrated into PyTorch only with off-the-shelf products, making itself a ready-to-use solution.",
+        "location": "§X, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 2700
+      },
+      "children": [
+        "node_032",
+        "node_033",
+        "node_034",
+        "node_035"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "claim",
+      "title": "학습 시간의 88%+가 storage 데이터 전송",
+      "content": "storage-offloaded 학습의 근본 문제를 수치로 못박은 문장. 병목이 compute가 아니라 data movement임. RAID0로 SSD를 합쳐도 host PCIe lane 수가 상한이라 근본 해결이 안 됨.",
+      "original": {
+        "text": "According to our study, more than 88% of the total training time is consumed by transferring data from/to the storage.",
+        "location": "§I, p.1"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": -60
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "question",
+      "title": "왜 storage-offloaded인가? (배경)",
+      "content": "GPU 메모리에 optimizer states까지 다 못 올리므로, ZeRO-Infinity류는 optimizer states·gradients를 host memory와 SSD로 내보내 GPU 용량 벽을 넘는다. FP16 파라미터 크기를 M이라 할 때 mixed precision Adam의 optimizer states(파라미터·momentum·variance FP32)가 6M을 차지하는 게 핵심 부담.",
+      "original": {
+        "text": "The FP32 optimizer states occupy 6M capacity (model parameter, momentum, and variance in FP32) under mixed precision training, regarding the FP16 model parameter size as M.",
+        "location": "§II-A, p.2"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 60
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "result",
+      "title": "Fig 3a — update 단계가 학습 시간의 >80%",
+      "content": "ZeRO-Infinity baseline을 FW / BW+Grad Offload / Update+Opt Upload·Offload 세 구간으로 쪼갠 breakdown. 모델 크기(2.5B~20.5B) 무관하게 update 구간이 압도적(>80%) → 여기를 없애는 게 최대 이득 지점.",
+      "original": {
+        "text": "Contrary to conventional training, the most time is spent on the update phase of over 80% the training time, due to the storage access overhead. The data transfer portion is significant regardless of model sizes, so it is a critical issue to be addressed in storage-offloaded LLM training.",
+        "location": "§III, p.3"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "result",
+      "title": "Fig 3b — RAID0 SSD 확장은 4개에서 포화",
+      "content": "SSD를 RAID0로 늘려 대역폭을 키우는 소박한 해법의 한계 실측. 4개를 넘으면 공유 system interconnect(PCIe)가 상한이라 speedup이 포화 → 'SSD를 더 꽂는다'로는 못 푸는 문제. SmartUpdate가 interconnect를 우회(내부 대역폭 합산)해야 하는 이유.",
+      "original": {
+        "text": "Figure 3(b) shows the normalized speedup of storage-offloaded training when increasing the number of SSDs using RAID0. Unfortunately, the speedup saturates after using more than four SSDs. Shared system interconnect becomes a new bottleneck when using more than four SSDs.",
+        "location": "§III, p.3-4"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "claim",
+      "title": "1차 목표 = 공유 interconnect 통과 전송량 최소화",
+      "content": "논문 전체를 관통하는 설계 목표. 문제를 '연산을 빠르게'가 아니라 '공유 interconnect를 지나는 host↔storage 전송량을 줄인다'로 규정 → SmartUpdate(optimizer states 제거)·SmartComp(gradient 압축)가 모두 이 목표의 파생.",
+      "original": {
+        "text": "our primary goal is minimizing the data transfer between storage devices and host memory through the shared system interconnect, and we need to fully utilize 1) the aggregated internal bandwidth from multiple CSDs and 2) the computational ability of the accelerator in each CSD.",
+        "location": "§III, p.4"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 400
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "method",
+      "title": "Table I — 통신량 (6+2)M → 2M",
+      "content": "Adam 기준 interconnect 트래픽 표. baseline(ZeRO-Inf)은 optimizer states 6M+6M, gradient 2M+2M. SmartUpdate는 update를 CSD 내부로 옮겨 optimizer states 통신을 없애고, update 시 2M read + backward 시 2M write만 남긴다. SmartComp는 gradient write를 c%×2M으로 더 줄임.",
+      "original": {
+        "text": "SmartUpdate minimizes the total communication volume through the system interconnect to only 2M read during the update phase for the updated parameters and 2M write during backward for the gradients.",
+        "location": "§IV-A, p.4"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 540
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "claim",
+      "title": "핵심 = CSD 개수 확장 시 내부 대역폭 합산",
+      "content": "SmartUpdate의 진짜 이득은 CSD를 늘릴 때 나온다. 단일 CSD면 병목이 interconnect에서 CSD 내부 스위치로 옮겨질 뿐이지만, CSD가 늘면 FPGA-SSD 내부 대역폭이 선형 증가(공유 interconnect는 고정)해 전체 speedup을 견인. → 'aggregate internal bandwidth'가 Smart-Infinity의 원동력.",
+      "original": {
+        "text": "When SmartUpdate is used with a single CSD, the bottleneck simply moves from the system interconnect to the CSD-internal switch. However, the real advantage appears when scaling the number of CSDs. When the number of CSDs increases, the aggregate bandwidth between the FPGA and SSD increases linearly, while that of the system interconnect (PCIe) to the host stays constant.",
+        "location": "§IV-A, p.4-5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 660
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "method",
+      "title": "2-thread buffer 재사용 + 지연 writeback",
+      "content": "thread 0/1이 CPU에서 buffer를 관리. thread 0이 update를 마치면 GPU가 곧 필요로 하는 파라미터를 먼저 SSD로 쓰고, 급하지 않은 momentum·variance의 writeback은 미룬 뒤 thread 1에게 다음 subgroup 로딩을 넘긴다. buffer는 가장 큰 subgroup 크기로 사전할당되어 재사용 → 재할당·OOM 없이 전송을 겹침.",
+      "original": {
+        "text": "Thus, thread 0 defers the writeback of the remaining variables and signals thread 1 to start loading the model parameters of the next subgroup. Because we have preallocated the buffer for the largest subgroup size, thread 1 can directly reuse the same buffer.",
+        "location": "§IV-B, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 840
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "claim",
+      "title": "naive overlap은 OOM → handler가 3가지 이득",
+      "content": "subgroup 간 전송을 소박하게 겹치면 P2P용 추가 device memory가 필요해 OOM이 난다. handler는 이를 피하면서 ① device memory 재할당 회피, ② GPU가 forward/backward를 더 일찍 시작, ③ SSD로의 전송을 overlap — 세 이득을 동시에 얻는다.",
+      "original": {
+        "text": "Through the optimization, we obtain several benefits: 1) avoid reallocation of device memory, 2) the GPU can start forward/backward phases earlier, and 3) the data transfers to the SSDs are overlapped.",
+        "location": "§IV-B, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 960
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "method",
+      "title": "magnitude 기반 Top-K: GPU 압축 / FPGA 복원",
+      "content": "역할 분담이 영리하다. 무거운 작업(sort로 상위 magnitude gradient 선택)은 강력한 GPU가, 가벼운 작업(index에 따라 값을 흩뿌리는 scatter=decompress)은 CSD의 lightweight FPGA가 맡는다. 압축 결과는 index 리스트 + value 리스트. 낮은 magnitude gradient는 0으로 대체(update 방향에 영향 작음).",
+      "original": {
+        "text": "This is a viable choice because the relatively heavier job or sorting can be done in powerful GPUs, and the lightweight FPGAs in CSD perform the decompression part that only involves scattering the values according to the index.",
+        "location": "§IV-C, p.6"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 1140
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "claim",
+      "title": "gradient가 multiple CSD의 새 병목 → 압축이 정당",
+      "content": "SmartUpdate로 optimizer states 통신은 사라지지만, gradient(2M)는 여전히 공유 interconnect를 지나 CSD 수가 늘면 지배적 병목이 된다. DNN 학습이 gradient 오차에 관대하고(gradient compression은 분산 학습의 사실상 표준), FPGA read가 write보다 빠르다는 점이 압축을 SmartComp로 정당화.",
+      "original": {
+        "text": "It is widely known that DNN training is tolerable to some degree of errors, especially the gradients. Gradient compression methods are widely used to mitigate communication overhead in neural network training, and it is almost a norm to train modern larger models in distributed settings.",
+        "location": "§IV-C, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 1260
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "method",
+      "title": "flatten → 균등 분배 → P2P element-wise update",
+      "content": "모델 파라미터를 1차원으로 펼쳐 CSD들에 균등 분배하고, 각 CSD가 소유 파라미터(index i×D ~ (i+1)×D-1)를 담당. backward 후 gradient를 소유 CSD로 offload하면 그 CSD의 FPGA-SSD가 P2P로 update. optimizer state 갱신이 전부 element-wise이므로 이런 평면 분배가 성립.",
+      "original": {
+        "text": "Using this, Smart-Infinity flattens the model parameters and equally distributes them to the CSDs, where each CSD takes the responsibility to update the owned parameters. Then, the optimizer states are allocated and initialized at CSDs that own the associated parameters.",
+        "location": "§IV-D, p.6"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 1440
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "claim",
+      "title": "분배가 모델 구조와 무관 → 채택 단순",
+      "content": "flatten 덕분에 CSD 분배가 layer·hidden dim·head 수 같은 아키텍처 정보에 의존하지 않는다. 사용자는 모델 구조를 신경 쓸 필요 없이 붙일 수 있어, 임의의 transformer 계열에 범용 적용 가능(BLOOM·ViT까지 되는 근거).",
+      "original": {
+        "text": "Because of using flattened model parameters, the distribution procedure is agnostic to the model architecture. This allows for a simple adoption of Smart-Infinity, where end users do not need to consider the model architecture information such as the layers, hidden dimensions, or number of heads.",
+        "location": "§IV-D, p.6"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 1560
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "method",
+      "title": "SIMD AXPBY 유닛 = general averaging (optimizer 범용)",
+      "content": "updater는 두 입력 벡터에 계수 α·β를 곱해 더하는 SIMD AXPBY 유닛으로 구성. 계수만 바꾸면 momentum·variance 등 다양한 moving average를 표현하므로 Adam뿐 아니라 SGD·AdaGrad·AdamW로 확장된다(대부분 optimizer가 moving average 변형이라는 통찰). subgroup(가속기 DRAM 크기 D) 단위 병렬 처리.",
+      "original": {
+        "text": "The above procedure can be used for various averaging operations by changing the coefficients. ... Note that the updater can be extended to other optimizers such as SGD, AdaGrad, and AdamW because most optimizers use variations of moving averaging.",
+        "location": "§V-A, p.7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 1740
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "method",
+      "title": "Top-K decompressor = 산술 없는 index 라우팅",
+      "content": "decompressor는 compressed gradient의 (index, value) 쌍을 읽어 gradient buffer의 해당 위치에 값을 채우고 나머지는 0으로 둔다. 곱셈·덧셈 없이 '값을 올바른 위치로 라우팅'만 하므로 FPGA 자원 소모가 작다(LUT 여유 → 추가 확장 여지). Adam은 full matrix가 필요해 update 전에 먼저 decompress.",
+      "original": {
+        "text": "In the output vector, the partial Top-K elements of the target parameters selected in this iteration j are filled with their values, and the others are filled with zero. Until decompression finishes, the decompressor repeats.",
+        "location": "§V-B, p.7-8"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 1860
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "method",
+      "title": "DeepSpeed 대체 모듈 + OpenCL P2P + pybind11",
+      "content": "DeepSpeed ZeRO-Infinity의 파라미터 update만 교체하는 callable module. Xilinx OpenCL 확장의 CL_MEM_EXT_PTR_XILINX로 FPGA-SSD 버퍼를 잡고, pread/pwrite로 SmartSSD 내부 P2P를 구동, pybind11로 torch.Tensor를 C++에 노출. gradient offload 경로를 해당 SSD로 향하게 조정. 옵션 지정만으로 활성화 → 무수정 적용.",
+      "original": {
+        "text": "We use pread/pwrite system call to the P2P buffer, which operates the direct internal P2P communication feature of SmartSSD.",
+        "location": "§VI, p.9"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 2100
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "result",
+      "title": "speedup — 최대 2.11× (A100), 1.85~1.98× (10 SSD)",
+      "content": "SU(SmartUpdate)→SU+O(handler)→SU+O+C(SmartComp) 순으로 누적 향상. SU+O+C가 baseline 대비 1.85×~1.98×(10 SSD). GPT-2 8.4B·6 SSD에서 baseline update가 학습 시간의 75.57%를 차지하던 것을 제거. 연산 비중이 작은 고급 GPU(A100)에서 전송 절감 효과가 커져 최대 2.11×.",
+      "original": {
+        "text": "In GPT-2 8.4B model with 6 SSDs, the update time with the optimizer states communication time consumes 75.57% of the training time of the baseline. ... provides up to 2.11× speedup in the A100 GPU setting.",
+        "location": "§VII-C · §VII-E, p.10-11"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 2200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "result",
+      "title": "대형 모델 확장성 — GPT-2 33B에서 1.88×",
+      "content": "16.6B~33.0B로 키워도 speedup이 유지·증가. GPT-2 33.0B에서 baseline 대비 1.37×(6 SSD)·1.88×(10 SSD). transformer의 통신량이 파라미터 수에 비례하고 CSD를 더 쓸수록 큰 모델에도 speedup을 주므로 확장성이 있다(반면 baseline은 업/다운로드 오버헤드로 고통).",
+      "original": {
+        "text": "Even with GPT-2 33.0B model, Smart-Infinity provides 1.37× and 1.88× speedup over the baseline using 6 SSDs and 10 SSDs, respectively.",
+        "location": "§VII-D, p.10"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 2300
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "result",
+      "title": "정확도 — SmartUpdate는 baseline과 완전 동일",
+      "content": "핵심 신뢰성 근거. SmartUpdate는 baseline과 알고리즘적으로 동일해 정확도가 정확히 같다(연산 위치만 CPU→FPGA로 옮겼을 뿐). SmartComp는 lossy 압축이지만 GLUE(MNLI·QQP·SST-2·QNLI) 파인튜닝에서 baseline과 comparable → 속도 이득이 정확도를 희생하지 않음.",
+      "original": {
+        "text": "SmartUpdate is algorithmically identical to the baseline training, so the accuracy is exactly the same as the baseline. SmartComp adopts lossy compression, but achieves comparable accuracy in all datasets.",
+        "location": "§VII-J, p.12"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 2400
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "result",
+      "title": "throughput·비용 — updater >7GB/s, GFLOPS/$ 증가",
+      "content": "updater throughput이 7GB/s 이상으로 SSD read/write보다 충분히 높아 SSD가 병목을 결정(가속기가 발목 안 잡음). 비용 효율(GFLOPS/$)은 SmartSSD가 일반 SSD보다 6× 비싸 1~3 CSD에선 baseline보다 낮지만, 4개 초과부터 speedup이 커져 역전되고 CSD를 늘릴수록 계속 증가.",
+      "original": {
+        "text": "The throughput of the updater is above 7GB/s, which is sufficiently higher than the SSD read/write. ... When scaling the number of SmartSSDs, the GFLOPS/$ keeps increasing, showing the efficiency of Smart-Infinity.",
+        "location": "§VII-H · §VII-I, p.11-12"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 2500
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_031",
+      "template": "result",
+      "title": "일반성 — 다른 optimizer·모델에도 성립",
+      "content": "SGD·AdaGrad로 바꿔도 speedup 유지(SGD는 optimizer state가 3/4 적어 이득이 약간 작음). BLOOM·ViT에서도 1.32×~1.85×로 GPT-2·BERT와 유사 → 특정 모델/optimizer에 종속되지 않는 범용 가속. AXPBY 유닛 + flatten 분배가 이 일반성의 구조적 근거.",
+      "original": {
+        "text": "On such models, Smart-Infinity stably shows 1.32×∼1.85× speedup, similar to the results we have shown for GPT-2 and BERT.",
+        "location": "§VII-G, p.11"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 2600
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_032",
+      "template": "memo",
+      "title": "★ 내 발표 프레임 연결 — feasibility-by-building 사다리 1단",
+      "content": "내 세미나 4편 중 1편(7/9). 프레임=feasibility-by-building. Smart-Infinity의 증명 방식 = '시뮬레이터가 아니라 실물(SmartSSD×10 + FPGA + PyTorch 통합)로 real-system 실측' → 증명 강도 사다리의 첫 칸(real-system measurement). 6-질문 프레임 요약: Claim=update를 near-storage로 옮기면 storage 병목이 사라진다 / Artifact=DeepSpeed에 통합된 SmartSSD 기반 실물 / Crux=aggregate internal bandwidth vs 고정 interconnect(node_017) / Evidence=최대 2.11× + 정확도 동일 / Invariant=SmartUpdate는 알고리즘적으로 baseline과 동일(node_029) / Gap=upstream 전송 병목(node_033).",
+      "original": {
+        "text": "(논문 밖 메모 — 내 발표 프레임. 원문 인용 아님.)",
+        "location": "— (my note)"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 2660
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_033",
+      "template": "gap",
+      "title": "한계 — upstream 전송 병목 / 단일 CSD 손해 / PCIe topology 의존",
+      "content": "저자 스스로 밝힌 gap: (1) 현재 병목은 CSD→host로 올라가는 갱신 파라미터(upstream) 전송 — 모델 압축(quantization/pruning)과 결합해 압축된 모델을 올리면 더 줄일 여지. (2) 단일 CSD에서는 대역폭 증가가 없고 FPGA 사용 오버헤드로 오히려 소폭 느려짐. (3) speedup이 PCIe topology(multi-GPU congested)에 따라 달라짐.",
+      "original": {
+        "text": "As discussed in Section IV-C, the current bottleneck of Smart-Infinity is on the upstream model transfer from the CSD to the host. When Smart-Infinity is used for model compression, Smart-Infinity can perform compression and upload the compressed model, further reducing the bottleneck.",
+        "location": "§VIII-B, p.12"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 2740
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_034",
+      "template": "reference",
+      "title": "선행 대비 — 시뮬레이터(GradPIM·OptimStore)와의 차별",
+      "content": "관련 연구 중 GradPIM·OptimStore도 DNN 학습을 near-data로 가속하지만, 전용 memory/storage die를 가정하고 시뮬레이터로만 검증해 real-system 통합 이슈를 다루지 않는다. Smart-Infinity는 '여러 CSD를 실제로 써서 interconnect 병목을 푼 최초 연구'라고 주장 → 이 real-system·multi-CSD 실증이 feasibility 관점의 차별점.",
+      "original": {
+        "text": "It is worth noting GradPIM [57] and OptimStore [58] as they both target DNN training similar to this work. However, they assume dedicated memory/storage die, making those solutions less practical. Moreover, they were only implemented on simulators and do not consider real system integration issues. ... Smart-Infinity is the first work using multiple CSDs to mitigate system interconnect bottlenecks in DNN training.",
+        "location": "§IX-A, p.13"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 400,
+        "y": 2840
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_035",
+      "template": "question",
+      "title": "열린 질문 — multi-node로 확장하면?",
+      "content": "이 논문은 단일 노드 안 multiple CSD다. 내 관심(single→multi-node)에서 보면: CSD들이 노드를 넘어가면 (a) upstream 파라미터 전송이 노드 간 네트워크로 바뀌며 CXL Multi-node Coherence의 거리 문제와 만나고, (b) flatten 균등 분배가 노드 간 불균형(NUMA/거리)에서도 성립하는가? (c) SmartComp의 gradient 압축이 노드 간 통신에도 유효한가? → H1(워크로드 특화로 multi-node coherence 줄이기)과 연결되는 검증 질문.",
+      "original": {
+        "text": "(논문 밖 질문 — 내 연구 방향. 원문 인용 아님.)",
+        "location": "— (my note)"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 2820
+      },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_005",
+      "target": "node_006",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_006",
+      "source": "node_006",
+      "target": "node_007",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_007",
+      "source": "node_007",
+      "target": "node_008",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_008",
+      "source": "node_008",
+      "target": "node_009",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_009",
+      "source": "node_009",
+      "target": "node_010",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_010",
+      "source": "node_001",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_001",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_012",
+      "source": "node_002",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_013",
+      "source": "node_002",
+      "target": "node_014",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_014",
+      "source": "node_002",
+      "target": "node_015",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_015",
+      "source": "node_003",
+      "target": "node_016",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_016",
+      "source": "node_003",
+      "target": "node_017",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_017",
+      "source": "node_004",
+      "target": "node_018",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_018",
+      "source": "node_004",
+      "target": "node_019",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_019",
+      "source": "node_005",
+      "target": "node_020",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_020",
+      "source": "node_005",
+      "target": "node_021",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_021",
+      "source": "node_006",
+      "target": "node_022",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_022",
+      "source": "node_006",
+      "target": "node_023",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_023",
+      "source": "node_007",
+      "target": "node_024",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_024",
+      "source": "node_007",
+      "target": "node_025",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_025",
+      "source": "node_008",
+      "target": "node_026",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_026",
+      "source": "node_009",
+      "target": "node_027",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_027",
+      "source": "node_009",
+      "target": "node_028",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_028",
+      "source": "node_009",
+      "target": "node_029",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_029",
+      "source": "node_009",
+      "target": "node_030",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_030",
+      "source": "node_009",
+      "target": "node_031",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_031",
+      "source": "node_010",
+      "target": "node_032",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_032",
+      "source": "node_010",
+      "target": "node_033",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_033",
+      "source": "node_010",
+      "target": "node_034",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_035",
+      "source": "node_033",
+      "target": "node_035",
+      "type": "line",
+      "label": "multi-node로"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}
