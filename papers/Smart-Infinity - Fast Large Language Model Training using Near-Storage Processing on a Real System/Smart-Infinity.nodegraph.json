@@ -190,8 +190,70 @@
       },
       "children": [
         "node_022",
-        "node_023"
+        "node_023",
+        "node_048"
       ],
+      "links": []
+    },
+    {
+      "id": "node_048",
+      "template": "question",
+      "title": "① 분배 — RAID0 차이·균등분배·독립성·granularity(D/S)",
+      "content": "**왜 큰 SSD 하나가 아니라 여러 CSD?**\nCSD = SSD+FPGA 1쌍. 확장 단위는 (SSD+FPGA) 쌍을 늘리는 것(1 SSD당 1 FPGA). 큰 SSD 1개 = FPGA 1개 = 경로 1개 → 대역폭 확장 없음(§II-B \"single CSD provides no bandwidth boost\"). 관건은 용량이 아니라 **병렬 처리 경로 수** → CSD 수만큼 aggregate internal BW 선형↑(node_017), 공유 uplink(16 GB/s) 우회.\n\n**RAID0 vs flatten-distribute (무엇을 나누나)**\n| | RAID0 | flatten-distribute |\n|---|---|---|\n| 나누는 것 | 저장(I/O)만 | 저장 + **연산** |\n| 연산 위치 | host CPU(중앙) | 각 CSD FPGA(로컬) |\n| 6M 경로 | 전부 공유 링크→host | CSD 내부 P2P(안 나감) |\n| 병목 | 공유 uplink(4개 포화, node_040) | 없음(내부 BW 선형↑) |\n\nRAID0는 데이터를 나눠 **저장**만 하고 **연산 안 함** → 처리하려면 다 host로 모음(공유 링크 병목). Smart-Infinity는 **연산 자체를 CSD로** 옮겨 near-data 처리.\n\n**균등 분배(uniform) — 논문 verbatim**\n- §IV-D: \"flattens the model parameters and **equally distributes** them to the CSDs.\" → flat 벡터를 동일 크기로 N등분.\n- 왜 uniform으로 충분? update가 **element-wise**라 파라미터당 연산량 동일 → 같은 개수=같은 작업량, load-balancing 불필요. 파라미터가 독립적(자기 g·m·v만)이라 완전 병렬(node_023).\n\n**분배 granularity**\n- 처리 단위 = subgroup **D**(가속기 DRAM) / chunk **S**(BRAM). subgroup i = 인덱스 [i×D, (i+1)×D−1] (§V). → **SSD block이 아니라 가속기 메모리 크기** 기준(→ 다음 노드 byte vs block).\n- 남는 gradient 2M(공유 링크)은 CSD 많아지면 새 병목 → **SmartComp**가 압축(node_005).",
+      "original": {
+        "text": "Smart-Infinity flattens the model parameters and equally distributes them to the CSDs, where each CSD takes the responsibility to update the owned parameters.",
+        "location": "§IV-D, p.6 (균등 분배; element-wise 독립성; RAID0 한계는 §III)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 1500
+      },
+      "children": [
+        "node_049"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_049",
+      "template": "question",
+      "title": "② Addressability — byte vs block·SSD는 왜 안 되나·word 병렬·변환 주체",
+      "content": "**byte-addressable 기준** = 모든 byte/word에 고유 주소 + **load/store로 직접 접근**(memory bus). ↔ **block-addressable** = 최소 단위 block(page KB), LBA로 주소, 통째 R/W, I/O 명령(NVMe). 두 축: **granularity**(word vs page) + **인터페이스**(memory bus vs I/O).\n\n**왜 SSD는 byte-addressable 아닌가 → 둘 다**\n- (a) NAND 물리: page(KB) R/W · block erase · 1 byte만 못 읽음 · erase-before-write.\n- (b) 인터페이스: block I/O(NVMe) 뒤 저장장치 → CPU 주소공간 매핑 안 됨. (\"kB여서\"는 (a) 절반; (b)도 핵심.)\n\n**FPGA는 왜 word 단위 / 'page 병렬'은?**\n- element-wise Adam은 파라미터 1개(word=FP32)마다 자기 m·v로 갱신 → word-granular 접근 필수.\n- 단 'word-addressable'은 '하나씩 serial'이 아니라 '**개별 주소지정 가능**' → 다중 PE×16 SIMD AXPBY로 **대량 병렬**(§V-A, Fig 7). \"page치를 병렬로\"라는 직관 = 맞고 그게 실제 동작.\n- 정리: **transfer는 bulk(page/chunk), compute는 word이되 대량 병렬**.\n\n**bulk→word 누가 변환?**\n- 별도 번역기 없음. **byte-addressable RAM에 올리는 순간 word-addressable**. 체인: SSD 컨트롤러/FTL(page 서빙) → 내부 P2P/DMA(§IV-B, 가속기 DRAM에 복사) → AXI+주소생성(word offset으로 PE 공급). \"변환\"=RAM에 올림+주소산술.\n\n**★ CXL-SSD 연결(내 연구)**: 이 block↔byte 경계 재조직 = CXL controller+DRAM cache가 block NAND 위 byte-addressable view 제공 → [[Hello Bytes, Bye Blocks]]·[[From Block to Byte]]. \"누가 변환?\"의 답이 FTL+DMA → CXL controller로 옮겨가는 게 연구 지점.",
+      "original": {
+        "text": "The updater consists of multiple updater processing elements (PEs), which update the target parameters in parallel.",
+        "location": "§V-A, p.7 (word ops 대량 병렬); byte↔block은 memory-arch 배경·CXL-SSD 계보"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": 1500
+      },
+      "children": [
+        "node_050"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_050",
+      "template": "question",
+      "title": "③ 가속기 = 연산+메모리 시스템 (DRAM 4GB·MMU/cache 없음·tier·안 느림)",
+      "content": "**가속기 스펙 (§VII-A)**: FPGA(Kintex UltraScale+ KU15P) = **DDR4 4GB DRAM** + 984 BRAM + 522K LUT + 1968 DSP. → subgroup D는 4GB DRAM, chunk S는 BRAM 크기에 맞춤.\n\n**작은 CPU? → domain-specific datapath**\n메모리(DRAM+BRAM)+연산(PE/DSP/AXPBY)+AXI를 갖춰 CPU처럼 보이나, 범용 ISA가 아니라 **HLS 합성 고정 datapath**(Adam·Top-K 특화). general-purpose CPU 아님.\n\n**MMU 없음** — accelerator memory에 **직접 물리 offset(i×D..)** 접근(AXI), VA→PA 변환 없음. → [[CXL Address Translation]] 연결.\n\n**cache 없음(자동), BRAM = 명시적 scratchpad** — tag기반 투명·coherent 캐시 아님, 설계가 load/evict 결정, coherence 프로토콜 없음. → [[CXL Coherence]] 연결(디바이스가 coherence 참여하려면 CXL.cache 필요).\n\n**느린가? → 아니다** — BRAM=on-chip SRAM(cache 속도), streaming·element-wise라 재사용 적어 자동 cache 이점 원래 작음. §IV-B double-buffering(전송↔연산 overlap)으로 latency 은닉 → updater **>7GB/s > SSD** (§VII-H) = 가속기가 병목 아님.\n\n**memory tier 없나? → 있다(명시적 관리)**\n```\nregister (datapath)      <- 가장 빠름\n  |  BRAM/URAM (SRAM)    <- S chunk / gradient buffer\n  |  DDR4 DRAM (4GB)     <- subgroup D\n  |  NAND SSD (4TB)      <- optimizer states 본체\n```\n없는 건 transparent 자동 cache(+coherence)이지 hierarchy 아님. → CXL **tiered memory**의 디바이스 내 판본([[CXL Multi-node Coherence]] 배경).",
+      "original": {
+        "text": "The attached FPGA has approximately 522K LUTs, 984 BRAMs, 1968 DSPs, and DDR4 4GB DRAM.",
+        "location": "§VII-A, p.9 (가속기 메모리); throughput >7GB/s는 §VII-H; MMU/cache 유무는 아키텍처 배경"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1660,
+        "y": 1500
+      },
+      "children": [],
       "links": []
     },
     {
@@ -302,6 +364,48 @@
         "x": 400,
         "y": -60
       },
+      "children": [
+        "node_038"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_038",
+      "template": "question",
+      "title": "대역폭만 병목인가? — 왜 거리(latency)는 안 다루나",
+      "content": "질문: 물리적 연결선이 길어지면 propagation latency도 병목인데, 이 논문은 왜 **대역폭(bandwidth)만** 병목으로 다루나?\n\n정리 — 이 세팅에선 대역폭 집중이 타당하다:\n1. **Single-node · 로컬 PCIe**: NVMe SSD가 **같은 섀시(chassis=서버 본체 케이스; CPU와 같은 물리적 박스)** 안 PCIe 슬롯에 직접 꽂힌다(네트워크 케이블을 넘지 않음). 전송선이 짧아(수 cm) 거리(propagation) latency는 무시할 수준. 수치 비교는 자식 노드 표 참조.\n2. **Bulk 전송 워크로드**: 매 iteration마다 optimizer states(6M)·gradients 같은 크고 연속적인 데이터를 옮긴다 → 처리량(bandwidth)이 지배하고, per-access latency는 큰 청크에 상각(amortize)된다.\n3. **논문 프레이밍도 volume/bandwidth 축**: SSD가 few GB/s만 제공, RAID0로 늘려도 PCIe lane 수(=대역폭)가 상한(node_014), 목표도 \"shared interconnect 통과 전송량 최소화\"(node_015).\n\n★ 단 이 전제는 single-node라 성립. **multi-node / CXL fabric으로 가면 거리 latency가 지배적 병목**이 된다(노드 간 무효화·왕복 수백 ns~µs). = 내 연구 지점 → node_035(multi-node 확장 질문) 및 [[CXL Multi-node Coherence]]의 directory 거리 문제와 연결.",
+      "original": {
+        "text": "At a glance, combining multiple storage devices using RAID0 solution could alleviate the problem. However, such a method would fundamentally be bottlenecked by the limited number of PCIe lanes (or IO pins) of the host processor.",
+        "location": "§I, p.1 (병목을 PCIe lane=대역폭 축으로 규정; 세팅은 single-node 로컬 PCIe)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": -60
+      },
+      "children": [
+        "node_039"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_039",
+      "template": "reference",
+      "title": "NVMe vs PCIe — 대역폭·latency 표 (검색 데이터)",
+      "content": "NVMe SSD와 PCIe 링크의 대역폭·latency 비교 (웹 검색 2026-07, enterprise 근사값).\n\n| 구분 | 대역폭 (bandwidth) | latency |\n|---|---|---|\n| **NVMe SSD** (PCIe Gen4 x4, enterprise) | 순차 read ~7 GB/s (7,000 MB/s급) | read ~10–100 µs (예: Intel D7-5500 read 78 µs, 일부 <20 µs) |\n| **PCIe** (per lane, 단방향) | Gen3 ~1.0 · Gen4 ~2.0 · Gen5 ~3.9 GB/s | 링크/전송 ~수백 ns (Gen5 ~100 ns, Gen4 그 2배 수준) |\n| **PCIe x4** (SSD 1개 링크) | Gen3 ~4 · Gen4 ~8 · Gen5 ~16 GB/s | ns급 (SSD 매체보다 훨씬 작음) |\n| **PCIe x16** | Gen3 ~16 · Gen4 ~32 · Gen5 ~63 GB/s | ns급 |\n| (참고) **GPU HBM** | ~1–3 TB/s (A100 ~2, H100 ~3.35) | — |\n\n**핵심 대비**\n1. **latency 스케일 차이**: SSD 매체 latency(µs) ≫ PCIe 배선 latency(ns) → 약 100~1000배. 그래서 같은 섀시(로컬 PCIe) 안에선 배선·거리 latency는 무시 가능 — 실제 병목은 SSD 매체 속도 + bandwidth.\n2. **bandwidth 포화**: NVMe ~7 GB/s가 PCIe Gen4 x4(~8 GB/s)를 거의 포화 → 더 빠르려면 lane을 늘려야 하는데 host 총 PCIe lane 수가 유한(논문 §I). = 대역폭 상한.\n3. **진짜 격차**: GPU HBM ~1–3 TB/s vs NVMe ~7 GB/s = 100~수백배 → 이게 'storage bandwidth 병목'의 실체.\n4. Smart-Infinity의 SmartSSD는 PCIe **Gen3 x4(~4 GB/s)**로 FPGA-SSD 연결(논문 §VII-A).\n\n출처: [Kingston](https://www.kingston.com/en/blog/pc-performance/pcie-nvme-ssd-gen3-gen4-gen5-video) · [Samsung Insights](https://insights.samsung.com/2024/03/07/what-is-pcie-gen-4-for-ssds-and-how-does-it-compare-to-gen-3-and-gen-5/) · [Intel PCIe](https://www.intel.com/content/www/us/en/gaming/resources/what-is-pcie-4-and-why-does-it-matter.html) · [Trenton Systems](https://www.trentonsystems.com/en-gb/blog/pcie-gen4-vs-gen3-slots-speeds)",
+      "original": {
+        "text": "(외부 웹 검색 데이터 — PCI-SIG 스펙 per-lane 대역폭 + vendor datasheet 기반. 논문 원문 아님. 출처는 content 하단 링크.)",
+        "location": "— (web search, 2026-07)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": -60
+      },
       "children": [],
       "links": []
     },
@@ -319,6 +423,89 @@
       "childrenExpanded": false,
       "position": {
         "x": 400,
+        "y": 60
+      },
+      "children": [
+        "node_036",
+        "node_043"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_043",
+      "template": "question",
+      "title": "왜 FP16 → FP32로 가야 하나? (mixed precision)",
+      "content": "**Mixed precision training**: 연산(forward/backward)은 **FP16**으로 — 빠르고(Tensor Core) 메모리 절약. 하지만 **weight 업데이트 누적은 FP32**로 유지한다(master copy + optimizer states).\n\n**왜 FP16 → FP32로 가야 하나?**\n- FP16은 mantissa가 10-bit라 정밀도·표현범위가 좁다.\n- weight 갱신이 weight보다 훨씬 작을 때(Δw ≪ w), FP16에선 그 작은 갱신이 반올림돼 **사라진다**(underflow / swamping) → 학습이 정체.\n- FP32 master copy에 누적하면 작은 갱신도 보존된다. optimizer의 variance(v = gradient²)도 값이 작아 FP16이면 underflow → FP32 필요.\n- (관련: loss scaling도 gradient underflow를 막는 mixed precision 기법.)\n\n→ 그래서 **FP32 master weights + FP32 m·v가 필수 = 6M**(node_036) = GPU 메모리 부담의 근원 = storage-offload를 하는 이유.\n\n정리: FP16 파라미터(M)는 GPU 연산용, FP32 상태(6M)는 안정적 누적용 — 둘 다 있어야 해서 메모리가 커진다.",
+      "original": {
+        "text": "Considering that maintaining optimizer states in FP32 is an almost essential option for mixed precision LLM training, this provides an insight that management of the optimizer state is a critical issue for LLM training in a resource-limited environment.",
+        "location": "§II-A, p.2 (근본 이유=FP16 underflow는 mixed precision 배경, Micikevicius [80])"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 180
+      },
+      "children": [
+        "node_045"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_045",
+      "template": "question",
+      "title": "FP16 underflow는 왜? (예시) + overflow도 생기나?",
+      "content": "**FP16 형식**: 1 sign + 5 exponent + 10 mantissa. 정상값 ≈ 6.1×10⁻⁵ ~ 65504, subnormal ~6×10⁻⁸까지, 유효숫자 ~3자리(10-bit mantissa).\n\n**underflow 2가지 (왜 FP32가 필요한가)**\n\n① **값 자체가 너무 작음** — gradient, 특히 variance(g²)가 FP16 최소값보다 작으면 0으로 반올림.\n$$g=10^{-8}\\ <\\ \\text{FP16}_{\\min}\\approx 6\\times10^{-8}\\ \\Rightarrow\\ 0$$\n예: g=1e-4면 variance v=g²=1e-8 → FP16에선 0 (정보 소실). variance가 특히 잘 죽는 이유.\n\n② **swamping (상대적 underflow)** — 값은 표현돼도 w에 비해 Δw가 너무 작아 더해도 무시됨.\n$$w+\\Delta w=1.0+10^{-4}\\ \\xrightarrow{\\ \\text{round to FP16}\\ }\\ 1.0$$\n1.0 근처 FP16 간격(ULP)=2⁻¹⁰≈9.8×10⁻⁴. Δw=1e-4는 ULP/2(≈4.9e-4)보다 작아 반올림돼 사라짐 → 그래서 **FP32 master weights**에 누적(FP32는 1.0 근처 간격 ≈1.2×10⁻⁷라 1e-4 보존).\n\n**overflow도 생기나? → 네.**\n$$|x|>65504\\ \\Rightarrow\\ \\pm\\infty\\ (\\text{Inf})$$\n- 큰 activation · exploding gradient · attention logit 등이 FP16 최대(65504)를 넘으면 Inf/NaN.\n- 실제로 이 논문도 **half-precision의 좁은 range 때문에 update 전 NaN/Inf를 검사**한다고 명시(§IV-C, loss scaling 관련).\n\n**mixed precision의 균형**: gradient가 작으면(underflow) **loss scaling**으로 loss에 큰 상수를 곱해 gradient를 FP16 표현범위 위로 끌어올린다. 단 너무 키우면 overflow(Inf) → **dynamic loss scaling**(overflow 나면 scale↓)으로 underflow·overflow 사이를 조절. FP32 master/optimizer states는 이 문제를 근본적으로 완화.",
+      "original": {
+        "text": "First, not-a-number (NaN) and infinity value (Inf) due to the limited range of half-precision must be checked before the update for loss scaling.",
+        "location": "§IV-C, p.5 (FP16 좁은 range → Inf/NaN; underflow/ULP 예시는 IEEE 754 half-precision 배경)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": 180
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_036",
+      "template": "question",
+      "title": "왜 FP16=M이면 FP32 optimizer=6M? (6M 유도)",
+      "content": "왜 FP16 파라미터가 M이면 FP32 optimizer states가 6M인가? 기준: M = FP16 파라미터 크기 (2 bytes/param). FP32는 4 bytes로 FP16의 2배이므로, 각 FP32 상태 = 2M.\n\n**FP32 상태 1개 크기**\n\n$$\\text{FP32 state}=4\\,\\text{B/param}=2\\times 2\\,\\text{B/param}=2M$$\n\n**6M 구성 (상태 3종)**\n\n$$6M=\\underbrace{2M}_{\\theta\\ (\\text{master})}+\\underbrace{2M}_{m}+\\underbrace{2M}_{v}$$\n\n→ optimizer state만으로 파라미터 자체(M)의 6배. GPU 메모리에 다 못 올려 storage로 내보내는 핵심 이유. (상태가 왜 θ·m·v 3종인지 = Adam 작동방식, 다음 노드)",
+      "original": {
+        "text": "The FP32 optimizer states occupy 6M capacity (model parameter, momentum, and variance in FP32) under mixed precision training, regarding the FP16 model parameter size as M.",
+        "location": "§II-A, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 60
+      },
+      "children": [
+        "node_037"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_037",
+      "template": "question",
+      "title": "Adam은 어떻게 작동하나 — 왜 momentum(1차) + variance(2차) 둘 다?",
+      "content": "Adam = Adaptive Moment Estimation. gradient의 지수이동평균 2개를 유지한다 — momentum m(1차 모멘트, '방향')과 variance v(2차 모멘트, '보폭').\n\n**모멘트 갱신 (step t)**\n\n$$m_t=\\beta_1\\,m_{t-1}+(1-\\beta_1)\\,g_t$$\n\n$$v_t=\\beta_2\\,v_{t-1}+(1-\\beta_2)\\,g_t^{2}$$\n\n**편향 보정**\n\n$$\\hat{m}_t=\\frac{m_t}{1-\\beta_1^{\\,t}}\\qquad \\hat{v}_t=\\frac{v_t}{1-\\beta_2^{\\,t}}$$\n\n**파라미터 갱신**\n\n$$\\theta_t=\\theta_{t-1}-\\eta\\,\\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t}+\\epsilon}$$\n\n★ variance가 필요한 이유: 위 식에서 2차 모멘트의 제곱근으로 나눠 **파라미터별 학습률**을 적응 조절한다 — gradient가 크고 노이즈 많으면 스텝↓, 작고 일정하면 스텝↑ (RMSProp 아이디어). m은 '어느 방향', v는 '얼마나 큰 보폭'.\n\n**상태 3종 → 6M**\n\n$$\\underbrace{\\theta}_{2M}+\\underbrace{m}_{2M}+\\underbrace{v}_{2M}=6M$$\n\n참고: SGD-momentum은 m만(상태 2종), AdaGrad/AdamW도 이 moving average의 변형 → Smart-Infinity의 AXPBY 유닛(general averaging, node_024)이 계수만 바꿔 공통 처리한다.",
+      "original": {
+        "text": "We use Adam optimizer [59] as an example because it is the primary choice for modern LLM training.",
+        "location": "§IV-A, p.4 (Adam 자체는 논문 밖 배경 — Kingma & Ba, ref [59])"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
         "y": 60
       },
       "children": [],
@@ -359,6 +546,48 @@
         "x": 400,
         "y": 300
       },
+      "children": [
+        "node_040"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_040",
+      "template": "question",
+      "title": "왜 RAID0는 4개에서 포화? — 16 GB/s ÷ 4 GB/s (Fig 3b 계산)",
+      "content": "질문: Fig 3b에서 SSD를 RAID0로 늘려도 왜 **4개를 넘으면 speedup이 정체**되나? 논문 수치로 계산해보자.\n\n**논문이 준 대역폭 (Fig 2 · §VII-A)**\n- shared system interconnect(host로 가는 공유 PCIe uplink) = **16 GB/s** (Fig 2 라벨).\n- SmartSSD 1개 = **PCIe Gen3 x4 bus** (§VII-A) → Gen3 x4 = 3.94 GB/s ≈ **4 GB/s**.\n- RAID0는 SSD를 병렬로 묶어 aggregate BW를 키우지만, 모든 데이터는 결국 **16 GB/s 공유 uplink 하나**를 통과해 host memory로 간다.\n\n**포화 지점 계산**\n\n$$\\frac{16\\ \\text{GB/s (shared uplink)}}{\\ \\approx 4\\ \\text{GB/s per SSD (Gen3 x4)}}\\ \\approx\\ 4\\ \\text{SSDs}$$\n\n- ~4개까지: 4×4 = 16 GB/s로 uplink를 정확히 채우며 선형 증가.\n- 5개째부터: 공유 uplink **16 GB/s가 천장** → 더 꽂아도 병목이 안 풀려 speedup 정체 (Fig 3b plateau).\n\n**★ 대조 — Smart-Infinity가 이 천장을 뚫는 이유**\n- CSD 내부 aggregate BW = **8×#CSDs GB/s** (Fig 2) → CSD 수에 **선형 증가**, 16 GB/s 공유 uplink에 안 걸림.\n- P2P로 SSD↔FPGA 내부에서 update를 끝내 데이터가 공유 interconnect를 안 지남(node_017) → RAID0의 16 GB/s 천장을 우회.\n\n(주의: 4 GB/s는 Gen3 x4 스펙값 기반 근사. 논문은 정확한 per-SSD 실측 대역폭은 안 밝히고 '4개 초과 시 포화'만 명시.)",
+      "original": {
+        "text": "A single CSD provides no bandwidth boost, as storage-to-FPGA and storage-to-host traffic transfers pass through the same number of PCIe lanes. However, when multiple CSDs are on the system (Figure 2), the aggregated internal bandwidth linearly increases according to the number of CSDs, while the shared system interconnect bandwidth remains the same.",
+        "location": "§II-B, p.3 (+ Fig 2: 공유 interconnect 16 GB/s / 내부 8×#CSDs GB/s; §VII-A: SmartSSD=PCIe Gen3.0 x4)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 300
+      },
+      "children": [
+        "node_041"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_041",
+      "template": "question",
+      "title": "더 좋은 PCIe면 상한이 4개보다 커지나? — 조건부 Yes",
+      "content": "답: 부분적으로 맞다. **포화 개수는 절대 대역폭이 아니라 '비율'로 정해진다.**\n\n$$N_{\\text{sat}}=\\frac{BW_{\\text{shared uplink}}}{BW_{\\text{per SSD}}}$$\n\n**경우를 나눠보면**\n1. **공유 uplink만 키움** (레인↑ 또는 상위 gen, SSD는 Gen3 x4 유지) → 분자↑ → **N↑**. 예: 32 GB/s ÷ 4 = **8개**. ← 질문의 직관이 맞는 경우.\n2. **SSD와 interconnect를 같은 gen으로 함께 업그레이드** → 분자·분모 둘 다 ~2배 → **N은 그대로(~4)**, 총 처리량만 2배. 예: Gen4 uplink 32 ÷ Gen4 x4 SSD 8 = 4.\n3. **근본 벽**: host의 총 PCIe lane / IO pin 수가 물리적으로 유한(§I) → 공유 uplink를 무한히 못 키움. RAID0는 결국 이 벽에 걸린다.\n\n**★ 그래서 Smart-Infinity의 논점**: \"PCIe를 더 좋게\"로 천장을 올리는 게 아니라, 데이터가 **공유 uplink를 아예 안 지나게** 한다 — P2P 내부 대역폭 8×#CSDs가 CSD 수에 선형 증가(node_017). 공유 uplink가 몇이든 무관하게 확장 → 4개(또는 8개)라는 천장 자체를 없앰.",
+      "original": {
+        "text": "combining multiple storage devices using RAID0 solution could alleviate the problem. However, such a method would fundamentally be bottlenecked by the limited number of PCIe lanes (or IO pins) of the host processor.",
+        "location": "§I, p.1 (공유 uplink는 host lane 수로 물리적 상한)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": 300
+      },
       "children": [],
       "links": []
     },
@@ -395,6 +624,69 @@
       "childrenExpanded": false,
       "position": {
         "x": 400,
+        "y": 540
+      },
+      "children": [
+        "node_042"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_042",
+      "template": "question",
+      "title": "6M에 왜 +2M? 무슨 방법으로 2M만? (+CSD 약자, gradient=FP32)",
+      "content": "**CSD = Computational Storage Device** (near-storage processing/NSP, §II-B): SSD + 내장 경량 FPGA + 내부 PCIe switch.\n\n**① (6+2)M의 구성 — 6M에 왜 +2M?**\nbaseline이 매 iteration 공유 interconnect로 옮기는 update 관련 데이터는 **두 가지 별개 물리량**:\n- **6M = optimizer states** (master param + momentum + variance = 3개 모두 FP32 = 3×2M)\n- **+2M = gradient** — backward가 만든 gradient도 **FP32(32-bit)로 처리**되어 2M (§II-B). optimizer states와 다른 물리량이라 따로 더해진다.\n  - *왜 M이 아니라 2M?* gradient가 FP16이면 M이지만 FP32로 두어 2M — update가 FP32에 누적돼 underflow 없이 더하려는 것. **lr과 무관**, 순전히 정밀도 때문.\n\n→ 합쳐 (6+2)M = 8M을 공유 링크로 왕복.\n\n**② 무슨 방법으로 2M만 남나? (쪼개기 아님)**\n1. **update 연산을 CSD 내부 FPGA로 offload**(SmartUpdate) — 갱신 계산이 host CPU가 아니라 CSD 안에서.\n2. **내부 P2P(SSD↔FPGA) 경로** — 6M optimizer states는 CSD 내부 PCIe switch로만 로드·저장 → **공유 interconnect 미통과**.\n\n$$\\underbrace{6M}_{\\text{opt states}}+\\underbrace{2M}_{\\text{gradient}}\\ \\longrightarrow\\ \\underbrace{2M}_{\\text{grad in / param out}}$$\n\n공유 링크에 남는 2M = gradient(2M write, host→CSD) + 갱신 파라미터(2M read, CSD→host).\n\n**핵심**: 8M을 2M씩 쪼개 보내는 게 아니라, **무거운 6M의 이동 경로를 바꾼 것**(공유 interconnect → CSD 내부 P2P). 6M은 사라진 게 아니라 CSD 안에 갇혀 순환한다.",
+      "original": {
+        "text": "it has its own internal PCIe switch, providing a private inner path for direct peer-to-peer (P2P) communication between the SSD and accelerator without redundant storage-to-host and host-to-storage data traffic through the system interconnect.",
+        "location": "§II-B, p.3 (+2M gradient=32bit도 §II-B; 2M 결과는 §IV-A p.4)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 540
+      },
+      "children": [
+        "node_046"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_046",
+      "template": "question",
+      "title": "갱신 파라미터는 왜 2M(FP32)? M이면 안 되나 + 누가 변환?",
+      "content": "SSD→host로 가는 갱신 파라미터가 왜 2M(FP32)이고 M(FP16)이 아닌가? 그리고 누가 변환하나?\n\n**사실 (논문)**\n- ④에서 전송되는 \"updated weight parameters (2M)\"는 **FP32 master weight** = single-precision 변수 1개(6M=FP32 3개 중 1개). Table I도 이 2M을 'optimizer states read'로 셈(§IV-A).\n\n**왜 2M(FP32)? GPU는 FP16(M)만 쓰는데?**\n- update는 FP32 master에 누적하므로 결과물도 **FP32(2M)**. FPGA는 이 FP32 master를 그대로 host로 보냄.\n- GPU용 **FP16(M)은 이 FP32 master를 down-cast**해서 얻는다:\n\n$$\\text{FP32 master}(2M)\\ \\xrightarrow{\\ \\text{down-cast}\\ }\\ \\text{FP16}(M)\\ \\text{(GPU forward용)}$$\n\n**질문의 방향이 반대**: 'CPU가 M을 2M으로 키우는' 게 아니라, CSD가 **2M(FP32)을 주고 host가 M(FP16)으로 줄이는(2M→M)** 것. 아무도 M→2M로 키우지 않는다.\n\n**★ 네 직관은 타당한 gap**: GPU가 어차피 FP16(M)만 쓰니, FPGA에서 미리 down-cast해 **M만 보내면 upstream 대역폭이 절반**. 논문은 FP32(2M)를 그대로 보내고 이 ④ 트래픽을 \"comparably small overhead\"라고만 할 뿐, **왜 M이 아닌 2M인지는 명시적으로 정당화하지 않음** → 최적화 여지(다음 노드: CXL 아이디어).",
+      "original": {
+        "text": "The updated weight parameters (2M) are transferred from SSD to the host memory. This traffic did not exist in the baseline, but it is comparably small overhead considering the size of the previous traffic volume was upload/offload optimizer states (6M, three single-precision variables per parameter).",
+        "location": "§IV-A, p.4 (2M=single-precision 1개=FP32 master; Table I는 이를 opt-states read로 셈)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": 540
+      },
+      "children": [
+        "node_047"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_047",
+      "template": "gap",
+      "title": "★ 아이디어 — 2M을 CPU 안 거치고 CSD→GPU 직접 (CXL)",
+      "content": "**내 아이디어**: 갱신 파라미터(2M)를 CPU/host memory 경유 없이 **CSD → GPU로 직접** 보내자.\n\n**현재 경로 (이 논문)**\n```\nCSD(SSD/FPGA) ──2M──> host memory ──> GPU memory\n                (CPU는 계산 없이 relay만 하는데도 host mem 경유)\n```\n\n**아이디어 경로 (CXL)**\n```\nCSD(SSD/FPGA) ──CXL 직접──> GPU memory   (host mem 우회)\n```\n- CXL의 cache-coherent load/store로 CSD 메모리를 GPU가 직접 접근 → host memory 왕복 제거. (GPUDirect Storage가 P2P로 유사 시도, CXL은 byte-addressable·coherent라 더 매끄러움.)\n- **CAMEL의 [[CXL-GPU]]**(Breaking Barriers→CXL-GPU)가 정확히 \"GPU가 CXL memory에 직접 접근\"을 실증 → 이 논문의 SSD→host→GPU 경유를 CXL로 우회하는 그림이 성립.\n- **node_046의 최적화(어차피 FP16 M만 필요)**와 결합하면: CSD에서 FP16으로 down-cast → CXL로 GPU에 직접 = upstream을 M으로 줄이고 CPU도 우회.\n\n**★ multi-node 확장**: 이 직접 경로를 노드 간으로 넓히면 CXL fabric 위 거리·coherence 문제와 만남(node_035, [[CXL Multi-node Coherence]]) = 내 연구 지점.\n\n⚠️ 검증 전 아이디어(gap): CXL 직접경로가 이 워크로드에서 실제 이득인지, coherence 오버헤드·정합성은 어떤지 확인 필요.",
+      "original": {
+        "text": "(논문 밖 아이디어 — 내 연구 방향. 우회 대상은 §IV-A ④의 SSD→host memory 전송. 원문 인용 아님.)",
+        "location": "— (my idea; cf. §IV-A p.4)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1660,
         "y": 540
       },
       "children": [],
@@ -1000,6 +1292,104 @@
       "target": "node_035",
       "type": "line",
       "label": "multi-node로"
+    },
+    {
+      "id": "edge_036",
+      "source": "node_012",
+      "target": "node_036",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_037",
+      "source": "node_036",
+      "target": "node_037",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_038",
+      "source": "node_011",
+      "target": "node_038",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_039",
+      "source": "node_038",
+      "target": "node_039",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_040",
+      "source": "node_014",
+      "target": "node_040",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_041",
+      "source": "node_040",
+      "target": "node_041",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_042",
+      "source": "node_016",
+      "target": "node_042",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_043",
+      "source": "node_012",
+      "target": "node_043",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_045",
+      "source": "node_043",
+      "target": "node_045",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_046",
+      "source": "node_042",
+      "target": "node_046",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_047",
+      "source": "node_046",
+      "target": "node_047",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_048",
+      "source": "node_006",
+      "target": "node_048",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_049",
+      "source": "node_048",
+      "target": "node_049",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_050",
+      "source": "node_049",
+      "target": "node_050",
+      "type": "line",
+      "label": ""
     }
   ],
   "viewport": {
