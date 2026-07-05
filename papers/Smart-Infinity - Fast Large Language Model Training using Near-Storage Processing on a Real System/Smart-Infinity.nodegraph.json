@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "Smart-Infinity: Fast Large Language Model Training using Near-Storage Processing on a Real System",
   "created": "2026-07-04T00:00:00Z",
-  "modified": "2026-07-04T00:00:00Z",
+  "modified": "2026-07-05T00:00:00Z",
   "source": {
     "pdf": "Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System.pdf",
     "authors": "Hongsun Jang, Jaeyong Song, Jaewon Jung, Jaeyoung Park, Youngsok Kim, Jinho Lee",
@@ -79,7 +79,8 @@
       },
       "children": [
         "node_011",
-        "node_012"
+        "node_012",
+        "node_051"
       ],
       "links": []
     },
@@ -102,7 +103,8 @@
       "children": [
         "node_013",
         "node_014",
-        "node_015"
+        "node_015",
+        "node_057"
       ],
       "links": []
     },
@@ -146,7 +148,8 @@
       },
       "children": [
         "node_018",
-        "node_019"
+        "node_019",
+        "node_059"
       ],
       "links": []
     },
@@ -1052,6 +1055,186 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_051",
+      "template": "claim",
+      "title": "★ Killer app — 용량에 막힌 LLM 학습을 소수 GPU/단일 머신에서",
+      "content": "**이 논문이 겨냥하는 것**: 모델이 커지면 병목이 *연산*이 아니라 **GPU 메모리 용량**이 된다. 그래서 연산력이 필요 없는 상황(예: fine-tuning)에도 '용량을 담으려고' GPU 수십 개를 쓰는 낭비가 생긴다. Smart-Infinity의 killer application = 이 **capacity-bound LLM 학습을 storage-offload로 소수 GPU/단일 머신에서** 돌리는 것.\n\n**compute-bound vs capacity-bound**\n| | pre-training(scratch) | fine-tuning |\n|---|---|---|\n| 병목 | compute + capacity | **capacity 위주** |\n| 학습 시간 | 매우 김 | 짧음 |\n| GPU 수 | 진짜 많이 필요 | 용량 때문에만 많이(=낭비) |\n\n→ storage-offload는 '느리지만 용량 큰' 계층 → **연산 여유가 있고 용량만 부족한** 쪽에서 이긴다. 그 대표가 fine-tuning(node_052).\n\n(왜 용량이 병목? → node_054 · 계보 → node_056)",
+      "original": {
+        "text": "As the models become larger, the major limiting factor becomes the GPU memory capacity. Often, dozens of GPUs are required, just to keep the training data on the memory, even when such computing power is not necessary such as fine-tuning.",
+        "location": "§I, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": -480,
+        "y": -40
+      },
+      "children": [
+        "node_052",
+        "node_054",
+        "node_056"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_052",
+      "template": "claim",
+      "title": "대표 usecase = fine-tuning (§VII-J) — 무겁지만 짧은 워크로드",
+      "content": "논문이 **직접 '대표 application'으로 지명**한 것이 fine-tuning이다.\n- **모델 전체 + optimizer state를 다 로딩**해야 함 → 용량 부담 큼(capacity-bound).\n- 하지만 **학습 시간(iteration 수)은 짧다** → storage 전송이 상대적으로 더 지배적 = Smart-Infinity 이득이 잘 드러남.\n\n실제 평가도 fine-tuning으로 정확도 검증(GLUE: MNLI/QQP/SST-2/QNLI, BERT-345M·GPT-2 774M/1.6B). SmartUpdate는 baseline과 algorithmically 동일해 정확도 동일, SmartComp도 comparable(node_029).\n\n(왜 memory-heavy·compute-light? → node_055)",
+      "original": {
+        "text": "Fine-tuning is a representative application where Smart-Infinity can be applied because it requires loading the entire model and the optimizer states but has a relatively small training time.",
+        "location": "§VII-J, p.12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": -480,
+        "y": 200
+      },
+      "children": [
+        "node_053",
+        "node_055"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_053",
+      "template": "gap",
+      "title": "확장 usecase = model compression (quant/prune/low-rank)",
+      "content": "저자가 밝힌 향후 usecase: **model compression**(quantization·pruning·low-rank decomposition). 이들이 압축 후 정확도 회복을 위해 **compressed form에서 fine-tuning**을 하므로 Smart-Infinity가 그대로 적용된다.\n\n★ 더 빨라질 여지: 현재 병목은 CSD→host **upstream 파라미터 전송**인데, 모델 압축과 결합하면 **압축된 모델을 올려** 이 병목까지 줄인다. 단 quantization의 STE·per-layer interval 등은 non-trivial future work.\n\n(이 한계·future는 node_033에도 정리됨)",
+      "original": {
+        "text": "Various types of model compression methods can be usecases of Smart-Infinity, such as quantization, pruning, or low-rank decomposition because they require some fine-tuning in compressed form to recover accuracy drop from compression.",
+        "location": "§VIII-B, p.12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": -480,
+        "y": 460
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_054",
+      "template": "reference",
+      "title": "배경 — LLM 학습 메모리 = 16 B/param, optimizer state가 지배 (웹)",
+      "content": "**왜 LLM 학습이 용량 병목인가** (mixed precision + Adam, 웹).\n\n| 항목 | precision | B/param |\n|---|---|---|\n| model param | FP16 | 2 |\n| gradient | FP16 | 2 |\n| master weight | FP32 | 4 |\n| momentum m | FP32 | 4 |\n| variance v | FP32 | 4 |\n| **합계** | | **16** |\n\n→ **optimizer state(master+m+v=12 B)가 최대**. 파라미터가 커질수록 지배항이 됨. 예: **7B ≈ 84 GB**, LLaMA-13B full FT ≈ 102 GB → 단일 GPU(80GB) 초과 → storage-offload 필요.\n\n(논문 표기로는 FP16 param=M일 때 FP32 optimizer=6M, node_036과 동일 사실)\n\n출처: [ZeRO-Infinity](https://arxiv.org/pdf/2104.07857) · [Memory-efficient training](https://archiesengupta.com/blog/memory-efficient-training-deep-dive)",
+      "original": {
+        "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
+        "location": "— (web search, 2026-07)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": -960,
+        "y": -40
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_055",
+      "template": "reference",
+      "title": "배경 — fine-tuning은 왜 무겁지만(memory) 짧은가(compute) +LoRA (웹)",
+      "content": "**full fine-tuning의 메모리**: Adam은 전 파라미터의 momentum·variance를 유지 → fine-tuning도 pre-training과 **똑같이 전 모델의 optimizer state(12 B/param)**가 필요. '조금만 학습'해도 메모리는 안 줄어듦 → memory-bound.\n\n**하지만 compute는 가볍다**: 적은 스텝/에폭이면 수렴 → wall-clock 짧음. = '용량은 꽉 차는데 시간은 짧은' 워크로드 = storage-offload sweet spot.\n\n**대조군**: 이 부담 때문에 **LoRA/PEFT**(일부만 학습, optimizer state 축소)가 등장. Smart-Infinity는 반대로 **full fine-tuning을 그대로** 두고 storage로 감당하는 접근.\n\n출처: [LOMO (full FT, limited resources)](https://arxiv.org/html/2306.09782v2) · [KAITO fine-tuning memory](https://opensource.microsoft.com/blog/2025/07/07/optimizing-memory-usage-in-large-language-models-fine-tuning-with-kaito-best-practices-from-phi-3/)",
+      "original": {
+        "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
+        "location": "— (web search, 2026-07)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": -960,
+        "y": 200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_056",
+      "template": "reference",
+      "title": "배경 — storage-offload 계보: ZeRO → ZeRO-Offload → ZeRO-Infinity (웹)",
+      "content": "Smart-Infinity의 baseline(node_012)이 온 계보.\n\n| 단계 | offload 대상 | 위치 | 핵심 |\n|---|---|---|---|\n| **ZeRO** (SC'20) | state 분할 | GPU 간 | 중복 제거로 메모리 선형 절감 |\n| **ZeRO-Offload** (ATC'21) | optimizer state·grad | **CPU host mem** | CPU가 update |\n| **ZeRO-Infinity** (SC'21) | 전체 model state | **NVMe SSD**까지 | memory wall 돌파, 이 논문의 baseline |\n\nNVMe 총량은 GPU 메모리의 **~50배** → 훨씬 큰 모델 수용. 대가는 **SSD 대역폭 병목**(=이 논문이 푸는 문제).\n\n★ 공통 약점: **update를 host CPU가** 함 → optimizer state가 매번 interconnect 통과 → Smart-Infinity가 update를 CSD로 옮김(node_057).\n\n출처: [ZeRO-Infinity](https://arxiv.org/pdf/2104.07857) · [DeepSpeed ZeRO](https://www.deepspeed.ai/tutorials/zero/)",
+      "original": {
+        "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
+        "location": "— (web search, 2026-07)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": -960,
+        "y": 440
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_057",
+      "template": "claim",
+      "title": "필요성 — 기존은 host CPU가 update → 6M optimizer state가 매 step interconnect 통과",
+      "content": "**무엇을 해결하려 했나 (기존 storage-offload와의 근본 차이)**\n\n기존(ZeRO-Offload/Infinity)은 update 연산을 **host CPU**가 한다. 그래서 매 step optimizer state(6M)를 SSD→host로 올리고 갱신 후 다시 내림 → **6M+6M read/write가 공유 interconnect 통과** → 학습 시간 88%가 전송(node_011), RAID0도 4 SSD에서 포화(node_014).\n\n필요성: update는 **element-wise라 연산량이 낮은데도** 그 데이터 이동 때문에 전체가 느리다. 그러니 '연산을 빠르게'가 아니라 **update를 데이터(SSD) 옆으로 옮겨 이동을 없앤다** → (6+2)M→2M(node_016).\n\n(선행 near-data 연구와의 차이 → node_058)",
+      "original": {
+        "text": "Because the computational intensity of updating optimizer states (element-wise operations) is low, it becomes attractive to offload the optimizer states to host memory and let the host CPU update parameters.",
+        "location": "§II-A, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": -480,
+        "y": 700
+      },
+      "children": [
+        "node_058"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_058",
+      "template": "reference",
+      "title": "선행 비교표 — ZeRO-Offload/Infinity vs GradPIM/OptimStore vs Smart-Infinity",
+      "content": "**세 갈래 선행과의 차이 (무엇이 새로운가)**\n\n| | update 위치 | 대상 HW | 검증 | interconnect 병목 |\n|---|---|---|---|---|\n| ZeRO-Offload/Infinity | **host CPU** | 범용 CPU+SSD | 실제 시스템 | 안 풂(6M 통과) |\n| GradPIM / OptimStore | near-data | **전용 die** | **시뮬레이터만** | (가정상) |\n| **Smart-Infinity** | **CSD 내부 FPGA** | **off-the-shelf SmartSSD 여러 개** | **실제+PyTorch** | **품(내부 P2P)** |\n\n논문(verbatim): GradPIM·OptimStore도 DNN 학습을 near-data로 겨냥하나 **전용 die 가정+시뮬레이터**라 비실용적. Smart-Infinity는 **여러 CSD로 interconnect 병목을 푼 최초의 실물**.\n\n(시뮬레이터 차이 → node_034 · off-the-shelf feasibility → node_010)",
+      "original": {
+        "text": "It is worth noting GradPIM [57] and OptimStore [58] as they both target DNN training similar to this work. However, they assume dedicated memory/storage die, making those solutions less practical. Moreover, they were only implemented on simulators and do not consider real system integration issues.",
+        "location": "§IX-A, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": -960,
+        "y": 700
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_059",
+      "template": "question",
+      "title": "왜 naive overlap에서 OOM이 나나? — subgroup tasklet이 작은 device memory(4GB)를 통째 점유",
+      "content": "**핵심 원인**: FPGA 가속기의 **device memory(DDR4 4GB)가 작고**, subgroup 크기 D를 바로 이 device memory 용량에 맞춰 잡는다 → **tasklet 하나가 device memory를 거의 통째로 점유**한다.\n\n**왜 겹치면(overlap) 터지나 — 3단계**\n1. subgroup = '가속기 device memory에 들어가는 최대 크기' → tasklet 1개 = device memory 거의 꽉 참.\n2. naive는 그래서 tasklet을 **순차 실행**(each tasklet occupies the entire memory space).\n3. 처리량을 올리려 subgroup i 전송과 i+1 처리를 **overlap하면 두 subgroup이 동시에** device memory에 있어야 하고, direct P2P용 **추가 buffer**까지 필요 → 이미 꽉 찬 4GB에 여유 없음 → **OOM**.\n\n비유: 4GB 작업대에 subgroup 하나 올리면 꽉 참. 겹치려고 두 개를 동시에 올리려니 공간이 없어 넘침.\n\n**handler의 해법**(node_018): 가장 큰 subgroup 크기로 buffer를 **한 번 사전할당** → 두 thread가 **같은 buffer 재사용** → 추가 할당 없이(=OOM 없이) 전송을 겹침. (node_019 = 'OOM 난다'는 결과, 이 노드는 그 근본 원인.)\n\n★ 근본 원인 = 가속기 device memory 용량(4GB)이 작다는 것 → node_050(가속기=연산+메모리 시스템)과 연결.",
+      "original": {
+        "text": "In a naive implementation shown in Figure 5(a), the tasklets are executed sequentially because each tasklet will occupy the entire memory space. Fortunately, we found that there is room for throughput enhancement by overlapping data transfer between subgroups. However, naive overlapping of data transfers between subgroups requires additional device memory space to direct P2P communication, which leads to out-of-memory (OOM) errors in device memory.",
+        "location": "§IV-B, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 900
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -1388,6 +1571,69 @@
       "id": "edge_050",
       "source": "node_049",
       "target": "node_050",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_051",
+      "source": "node_001",
+      "target": "node_051",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_052",
+      "source": "node_051",
+      "target": "node_052",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_053",
+      "source": "node_051",
+      "target": "node_054",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_054",
+      "source": "node_051",
+      "target": "node_056",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_055",
+      "source": "node_052",
+      "target": "node_053",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_056",
+      "source": "node_052",
+      "target": "node_055",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_057",
+      "source": "node_002",
+      "target": "node_057",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_058",
+      "source": "node_057",
+      "target": "node_058",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_059",
+      "source": "node_004",
+      "target": "node_059",
       "type": "line",
       "label": ""
     }
