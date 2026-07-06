@@ -70,7 +70,7 @@
         "text": "According to our study, more than 88% of the total training time is consumed by transferring data from/to the storage. At a glance, combining multiple storage devices using RAID0 solution could alleviate the problem. However, such a method would fundamentally be bottlenecked by the limited number of PCIe lanes (or IO pins) of the host processor.",
         "location": "§I, p.1"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -93,7 +93,7 @@
         "text": "As we described in Section II, we break down the storage offloaded training into forward (FW), backward (BW + Gradients Offload), and update (Update + Optimizer states Upload/Offload). Contrary to conventional training, the most time is spent on the update phase of over 80% the training time, due to the storage access overhead.",
         "location": "§III, p.3"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -117,7 +117,7 @@
         "text": "we offload the update computation from the CPU to the accelerator in CSDs (SmartUpdate). From this, we can benefit from the fast aggregate bandwidth of CSDs, reducing the communication overhead of existing storage-offloaded LLM training methods from (6 + 2)M to 2M.",
         "location": "§IV, p.4"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -139,7 +139,7 @@
         "text": "The key idea of the proposed handler is to separate the buffer for variables and lazily transfer non-urgent variables. ... Through the optimization, we obtain several benefits: 1) avoid reallocation of device memory, 2) the GPU can start forward/backward phases earlier, and 3) the data transfers to the SSDs are overlapped.",
         "location": "§IV-B, p.5"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -162,7 +162,7 @@
         "text": "SmartUpdate reduces a significant amount of the SSD traffic by removing the transfer of optimizer states to the host. Given multiple CSDs in the system, the optimizer states (6M) are transferred within the CSDs through the internal bandwidth linearly scaled by the number of CSDs. However, gradients (2M) still go through the system interconnect, which becomes a new bottleneck when the number of CSDs increases.",
         "location": "§IV-C, p.5"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -184,7 +184,7 @@
         "text": "Because of using flattened model parameters, the distribution procedure is agnostic to the model architecture. This allows for a simple adoption of Smart-Infinity, where end users do not need to consider the model architecture information such as the layers, hidden dimensions, or number of heads.",
         "location": "§IV-D, p.6"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -207,7 +207,7 @@
         "text": "Smart-Infinity flattens the model parameters and equally distributes them to the CSDs, where each CSD takes the responsibility to update the owned parameters.",
         "location": "§IV-D, p.6 (균등 분배; element-wise 독립성; RAID0 한계는 §III)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -217,7 +217,8 @@
       "children": [
         "node_049"
       ],
-      "links": []
+      "links": [],
+      "nodeWidth": 471
     },
     {
       "id": "node_049",
@@ -228,7 +229,7 @@
         "text": "The updater consists of multiple updater processing elements (PEs), which update the target parameters in parallel.",
         "location": "§V-A, p.7 (word ops 대량 병렬); byte↔block은 memory-arch 배경·CXL-SSD 계보"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -249,7 +250,7 @@
         "text": "The attached FPGA has approximately 522K LUTs, 984 BRAMs, 1968 DSPs, and DDR4 4GB DRAM.",
         "location": "§VII-A, p.9 (가속기 메모리); throughput >7GB/s는 §VII-H; MMU/cache 유무는 아키텍처 배경"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -268,7 +269,7 @@
         "text": "Therefore, we placed SIMD AXPBY units, which can handle general averaging operations. It takes two input vectors (i.e., A and B) and multiplies the dedicated coefficients (i.e., α and β) to them. ... Note that the updater can be extended to other optimizers such as SGD, AdaGrad, and AdamW because most optimizers use variations of moving averaging.",
         "location": "§V-A, p.7"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -290,7 +291,7 @@
         "text": "Because of this, Smart-Infinity can be enabled by simply specifying an option, and automatic compilation starts when the DeepSpeed engine is initialized. This indicates that any LLM training codes implemented with DeepSpeed can be run with Smart-Infinity with no modification, making Smart-Infinity a practical and powerful framework.",
         "location": "§VI, p.8"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -311,7 +312,7 @@
         "text": "SmartComp provides 1.22×∼1.31× additional speedup over SmartUpdate, showing 1.85×∼1.98× speedup over the baseline. Through the breakdown results, we can find out that SmartComp successfully reduces the remaining gradient offloading time of the optimized SmartUpdate further.",
         "location": "§VII-C, p.10"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -336,7 +337,7 @@
         "text": "We propose Smart-Infinity, a novel CSD-based framework to accelerate storage-offloaded LLM training. ... Smart-Infinity has been fully integrated into PyTorch only with off-the-shelf products, making itself a ready-to-use solution.",
         "location": "§X, p.13"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -381,7 +382,7 @@
         "text": "At a glance, combining multiple storage devices using RAID0 solution could alleviate the problem. However, such a method would fundamentally be bottlenecked by the limited number of PCIe lanes (or IO pins) of the host processor.",
         "location": "§I, p.1 (병목을 PCIe lane=대역폭 축으로 규정; 세팅은 single-node 로컬 PCIe)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -402,7 +403,7 @@
         "text": "(외부 웹 검색 데이터 — PCI-SIG 스펙 per-lane 대역폭 + vendor datasheet 기반. 논문 원문 아님. 출처는 content 하단 링크.)",
         "location": "— (web search, 2026-07)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -410,7 +411,8 @@
         "y": -60
       },
       "children": [],
-      "links": []
+      "links": [],
+      "nodeWidth": 953
     },
     {
       "id": "node_012",
@@ -443,7 +445,7 @@
         "text": "Considering that maintaining optimizer states in FP32 is an almost essential option for mixed precision LLM training, this provides an insight that management of the optimizer state is a critical issue for LLM training in a resource-limited environment.",
         "location": "§II-A, p.2 (근본 이유=FP16 underflow는 mixed precision 배경, Micikevicius [80])"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -464,7 +466,7 @@
         "text": "First, not-a-number (NaN) and infinity value (Inf) due to the limited range of half-precision must be checked before the update for loss scaling.",
         "location": "§IV-C, p.5 (FP16 좁은 range → Inf/NaN; underflow/ULP 예시는 IEEE 754 half-precision 배경)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -483,7 +485,7 @@
         "text": "The FP32 optimizer states occupy 6M capacity (model parameter, momentum, and variance in FP32) under mixed precision training, regarding the FP16 model parameter size as M.",
         "location": "§II-A, p.2"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -504,7 +506,7 @@
         "text": "We use Adam optimizer [59] as an example because it is the primary choice for modern LLM training.",
         "location": "§IV-A, p.4 (Adam 자체는 논문 밖 배경 — Kingma & Ba, ref [59])"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -563,7 +565,7 @@
         "text": "A single CSD provides no bandwidth boost, as storage-to-FPGA and storage-to-host traffic transfers pass through the same number of PCIe lanes. However, when multiple CSDs are on the system (Figure 2), the aggregated internal bandwidth linearly increases according to the number of CSDs, while the shared system interconnect bandwidth remains the same.",
         "location": "§II-B, p.3 (+ Fig 2: 공유 interconnect 16 GB/s / 내부 8×#CSDs GB/s; §VII-A: SmartSSD=PCIe Gen3.0 x4)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -584,7 +586,7 @@
         "text": "combining multiple storage devices using RAID0 solution could alleviate the problem. However, such a method would fundamentally be bottlenecked by the limited number of PCIe lanes (or IO pins) of the host processor.",
         "location": "§I, p.1 (공유 uplink는 host lane 수로 물리적 상한)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -643,7 +645,7 @@
         "text": "it has its own internal PCIe switch, providing a private inner path for direct peer-to-peer (P2P) communication between the SSD and accelerator without redundant storage-to-host and host-to-storage data traffic through the system interconnect.",
         "location": "§II-B, p.3 (+2M gradient=32bit도 §II-B; 2M 결과는 §IV-A p.4)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -664,7 +666,7 @@
         "text": "The updated weight parameters (2M) are transferred from SSD to the host memory. This traffic did not exist in the baseline, but it is comparably small overhead considering the size of the previous traffic volume was upload/offload optimizer states (6M, three single-precision variables per parameter).",
         "location": "§IV-A, p.4 (2M=single-precision 1개=FP32 master; Table I는 이를 opt-states read로 셈)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -685,7 +687,7 @@
         "text": "(논문 밖 아이디어 — 내 연구 방향. 우회 대상은 §IV-A ④의 SSD→host memory 전송. 원문 인용 아님.)",
         "location": "— (my idea; cf. §IV-A p.4)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
@@ -1065,7 +1067,7 @@
         "text": "As the models become larger, the major limiting factor becomes the GPU memory capacity. Often, dozens of GPUs are required, just to keep the training data on the memory, even when such computing power is not necessary such as fine-tuning.",
         "location": "§I, p.1"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
@@ -1077,7 +1079,8 @@
         "node_054",
         "node_056"
       ],
-      "links": []
+      "links": [],
+      "nodeWidth": 427
     },
     {
       "id": "node_052",
@@ -1088,7 +1091,7 @@
         "text": "Fine-tuning is a representative application where Smart-Infinity can be applied because it requires loading the entire model and the optimizer states but has a relatively small training time.",
         "location": "§VII-J, p.12"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
@@ -1110,7 +1113,7 @@
         "text": "Various types of model compression methods can be usecases of Smart-Infinity, such as quantization, pruning, or low-rank decomposition because they require some fine-tuning in compressed form to recover accuracy drop from compression.",
         "location": "§VIII-B, p.12"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
@@ -1129,15 +1132,17 @@
         "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
         "location": "— (web search, 2026-07)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
-        "x": -960,
-        "y": -40
+        "x": -1262.823685171486,
+        "y": -32.65881975341853
       },
       "children": [],
-      "links": []
+      "links": [],
+      "nodeWidth": 573,
+      "nodeNaturalY": -32.65881975341853
     },
     {
       "id": "node_055",
@@ -1148,15 +1153,16 @@
         "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
         "location": "— (web search, 2026-07)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
-        "x": -960,
-        "y": 200
+        "x": -1132.5177357946648,
+        "y": 181.64704938354632
       },
       "children": [],
-      "links": []
+      "links": [],
+      "nodeNaturalY": 181.64704938354632
     },
     {
       "id": "node_056",
@@ -1167,7 +1173,7 @@
         "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
         "location": "— (web search, 2026-07)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
@@ -1175,7 +1181,8 @@
         "y": 440
       },
       "children": [],
-      "links": []
+      "links": [],
+      "nodeWidth": 751
     },
     {
       "id": "node_057",
@@ -1186,7 +1193,7 @@
         "text": "Because the computational intensity of updating optimizer states (element-wise operations) is low, it becomes attractive to offload the optimizer states to host memory and let the host CPU update parameters.",
         "location": "§II-A, p.2"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
@@ -1207,15 +1214,17 @@
         "text": "It is worth noting GradPIM [57] and OptimStore [58] as they both target DNN training similar to this work. However, they assume dedicated memory/storage die, making those solutions less practical. Moreover, they were only implemented on simulators and do not consider real system integration issues.",
         "location": "§IX-A, p.13"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
-        "x": -960,
-        "y": 700
+        "x": -1102.6612530771433,
+        "y": 602.0952184764702
       },
       "children": [],
-      "links": []
+      "links": [],
+      "nodeWidth": 825,
+      "nodeNaturalY": 602.0952184764702
     },
     {
       "id": "node_059",
@@ -1226,7 +1235,7 @@
         "text": "In a naive implementation shown in Figure 5(a), the tasklets are executed sequentially because each tasklet will occupy the entire memory space. Fortunately, we found that there is room for throughput enhancement by overlapping data transfer between subgroups. However, naive overlapping of data transfers between subgroups requires additional device memory space to direct P2P communication, which leads to out-of-memory (OOM) errors in device memory.",
         "location": "§IV-B, p.5"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
