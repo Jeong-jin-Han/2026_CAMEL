@@ -1245,7 +1245,9 @@
         "x": 820,
         "y": 900
       },
-      "children": [],
+      "children": [
+        "node_062"
+      ],
       "links": []
     },
     {
@@ -1284,6 +1286,25 @@
       "position": {
         "x": -1980,
         "y": 181
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_062",
+      "template": "question",
+      "title": "Q. tasklet이 뭔가 + Fig 5: interconnect 2M인데 왜 내부선 Param·Mmt·Var 3개? + FPGA DRAM",
+      "content": "[[IMG:img_1783325761958.png:460x448]]\n\n**① tasklet = \"한 subgroup의 update 1사이클\"**\n모델을 가속기 DRAM 용량에 맞는 크기 D(=subgroup)로 쪼갠 뒤, subgroup 하나를 처리하는 단위. buffer 할당 → SSD에서 read(주황) → compute(파랑) → SSD로 writeback(초록). Fig 5(a)에서 tasklet들이 순차인 건 각 tasklet이 device memory 전체를 차지해서.\n\n**② interconnect엔 2M인데 왜 Fig 5는 Param·Mmt·Var 3행? — 두 경로 구분**\n- **system interconnect(SSD↔host, PCIe)**: 2M만 감 (6M optimizer state는 이 비싼 경로 안 탐).\n- **CSD 내부(SSD↔FPGA DRAM, P2P)**: update 연산엔 Adam상 param+momentum+variance = 6M 전부 필요 → 내부 대역폭으로 오감.\n- ⇒ Fig 5의 3행은 *interconnect 전송이 아니라 FPGA DRAM 내부 buffer 관리*. \"6M을 host로 전송할 필요 없다\"는 맞지만 연산·내부이동·device memory 관리엔 3개 다 필요.\n- handler 규칙: Param은 GPU가 다음 FW/BW에 당장 필요 → 우선 writeback(Thread 0). Momentum·Variance는 다음 iteration update에만 쓰임 → lazy writeback(Thread 1, 저우선). (Fig 5(b): Param 초록이 먼저, 화살표=Thread 0→1 handoff, Buffer Reuse)\n\n**③ internal data transfer = CSD 내부 이동**\nSSD(NAND) ↔ FPGA DRAM(↔ BRAM ↔ compute), 내부 PCIe switch P2P. host로 가는 external(system interconnect) 전송과 대비. handler가 이 내부 6M 이동을 관리해 재할당 회피·OOM 방지·compute와 overlap (→ 「OOM→handler 3가지 이득」).\n\n**④ FPGA DRAM 존재 + 설계 동기 = 용량(4GB), bandwidth 아님**\n- 있음: Kintex UltraScale+ KU15P에 DDR4 4GB DRAM(+522K LUT·984 BRAM·1968 DSP). subgroup D = \"DRAM에 들어가는 크기\".\n- handler 동기 = \"device memory consumption / OOM\" = **capacity(4GB) 한계** + 전송-연산 overlap. *DRAM 자체 bandwidth 때문이 아님.*\n- 주의: SSD write<read 대역폭은 handler가 아니라 SmartComp(gradient 압축) 동기.",
+      "original": {
+        "text": "SmartUpdate also sets the size of a subgroup of model parameters according to the accelerator's device memory capacity, and each subgroup is processed with a single tasklet.",
+        "location": "§IV-B, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": 900
       },
       "children": [],
       "links": []
@@ -1699,6 +1720,12 @@
       "id": "edge_061",
       "source": "node_060",
       "target": "node_061",
+      "type": "line"
+    },
+    {
+      "id": "edge_062",
+      "source": "node_059",
+      "target": "node_062",
       "type": "line"
     }
   ],
