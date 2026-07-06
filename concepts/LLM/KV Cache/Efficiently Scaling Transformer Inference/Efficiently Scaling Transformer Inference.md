@@ -1,6 +1,7 @@
 # Efficiently Scaling Transformer Inference
 
 > **Source PDF**: [Efficiently Scaling Transformer Inference.pdf](Efficiently%20Scaling%20Transformer%20Inference.pdf)
+> **NodeGraph**: [EfficientScaling.html (새 탭에서 렌더링)](https://raw.githack.com/Jeong-jin-Han/2026_CAMEL/main/concepts/LLM/KV%20Cache/Efficiently%20Scaling%20Transformer%20Inference/EfficientScaling.html)
 > **Authors**: Reiner Pope, Sholto Douglas, Aakanksha Chowdhery, Jacob Devlin, James Bradbury, Anselm Levskaya, Jonathan Heek, Kefan Xiao, Shivani Agrawal, Jeff Dean (Google)
 > **Venue / Year**: arXiv preprint, 2022 (submitted 9 Nov 2022)
 > **arXiv / DOI**: arXiv:2211.05102v1 [cs.LG]

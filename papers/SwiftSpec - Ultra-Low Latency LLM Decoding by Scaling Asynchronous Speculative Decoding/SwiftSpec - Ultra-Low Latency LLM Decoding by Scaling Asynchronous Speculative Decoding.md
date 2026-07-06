@@ -1,6 +1,7 @@
 # SwiftSpec: Ultra-Low Latency LLM Decoding by Scaling Asynchronous Speculative Decoding
 
 > **Source PDF**: [SwiftSpec - Ultra-Low Latency LLM Decoding by Scaling Asynchronous Speculative Decoding.pdf](SwiftSpec%20-%20Ultra-Low%20Latency%20LLM%20Decoding%20by%20Scaling%20Asynchronous%20Speculative%20Decoding.pdf)
+> **NodeGraph**: [SwiftSpec.html (새 탭에서 렌더링)](https://raw.githack.com/Jeong-jin-Han/2026_CAMEL/main/papers/SwiftSpec%20-%20Ultra-Low%20Latency%20LLM%20Decoding%20by%20Scaling%20Asynchronous%20Speculative%20Decoding/SwiftSpec.html)
 > **Authors**: Ziyi Zhang, Ziheng Jiang, Chengquan Jiang, Menghan Yu, Size Zheng, Haibin Lin, Henry Hoffmann, Xin Liu (ByteDance Seed, University of Chicago)
 > **Venue / Year**: arXiv preprint, 2025
 > **arXiv / DOI**: arXiv:2506.11309v1 [cs.DC]

@@ -1,6 +1,7 @@
 # Model Parallelism on Distributed Infrastructure: A Literature Review from Theory to LLM Case-Studies
 
 > **Source PDF**: [Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf](Model%20Parallelism%20on%20Distributed%20Infrastructure%20-%20A%20Literature%20Review%20from%20Theory%20to%20LLM%20Case-Studies.pdf)
+> **NodeGraph**: [ModelParallelismReview.html (새 탭에서 렌더링)](https://raw.githack.com/Jeong-jin-Han/2026_CAMEL/main/concepts/LLM/Parallelism/Model%20Parallelism%20on%20Distributed%20Infrastructure%20-%20A%20Literature%20Review%20from%20Theory%20to%20LLM%20Case-Studies/ModelParallelismReview.html)
 > **Authors**: Felix Brakel (Univ. of Amsterdam / VU Amsterdam), Uraz Odyurt (Radboud Univ. / Nikhef), Ana-Lucia Varbanescu (Univ. of Twente / Univ. of Amsterdam)
 > **Venue / Year**: arXiv preprint, 2024 (cs.DC)
 > **arXiv / DOI**: arXiv:2403.03699v1

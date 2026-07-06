@@ -1,6 +1,7 @@
 # Keep the Cost Down - A Review on Methods to Optimize LLM's KV Cache Consumption
 
 > **Source PDF**: [Keep the Cost Down - A Review on Methods to Optimize LLM's KV Cache Consumption.pdf](Keep the Cost Down - A Review on Methods to Optimize LLM's KV Cache Consumption.pdf)
+> **NodeGraph**: [KeepCostDown.html (새 탭에서 렌더링)](https://raw.githack.com/Jeong-jin-Han/2026_CAMEL/main/concepts/LLM/KV%20Cache/Keep%20the%20Cost%20Down%20-%20A%20Review%20on%20Methods%20to%20Optimize%20LLM%27s%20KV%20Cache%20Consumption/KeepCostDown.html)
 > **Authors**: Shi Luohe, Zhang Hongyi (Wuhan University, National Engineering Research Center for Multimedia Software), Yao Yao, Zhao Hai (Shanghai Jiao Tong University, Dept. of CS&E), Li Zuchao* (Wuhan University, corresponding author)
 > **Venue / Year**: COLM 2024 (Conference on Language Modeling)
 > **arXiv / DOI**: arXiv:2407.18003v4 [cs.CL] (20 Nov 2024)

@@ -1,6 +1,7 @@
 # KV Cache Optimization Strategies for Scalable and Efficient LLM Inference
 
 > **Source PDF**: [KV Cache Optimization Strategies for Scalable and Efficient LLM Inference.pdf](KV%20Cache%20Optimization%20Strategies%20for%20Scalable%20and%20Efficient%20LLM%20Inference.pdf)
+> **NodeGraph**: [KVCacheOptStrategies.html (새 탭에서 렌더링)](https://raw.githack.com/Jeong-jin-Han/2026_CAMEL/main/concepts/LLM/KV%20Cache/KV%20Cache%20Optimization%20Strategies%20for%20Scalable%20and%20Efficient%20LLM%20Inference/KVCacheOptStrategies.html)
 > **Authors**: Yichun Xu (Dell Technologies), Navjot K. Khaira (Dell Technologies), Tejinder Singh (Dell Technologies)
 > **Venue / Year**: arXiv preprint, 2026-03-24 (survey, cs.LG)
 > **arXiv / DOI**: arXiv:2603.20397v1
