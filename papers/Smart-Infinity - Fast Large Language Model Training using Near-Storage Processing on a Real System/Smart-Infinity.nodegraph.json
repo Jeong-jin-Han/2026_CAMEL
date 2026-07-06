@@ -791,7 +791,9 @@
         "x": 400,
         "y": 1260
       },
-      "children": [],
+      "children": [
+        "node_067"
+      ],
       "links": []
     },
     {
@@ -1390,6 +1392,87 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_067",
+      "template": "question",
+      "title": "Q. gradient(2M) 압축 필요성 — 왜 CSD 늘면 공유 interconnect에서 병목? (0.5M씩 나눠도)",
+      "content": "**오해 해소: 0.5M씩 나눠 보내도 병목인 이유 = 물리적으로 같은 공유 링크**\nhost가 gradient를 CSD별로 \"나눈다\"는 건 소유권(어느 CSD가 어느 파라미터 담당) 기준일 뿐. 4개가 각자 0.5M을 받아도 그 조각들은 **모두 같은 하나의 공유 PCIe uplink(host↔CSD, root complex)를 통과** → 합치면 2M이 그 단일 링크를 그대로 지남. 쪼갠다고 4배 빠른 독립 경로가 생기지 않음.\n\n대조가 핵심:\n- **내부 SSD↔FPGA**: CSD마다 전용 PCIe switch → 6M이 진짜 병렬 경로로 갈라짐(aggregate↑).\n- **host↔CSD 공유 uplink**: 하나뿐 → 2M을 아무리 나눠도 같은 링크에서 합산 → 안 갈라짐, 고정.\n\n**\"CSD 늘면 새 병목\" = Amdahl식**\n- 6M(optimizer state): 내부로 옮겨져 CSD 수에 비례해 빨라짐 → 시간 계속 줄어듦.\n- 2M(gradient): 공유 링크 고정 대역폭 + 총량 고정 → 시간 거의 그대로.\n- CSD ↑ → 6M 부분이 작아지고 줄지 않는 2M이 상대적으로 지배적 → 새 병목.\n\n**write가 더 악화**\ngradient는 SSD에 write되는데 SSD write 대역폭이 read보다 훨씬 낮음 → 2M write가 더 느림. 공유 링크 + 느린 write 이중고.\n\n**그래서 압축이 필요 (SmartComp)**\n공유 링크는 CSD 추가로 못 늘리는 유일한 축 → 거기 흐르는 2M 볼륨 자체를 줄여야 함. GPU에서 magnitude Top-K 압축(2M→c%×2M, 기본 2%) → 공유 링크 통과량↓ → FPGA에서 복원(정렬 필요한 압축은 GPU, index scatter 복원은 FPGA).\n\n**정진 오해 지점**: \"나눠서 보내니 작다\"가 아니라, 나눠도 같은 공유 링크라 총 2M이 고정이고 CSD 늘수록 도드라지는 것. 병목 지점 = host↔CSD 단일 공유 PCIe uplink.\n\n**정밀화 — 병목은 merge 대기가 아니라 bandwidth 전송시간**\n- 병목의 정체는 조각을 모아 합치는(merge) 연산·동기화 대기가 아니라, 2M이 단일 공유 링크를 통과하는 **순수 전송시간(= 2M / 고정 대역폭)**. 합치는 연산 비용은 거의 없음 = 대역폭 병목이지 연산 병목 아님.\n- \"2M을 한 번에 못 보낸다\"는 가정이 아님. **대역폭은 rate(GB/s)**라 2M이 그 rate로 흘러 고정 시간이 걸리는 것 → 그 시간이 CSD 늘려도 안 줄어드는(공유 링크 non-scalable) 게 핵심.",
+      "original": {
+        "text": "gradients (2M) still go through the system interconnect, which becomes a new bottleneck when the number of CSDs increases.",
+        "location": "§IV-C, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 1260
+      },
+      "children": [
+        "node_068",
+        "node_070"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_068",
+      "template": "question",
+      "title": "Q. 왜 gradient만 압축하고 model parameter는 안 하나? (underflow 때문? → 아님)",
+      "content": "**핵심 이유 = error tolerance (lossy 가능 여부)**\n- **gradient**: 학습이 gradient 오차에 강함 → 작은 값 버려도(Top-K) 수렴에 거의 영향 없음(error-compensation로 보정) → **lossy 압축 가능**. (논문: DNN training is tolerable to some degree of errors, especially the gradients / SmartComp는 lossy지만 comparable accuracy)\n- **model parameter**: 그 자체가 모델 상태(다음 forward에 쓰는 실제 weight). lossy하게 버리면 모델이 바로 손상 → 정확도 하락 → **lossless로 온전히** 보내야 함.\n\n**보조 이유 = read vs write**\n- 갱신 param(2M) = host로 **read** (SSD read 대역폭 높음) → 덜 아픈 쪽.\n- gradient(2M) = SSD에 **write** (write 대역폭 낮음) → 더 아픈 쪽 → 압축 우선순위도 gradient.\n\n**underflow 가설 정정**\n- underflow(FP16→0)는 **precision** 문제라 FP32 master weight로 해결하는 별개 축(mixed precision). Top-K **압축(sparsification)** 과는 무관.\n- param을 안 압축하는 이유 = underflow 방지가 아니라 **모델 상태라 lossy 불가**. (param 압축 = quantization/pruning인데 정확도 회복 위해 추가 fine-tuning 필요 = §VIII-B future work)\n\n**한 줄**: gradient는 error-tolerant + write라 압축, parameter는 모델 상태(lossless 필수) + read라 안 함. underflow는 precision(FP32) 얘기지 압축 얘기 아님.",
+      "original": {
+        "text": "It is widely known that DNN training is tolerable to some degree of errors, especially the gradients.",
+        "location": "§IV-C, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": 1260
+      },
+      "children": [
+        "node_069"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_069",
+      "template": "question",
+      "title": "Q. 왜 Top-K인가 — FP16으로 보내고 FP32로 풀면 되지 않나? (underflow 맥락)",
+      "content": "**underflow 맥락 정리 (정진 지적 맞음)**\n같은 맥락이다. gradient가 FP32(2M)로 다뤄지는 이유 중 하나가 underflow — FP16으로 보내면 작은 gradient가 0으로 사라짐. (논문: gradients handled in 32 bits (2M)) → \"그냥 FP16으로 압축\"은 공짜가 아님.\n\n**FP16 압축의 한계**\n1. 압축비 **2×뿐** (2M→M). 공유 링크 병목은 훨씬 큰 감축 필요(논문 default **2% = 50×**).\n2. 작은 gradient **underflow 손실**.\n\n**Top-K(magnitude sparsification)가 이기는 점** (정진 추측 \"더 많이 압축\" 맞음)\n- **압축비 50×**: 상위 1% 값만 index+value로 → 약 2% 크기. FP16의 2×와 비교 불가.\n- **정밀도**: 남기는 큰 gradient는 **FP32 그대로**(underflow 없음). 작은 건 의도적으로 버리되 **error-compensation**으로 다음 step 보정.\n- **FPGA 경량**: 복원이 **index scatter(산술 없음)** → lightweight FPGA에 적합.\n\n**⚠️ 논문 근거 vs 내 추론 구분**\n- 논문이 명시 비교한 건 **Top-K vs low-rank decomposition** (low-rank는 FP matmul 튜닝 어려움; magnitude가 comparable quality를 low DSP cost로 줌).\n- **FP16 quantization과의 직접 비교는 논문에 없음** → 위 FP16 분석(2×·underflow)은 근거 기반 추론.\n\n**한 줄**: underflow는 같은 맥락 — FP16 전송도 손실. 근데 FP16은 2×뿐이라 부족, Top-K는 50× + 큰 값 full precision + cheap scatter라 채택. quantization 대신 Top-K = 주로 압축비 + FPGA 경량성.",
+      "original": {
+        "text": "The magnitude-based compression provides comparable model quality at low DSP cost, so we settled on the magnitude-based compression.",
+        "location": "§IV-C, p.6"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1660,
+        "y": 1260
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_070",
+      "template": "reference",
+      "title": "배경 — bandwidth 계산 완전 분해 (단위·유도 과정)",
+      "content": "**bandwidth = 단위 시간당 바이트 (GB/s)**\n- 단위 뜯기: **1 Byte(B) = 8 bit(b)**, **1 GB = 10^9 B**(PCIe는 10진수).\n- **GB/s** = 초당 몇 GB가 링크를 지나가나. 예: 16 GB/s = 1초에 160억 Byte 통과.\n\n**핵심 공식 + 단위 소거**\n- 전송시간(s) = 데이터양(GB) ÷ 대역폭(GB/s)\n- 단위 확인: GB ÷ (GB/s) = GB × (s/GB) = **s** ← GB가 소거되고 초만 남음.\n\n**PCIe 대역폭은 어디서 나오나 (유도)**\n- PCIe Gen3 1 lane = **8 GT/s** (초당 80억 transfer, wire에서 1 transfer = 1 bit).\n- 인코딩 손실 128b/130b → 유효 128/130 ≈ **0.985**.\n- 유효 bit rate = 8 GT/s × 0.985 ≈ 7.88 Gbit/s → ÷8(bit→Byte) = **0.985 GB/s per lane**.\n- **x4** = 4 × 0.985 ≈ **3.94 GB/s** (내부 SSD↔FPGA)\n- **x16** = 16 × 0.985 ≈ **15.75 GB/s** (host 공유 uplink, ≈ 논문 Fig 2의 16 GB/s)\n\n**데이터양 유도 (1B 파라미터 예시)**\n- N = 1e9 params\n- FP16 = 2 B/param → **M = 1e9 × 2 = 2 GB**\n- gradient FP32 = 4 B/param → **2M = 4 GB**\n- optimizer(master+momentum+variance, 각 FP32) → **6M = 12 GB**\n\n**시간 계산 (단위까지)**\n- 2M 공유 전송 = 4 GB ÷ 16 GB/s = **0.25 s** (고정)\n- 6M 내부 전송(CSD 병렬) = 12 GB ÷ (#CSD × 4 GB/s):\n  - 1 CSD: 12÷4 = **3.0 s** / 4 CSD: 12÷16 = **0.75 s** / 10 CSD: 12÷40 = **0.30 s** / 20 CSD: 12÷80 = **0.15 s**\n- 압축 후 2M = (0.02 × 4 GB) ÷ 16 GB/s = 0.08 ÷ 16 = **0.005 s**\n\n**왜 2M은 안 줄고 6M은 주나 (숫자로)**\n- 6M: CSD마다 전용 4 GB/s → 분모가 (#CSD × 4)로 커짐 → 시간↓\n- 2M: host 공유 uplink 16 GB/s 하나 → 분모 고정 → 0.25 s 고정\n- 20 CSD에서 6M(0.15s) < 2M(0.25s) → 2M이 병목 (→ 「gradient 압축 필요·병목 지점」)\n\n**주의**: 위 16/4 GB/s·1B 모델은 감 잡기용 예시(PCIe Gen3 이론치 기반). 논문 Fig 2의 system interconnect ≈16 GB/s와 정합. 실제 SSD read/write는 이보다 낮을 수 있음(특히 write).",
+      "original": {
+        "text": "(개념 설명 — 단위/유도는 PCIe Gen3 스펙 기반 내 정리. 논문 원문 아님. 논문 Fig 2의 system interconnect ≈16 GB/s와 정합 확인.)",
+        "location": "— (배경, PCIe Gen3 spec)"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": 1720
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -1832,6 +1915,30 @@
       "id": "edge_066",
       "source": "node_065",
       "target": "node_066",
+      "type": "line"
+    },
+    {
+      "id": "edge_067",
+      "source": "node_021",
+      "target": "node_067",
+      "type": "line"
+    },
+    {
+      "id": "edge_068",
+      "source": "node_067",
+      "target": "node_068",
+      "type": "line"
+    },
+    {
+      "id": "edge_069",
+      "source": "node_068",
+      "target": "node_069",
+      "type": "line"
+    },
+    {
+      "id": "edge_070",
+      "source": "node_067",
+      "target": "node_070",
       "type": "line"
     }
   ],
