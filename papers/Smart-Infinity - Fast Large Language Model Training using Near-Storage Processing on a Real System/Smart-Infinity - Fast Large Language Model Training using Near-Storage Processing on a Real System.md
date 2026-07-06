@@ -23,6 +23,7 @@ tags:
 
 # Smart-Infinity: Fast Large Language Model Training using Near-Storage Processing on a Real System
 > **HPCA 2024** · `cluster/llm` · Source: [Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System.pdf](<Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System.pdf>)
+> 🕸️ NodeGraph: [Smart-Infinity.html](<Smart-Infinity.html>) (렌더된 뷰) · [Smart-Infinity.nodegraph.json](<Smart-Infinity.nodegraph.json>) (편집용 소스)
 
 저자: Hongsun Jang, Jaeyong Song, Jaewon Jung, Jaeyoung Park, Youngsok Kim, Jinho Lee (Seoul National University / University of Texas at Austin / Yonsei University)
 
