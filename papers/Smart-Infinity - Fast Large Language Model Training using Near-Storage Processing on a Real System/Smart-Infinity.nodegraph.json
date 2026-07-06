@@ -126,7 +126,8 @@
       },
       "children": [
         "node_016",
-        "node_017"
+        "node_017",
+        "node_065"
       ],
       "links": []
     },
@@ -215,7 +216,8 @@
         "y": 1500
       },
       "children": [
-        "node_049"
+        "node_049",
+        "node_063"
       ],
       "links": [],
       "nodeWidth": 471
@@ -948,7 +950,7 @@
       "id": "node_030",
       "template": "result",
       "title": "throughput·비용 — updater >7GB/s, GFLOPS/$ 증가",
-      "content": "updater throughput이 7GB/s 이상으로 SSD read/write보다 충분히 높아 SSD가 병목을 결정(가속기가 발목 안 잡음). 비용 효율(GFLOPS/$)은 SmartSSD가 일반 SSD보다 6× 비싸 1~3 CSD에선 baseline보다 낮지만, 4개 초과부터 speedup이 커져 역전되고 CSD를 늘릴수록 계속 증가.",
+      "content": "updater throughput이 7GB/s 이상으로 SSD read/write보다 충분히 높아 SSD가 병목을 결정(가속기가 발목 안 잡음). 비용 효율(GFLOPS/달러)은 SmartSSD가 일반 SSD보다 6× 비싸 1~3 CSD에선 baseline보다 낮지만, 4개 초과부터 speedup이 커져 역전되고 CSD를 늘릴수록 계속 증가.",
       "original": {
         "text": "The throughput of the updater is above 7GB/s, which is sufficiently higher than the SSD read/write. ... When scaling the number of SmartSSDs, the GFLOPS/$ keeps increasing, showing the efficiency of Smart-Infinity.",
         "location": "§VII-H · §VII-I, p.11-12"
@@ -1305,6 +1307,86 @@
       "position": {
         "x": 1240,
         "y": 900
+      },
+      "children": [
+        "node_064"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_063",
+      "template": "question",
+      "title": "Q. relocation(공유→per-CSD)인가? + 4 CSD면 각자 0.5M/1.5M 분담?",
+      "content": "**Q. cpu↔ssd 대역폭 문제를 internal bandwidth로 \"옮긴\" 것? + 4 CSD면 각자 0.5M씩?**\n\n**relocation이지만 solution인 이유** — 옮긴 곳의 성질이 다름:\n| | system interconnect (SSD↔host) | 내부 SSD↔FPGA |\n|---|---|---|\n| 소유 | 공유(GPU·NIC·모든 SSD 경쟁) | CSD마다 전용 |\n| 확장성 | 고정 → 「RAID0 4개 포화」 | 수에 비례 aggregate 선형↑ (「CSD 내부 대역폭 합산」) |\n→ 못 늘리는 공유 병목에서 → 장치마다 딸려오는 확장 자원으로 트래픽을 옮김. 그래서 단순 relocation이 아니라 solution.\n\n**분배 walk-through (4 CSD, M = FP16 모델 크기)** — §IV-D: 파라미터를 flatten → 균등 분배, element-wise라 각 CSD가 자기 몫만 P2P update:\n| 항목 | 전체 | CSD당 (÷4) | 경로 |\n|---|---|---|---|\n| optimizer state | 6M | 1.5M | 내부 P2P |\n| host로 갱신 파라미터 | 2M | 0.5M | 공유 interconnect |\n→ 정진 말대로 각 CSD가 0.5M씩 담당(맞음).\n\n**단, 0.5M×4 = 2M은 안 줄어듦**: 공유 uplink엔 2M이 그대로 실림(GPU가 전체 모델 받아야 하니 고정). 이득은 \"2M을 쪼개서\"가 아니라 **6M을 내부 대역폭으로 분산**해서 옴. 남은 2M은 「SmartComp」가 압축.",
+      "original": {
+        "text": "Because of using flattened model parameters, the distribution procedure is agnostic to the model architecture.",
+        "location": "§IV-D, p.7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 1700
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_064",
+      "template": "question",
+      "title": "Q. DRAM 병목 안 나게 더 쪼개면 handler 불필요? — 이론 O, 현실 X",
+      "content": "**Q. DRAM 병목 안 날 만큼 더 쪼개면 handler(Fig 5) 자체가 불필요하지 않나?**\n\n**분배 ⊥ handler (직교)** — 분배=inter-CSD(공유 대역폭), handler=intra-CSD(4GB DRAM 격차). 분배해도 각 CSD 몫이 DRAM보다 큼: GPT-2 8.4B의 6M ≈ 100GB → 10 CSD로도 CSD당 ≈ 10GB ≫ FPGA DRAM 4GB(SSD는 4TB) → 여전히 subgroup tiling 필요.\n\n**이론적으로는 가능 (정진 추론 유효)**: 각 CSD 몫 ≤ 4GB가 되게 충분히 쪼개면 single tasklet으로 처리 → subgrouping/handler 동기 소멸. 필요 CSD 수: 8.4B ≈ 25개, 33B ≈ 100개.\n\n**현실적으론 X (네 벽이 겹침)**:\n1. PCIe slot/lane 한계 → 25~100개 안 들어감, \"single machine\" 전제 붕괴.\n2. 비용 — SmartSSD가 일반 SSD의 ≈6배(2,400달러 수준).\n3. 용량 과다 provisioning(CSD마다 4TB).\n4. ★ 그 전에 **공유 2M이 먼저 병목** — #CSD↑ 시 gradient 2M이 새 병목 → 더 쪼개도 도움 안 되고 병목만 옮겨감(→ 「SmartComp」 영역).\n\n**결론**: handler는 거의 공짜 SW(2 thread + buffer)로 소수 CSD(≤10)로도 near-linear 확장. HW 브루트포스 대신 handler를 택한 엔지니어링 트레이드오프. (분배 세부 → 「분배 walk-through(0.5M)」)",
+      "original": {
+        "text": "gradients (2M) still go through the system interconnect, which becomes a new bottleneck when the number of CSDs increases.",
+        "location": "§IV-C, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1660,
+        "y": 900
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_065",
+      "template": "question",
+      "title": "Q. PCIe switch 역할 + Fig 4b: loss·gradient는 누가 계산하고 뭐가 CSD로 가나",
+      "content": "**① PCIe switch 두 종류 구분**\n- **CSD 내부 PCIe switch** (핵심): 각 CSD 안에서 NVMe SSD ↔ FPGA를 직접 연결 → host를 안 거치고 **P2P**로 이동. 6M optimizer state가 SSD↔FPGA 내부로만 오가게 하는 바로 그 하드웨어 = SmartUpdate의 물리적 전제.\n- **시스템 PCIe switch/root** (공유): 모든 CSD를 host CPU/memory에 잇는 공유 interconnect. switch 늘려도 슬롯만 늘고 **host uplink 대역폭은 그대로** → host로 가는 2M은 고정(→ 「분배 walk-through(0.5M)」).\n\n**② Fig 4b 학습 루프 — 누가 뭘 계산하나**\n- **forward + loss = GPU** (CPU 아님). loss는 scalar.\n- **backward(gradient 계산) = GPU**. loss로 backprop → gradient 생성.\n- **update(optimizer step) = CSD FPGA**. gradient + optimizer state(param·mmt·var)를 내부 P2P로 읽어 새 param/mmt/var 계산 → mmt/var는 내부로 되쓰고 갱신 param(2M)만 host로.\n\n**③ CSD로 가는 건 loss가 아니라 gradient**\n- loss는 GPU에 남아 backprop만 구동, **CSD로 안 감**.\n- GPU가 만든 gradient(2M)를 PCIe로 SSD에 offload. 파라미터가 CSD별로 나뉘어(flatten+distribute) 있으니 **각 CSD는 자기 몫의 gradient만**(2M/#CSD) 받음 → \"loss 분배\"가 아니라 **gradient 분배**.\n\n**역할 분담**: GPU=forward·loss·backward(gradient), CSD FPGA=update. CPU=오케스트레이션(pread/pwrite·handler 스레드). baseline은 CPU가 update했지만 SmartUpdate가 CSD로 넘긴 것.\n\n**한 줄**: PCIe를 건너 CSD로 가는 건 loss가 아니라 각 CSD 몫의 gradient. 그 왕복을 2M로 최소화한 게 내부 PCIe switch의 P2P.",
+      "original": {
+        "text": "SmartUpdate directly loads them to FPGA through direct P2P communication which is possible because of the existence of an internal PCIe switch in each CSD.",
+        "location": "§IV-A, p.4"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 820,
+        "y": 700
+      },
+      "children": [
+        "node_066"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_066",
+      "template": "question",
+      "title": "Q. GPU가 만든 gradient가 CPU 안 거치고 바로 FPGA로? — 아니오(P2P는 SSD↔FPGA leg만)",
+      "content": "**결론: 직접 GPU→FPGA 아님. CPU 우회는 SSD↔FPGA leg에만 해당.**\n\n**gradient 경로는 두 단계로 나눠 봐야**\n1. **backward (GPU) — SSD에 도달하는 과정은 host 경유**\n   §II-A: gradient가 GPU에서 생성 → **host memory로 보내짐** → host가 **SSD로 offload**. 이게 system interconnect의 2M write. gradient offload엔 ZeRO-Infinity offloading engine 사용(host 경유). GPU→SSD 직접 DMA(GPUDirect) 주장은 논문에 **없음**.\n2. **update (SmartUpdate) — SSD의 gradient를 FPGA가 P2P로 직접**\n   §IV-A: \"Instead of uploading the gradients and optimizer states to host memory, SmartUpdate directly loads them to FPGA through direct P2P ... internal PCIe switch\". 이미 SSD에 있는 gradient+optimizer state를 host로 다시 안 올리고 내부 P2P로 읽음.\n\n**CPU를 우회하는 건 어디?**\n- ❌ **GPU → SSD** (backward gradient offload) = host memory 경유. SmartUpdate가 안 바꿈.\n- ✅ **SSD ↔ FPGA** (update 때 gradient·optimizer state 읽기/쓰기) = 내부 P2P, CPU 안 거침. baseline의 \"storage→host→CPU→host→storage\" 왕복을 없앤 부분.\n\n**핵심**: P2P는 \"gradient가 GPU에서 곧장 FPGA로\"가 아니라 \"이미 SSD에 저장된 gradient+optimizer state를 update 때 FPGA가 host 안 거치고 P2P로 처리\"하는 것. 그래서 6M optimizer state는 host를 절대 안 타고, interconnect엔 2M만 남음(→ 「분배 walk-through(0.5M)」).",
+      "original": {
+        "text": "whose resulting gradients are sent to the host memory. To minimize the usage of host memory space, the host offloads the created gradients to the storage device.",
+        "location": "§II-A, p.2"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": 700
       },
       "children": [],
       "links": []
@@ -1726,6 +1808,30 @@
       "id": "edge_062",
       "source": "node_059",
       "target": "node_062",
+      "type": "line"
+    },
+    {
+      "id": "edge_063",
+      "source": "node_048",
+      "target": "node_063",
+      "type": "line"
+    },
+    {
+      "id": "edge_064",
+      "source": "node_062",
+      "target": "node_064",
+      "type": "line"
+    },
+    {
+      "id": "edge_065",
+      "source": "node_003",
+      "target": "node_065",
+      "type": "line"
+    },
+    {
+      "id": "edge_066",
+      "source": "node_065",
+      "target": "node_066",
       "type": "line"
     }
   ],
