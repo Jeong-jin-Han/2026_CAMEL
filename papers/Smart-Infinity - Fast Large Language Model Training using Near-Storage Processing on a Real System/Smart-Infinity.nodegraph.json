@@ -1136,7 +1136,7 @@
         "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
         "location": "— (web search, 2026-07)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
@@ -1157,7 +1157,7 @@
         "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
         "location": "— (web search, 2026-07)"
       },
-      "contentExpanded": true,
+      "contentExpanded": false,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
