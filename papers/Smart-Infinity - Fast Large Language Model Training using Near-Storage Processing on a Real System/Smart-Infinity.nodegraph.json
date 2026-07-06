@@ -202,7 +202,7 @@
       "id": "node_048",
       "template": "question",
       "title": "① 분배 — RAID0 차이·균등분배·독립성·granularity(D/S)",
-      "content": "**왜 큰 SSD 하나가 아니라 여러 CSD?**\nCSD = SSD+FPGA 1쌍. 확장 단위는 (SSD+FPGA) 쌍을 늘리는 것(1 SSD당 1 FPGA). 큰 SSD 1개 = FPGA 1개 = 경로 1개 → 대역폭 확장 없음(§II-B \"single CSD provides no bandwidth boost\"). 관건은 용량이 아니라 **병렬 처리 경로 수** → CSD 수만큼 aggregate internal BW 선형↑(node_017), 공유 uplink(16 GB/s) 우회.\n\n**RAID0 vs flatten-distribute (무엇을 나누나)**\n| | RAID0 | flatten-distribute |\n|---|---|---|\n| 나누는 것 | 저장(I/O)만 | 저장 + **연산** |\n| 연산 위치 | host CPU(중앙) | 각 CSD FPGA(로컬) |\n| 6M 경로 | 전부 공유 링크→host | CSD 내부 P2P(안 나감) |\n| 병목 | 공유 uplink(4개 포화, node_040) | 없음(내부 BW 선형↑) |\n\nRAID0는 데이터를 나눠 **저장**만 하고 **연산 안 함** → 처리하려면 다 host로 모음(공유 링크 병목). Smart-Infinity는 **연산 자체를 CSD로** 옮겨 near-data 처리.\n\n**균등 분배(uniform) — 논문 verbatim**\n- §IV-D: \"flattens the model parameters and **equally distributes** them to the CSDs.\" → flat 벡터를 동일 크기로 N등분.\n- 왜 uniform으로 충분? update가 **element-wise**라 파라미터당 연산량 동일 → 같은 개수=같은 작업량, load-balancing 불필요. 파라미터가 독립적(자기 g·m·v만)이라 완전 병렬(node_023).\n\n**분배 granularity**\n- 처리 단위 = subgroup **D**(가속기 DRAM) / chunk **S**(BRAM). subgroup i = 인덱스 [i×D, (i+1)×D−1] (§V). → **SSD block이 아니라 가속기 메모리 크기** 기준(→ 다음 노드 byte vs block).\n- 남는 gradient 2M(공유 링크)은 CSD 많아지면 새 병목 → **SmartComp**가 압축(node_005).",
+      "content": "**왜 큰 SSD 하나가 아니라 여러 CSD?**\nCSD = SSD+FPGA 1쌍. 확장 단위는 (SSD+FPGA) 쌍을 늘리는 것(1 SSD당 1 FPGA). 큰 SSD 1개 = FPGA 1개 = 경로 1개 → 대역폭 확장 없음(§II-B \"single CSD provides no bandwidth boost\"). 관건은 용량이 아니라 **병렬 처리 경로 수** → CSD 수만큼 aggregate internal BW 선형↑(「CSD 내부 대역폭 합산」), 공유 uplink(16 GB/s) 우회.\n\n**RAID0 vs flatten-distribute (무엇을 나누나)**\n| | RAID0 | flatten-distribute |\n|---|---|---|\n| 나누는 것 | 저장(I/O)만 | 저장 + **연산** |\n| 연산 위치 | host CPU(중앙) | 각 CSD FPGA(로컬) |\n| 6M 경로 | 전부 공유 링크→host | CSD 내부 P2P(안 나감) |\n| 병목 | 공유 uplink(4개 포화, 「RAID0 포화 계산」) | 없음(내부 BW 선형↑) |\n\nRAID0는 데이터를 나눠 **저장**만 하고 **연산 안 함** → 처리하려면 다 host로 모음(공유 링크 병목). Smart-Infinity는 **연산 자체를 CSD로** 옮겨 near-data 처리.\n\n**균등 분배(uniform) — 논문 verbatim**\n- §IV-D: \"flattens the model parameters and **equally distributes** them to the CSDs.\" → flat 벡터를 동일 크기로 N등분.\n- 왜 uniform으로 충분? update가 **element-wise**라 파라미터당 연산량 동일 → 같은 개수=같은 작업량, load-balancing 불필요. 파라미터가 독립적(자기 g·m·v만)이라 완전 병렬(「architecture-agnostic 분배」).\n\n**분배 granularity**\n- 처리 단위 = subgroup **D**(가속기 DRAM) / chunk **S**(BRAM). subgroup i = 인덱스 [i×D, (i+1)×D−1] (§V). → **SSD block이 아니라 가속기 메모리 크기** 기준(→ 다음 노드 byte vs block).\n- 남는 gradient 2M(공유 링크)은 CSD 많아지면 새 병목 → **SmartComp**가 압축(「SmartComp」).",
       "original": {
         "text": "Smart-Infinity flattens the model parameters and equally distributes them to the CSDs, where each CSD takes the responsibility to update the owned parameters.",
         "location": "§IV-D, p.6 (균등 분배; element-wise 독립성; RAID0 한계는 §III)"
@@ -377,7 +377,7 @@
       "id": "node_038",
       "template": "question",
       "title": "대역폭만 병목인가? — 왜 거리(latency)는 안 다루나",
-      "content": "질문: 물리적 연결선이 길어지면 propagation latency도 병목인데, 이 논문은 왜 **대역폭(bandwidth)만** 병목으로 다루나?\n\n정리 — 이 세팅에선 대역폭 집중이 타당하다:\n1. **Single-node · 로컬 PCIe**: NVMe SSD가 **같은 섀시(chassis=서버 본체 케이스; CPU와 같은 물리적 박스)** 안 PCIe 슬롯에 직접 꽂힌다(네트워크 케이블을 넘지 않음). 전송선이 짧아(수 cm) 거리(propagation) latency는 무시할 수준. 수치 비교는 자식 노드 표 참조.\n2. **Bulk 전송 워크로드**: 매 iteration마다 optimizer states(6M)·gradients 같은 크고 연속적인 데이터를 옮긴다 → 처리량(bandwidth)이 지배하고, per-access latency는 큰 청크에 상각(amortize)된다.\n3. **논문 프레이밍도 volume/bandwidth 축**: SSD가 few GB/s만 제공, RAID0로 늘려도 PCIe lane 수(=대역폭)가 상한(node_014), 목표도 \"shared interconnect 통과 전송량 최소화\"(node_015).\n\n★ 단 이 전제는 single-node라 성립. **multi-node / CXL fabric으로 가면 거리 latency가 지배적 병목**이 된다(노드 간 무효화·왕복 수백 ns~µs). = 내 연구 지점 → node_035(multi-node 확장 질문) 및 [[CXL Multi-node Coherence]]의 directory 거리 문제와 연결.",
+      "content": "질문: 물리적 연결선이 길어지면 propagation latency도 병목인데, 이 논문은 왜 **대역폭(bandwidth)만** 병목으로 다루나?\n\n정리 — 이 세팅에선 대역폭 집중이 타당하다:\n1. **Single-node · 로컬 PCIe**: NVMe SSD가 **같은 섀시(chassis=서버 본체 케이스; CPU와 같은 물리적 박스)** 안 PCIe 슬롯에 직접 꽂힌다(네트워크 케이블을 넘지 않음). 전송선이 짧아(수 cm) 거리(propagation) latency는 무시할 수준. 수치 비교는 자식 노드 표 참조.\n2. **Bulk 전송 워크로드**: 매 iteration마다 optimizer states(6M)·gradients 같은 크고 연속적인 데이터를 옮긴다 → 처리량(bandwidth)이 지배하고, per-access latency는 큰 청크에 상각(amortize)된다.\n3. **논문 프레이밍도 volume/bandwidth 축**: SSD가 few GB/s만 제공, RAID0로 늘려도 PCIe lane 수(=대역폭)가 상한(「RAID0 4개 포화(Fig 3b)」), 목표도 \"shared interconnect 통과 전송량 최소화\"(「1차 목표: 전송 최소화」).\n\n★ 단 이 전제는 single-node라 성립. **multi-node / CXL fabric으로 가면 거리 latency가 지배적 병목**이 된다(노드 간 무효화·왕복 수백 ns~µs). = 내 연구 지점 → 「열린 질문: multi-node」(multi-node 확장 질문) 및 [[CXL Multi-node Coherence]]의 directory 거리 문제와 연결.",
       "original": {
         "text": "At a glance, combining multiple storage devices using RAID0 solution could alleviate the problem. However, such a method would fundamentally be bottlenecked by the limited number of PCIe lanes (or IO pins) of the host processor.",
         "location": "§I, p.1 (병목을 PCIe lane=대역폭 축으로 규정; 세팅은 single-node 로컬 PCIe)"
@@ -440,7 +440,7 @@
       "id": "node_043",
       "template": "question",
       "title": "왜 FP16 → FP32로 가야 하나? (mixed precision)",
-      "content": "**Mixed precision training**: 연산(forward/backward)은 **FP16**으로 — 빠르고(Tensor Core) 메모리 절약. 하지만 **weight 업데이트 누적은 FP32**로 유지한다(master copy + optimizer states).\n\n**왜 FP16 → FP32로 가야 하나?**\n- FP16은 mantissa가 10-bit라 정밀도·표현범위가 좁다.\n- weight 갱신이 weight보다 훨씬 작을 때(Δw ≪ w), FP16에선 그 작은 갱신이 반올림돼 **사라진다**(underflow / swamping) → 학습이 정체.\n- FP32 master copy에 누적하면 작은 갱신도 보존된다. optimizer의 variance(v = gradient²)도 값이 작아 FP16이면 underflow → FP32 필요.\n- (관련: loss scaling도 gradient underflow를 막는 mixed precision 기법.)\n\n→ 그래서 **FP32 master weights + FP32 m·v가 필수 = 6M**(node_036) = GPU 메모리 부담의 근원 = storage-offload를 하는 이유.\n\n정리: FP16 파라미터(M)는 GPU 연산용, FP32 상태(6M)는 안정적 누적용 — 둘 다 있어야 해서 메모리가 커진다.",
+      "content": "**Mixed precision training**: 연산(forward/backward)은 **FP16**으로 — 빠르고(Tensor Core) 메모리 절약. 하지만 **weight 업데이트 누적은 FP32**로 유지한다(master copy + optimizer states).\n\n**왜 FP16 → FP32로 가야 하나?**\n- FP16은 mantissa가 10-bit라 정밀도·표현범위가 좁다.\n- weight 갱신이 weight보다 훨씬 작을 때(Δw ≪ w), FP16에선 그 작은 갱신이 반올림돼 **사라진다**(underflow / swamping) → 학습이 정체.\n- FP32 master copy에 누적하면 작은 갱신도 보존된다. optimizer의 variance(v = gradient²)도 값이 작아 FP16이면 underflow → FP32 필요.\n- (관련: loss scaling도 gradient underflow를 막는 mixed precision 기법.)\n\n→ 그래서 **FP32 master weights + FP32 m·v가 필수 = 6M**(「6M 유도」) = GPU 메모리 부담의 근원 = storage-offload를 하는 이유.\n\n정리: FP16 파라미터(M)는 GPU 연산용, FP32 상태(6M)는 안정적 누적용 — 둘 다 있어야 해서 메모리가 커진다.",
       "original": {
         "text": "Considering that maintaining optimizer states in FP32 is an almost essential option for mixed precision LLM training, this provides an insight that management of the optimizer state is a critical issue for LLM training in a resource-limited environment.",
         "location": "§II-A, p.2 (근본 이유=FP16 underflow는 mixed precision 배경, Micikevicius [80])"
@@ -501,7 +501,7 @@
       "id": "node_037",
       "template": "question",
       "title": "Adam은 어떻게 작동하나 — 왜 momentum(1차) + variance(2차) 둘 다?",
-      "content": "Adam = Adaptive Moment Estimation. gradient의 지수이동평균 2개를 유지한다 — momentum m(1차 모멘트, '방향')과 variance v(2차 모멘트, '보폭').\n\n**모멘트 갱신 (step t)**\n\n$$m_t=\\beta_1\\,m_{t-1}+(1-\\beta_1)\\,g_t$$\n\n$$v_t=\\beta_2\\,v_{t-1}+(1-\\beta_2)\\,g_t^{2}$$\n\n**편향 보정**\n\n$$\\hat{m}_t=\\frac{m_t}{1-\\beta_1^{\\,t}}\\qquad \\hat{v}_t=\\frac{v_t}{1-\\beta_2^{\\,t}}$$\n\n**파라미터 갱신**\n\n$$\\theta_t=\\theta_{t-1}-\\eta\\,\\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t}+\\epsilon}$$\n\n★ variance가 필요한 이유: 위 식에서 2차 모멘트의 제곱근으로 나눠 **파라미터별 학습률**을 적응 조절한다 — gradient가 크고 노이즈 많으면 스텝↓, 작고 일정하면 스텝↑ (RMSProp 아이디어). m은 '어느 방향', v는 '얼마나 큰 보폭'.\n\n**상태 3종 → 6M**\n\n$$\\underbrace{\\theta}_{2M}+\\underbrace{m}_{2M}+\\underbrace{v}_{2M}=6M$$\n\n참고: SGD-momentum은 m만(상태 2종), AdaGrad/AdamW도 이 moving average의 변형 → Smart-Infinity의 AXPBY 유닛(general averaging, node_024)이 계수만 바꿔 공통 처리한다.",
+      "content": "Adam = Adaptive Moment Estimation. gradient의 지수이동평균 2개를 유지한다 — momentum m(1차 모멘트, '방향')과 variance v(2차 모멘트, '보폭').\n\n**모멘트 갱신 (step t)**\n\n$$m_t=\\beta_1\\,m_{t-1}+(1-\\beta_1)\\,g_t$$\n\n$$v_t=\\beta_2\\,v_{t-1}+(1-\\beta_2)\\,g_t^{2}$$\n\n**편향 보정**\n\n$$\\hat{m}_t=\\frac{m_t}{1-\\beta_1^{\\,t}}\\qquad \\hat{v}_t=\\frac{v_t}{1-\\beta_2^{\\,t}}$$\n\n**파라미터 갱신**\n\n$$\\theta_t=\\theta_{t-1}-\\eta\\,\\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t}+\\epsilon}$$\n\n★ variance가 필요한 이유: 위 식에서 2차 모멘트의 제곱근으로 나눠 **파라미터별 학습률**을 적응 조절한다 — gradient가 크고 노이즈 많으면 스텝↓, 작고 일정하면 스텝↑ (RMSProp 아이디어). m은 '어느 방향', v는 '얼마나 큰 보폭'.\n\n**상태 3종 → 6M**\n\n$$\\underbrace{\\theta}_{2M}+\\underbrace{m}_{2M}+\\underbrace{v}_{2M}=6M$$\n\n참고: SGD-momentum은 m만(상태 2종), AdaGrad/AdamW도 이 moving average의 변형 → Smart-Infinity의 AXPBY 유닛(general averaging, 「AXPBY 범용 유닛」)이 계수만 바꿔 공통 처리한다.",
       "original": {
         "text": "We use Adam optimizer [59] as an example because it is the primary choice for modern LLM training.",
         "location": "§IV-A, p.4 (Adam 자체는 논문 밖 배경 — Kingma & Ba, ref [59])"
@@ -560,7 +560,7 @@
       "id": "node_040",
       "template": "question",
       "title": "왜 RAID0는 4개에서 포화? — 16 GB/s ÷ 4 GB/s (Fig 3b 계산)",
-      "content": "질문: Fig 3b에서 SSD를 RAID0로 늘려도 왜 **4개를 넘으면 speedup이 정체**되나? 논문 수치로 계산해보자.\n\n**논문이 준 대역폭 (Fig 2 · §VII-A)**\n- shared system interconnect(host로 가는 공유 PCIe uplink) = **16 GB/s** (Fig 2 라벨).\n- SmartSSD 1개 = **PCIe Gen3 x4 bus** (§VII-A) → Gen3 x4 = 3.94 GB/s ≈ **4 GB/s**.\n- RAID0는 SSD를 병렬로 묶어 aggregate BW를 키우지만, 모든 데이터는 결국 **16 GB/s 공유 uplink 하나**를 통과해 host memory로 간다.\n\n**포화 지점 계산**\n\n$$\\frac{16\\ \\text{GB/s (shared uplink)}}{\\ \\approx 4\\ \\text{GB/s per SSD (Gen3 x4)}}\\ \\approx\\ 4\\ \\text{SSDs}$$\n\n- ~4개까지: 4×4 = 16 GB/s로 uplink를 정확히 채우며 선형 증가.\n- 5개째부터: 공유 uplink **16 GB/s가 천장** → 더 꽂아도 병목이 안 풀려 speedup 정체 (Fig 3b plateau).\n\n**★ 대조 — Smart-Infinity가 이 천장을 뚫는 이유**\n- CSD 내부 aggregate BW = **8×#CSDs GB/s** (Fig 2) → CSD 수에 **선형 증가**, 16 GB/s 공유 uplink에 안 걸림.\n- P2P로 SSD↔FPGA 내부에서 update를 끝내 데이터가 공유 interconnect를 안 지남(node_017) → RAID0의 16 GB/s 천장을 우회.\n\n(주의: 4 GB/s는 Gen3 x4 스펙값 기반 근사. 논문은 정확한 per-SSD 실측 대역폭은 안 밝히고 '4개 초과 시 포화'만 명시.)",
+      "content": "질문: Fig 3b에서 SSD를 RAID0로 늘려도 왜 **4개를 넘으면 speedup이 정체**되나? 논문 수치로 계산해보자.\n\n**논문이 준 대역폭 (Fig 2 · §VII-A)**\n- shared system interconnect(host로 가는 공유 PCIe uplink) = **16 GB/s** (Fig 2 라벨).\n- SmartSSD 1개 = **PCIe Gen3 x4 bus** (§VII-A) → Gen3 x4 = 3.94 GB/s ≈ **4 GB/s**.\n- RAID0는 SSD를 병렬로 묶어 aggregate BW를 키우지만, 모든 데이터는 결국 **16 GB/s 공유 uplink 하나**를 통과해 host memory로 간다.\n\n**포화 지점 계산**\n\n$$\\frac{16\\ \\text{GB/s (shared uplink)}}{\\ \\approx 4\\ \\text{GB/s per SSD (Gen3 x4)}}\\ \\approx\\ 4\\ \\text{SSDs}$$\n\n- ~4개까지: 4×4 = 16 GB/s로 uplink를 정확히 채우며 선형 증가.\n- 5개째부터: 공유 uplink **16 GB/s가 천장** → 더 꽂아도 병목이 안 풀려 speedup 정체 (Fig 3b plateau).\n\n**★ 대조 — Smart-Infinity가 이 천장을 뚫는 이유**\n- CSD 내부 aggregate BW = **8×#CSDs GB/s** (Fig 2) → CSD 수에 **선형 증가**, 16 GB/s 공유 uplink에 안 걸림.\n- P2P로 SSD↔FPGA 내부에서 update를 끝내 데이터가 공유 interconnect를 안 지남(「CSD 내부 대역폭 합산」) → RAID0의 16 GB/s 천장을 우회.\n\n(주의: 4 GB/s는 Gen3 x4 스펙값 기반 근사. 논문은 정확한 per-SSD 실측 대역폭은 안 밝히고 '4개 초과 시 포화'만 명시.)",
       "original": {
         "text": "A single CSD provides no bandwidth boost, as storage-to-FPGA and storage-to-host traffic transfers pass through the same number of PCIe lanes. However, when multiple CSDs are on the system (Figure 2), the aggregated internal bandwidth linearly increases according to the number of CSDs, while the shared system interconnect bandwidth remains the same.",
         "location": "§II-B, p.3 (+ Fig 2: 공유 interconnect 16 GB/s / 내부 8×#CSDs GB/s; §VII-A: SmartSSD=PCIe Gen3.0 x4)"
@@ -581,7 +581,7 @@
       "id": "node_041",
       "template": "question",
       "title": "더 좋은 PCIe면 상한이 4개보다 커지나? — 조건부 Yes",
-      "content": "답: 부분적으로 맞다. **포화 개수는 절대 대역폭이 아니라 '비율'로 정해진다.**\n\n$$N_{\\text{sat}}=\\frac{BW_{\\text{shared uplink}}}{BW_{\\text{per SSD}}}$$\n\n**경우를 나눠보면**\n1. **공유 uplink만 키움** (레인↑ 또는 상위 gen, SSD는 Gen3 x4 유지) → 분자↑ → **N↑**. 예: 32 GB/s ÷ 4 = **8개**. ← 질문의 직관이 맞는 경우.\n2. **SSD와 interconnect를 같은 gen으로 함께 업그레이드** → 분자·분모 둘 다 ~2배 → **N은 그대로(~4)**, 총 처리량만 2배. 예: Gen4 uplink 32 ÷ Gen4 x4 SSD 8 = 4.\n3. **근본 벽**: host의 총 PCIe lane / IO pin 수가 물리적으로 유한(§I) → 공유 uplink를 무한히 못 키움. RAID0는 결국 이 벽에 걸린다.\n\n**★ 그래서 Smart-Infinity의 논점**: \"PCIe를 더 좋게\"로 천장을 올리는 게 아니라, 데이터가 **공유 uplink를 아예 안 지나게** 한다 — P2P 내부 대역폭 8×#CSDs가 CSD 수에 선형 증가(node_017). 공유 uplink가 몇이든 무관하게 확장 → 4개(또는 8개)라는 천장 자체를 없앰.",
+      "content": "답: 부분적으로 맞다. **포화 개수는 절대 대역폭이 아니라 '비율'로 정해진다.**\n\n$$N_{\\text{sat}}=\\frac{BW_{\\text{shared uplink}}}{BW_{\\text{per SSD}}}$$\n\n**경우를 나눠보면**\n1. **공유 uplink만 키움** (레인↑ 또는 상위 gen, SSD는 Gen3 x4 유지) → 분자↑ → **N↑**. 예: 32 GB/s ÷ 4 = **8개**. ← 질문의 직관이 맞는 경우.\n2. **SSD와 interconnect를 같은 gen으로 함께 업그레이드** → 분자·분모 둘 다 ~2배 → **N은 그대로(~4)**, 총 처리량만 2배. 예: Gen4 uplink 32 ÷ Gen4 x4 SSD 8 = 4.\n3. **근본 벽**: host의 총 PCIe lane / IO pin 수가 물리적으로 유한(§I) → 공유 uplink를 무한히 못 키움. RAID0는 결국 이 벽에 걸린다.\n\n**★ 그래서 Smart-Infinity의 논점**: \"PCIe를 더 좋게\"로 천장을 올리는 게 아니라, 데이터가 **공유 uplink를 아예 안 지나게** 한다 — P2P 내부 대역폭 8×#CSDs가 CSD 수에 선형 증가(「CSD 내부 대역폭 합산」). 공유 uplink가 몇이든 무관하게 확장 → 4개(또는 8개)라는 천장 자체를 없앰.",
       "original": {
         "text": "combining multiple storage devices using RAID0 solution could alleviate the problem. However, such a method would fundamentally be bottlenecked by the limited number of PCIe lanes (or IO pins) of the host processor.",
         "location": "§I, p.1 (공유 uplink는 host lane 수로 물리적 상한)"
@@ -682,7 +682,7 @@
       "id": "node_047",
       "template": "gap",
       "title": "★ 아이디어 — 2M을 CPU 안 거치고 CSD→GPU 직접 (CXL)",
-      "content": "**내 아이디어**: 갱신 파라미터(2M)를 CPU/host memory 경유 없이 **CSD → GPU로 직접** 보내자.\n\n**현재 경로 (이 논문)**\n```\nCSD(SSD/FPGA) ──2M──> host memory ──> GPU memory\n                (CPU는 계산 없이 relay만 하는데도 host mem 경유)\n```\n\n**아이디어 경로 (CXL)**\n```\nCSD(SSD/FPGA) ──CXL 직접──> GPU memory   (host mem 우회)\n```\n- CXL의 cache-coherent load/store로 CSD 메모리를 GPU가 직접 접근 → host memory 왕복 제거. (GPUDirect Storage가 P2P로 유사 시도, CXL은 byte-addressable·coherent라 더 매끄러움.)\n- **CAMEL의 [[CXL-GPU]]**(Breaking Barriers→CXL-GPU)가 정확히 \"GPU가 CXL memory에 직접 접근\"을 실증 → 이 논문의 SSD→host→GPU 경유를 CXL로 우회하는 그림이 성립.\n- **node_046의 최적화(어차피 FP16 M만 필요)**와 결합하면: CSD에서 FP16으로 down-cast → CXL로 GPU에 직접 = upstream을 M으로 줄이고 CPU도 우회.\n\n**★ multi-node 확장**: 이 직접 경로를 노드 간으로 넓히면 CXL fabric 위 거리·coherence 문제와 만남(node_035, [[CXL Multi-node Coherence]]) = 내 연구 지점.\n\n⚠️ 검증 전 아이디어(gap): CXL 직접경로가 이 워크로드에서 실제 이득인지, coherence 오버헤드·정합성은 어떤지 확인 필요.",
+      "content": "**내 아이디어**: 갱신 파라미터(2M)를 CPU/host memory 경유 없이 **CSD → GPU로 직접** 보내자.\n\n**현재 경로 (이 논문)**\n```\nCSD(SSD/FPGA) ──2M──> host memory ──> GPU memory\n                (CPU는 계산 없이 relay만 하는데도 host mem 경유)\n```\n\n**아이디어 경로 (CXL)**\n```\nCSD(SSD/FPGA) ──CXL 직접──> GPU memory   (host mem 우회)\n```\n- CXL의 cache-coherent load/store로 CSD 메모리를 GPU가 직접 접근 → host memory 왕복 제거. (GPUDirect Storage가 P2P로 유사 시도, CXL은 byte-addressable·coherent라 더 매끄러움.)\n- **CAMEL의 [[CXL-GPU]]**(Breaking Barriers→CXL-GPU)가 정확히 \"GPU가 CXL memory에 직접 접근\"을 실증 → 이 논문의 SSD→host→GPU 경유를 CXL로 우회하는 그림이 성립.\n- **「2M 파라미터 이유」의 최적화(어차피 FP16 M만 필요)**와 결합하면: CSD에서 FP16으로 down-cast → CXL로 GPU에 직접 = upstream을 M으로 줄이고 CPU도 우회.\n\n**★ multi-node 확장**: 이 직접 경로를 노드 간으로 넓히면 CXL fabric 위 거리·coherence 문제와 만남(「열린 질문: multi-node」, [[CXL Multi-node Coherence]]) = 내 연구 지점.\n\n⚠️ 검증 전 아이디어(gap): CXL 직접경로가 이 워크로드에서 실제 이득인지, coherence 오버헤드·정합성은 어떤지 확인 필요.",
       "original": {
         "text": "(논문 밖 아이디어 — 내 연구 방향. 우회 대상은 §IV-A ④의 SSD→host memory 전송. 원문 인용 아님.)",
         "location": "— (my idea; cf. §IV-A p.4)"
@@ -986,7 +986,7 @@
       "id": "node_032",
       "template": "memo",
       "title": "★ 내 발표 프레임 연결 — feasibility-by-building 사다리 1단",
-      "content": "내 세미나 4편 중 1편(7/9). 프레임=feasibility-by-building. Smart-Infinity의 증명 방식 = '시뮬레이터가 아니라 실물(SmartSSD×10 + FPGA + PyTorch 통합)로 real-system 실측' → 증명 강도 사다리의 첫 칸(real-system measurement). 6-질문 프레임 요약: Claim=update를 near-storage로 옮기면 storage 병목이 사라진다 / Artifact=DeepSpeed에 통합된 SmartSSD 기반 실물 / Crux=aggregate internal bandwidth vs 고정 interconnect(node_017) / Evidence=최대 2.11× + 정확도 동일 / Invariant=SmartUpdate는 알고리즘적으로 baseline과 동일(node_029) / Gap=upstream 전송 병목(node_033).",
+      "content": "내 세미나 4편 중 1편(7/9). 프레임=feasibility-by-building. Smart-Infinity의 증명 방식 = '시뮬레이터가 아니라 실물(SmartSSD×10 + FPGA + PyTorch 통합)로 real-system 실측' → 증명 강도 사다리의 첫 칸(real-system measurement). 6-질문 프레임 요약: Claim=update를 near-storage로 옮기면 storage 병목이 사라진다 / Artifact=DeepSpeed에 통합된 SmartSSD 기반 실물 / Crux=aggregate internal bandwidth vs 고정 interconnect(「CSD 내부 대역폭 합산」) / Evidence=최대 2.11× + 정확도 동일 / Invariant=SmartUpdate는 알고리즘적으로 baseline과 동일(「정확도: baseline과 동일」) / Gap=upstream 전송 병목(「한계(upstream·단일CSD·topology)」).",
       "original": {
         "text": "(논문 밖 메모 — 내 발표 프레임. 원문 인용 아님.)",
         "location": "— (my note)"
@@ -1062,7 +1062,7 @@
       "id": "node_051",
       "template": "claim",
       "title": "★ Killer app — 용량에 막힌 LLM 학습을 소수 GPU/단일 머신에서",
-      "content": "**이 논문이 겨냥하는 것**: 모델이 커지면 병목이 *연산*이 아니라 **GPU 메모리 용량**이 된다. 그래서 연산력이 필요 없는 상황(예: fine-tuning)에도 '용량을 담으려고' GPU 수십 개를 쓰는 낭비가 생긴다. Smart-Infinity의 killer application = 이 **capacity-bound LLM 학습을 storage-offload로 소수 GPU/단일 머신에서** 돌리는 것.\n\n**compute-bound vs capacity-bound**\n| | pre-training(scratch) | fine-tuning |\n|---|---|---|\n| 병목 | compute + capacity | **capacity 위주** |\n| 학습 시간 | 매우 김 | 짧음 |\n| GPU 수 | 진짜 많이 필요 | 용량 때문에만 많이(=낭비) |\n\n→ storage-offload는 '느리지만 용량 큰' 계층 → **연산 여유가 있고 용량만 부족한** 쪽에서 이긴다. 그 대표가 fine-tuning(node_052).\n\n(왜 용량이 병목? → node_054 · 계보 → node_056)",
+      "content": "**이 논문이 겨냥하는 것**: 모델이 커지면 병목이 *연산*이 아니라 **GPU 메모리 용량**이 된다. 그래서 연산력이 필요 없는 상황(예: fine-tuning)에도 '용량을 담으려고' GPU 수십 개를 쓰는 낭비가 생긴다. Smart-Infinity의 killer application = 이 **capacity-bound LLM 학습을 storage-offload로 소수 GPU/단일 머신에서** 돌리는 것.\n\n**compute-bound vs capacity-bound**\n| | pre-training(scratch) | fine-tuning |\n|---|---|---|\n| 병목 | compute + capacity | **capacity 위주** |\n| 학습 시간 | 매우 김 | 짧음 |\n| GPU 수 | 진짜 많이 필요 | 용량 때문에만 많이(=낭비) |\n\n→ storage-offload는 '느리지만 용량 큰' 계층 → **연산 여유가 있고 용량만 부족한** 쪽에서 이긴다. 그 대표가 fine-tuning(「fine-tuning usecase」).\n\n(왜 용량이 병목? → 「16 B/param 메모리 배경」 · 계보 → 「ZeRO 계보 배경」)",
       "original": {
         "text": "As the models become larger, the major limiting factor becomes the GPU memory capacity. Often, dozens of GPUs are required, just to keep the training data on the memory, even when such computing power is not necessary such as fine-tuning.",
         "location": "§I, p.1"
@@ -1086,7 +1086,7 @@
       "id": "node_052",
       "template": "claim",
       "title": "대표 usecase = fine-tuning (§VII-J) — 무겁지만 짧은 워크로드",
-      "content": "논문이 **직접 '대표 application'으로 지명**한 것이 fine-tuning이다.\n- **모델 전체 + optimizer state를 다 로딩**해야 함 → 용량 부담 큼(capacity-bound).\n- 하지만 **학습 시간(iteration 수)은 짧다** → storage 전송이 상대적으로 더 지배적 = Smart-Infinity 이득이 잘 드러남.\n\n실제 평가도 fine-tuning으로 정확도 검증(GLUE: MNLI/QQP/SST-2/QNLI, BERT-345M·GPT-2 774M/1.6B). SmartUpdate는 baseline과 algorithmically 동일해 정확도 동일, SmartComp도 comparable(node_029).\n\n(왜 memory-heavy·compute-light? → node_055)",
+      "content": "논문이 **직접 '대표 application'으로 지명**한 것이 fine-tuning이다.\n- **모델 전체 + optimizer state를 다 로딩**해야 함 → 용량 부담 큼(capacity-bound).\n- 하지만 **학습 시간(iteration 수)은 짧다** → storage 전송이 상대적으로 더 지배적 = Smart-Infinity 이득이 잘 드러남.\n\n실제 평가도 fine-tuning으로 정확도 검증(GLUE: MNLI/QQP/SST-2/QNLI, BERT-345M·GPT-2 774M/1.6B). SmartUpdate는 baseline과 algorithmically 동일해 정확도 동일, SmartComp도 comparable(「정확도: baseline과 동일」).\n\n(왜 memory-heavy·compute-light? → 「fine-tuning 메모리·LoRA 배경」)",
       "original": {
         "text": "Fine-tuning is a representative application where Smart-Infinity can be applied because it requires loading the entire model and the optimizer states but has a relatively small training time.",
         "location": "§VII-J, p.12"
@@ -1108,7 +1108,7 @@
       "id": "node_053",
       "template": "gap",
       "title": "확장 usecase = model compression (quant/prune/low-rank)",
-      "content": "저자가 밝힌 향후 usecase: **model compression**(quantization·pruning·low-rank decomposition). 이들이 압축 후 정확도 회복을 위해 **compressed form에서 fine-tuning**을 하므로 Smart-Infinity가 그대로 적용된다.\n\n★ 더 빨라질 여지: 현재 병목은 CSD→host **upstream 파라미터 전송**인데, 모델 압축과 결합하면 **압축된 모델을 올려** 이 병목까지 줄인다. 단 quantization의 STE·per-layer interval 등은 non-trivial future work.\n\n(이 한계·future는 node_033에도 정리됨)",
+      "content": "저자가 밝힌 향후 usecase: **model compression**(quantization·pruning·low-rank decomposition). 이들이 압축 후 정확도 회복을 위해 **compressed form에서 fine-tuning**을 하므로 Smart-Infinity가 그대로 적용된다.\n\n★ 더 빨라질 여지: 현재 병목은 CSD→host **upstream 파라미터 전송**인데, 모델 압축과 결합하면 **압축된 모델을 올려** 이 병목까지 줄인다. 단 quantization의 STE·per-layer interval 등은 non-trivial future work.\n\n(이 한계·future는 「한계(upstream·단일CSD·topology)」에도 정리됨)",
       "original": {
         "text": "Various types of model compression methods can be usecases of Smart-Infinity, such as quantization, pruning, or low-rank decomposition because they require some fine-tuning in compressed form to recover accuracy drop from compression.",
         "location": "§VIII-B, p.12"
@@ -1127,12 +1127,12 @@
       "id": "node_054",
       "template": "reference",
       "title": "배경 — LLM 학습 메모리 = 16 B/param, optimizer state가 지배 (웹)",
-      "content": "**왜 LLM 학습이 용량 병목인가** (mixed precision + Adam, 웹).\n\n| 항목 | precision | B/param |\n|---|---|---|\n| model param | FP16 | 2 |\n| gradient | FP16 | 2 |\n| master weight | FP32 | 4 |\n| momentum m | FP32 | 4 |\n| variance v | FP32 | 4 |\n| **합계** | | **16** |\n\n→ **optimizer state(master+m+v=12 B)가 최대**. 파라미터가 커질수록 지배항이 됨. 예: **7B ≈ 84 GB**, LLaMA-13B full FT ≈ 102 GB → 단일 GPU(80GB) 초과 → storage-offload 필요.\n\n(논문 표기로는 FP16 param=M일 때 FP32 optimizer=6M, node_036과 동일 사실)\n\n출처: [ZeRO-Infinity](https://arxiv.org/pdf/2104.07857) · [Memory-efficient training](https://archiesengupta.com/blog/memory-efficient-training-deep-dive)",
+      "content": "**왜 LLM 학습이 용량 병목인가** (mixed precision + Adam, 웹).\n\n| 항목 | precision | B/param |\n|---|---|---|\n| model param | FP16 | 2 |\n| gradient | FP16 | 2 |\n| master weight | FP32 | 4 |\n| momentum m | FP32 | 4 |\n| variance v | FP32 | 4 |\n| **합계** | | **16** |\n\n→ **optimizer state(master+m+v=12 B)가 최대**. 파라미터가 커질수록 지배항이 됨. 예: **7B ≈ 84 GB**, LLaMA-13B full FT ≈ 102 GB → 단일 GPU(80GB) 초과 → storage-offload 필요.\n\n(논문 표기로는 FP16 param=M일 때 FP32 optimizer=6M, 「6M 유도」과 동일 사실)\n\n출처: [ZeRO-Infinity](https://arxiv.org/pdf/2104.07857) · [Memory-efficient training](https://archiesengupta.com/blog/memory-efficient-training-deep-dive)",
       "original": {
         "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
         "location": "— (web search, 2026-07)"
       },
-      "contentExpanded": false,
+      "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
@@ -1153,14 +1153,16 @@
         "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
         "location": "— (web search, 2026-07)"
       },
-      "contentExpanded": false,
+      "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
         "x": -1132.5177357946648,
         "y": 181.64704938354632
       },
-      "children": [],
+      "children": [
+        "node_060"
+      ],
       "links": [],
       "nodeNaturalY": 181.64704938354632
     },
@@ -1168,7 +1170,7 @@
       "id": "node_056",
       "template": "reference",
       "title": "배경 — storage-offload 계보: ZeRO → ZeRO-Offload → ZeRO-Infinity (웹)",
-      "content": "Smart-Infinity의 baseline(node_012)이 온 계보.\n\n| 단계 | offload 대상 | 위치 | 핵심 |\n|---|---|---|---|\n| **ZeRO** (SC'20) | state 분할 | GPU 간 | 중복 제거로 메모리 선형 절감 |\n| **ZeRO-Offload** (ATC'21) | optimizer state·grad | **CPU host mem** | CPU가 update |\n| **ZeRO-Infinity** (SC'21) | 전체 model state | **NVMe SSD**까지 | memory wall 돌파, 이 논문의 baseline |\n\nNVMe 총량은 GPU 메모리의 **~50배** → 훨씬 큰 모델 수용. 대가는 **SSD 대역폭 병목**(=이 논문이 푸는 문제).\n\n★ 공통 약점: **update를 host CPU가** 함 → optimizer state가 매번 interconnect 통과 → Smart-Infinity가 update를 CSD로 옮김(node_057).\n\n출처: [ZeRO-Infinity](https://arxiv.org/pdf/2104.07857) · [DeepSpeed ZeRO](https://www.deepspeed.ai/tutorials/zero/)",
+      "content": "Smart-Infinity의 baseline(「storage-offload 배경」)이 온 계보.\n\n| 단계 | offload 대상 | 위치 | 핵심 |\n|---|---|---|---|\n| **ZeRO** (SC'20) | state 분할 | GPU 간 | 중복 제거로 메모리 선형 절감 |\n| **ZeRO-Offload** (ATC'21) | optimizer state·grad | **CPU host mem** | CPU가 update |\n| **ZeRO-Infinity** (SC'21) | 전체 model state | **NVMe SSD**까지 | memory wall 돌파, 이 논문의 baseline |\n\nNVMe 총량은 GPU 메모리의 **~50배** → 훨씬 큰 모델 수용. 대가는 **SSD 대역폭 병목**(=이 논문이 푸는 문제).\n\n★ 공통 약점: **update를 host CPU가** 함 → optimizer state가 매번 interconnect 통과 → Smart-Infinity가 update를 CSD로 옮김(「host CPU update 병목」).\n\n출처: [ZeRO-Infinity](https://arxiv.org/pdf/2104.07857) · [DeepSpeed ZeRO](https://www.deepspeed.ai/tutorials/zero/)",
       "original": {
         "text": "(외부 웹 검색 데이터 — 논문 원문 아님. 출처는 content 하단 링크.)",
         "location": "— (web search, 2026-07)"
@@ -1177,18 +1179,19 @@
       "originalExpanded": false,
       "childrenExpanded": true,
       "position": {
-        "x": -960,
-        "y": 440
+        "x": -1112.976805299788,
+        "y": 120.79642988626875
       },
       "children": [],
       "links": [],
-      "nodeWidth": 751
+      "nodeWidth": 751,
+      "nodeNaturalY": 120.79642988626875
     },
     {
       "id": "node_057",
       "template": "claim",
       "title": "필요성 — 기존은 host CPU가 update → 6M optimizer state가 매 step interconnect 통과",
-      "content": "**무엇을 해결하려 했나 (기존 storage-offload와의 근본 차이)**\n\n기존(ZeRO-Offload/Infinity)은 update 연산을 **host CPU**가 한다. 그래서 매 step optimizer state(6M)를 SSD→host로 올리고 갱신 후 다시 내림 → **6M+6M read/write가 공유 interconnect 통과** → 학습 시간 88%가 전송(node_011), RAID0도 4 SSD에서 포화(node_014).\n\n필요성: update는 **element-wise라 연산량이 낮은데도** 그 데이터 이동 때문에 전체가 느리다. 그러니 '연산을 빠르게'가 아니라 **update를 데이터(SSD) 옆으로 옮겨 이동을 없앤다** → (6+2)M→2M(node_016).\n\n(선행 near-data 연구와의 차이 → node_058)",
+      "content": "**무엇을 해결하려 했나 (기존 storage-offload와의 근본 차이)**\n\n기존(ZeRO-Offload/Infinity)은 update 연산을 **host CPU**가 한다. 그래서 매 step optimizer state(6M)를 SSD→host로 올리고 갱신 후 다시 내림 → **6M+6M read/write가 공유 interconnect 통과** → 학습 시간 88%가 전송(「88% 전송 병목」), RAID0도 4 SSD에서 포화(「RAID0 4개 포화(Fig 3b)」).\n\n필요성: update는 **element-wise라 연산량이 낮은데도** 그 데이터 이동 때문에 전체가 느리다. 그러니 '연산을 빠르게'가 아니라 **update를 데이터(SSD) 옆으로 옮겨 이동을 없앤다** → (6+2)M→2M(「통신량 (6+2)M→2M(Table I)」).\n\n(선행 near-data 연구와의 차이 → 「선행 비교표」)",
       "original": {
         "text": "Because the computational intensity of updating optimizer states (element-wise operations) is low, it becomes attractive to offload the optimizer states to host memory and let the host CPU update parameters.",
         "location": "§II-A, p.2"
@@ -1209,7 +1212,7 @@
       "id": "node_058",
       "template": "reference",
       "title": "선행 비교표 — ZeRO-Offload/Infinity vs GradPIM/OptimStore vs Smart-Infinity",
-      "content": "**세 갈래 선행과의 차이 (무엇이 새로운가)**\n\n| | update 위치 | 대상 HW | 검증 | interconnect 병목 |\n|---|---|---|---|---|\n| ZeRO-Offload/Infinity | **host CPU** | 범용 CPU+SSD | 실제 시스템 | 안 풂(6M 통과) |\n| GradPIM / OptimStore | near-data | **전용 die** | **시뮬레이터만** | (가정상) |\n| **Smart-Infinity** | **CSD 내부 FPGA** | **off-the-shelf SmartSSD 여러 개** | **실제+PyTorch** | **품(내부 P2P)** |\n\n논문(verbatim): GradPIM·OptimStore도 DNN 학습을 near-data로 겨냥하나 **전용 die 가정+시뮬레이터**라 비실용적. Smart-Infinity는 **여러 CSD로 interconnect 병목을 푼 최초의 실물**.\n\n(시뮬레이터 차이 → node_034 · off-the-shelf feasibility → node_010)",
+      "content": "**세 갈래 선행과의 차이 (무엇이 새로운가)**\n\n| | update 위치 | 대상 HW | 검증 | interconnect 병목 |\n|---|---|---|---|---|\n| ZeRO-Offload/Infinity | **host CPU** | 범용 CPU+SSD | 실제 시스템 | 안 풂(6M 통과) |\n| GradPIM / OptimStore | near-data | **전용 die** | **시뮬레이터만** | (가정상) |\n| **Smart-Infinity** | **CSD 내부 FPGA** | **off-the-shelf SmartSSD 여러 개** | **실제+PyTorch** | **품(내부 P2P)** |\n\n논문(verbatim): GradPIM·OptimStore도 DNN 학습을 near-data로 겨냥하나 **전용 die 가정+시뮬레이터**라 비실용적. Smart-Infinity는 **여러 CSD로 interconnect 병목을 푼 최초의 실물**.\n\n(시뮬레이터 차이 → 「선행 시뮬레이터 대비」 · off-the-shelf feasibility → 「결론(feasibility)」)",
       "original": {
         "text": "It is worth noting GradPIM [57] and OptimStore [58] as they both target DNN training similar to this work. However, they assume dedicated memory/storage die, making those solutions less practical. Moreover, they were only implemented on simulators and do not consider real system integration issues.",
         "location": "§IX-A, p.13"
@@ -1230,7 +1233,7 @@
       "id": "node_059",
       "template": "question",
       "title": "왜 naive overlap에서 OOM이 나나? — subgroup tasklet이 작은 device memory(4GB)를 통째 점유",
-      "content": "**핵심 원인**: FPGA 가속기의 **device memory(DDR4 4GB)가 작고**, subgroup 크기 D를 바로 이 device memory 용량에 맞춰 잡는다 → **tasklet 하나가 device memory를 거의 통째로 점유**한다.\n\n**왜 겹치면(overlap) 터지나 — 3단계**\n1. subgroup = '가속기 device memory에 들어가는 최대 크기' → tasklet 1개 = device memory 거의 꽉 참.\n2. naive는 그래서 tasklet을 **순차 실행**(each tasklet occupies the entire memory space).\n3. 처리량을 올리려 subgroup i 전송과 i+1 처리를 **overlap하면 두 subgroup이 동시에** device memory에 있어야 하고, direct P2P용 **추가 buffer**까지 필요 → 이미 꽉 찬 4GB에 여유 없음 → **OOM**.\n\n비유: 4GB 작업대에 subgroup 하나 올리면 꽉 참. 겹치려고 두 개를 동시에 올리려니 공간이 없어 넘침.\n\n**handler의 해법**(node_018): 가장 큰 subgroup 크기로 buffer를 **한 번 사전할당** → 두 thread가 **같은 buffer 재사용** → 추가 할당 없이(=OOM 없이) 전송을 겹침. (node_019 = 'OOM 난다'는 결과, 이 노드는 그 근본 원인.)\n\n★ 근본 원인 = 가속기 device memory 용량(4GB)이 작다는 것 → node_050(가속기=연산+메모리 시스템)과 연결.",
+      "content": "**핵심 원인**: FPGA 가속기의 **device memory(DDR4 4GB)가 작고**, subgroup 크기 D를 바로 이 device memory 용량에 맞춰 잡는다 → **tasklet 하나가 device memory를 거의 통째로 점유**한다.\n\n**왜 겹치면(overlap) 터지나 — 3단계**\n1. subgroup = '가속기 device memory에 들어가는 최대 크기' → tasklet 1개 = device memory 거의 꽉 참.\n2. naive는 그래서 tasklet을 **순차 실행**(each tasklet occupies the entire memory space).\n3. 처리량을 올리려 subgroup i 전송과 i+1 처리를 **overlap하면 두 subgroup이 동시에** device memory에 있어야 하고, direct P2P용 **추가 buffer**까지 필요 → 이미 꽉 찬 4GB에 여유 없음 → **OOM**.\n\n비유: 4GB 작업대에 subgroup 하나 올리면 꽉 참. 겹치려고 두 개를 동시에 올리려니 공간이 없어 넘침.\n\n**handler의 해법**(「2-thread handler」): 가장 큰 subgroup 크기로 buffer를 **한 번 사전할당** → 두 thread가 **같은 buffer 재사용** → 추가 할당 없이(=OOM 없이) 전송을 겹침. (「OOM→handler 3가지 이득」 = 'OOM 난다'는 결과, 이 노드는 그 근본 원인.)\n\n★ 근본 원인 = 가속기 device memory 용량(4GB)이 작다는 것 → 「가속기=연산+메모리」(가속기=연산+메모리 시스템)과 연결.",
       "original": {
         "text": "In a naive implementation shown in Figure 5(a), the tasklets are executed sequentially because each tasklet will occupy the entire memory space. Fortunately, we found that there is room for throughput enhancement by overlapping data transfer between subgroups. However, naive overlapping of data transfers between subgroups requires additional device memory space to direct P2P communication, which leads to out-of-memory (OOM) errors in device memory.",
         "location": "§IV-B, p.5"
@@ -1241,6 +1244,46 @@
       "position": {
         "x": 820,
         "y": 900
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_060",
+      "template": "question",
+      "title": "Q. Training vs Fine-tuning 차이 + 왜 full FT? (LoRA로 안 되는 점)",
+      "content": "**① Training vs Fine-tuning — 무엇이 다른가**\n- **Training (= pre-training, from scratch)**: random 초기화 weight → 대규모 corpus로 *전* 파라미터 학습. (이 논문 평가의 GPT-2 8.4B~33B scaling)\n- **Fine-tuning**: 이미 **pre-trained된 weight**에서 시작 → downstream task 소량 데이터로 추가 학습. (평가의 GLUE: MNLI/QQP/SST-2/QNLI)\n- **mechanics는 동일**: 둘 다 forward → loss → backward → **optimizer update**, Adam optimizer state(momentum·variance)도 똑같이 존재. 차이는 *시작점(random vs pretrained)·데이터 규모·목적*뿐.\n- 그래서 update-offload는 **둘 다에 적용**된다. 특히 fine-tuning이 대표 usecase(「fine-tuning usecase」): 전체 모델+optimizer state는 다 올려야(capacity-bound) 하지만 학습 시간은 짧아 전송 병목이 더 두드러짐.\n\n**② 왜 full fine-tuning? — LoRA로 안 되는 점**\n> ⚠️ LoRA/PEFT는 **논문 밖 배경**. 논문의 \"low-rank decomposition\"은 gradient/model **compression**(§IV-C, §VIII-B)이지 LoRA(weight freeze + adapter)가 아님 — 혼동 주의.\n\n- **LoRA**: ΔW = BA (rank r ≪ d), pre-trained W는 **freeze**, 작은 A·B만 학습 → optimizer state가 그 작은 부분에만 → **6M 병목 자체가 거의 사라짐**.\n- 그런데 full FT가 여전히 필요한 이유(= LoRA로 안 되는 점):\n  1. **표현력 상한** — update가 rank-r subspace에 갇힘. 큰 distribution shift·새 지식/능력 습득엔 full보다 열등할 수 있음.\n  2. **Pre-training 불가** — from-scratch는 *전* 파라미터를 배워야 함 → low-rank adaptation 개념이 성립 안 함. (이 논문의 대형 모델 training scaling이 여기)\n  3. **정확도 upper bound** — 논문은 \"SmartUpdate가 baseline과 algorithmically identical\"(「정확도: baseline과 동일」)로 **full FT 정확도를 그대로 보장**하는 걸 세일즈. LoRA는 근사라 이 보장 불가.\n\n- **결론**: LoRA로 우회 가능한 경우가 많지만, full이 필요한 시나리오(pre-training·최대 정확도·큰 shift)에선 optimizer state(6M)가 GPU 메모리를 초과 → **storage-offload가 불가피** → 그 병목을 이 논문이 푼다. (memory 배경 → 「fine-tuning 메모리·LoRA 배경」)",
+      "original": {
+        "text": "Fine-tuning is a representative application where Smart-Infinity can be applied because it requires loading the entire model and the optimizer states but has a relatively small training time.",
+        "location": "§VII-J, p.12"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -1560,
+        "y": 181
+      },
+      "children": [
+        "node_061"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_061",
+      "template": "question",
+      "title": "Q. 왜 실험을 GPU 여러 개 아닌 1개로? — LoRA와 헷갈리는 지점",
+      "content": "**혼동의 뿌리 — \"여러 GPU\"에는 두 이유가 있다**\n- ① **capacity(용량)**: 모델+optimizer state를 *담기 위해* 여러 GPU. compute가 필요 없어도(fine-tuning) 용량 때문에 수십 개 씀 = 낭비.\n- ② **compute(처리량)**: 더 빨리 돌리려 data/tensor parallelism으로 여러 GPU.\n\n논문이 없애려는 건 ①. (§I, p.1 verbatim: \"dozens of GPUs are required, just to keep the training data on the memory, even when such computing power is not necessary such as fine-tuning\")\n\n**LoRA vs 이 논문 — 목표는 같고(소수 GPU) 메커니즘은 정반대**\n- **LoRA**: *학습할 것을 줄여*(W freeze, 작은 adapter만) 메모리↓ → 소수 GPU. = 근사.\n- **Smart-Infinity**: full training 그대로 두고 *메모리를 SSD로 확장* → 단일 머신. = exact(baseline과 algorithmically 동일, 「정확도: baseline과 동일」). §I: \"breaks the wall of the host memory size so that it can train even larger models on a single machine\".\n- → **논문 실험은 LoRA 환경이 아니다.** full training/fine-tuning을 storage-offload로 돌린 것.\n\n**그래서 왜 GPU 1개(default RTX A5000)?**\n1. **단일 머신/소수 GPU가 바로 논문의 목적** — capacity 벽을 없애 \"여러 GPU 불필요\"를 보이는 게 killer app(→ 「Killer app: 단일 머신」). 1 GPU로 대형 모델을 돌리는 것 자체가 증명.\n2. **scaling 변수는 GPU가 아니라 CSD/SSD 개수** — 기여가 storage 대역폭(aggregate internal bandwidth, 「CSD 내부 대역폭 합산」)이라 GPU는 고정, SSD를 늘림.\n3. **baseline(ZeRO-Infinity)이 원래 단일 GPU storage-offload** → 공정 비교하려면 같은 세팅(「ZeRO 계보 배경」).\n\n**단, \"무조건 1개\"는 아니다** — §VIII-A에서 multi-GPU congested topology(1~3× A4000, tensor parallelism)도 실험(Fig 17, p.12). GPU가 PCIe를 CSD와 공유해 speedup은 줄지만 10 CSD로 1.66×~1.86× 유지 → PCIe lane 제한된 multi-GPU 환경으로도 확장.\n\n**핵심 정리 (착지점)**\n\"연산량(compute)과 용량(capacity)을 별개 축으로 본다\"가 정확한 포인트다. 단 정밀화: 논문이 1 GPU로 내려간 건 *대상 워크로드가 capacity-bound·compute-light*(fine-tuning)이기 때문. 현실에서 full fine-tuning에 여러 GPU를 쓰는 건 대개 **용량 축 때문**(연산은 여유) → 그 용량 축만 SSD로 걷어내면 연산 축은 원래 1 GPU로 충분. 반대로 compute-heavy(대규모 pre-training from scratch)면 축을 분리·offload해도 throughput 위해 multi-GPU가 여전히 필요 → 1 GPU로 collapse 안 됨. 즉 '축 분리'는 옳고, **1 GPU로 collapse되는 건 compute 축이 작을 때만**. Smart-Infinity가 fine-tuning을 대표 usecase로 고른 이유(용량↑·연산↓ = sweet spot).\n\n**실험 설계 (통제/독립 변수)**\n- **통제(고정)**: 워크로드·per-iteration 연산량, GPU(default 1× RTX A5000), 알고리즘(full training, baseline과 algorithmically 동일).\n- **독립(변화)**: **CSD/SSD 개수** → 노리는 축은 *용량이 아니라 대역폭*. 용량(담기)은 이미 baseline(ZeRO-Infinity offload)이 해결했고, 진짜 병목은 system interconnect 대역폭이라 CSD를 늘려 **aggregate internal bandwidth**(개수에 비례 선형↑, 「CSD 내부 대역폭 합산」)를 확장.\n- **종속(측정)**: training time / speedup.\n- ⇒ 정확한 요약: \"**연산량 통제 + 대역폭(CSD 개수) 확장**\". \"용량을 늘린다\"가 아님.\n\n**single-GPU의 이중 성격** — 순수 단순화만은 아니다:\n(a) storage 변수를 격리한 controlled setup + (b) 겨냥한 배포 시나리오(용량 때문에 억지로 쓰던 multi-GPU를 offload로 단일 머신에서). 게다가 §VIII-A multi-GPU congested topology(1~3× A4000)로 현실 확장성까지 검증(10 CSD로 1.66×~1.86×).",
+      "original": {
+        "text": "Often, dozens of GPUs are required, just to keep the training data on the memory, even when such computing power is not necessary such as fine-tuning.",
+        "location": "§I, p.1"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -1980,
+        "y": 181
       },
       "children": [],
       "links": []
@@ -1645,6 +1688,18 @@
       "target": "node_059",
       "type": "line",
       "label": ""
+    },
+    {
+      "id": "edge_060",
+      "source": "node_055",
+      "target": "node_060",
+      "type": "line"
+    },
+    {
+      "id": "edge_061",
+      "source": "node_060",
+      "target": "node_061",
+      "type": "line"
     }
   ],
   "viewport": {
