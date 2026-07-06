@@ -1,0 +1,468 @@
+{
+  "version": "1.0.0",
+  "title": "Efficiently Scaling Transformer Inference",
+  "created": "2026-07-06T06:09:46.000Z",
+  "modified": "2026-07-06T06:09:46.000Z",
+  "source": {
+    "pdf": "Efficiently Scaling Transformer Inference.pdf",
+    "authors": "Reiner Pope, Sholto Douglas, Aakanksha Chowdhery, Jacob Devlin, James Bradbury, Anselm Levskaya, Jonathan Heek, Kefan Xiao, Shivani Agrawal, Jeff Dean (Google)",
+    "venue": "arXiv preprint, 2022 (later MLSys 2023)",
+    "doi": "arXiv:2211.05102",
+    "pages": 18
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic", "color": "#4B8BBE", "icon": "file-text",   "shape": "sharp" },
+    "method":     { "label": "Method",     "color": "#5C9E6E", "icon": "cpu",         "shape": "sharp" },
+    "result":     { "label": "Result",     "color": "#9B59B6", "icon": "bar-chart-2", "shape": "sharp" },
+    "claim":      { "label": "Claim",      "color": "#E74C3C", "icon": "alert-circle","shape": "sharp" },
+    "question":   { "label": "Question",   "color": "#E5A835", "icon": "help-circle", "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea", "color": "#1ABC9C", "icon": "lightbulb",   "shape": "rounded" },
+    "reference":  { "label": "Reference",  "color": "#95A5A6", "icon": "book-open",   "shape": "rounded" },
+    "memo":       { "label": "Memo",       "color": "#BDC3C7", "icon": "edit-3",      "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "추론 비용의 세 축: Latency, Throughput, MFU 트레이드오프",
+      "content": "생성형 Transformer 추론의 비용을 재는 세 지표: latency(전체 추론 시간, prefill+decode로 분해), throughput(초당 처리/생성 토큰 수), MFU(model FLOPS utilization, 관측 처리량 대비 이론적 최대 처리량 비율). 저자들은 이 셋 사이의 근본적 트레이드오프를 분석한다.\n\n메모리 비용 관점에서 핵심 관찰: 배치 크기와 시퀀스 길이가 작을 때는 weight를 HBM에서 로드하는 시간이 지배적이고(weight-loading이 병목), 배치·시퀀스 길이가 커지면(예: 2048+ 토큰에 배치 512+) KV cache를 로드하는 시간이 지배적으로 바뀐다. 이 KV cache 로딩 동안 칩의 연산 코어는 사실상 idle 상태다 — 즉 decode 단계는 본질적으로 memory-bandwidth-bound다.",
+      "original": {
+        "text": "At small batch sizes and sequence lengths, the time to load weights dominates. At larger batch sizes and sequence lengths (e.g. 2048+ tokens with batch size 512+), the time to load the KV cache dominates.",
+        "location": "§2, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": ["node_009", "node_010"],
+      "links": [
+        { "type": "pdf", "target": "./Efficiently Scaling Transformer Inference.pdf#page=3", "label": "원문 §2, p.3" }
+      ]
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "파티셔닝 표기법과 통신 collective (BLE, all-gather/reduce-scatter/all-to-all)",
+      "content": "저자들은 텐서 shape를 B(batch)·L(sequence)·E(model/embed dim)·F(feedforward dim)·H(heads)로 표기하고, 아래첨자로 TPU v4 3D torus의 X/Y/Z 축 중 어디에 분할됐는지 표시한다(예: BLE_xyz는 E를 X×Y×Z개 조각으로 분할). 축이 표기에서 생략되면 그 축은 복제(replicated)된 것이고, 'partialsum-x'는 x축에 대해 아직 합산 전인 부분합임을 뜻한다.\n\n세 가지 핵심 통신 collective: all-gather(x)는 x축을 따라 텐서를 모아 x배 큰 복제 텐서로 만들고, reduce-scatter(x)는 x축에 대해 부분합을 리듀스하면서 동시에 샤딩하며, all-reduce(x)는 이 둘을 합친 것(리듀스+브로드캐스트)이다. all-to-all은 한 텐서 차원의 샤딩을 다른 차원으로 옮긴다(예: BLH_xQ → B_xLHQ).",
+      "original": {
+        "text": "We use several communication collectives originating from MPI (Clarke et al., 1994). The all-reduce(x) primitive sums a partialsum tensor such as BLEyz(partialsum-x) across sets of chips in the x axis of the torus and broadcasts the sum back to all the involved chips, returning BLEyz.",
+        "location": "§3.1, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": ["node_011"],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "Feedforward 파티셔닝: 1D/2D Weight-Stationary vs Weight-Gathered",
+      "content": "FFN 가중치를 칩에 분산하는 세 가지 레이아웃. (1) 1D weight-stationary: E×F 가중치를 d_model 또는 d_ff 한 축으로만 나눠 각 칩에 고정하고, activation을 all-gather/reduce-scatter로 주고받는다. 통신시간이 칩 수에 무관하게 거의 일정해서 칩이 늘수록 병목이 된다. (2) 2D weight-stationary: 가중치를 E와 F 두 축 모두로 나눠(E_x F_yz) 통신량을 O(1/√n_chips)로 줄인다 — √n_chips > d_ff/d_model(보통 n_chips>16)일 때 1D보다 효율적. (3) weight-gathered: activation을 고정하고 가중치를 칩 간에 통째로 옮기는 방식으로, 배치가 매우 클 때(활성값이 가중치보다 커질 때) 더 경제적이다.",
+      "original": {
+        "text": "2D weight-stationary becomes more communication-efficient when √nchips > dff/dmodel. Since typically dff = 4dmodel, this occurs when nchips > 16.",
+        "location": "§3.2.2, p.5"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_001",
+          "title": "FFN 파티셔닝 전략별 통신 비용 공식",
+          "content": "| 전략 | 통신 시간 |\n|---|---|\n| 1D weight-stationary | $\\frac{2BLE}{\\text{bw}}$ |\n| 2D weight-stationary | $\\frac{8BLE}{\\sqrt{n_{chips}}\\,\\text{bw}}$ |\n| Weight-gathered (XYZ) | $\\frac{4E\\sqrt{BLF}}{\\sqrt{n_{chips}}\\,\\text{bw}}$ |\n\nweight-stationary 계열은 배치토큰수(BL)에 선형, weight-gathered 계열은 √BL에 비례 — 배치가 커질수록 weight-gathered가 유리해진다.",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": ["node_012", "node_013", "node_014"],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "Multiquery Attention: 배치 축으로 샤딩해 KV cache 메모리비용 절감",
+      "content": "Multihead attention은 head마다 별도 K/V를 갖지만, multiquery attention(Shazeer 2019; PaLM도 채용)은 Q는 그대로 n_heads개를 두되 K/V는 단 하나의 head만 두고 모든 query head가 공유한다. 이것만으로 KV cache 크기가 n_heads배 줄어든다.\n\n그런데 기존 방식대로 head 축으로 샤딩하면(Fig.4b), K/V head가 하나뿐이라 각 칩에 그대로 복제해야 해서 multiquery의 메모리 절감 효과가 사라진다. 저자들이 제안하는 대안은 Q/K/V를 batch(B) 축으로 n_chips개로 쪼개는 것(Fig.4c) — 이러면 각 칩은 자기 몫의 시퀀스에 대한 K만 있으면 되므로 칩당 KV cache 메모리비용이 n_chips배 줄어든다. 대가는 activation을 재정렬하기 위한 all-to-all 통신이 추가된다는 것.",
+      "original": {
+        "text": "An alternative approach, called multiquery attention (Shazeer, 2019; Chowdhery et al., 2022), still emits nheads for the query tensor, but only a single head for the key and value tensors. This key and value head is shared across the nheads query heads. This reduces the size of the KV cache tensors by a factor of nheads and hence the memory time spent loading them.",
+        "location": "§3.3, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": ["node_015", "node_016", "node_017"],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "Parallel formulation + Looped CollectiveEinsum + int8 양자화",
+      "content": "세 가지 저수준 최적화. (1) Parallel attention/FFN: layernorm된 입력에서 attention과 FFN을 각각 독립으로 계산해 더한다(직렬 대신 병렬). layernorm이 레이어당 1번으로 줄고, FFN의 입력 행렬을 attention의 W_Q와, W_K/W_V를 서로, W_O와 FFN 출력행렬을 각각 fuse할 수 있어 더 큰 GEMM으로 뭉쳐진다. 무엇보다 d_ff/n_heads 파티셔닝에 필요한 all-reduce 2번 중 1번이 아예 없어져서 통신시간이 절반으로 준다.\n\n(2) Looped CollectiveEinsum: 통신(reduce-scatter/all-gather)을 계산과 동시에 진행되도록 겹치는 기법(Wang et al. 2023). reduce-scatter를 batch/sequence 축이 아니라 hidden 축(E 또는 F)으로 하도록 선택해 이 겹침 기회를 늘렸다.\n\n(3) AQT 라이브러리로 16비트 가중치를 int8로 양자화 — 품질 저하 없이 weight-loading 메모리시간과 weight-gathered 레이아웃의 통신량을 줄인다.",
+      "original": {
+        "text": "The benefits from the parallel formulation are as follows. First, there is only one layernorm per layer instead of two, which reduces latency at small batch sizes.",
+        "location": "§3.4, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": ["node_018", "node_019"],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "main_topic",
+      "title": "PaLM 540B 사례 연구: 저지연 29ms/token, 고처리량 76% MFU",
+      "content": "PaLM 계열(8B/62B/540B, bfloat16 또는 int8)에 걸쳐 효율-지연 파레토 프론티어를 구했다. 540B, 64 TPU v4 칩 기준: 저배치(생성) 구간에서 int8 가중치로 28.5ms/token(bfloat16은 36.9ms/token), 대배치(prefill) 구간에서 76% MFU를 달성 — 이는 2048 토큰 컨텍스트를 지원하면서 나온 수치다. 비용은 chip-seconds per token = n_chips × time / (B×L)로 정의되며, MFU에 반비례한다. 배치512 근처가 최소 비용 지점이고, 배치를 줄이면 지연은 개선되지만 토큰당 비용은 늘어난다(최소 지연은 배치512 대비 3배 낮다).",
+      "original": {
+        "text": "Finally, we achieve a low-batch-size latency of 29ms per token during generation (using int8 weight quantization) and a 76% MFU during large-batch-size processing of input tokens, while supporting a long context length of 2048 tokens on the PaLM 540B parameter model.",
+        "location": "Abstract, p.1"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_003",
+          "title": "Table 2: PaLM 540B 예시 구성 (저지연 vs 고처리량, 64칩)",
+          "content": "| | Low-latency Prefill | Low-latency Decode | High-throughput Prefill | High-throughput Decode |\n|---|---|---|---|---|\n| Chips | 64 | 64 | 64 | 64 |\n| Batch | 1 | 64 | 512 | 512 |\n| FFN layout | WS 2D | WS 2D | WG XYZ | WS 2D |\n| Attention sharding | Head | Batch | Batch | Batch |\n| Weights | int8 | int8 | bfloat16 | bfloat16 |\n| MFU | 43% | 14% | 76% | 33% |\n| Latency | 0.29s | 1.82s | 85.2s | 6.0s |\n\n(Table 2, p.10)",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1500 },
+      "children": ["node_020"],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "main_topic",
+      "title": "FasterTransformer/Megatron 대비: 최대 64-way TP에서도 44% MFU 유지",
+      "content": "60-input/20-output 토큰 벤치마크에서 NVIDIA A100 16~32장 기반 FasterTransformer(Megatron-530B 등)와 비교. 절대 latency와 MFU 모두에서 이 논문 구현이 대부분의 지연 목표에서 최고 MFU를 기록했고, PaLM 구현은 parallel attention/ffn 레이어 덕에 자체 Megatron 구현보다 최대 10%p MFU가 높다. multiquery attention의 이점은 이 벤치마크의 컨텍스트 길이가 짧아 두드러지지 않았다.",
+      "original": {
+        "text": "Our PaLM implementation outperforms our Megatron implementation by up to 10% MFU in this benchmark primarily because of the parallel attention/ffn layers.",
+        "location": "§5, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1800 },
+      "children": ["node_021"],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "main_topic",
+      "title": "결론: FLOP·통신량이 근본 한계, sparsity/MoE가 향후 방향",
+      "content": "이 논문은 500B+ 파라미터 모델을 64+ 칩으로 확장하는 실전 파티셔닝 원칙을 제시했다고 요약한다. 다만 저자들 스스로 인정하듯, dense Transformer의 FLOP 수와 통신량 자체가 성능의 근본 한계다. task-based mixture-of-experts 같은 sparsity 기법이나, 입력·생성 스텝마다 계산량을 다르게 배정하는 adaptive computation 기법이 토큰당 FLOP을 줄여줄 잠재력이 있다고 언급하며 향후 연구로 남긴다.",
+      "original": {
+        "text": "we observe that FLOP count and communication volume can fundamentally limit performance of dense Transformer models. Sparsity techniques, such as task-based mixture of expert architectures... and adaptive computation techniques that allocate different amounts of compute per input and generation timestep... promise to reduce FLOPs per token of Transformer models.",
+        "location": "§7, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 2100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "result",
+      "title": "예시: 챗봇 시나리오, 64칩에서 1.9초 응답",
+      "content": "int8 weight의 PaLM 540B를 64 TPU v4 칩에 올렸을 때: 사용자 입력 64토큰을 처리하고, 캐시된 대화 이력 1920토큰을 참조하고, 64토큰 응답을 생성하는 전체 과정이 1.9초에 끝난다. 오프라인 throughput 시나리오에서는 입력 1984토큰+출력 64토큰 처리에서 전체 FLOPS 효율 73%를 달성한다.",
+      "original": {
+        "text": "For an interactive application such as a chatbot running on PaLM 540B with int8 weights, our implementation on 64 TPU v4 chips can process 64 tokens of text from a user, consult a cached conversation history of 1920 tokens, and generate a 64-token response in a total of 1.9 seconds.",
+        "location": "§1, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": -80 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "result",
+      "title": "KV cache가 파라미터보다 3배 커지는 지점",
+      "content": "배치 512, 컨텍스트 길이 2048에서 KV cache 총량은 3TB로, 모델 파라미터 크기의 3배에 달한다. 이 KV cache를 생성되는 토큰마다 매번 off-chip 메모리에서 새로 로드해야 하고, 그동안 칩의 연산 코어는 사실상 놀고 있다 — decode 단계에서 메모리 대역폭이 병목이 되는 물리적 근거다.",
+      "original": {
+        "text": "cache grows large: for batch size 512 and context length 2048, the KV cache totals 3TB, which is 3 times the size of the model's parameters. The on-chip memory needs to load this KV cache from off-chip memory once for every token generated during which the computational core of the chip is essentially idle.",
+        "location": "§2, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "Appendix A.1: all-gather/reduce-scatter 통신시간 공식",
+      "content": "K개 파티션에 대한 all-gather에서, 각 칩이 크기 D의 출력을 만든다면 통신 패턴은 (K-1)/K 비율의 데이터를 (K-1)개 링크에 걸쳐 전송해야 한다. 따라서 $T_{comm(all-gather)} = \\frac{D}{bw} \\times \\frac{K-1}{K}$. reduce-scatter도 같은 공식이되 D가 더 큰 입력 버퍼 크기가 된다. all-reduce는 이 둘을 합친 것이므로 $T_{comm(all-reduce)} = 2 \\times T_{comm(all-gather)}$. K≫1로 가정하면 (K-1)/K ≈ 1로 근사해서 계산을 단순화한다.",
+      "original": {
+        "text": "For an all-gather over K partitions, where each chip produces an output of size D, the communication pattern requires chunks of size D/K to be transferred over (K − 1) interconnect links in the process of getting copied to (K − 1) chips.",
+        "location": "Appendix A.1, p.15"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "1D weight-stationary 통신시간 공식",
+      "content": "각 칩은 reduce-scatter/all-gather에서 각각 BLE shape(비분할)의 입출력을 주고받는다. 유도 결과 $T_{comm} = \\frac{2BLE}{\\text{network bandwidth}}$ — 칩 수(n_chips)가 분모에 없다는 게 핵심: 칩을 늘려도 통신시간이 줄지 않아 결국 병목이 된다.",
+      "original": {
+        "text": "In this 1D weight-stationary partitioning strategy, each chip gets inputs and outputs of shape BLE in the reduce-scatter and all-gather respectively.",
+        "location": "§3.2.1, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 480 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "2D weight-stationary: X=0.5√n, YZ=2√n 최적 분할",
+      "content": "가중치를 E_x F_yz로 분할, X×Y×Z=n_chips 제약에서 통신시간을 최소화하는 값은 X=0.5√n_chips, YZ=2√n_chips(d_ff=4d_model 가정). 결과 통신시간 $T_{comm} = \\frac{8BLE}{\\sqrt{n_{chips}}}$ — 분모에 √n_chips가 있어 칩을 늘릴수록 통신시간이 계속 줄어든다(1D와 대비되는 핵심 장점).",
+      "original": {
+        "text": "We have a free choice of X, Y and Z subject to available TPU v4 slice shapes and X × Y × Z = nchips. Assuming dff = 4 × dmodel, we achieve the minimum communication time with X = 0.5 × √nchips and Y Z = 2 × √nchips.",
+        "location": "§3.2.2, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 630 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "result",
+      "title": "Weight-gathered는 배치가 커지면 √BL로만 증가 (Fig.3)",
+      "content": "weight-stationary 계열의 통신시간은 배치 토큰수(BL)에 선형으로 비례하지만, weight-gathered 계열은 √BL에만 비례한다. 그래서 배치와 prefill 시퀀스 길이가 충분히 커지면 weight-gathered가 더 싸진다 — Figure 3은 토큰수가 커질수록 최적 레이아웃이 2D weight-stationary에서 X→XY→XYZ weight-gathered로 순차적으로 전환됨을 보여준다.",
+      "original": {
+        "text": "The communication time for the weight-stationary layout is linear in BL, while the communication time for the weight-gathered layout is linear in √BL. Therefore, the weight-gathered layout becomes cheaper when the batch size and prefill sequence length are sufficiently large.",
+        "location": "§3.2.3, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 780 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "result",
+      "title": "Table 1: 최적화된 multiquery는 컨텍스트 길이 32-64배 확장",
+      "content": "attention variant별 64칩에서 지원 가능한 최대 컨텍스트 길이(총 메모리의 30%를 KV cache에 할당한다고 가정): multihead(d_head=128)는 배치128에서 1320, 배치512에서 330. baseline multiquery(head축 샤딩, d_head=256)는 660/165로 오히려 더 나쁘다(head당 크기를 키웠는데 복제 손실이 더 큼). 반면 batch축으로 샤딩한 optimized multiquery는 43,000/10,700 — multihead 대비 최대 32-64배.",
+      "original": {
+        "text": "Table 1 shows that the optimized multiquery layout can fit up to 32–64 times longer context lengths than the multihead and baseline multiquery variant.",
+        "location": "§4.2, p.9"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_002",
+          "title": "Table 1: attention variant별 최대 컨텍스트 길이 (64칩)",
+          "content": "| Model variant | d_head | Max context (batch=128) | Max context (batch=512) |\n|---|---|---|---|\n| Multihead | 128 | 1320 | 330 |\n| Baseline multiquery | 256 | 660 | 165 |\n| Optimized multiquery | 256 | 43000 | 10700 |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 930 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "claim",
+      "title": "핵심 주장: batch 샤딩이 칩당 KV cache 메모리비용을 n_chips배 줄인다",
+      "content": "Q/K/V를 batch 축으로 n_chips개 파티션에 나누는 제안 레이아웃(Fig.4c)에서, 각 칩은 자기 몫 시퀀스의 K/V만 로드하면 되므로 칩당 KV cache 로딩에 드는 memory time이 정확히 n_chips분의 1로 줄어든다는 것이 이 논문의 핵심 주장이다. 이는 head 축 샤딩(Fig.4b, K/V head를 각 칩에 복제해야 함)과 근본적으로 다른 절감 메커니즘이다.",
+      "original": {
+        "text": "We instead propose a partitioning strategy for the multiquery attention where the Q, K, and V matrices are partitioned over the batch B dimension into nchips partitions. Figure 4(c) shows that this reduces the memory cost of loading the KV cache per chip by a factor of nchips, thereby reducing the memory time by the same factor.",
+        "location": "§3.3, p.6-7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1080 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "result",
+      "title": "Fig.8: multiquery면 attention이 전체 런타임의 8-31%에 불과",
+      "content": "8-layer PaLM 540B에서 optimized multiquery 레이아웃을 쓰면 컨텍스트 길이 8192(배치512)~32,768(배치128)까지도 attention이 차지하는 비중이 전체 런타임의 8~31%에 그친다 — 대부분의 시간이 여전히 feedforward 연산에 쓰이고, attention/KV-cache가 병목이 되는 시점을 크게 뒤로 미룬다는 뜻.",
+      "original": {
+        "text": "Multiquery attention scales up to sequence lengths of 8192–32,768 tokens (batch sizes 512 and 128 respectively) with attention taking only 8–31% of total runtime.",
+        "location": "§4.2, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 920 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "result",
+      "title": "AQT int8: 품질저하 없이 weight 메모리비용 절감",
+      "content": "AQT(Accurate Quantized Training) 라이브러리로 16비트 가중치를 int8로 변환해 눈에 띄는 품질 저하 없이 메모리비용을 줄인다. 이는 특히 저배치 구간(weight-loading이 지배적인 구간)에서 도움이 크고, weight-gathered 레이아웃의 통신량도 줄인다. activation quantization은 이 논문에서는 구현하지 않았지만, 향후 compute time과 통신량을 추가로 줄일 수 있을 것으로 기대한다고 언급.",
+      "original": {
+        "text": "We use the AQT library (Lew et al., 2022) to reduce the memory cost of 16-bit weights by converting them to int8 without noticeable quality loss.",
+        "location": "§3.6, p.7-8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1180 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "claim",
+      "title": "실증: parallel formulation이 직렬 대비 decode 지연 14% 감소",
+      "content": "2D weight-stationary, 64칩, 배치512 조건에서 직렬(serial) attention/FFN 구성은 병렬(parallel) 구성 대비 스텝당 inference latency가 14% 더 높다 — activation 통신시간이 늘기 때문이다. prefill 단계에서는 weight-gathered 레이아웃이 activation 통신을 덜 필요로 하므로 이 차이가 줄어든다.",
+      "original": {
+        "text": "The serial formulation incurs 14% higher inference latency per step than the parallel version because of the increased communication time for activations.",
+        "location": "§4.3, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1320 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "result",
+      "title": "실제 최소 latency: int8에서 28.5ms/token (bf16 대비 약 2배 비용 개선)",
+      "content": "Figure 1(left)의 파레토 프론티어에서 얻어지는 구체적 수치: PaLM 540B, 배치64에서 int8 가중치로 28.5ms/token, bfloat16 가중치로는 36.9ms/token. 저지연 목표에서는 비용이 weight-loading 시간에 지배되므로 양자화가 비용을 약 2배 개선하지만, 대배치(비용이 compute-time에 지배)에서는 int8과 bfloat16의 비용 차이가 훨씬 작아진다(matmul 자체는 여전히 bfloat16 연산).",
+      "original": {
+        "text": "We observe that int8 weight quantization achieves the minimum latency in Figure 1 (left): for example, we achieve 28.5ms/token with int8 weights at batch size 64 on PaLM 540B, while we achieve 36.9ms/token with bfloat16 weights.",
+        "location": "§4.4, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1500 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "result",
+      "title": "FasterTransformer의 32-way TP는 33% MFU에서 정체 — 통신 병목",
+      "content": "FasterTransformer는 8/16/32-way tensor parallelism 결과를 보고하는데, 32-way에서 최대 33% MFU에 그친다(16-way의 46% MFU보다 오히려 낮음 — TP를 더 늘리면 통신 병목으로 역효과). 반면 이 논문의 2D weight-stationary 파티셔닝은 64-way tensor parallelism까지 확장해도 44% MFU를 유지한다 — TPU v4의 더 빠른 인터커넥트 도메인과 √n_chips 스케일링 통신 공식 덕분이라고 해석.",
+      "original": {
+        "text": "In contrast, our implementation is able to scale up to 64-way tensor parallelism while still achieving 44% MFU, suggesting superior scalability of our 2D weight-stationary partitioning strategy on TPU v4's larger high-speed interconnect domains.",
+        "location": "§5, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1800 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "gap",
+      "title": "KV cache가 CXL 같은 느리지만 큰 메모리 티어로 spill한다면?",
+      "content": "이 논문의 메모리-절감 논증(multiquery로 KV cache를 n_heads배, batch 샤딩으로 다시 n_chips배 줄이는 것)은 철저히 '어느 칩의 HBM에 몇 바이트가 있는가'를 조정하는 compute-side 샤딩 문제다 — 메모리 계층(tiering) 자체는 건드리지 않는다.\n\n만약 KV cache 일부를 CXL 같은 disaggregated, 용량은 크지만 대역폭/지연이 HBM보다 못한 티어로 흘려보낼 수 있다면 어떻게 될까? 두 가능성이 있다: (1) 직교(orthogonal) 가설 — 이 논문의 통신 비용 모델(network bandwidth 한 항으로 뭉뚱그려진 T_comm 공식들)에 CXL 티어의 별도 대역폭/지연 항만 추가하면 되고, 샤딩 전략 자체는 그대로 재사용 가능하다. (2) 비직교 가설 — capacity가 사실상 무제한(pooled CXL)이 되면 애초에 '칩당 KV cache 메모리비용을 n_chips배로 나누는' 동기 자체가 약해진다(Table 1의 컨텍스트 길이 제약이 사라지므로), 대신 문제가 대역폭/latency 쪽으로 완전히 옮겨간다. 이 논문은 이 축을 전혀 다루지 않는다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "question",
+      "title": "이 통신비용 모델은 TPU v4 3D torus를 벗어나도 성립하는가?",
+      "content": "Appendix A.1의 all-gather/reduce-scatter 비용 공식은 논문이 '대부분의 실제 네트워크 토폴로지에 대해 성립하는 일반적 모델'이라고 주장하지만, 최적 X/Y/Z 분할(예: 2D weight-stationary의 X=0.5√n, YZ=2√n)은 명시적으로 TPU v4의 3D torus 축 구조를 전제로 유도됐다. NVLink 스위치 패브릭(모든 GPU 쌍이 균일 대역폭)이나 CXL 스위치 토폴로지처럼 '축'이라는 개념 자체가 없는 인터커넥트에서는 이 X/Y/Z 인수분해가 어떻게 재정의돼야 하는지 논문은 다루지 않는다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "reference",
+      "title": "핵심 비교/인용 대상: Megatron-LM · GSPMD · Alpa · FasterTransformer · DeepSpeed Inference",
+      "content": "이 논문이 직접 비교하거나 대비하는 파티셔닝 프레임워크들: Megatron-LM(Shoeybi et al. 2019, tensor parallelism의 원조), GSPMD(Xu et al. 2021), Alpa(Zheng et al. 2022, 정수계획법으로 파티셔닝 탐색을 자동화 — 이 논문은 대신 손으로 유도한 해석적 트레이드오프를 쓴다는 점에서 대비됨), DeepSpeed Inference(Aminabadi et al. 2022, ZeRO offload로 CPU/NVMe 메모리까지 활용), FasterTransformer(NVIDIA, §5의 직접 벤치마크 대상). multiquery attention의 원 출처는 Shazeer(2019), PaLM 아키텍처는 Chowdhery et al.(2022).",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1800 },
+      "children": [],
+      "links": [
+        { "type": "url", "target": "https://arxiv.org/abs/2204.02311", "label": "PaLM arXiv" },
+        { "type": "url", "target": "https://arxiv.org/abs/1909.08053", "label": "Megatron-LM arXiv" },
+        { "type": "url", "target": "https://arxiv.org/abs/2105.04663", "label": "GSPMD arXiv" },
+        { "type": "url", "target": "https://arxiv.org/abs/2201.12023", "label": "Alpa arXiv" },
+        { "type": "url", "target": "https://arxiv.org/abs/2207.00032", "label": "DeepSpeed Inference arXiv" }
+      ]
+    },
+    {
+      "id": "node_025",
+      "template": "memo",
+      "title": "내 연구방향과의 연결: 이 논문의 병목은 '메모리 대역폭', 내 질문은 '메모리 계층'",
+      "content": "이 논문 전체의 출발점은 decode 단계가 본질적으로 memory-bandwidth-bound라는 것(§2, KV cache가 파라미터의 3배까지 커짐)이고, 해법은 그 바이트들을 더 많은 칩의 HBM에 나눠 담아 칩당 대역폭 요구량을 낮추는 것(compute-side sharding)이다. 내가 보고 있는 CXL/disaggregation 방향은 반대편에서 같은 병목을 공격한다 — 칩 수를 늘리는 대신 메모리 자체를 계층화(capacity tier ↔ bandwidth tier)해서 문제를 푼다.\n\n흥미로운 지점은 이 두 접근이 서로 배타적이지 않다는 것 — 이 논문의 샤딩 전략은 '한 노드 안에 몇 개의 동질적 HBM 칩이 있는가'를 전제로 하는데, 만약 그 노드 자체가 이미 CXL로 확장된 이종(heterogeneous) 메모리 풀을 갖고 있다면, 샤딩 축(X,Y,Z)에 '메모리 티어'라는 새 차원을 추가해야 할 수도 있다. 이건 이 논문이 전혀 다루지 않는, 내 박사 연구가 채울 수 있는 빈틈으로 보인다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1250 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+    { "id": "edge_005", "source": "node_005", "target": "node_006", "type": "arrow", "label": "" },
+    { "id": "edge_006", "source": "node_006", "target": "node_007", "type": "arrow", "label": "" },
+    { "id": "edge_007", "source": "node_007", "target": "node_008", "type": "arrow", "label": "" },
+    { "id": "edge_008", "source": "node_001", "target": "node_009", "type": "line", "label": "" },
+    { "id": "edge_009", "source": "node_001", "target": "node_010", "type": "line", "label": "" },
+    { "id": "edge_010", "source": "node_002", "target": "node_011", "type": "line", "label": "" },
+    { "id": "edge_011", "source": "node_003", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_003", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_003", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_004", "target": "node_015", "type": "line", "label": "" },
+    { "id": "edge_015", "source": "node_004", "target": "node_016", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_004", "target": "node_017", "type": "line", "label": "" },
+    { "id": "edge_017", "source": "node_005", "target": "node_018", "type": "line", "label": "" },
+    { "id": "edge_018", "source": "node_005", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_019", "source": "node_006", "target": "node_020", "type": "line", "label": "" },
+    { "id": "edge_020", "source": "node_007", "target": "node_021", "type": "line", "label": "" },
+    { "id": "edge_021", "source": "node_004", "target": "node_022", "type": "line", "label": "gap" },
+    { "id": "edge_022", "source": "node_002", "target": "node_023", "type": "line", "label": "question" },
+    { "id": "edge_023", "source": "node_007", "target": "node_024", "type": "line", "label": "참고" },
+    { "id": "edge_024", "source": "node_004", "target": "node_025", "type": "line", "label": "내 연구" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Model Parallelism on Distributed Infrastructure: A Literature Review from Theory to LLM Case-Studies</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:220px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap}
+.ng-chevron{font-size:9px;opacity:.5;flex-shrink:0;padding:2px 4px;border-radius:2px}
+.ng-chevron:hover{background:rgba(0,0,0,.08);opacity:.9}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">Model Parallelism on Distributed Infrastructure: A Literature Review from Theory to LLM Case-Studies</span>
+    <span id="tb-source">Felix Brakel (University of Amsterdam / Vrije Universiteit Amsterdam), Uraz Odyurt (Radboud University / Nikhef), Ana-Lucia Varbanescu (University of Twente / University of Amsterdam) · arXiv preprint, 2024</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_016" style="--color:#4B8BBE;border-radius:2px;left:100px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">문제: NN 스케일업이 하드웨어 한계에 부딪힘 — Model Parallelism의 필요성</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">모델이 커질수록 연산량과 메모리 사용량이 비례해서 늘어난다. 레이어 수·뉴런 수가 늘면 forward/backward pass 연산이 늘고, 파라미터가 늘면 저장할 메모리가 늘고, activation tensor도 메모리를 소모한다. 이 리뷰는 이 문제를 model parallelism(모델 자체를 여러 디바이스에 파티셔닝)으로 접근한다.<br><br>Figure 2는 스케일업의 구조를 정리한다: 하드웨어 한계는 '레이어가 메모리에 안 들어감'과 '학습이 더 많은 device-hour를 요구함' 두 가지로 나뉘고, 대응책은 Optimizations(checkpointing, model compression, algebraic transformation) 대 Parallelism(data parallelism, model parallelism) 두 갈래다. 디바이스 간 인터커넥트(NVLink, Ethernet)는 A100 DRAM 대역폭보다도 이미 최소 2배 느려서, 모델을 여러 디바이스에 나누는 순간 통신이 병목이 된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1</span></summary>
+<div class="ng-orig-text">Even when only considering a single server, where devices can send data over NVLink, the bandwidth is already a factor two below that of the A100's DRAM [7].</div></details><details class="ng-toggle"><summary>Figure 2: 스케일업 원인 → 대응책 트리</summary>
+<div class="ng-toggle-body">Scaling up Neural Networks<br>  - More layers / Wider layers / More training data<br><br>Bounded by -&gt;<br><br>Hardware Limitations<br>  - Layers don't fit in memory<br>  - Training requires more device-hours<br><br>Addressed by -&gt;<br><br>Optimizations                 |  Parallelism<br>  - Checkpointing              |    - Data parallelism<br>  - Model compression          |    - Model parallelism<br>  - Algebraic transformations  |</div></details><div class="ng-links"><a class="ng-link" href="./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=2" target="_blank">📄 원문 §3.1.1, p.2 (Figure 2)</a></div></div>
+</div>
+<div class="ng-node" id="node-node_002" style="--color:#4B8BBE;border-radius:2px;left:100px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">이론적 틀: Operator Graph와 Intra-/Inter-Operator Parallelism 분류</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">논문은 NN을 operator graph O=(V,E)로 표현한다 — 노드는 operator(계산)나 tensor(데이터), 엣지는 데이터 흐름이다. 이 표현 위에서 병렬화의 두 축을 정의한다: inter-operator parallelism(그래프를 서브그래프로 쪼개 디바이스별로 배정, 통신은 서브그래프 경계에서만 발생)과 intra-operator parallelism(하나의 operator 내부 연산을 여러 디바이스에 분배, operator마다 전략이 다름). 이 둘은 배타적이지 않고 결합하면 hybrid parallelism이라 부른다.<br><br>Figure 3의 taxonomy는 Model Parallelism을 Operator Graph(Intra-/Inter-Operator) 축과 Implementation(Ad-hoc vs Auto-Parallelisation, Strategy/Target Hardware/Target Model) 축으로 나눈다. Ad-hoc 접근은 특정 모델·하드웨어를 전제(예: 8×A100+NVLink를 겨냥한 Megatron, Google TPU pod 전용 Gopher/PaLM)로 하며, 이 도메인에서는 intra-/inter-operator가 흔히 tensor parallelism / pipeline parallelism이라 불린다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.3</span></summary>
+<div class="ng-orig-text">one can either parallelise over multiple nodes in O, known as inter-operator parallelism, or parallelise the operation within an operator node oi, known as intra-operator parallelism [16].</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_007,node_015" style="--color:#4B8BBE;border-radius:2px;left:100px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">Challenges: Inter-operator Bubble, Intra-operator 통신비용, Auto-parallelization 탐색문제</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Inter-operator parallelism은 파이프라이닝을 안 쓰면 디바이스 활용률이 낮다 — 각 파티션은 이전 파티션의 출력을 받아야 시작할 수 있어서 학습 중 자주 bubble(정체)이 생긴다. backward pass는 forward pass 결과에 의존하므로 forward가 끝나기 전엔 backward를 시작할 수 없다.<br><br>Intra-operator parallelism은 반대로 극심한 통신 요구가 문제다 — 파티션된 operator의 입력 tensor를 디바이스에 흩뿌리고(scatter), 매 배치마다 출력을 모아야(gather) 한다. 두 방식을 결합하는 hybrid 전략을 찾는 것 자체가 어려운 문제이고, 이를 자동으로 탐색하는 auto-parallelization은 다시 탐색공간 정의·전략 평가(특히 통신시간 모델링)·탐색방법이라는 3개 하위 난제를 갖는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4, p.4</span></summary>
+<div class="ng-orig-text">Inter-operator parallelism suffers from low device utilisation if the implementation does not make use of pipelining.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_004" data-children="node_008,node_009,node_010,node_011" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1000px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">LLM Case-Studies: Megatron / Gopher / PaLM / GPT의 실제 병렬화 구성</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">실제 대규모 Transformer 학습 사례를 수집했다(Table 2). Megatron 계열(4편)은 V100/A100 GPU + NVLink 환경에서 intra-operator(=tensor) parallelism을 8-way까지 단일 노드 안에서 쓰고, 이를 넘어서는 스케일은 inter-operator(=pipeline) parallelism과 data parallelism으로 확장한다.<br><br>Gopher/PaLM 계열은 Google의 커스텀 TPU pod + JAX/Pathways 소프트웨어를 쓰는데, PaLM은 inter-operator parallelism을 아예 안 쓰고 12-way intra-operator + pod 내 256-way data parallelism + pod간 2-way data parallelism만으로 540B 모델을 학습한다. GPT-3/GPT-4는 OpenAI가 구현 세부사항을 공개하지 않아 참고용으로만 나열된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Table 2, §5.1, p.6</span></summary>
+<div class="ng-orig-text">Model size, parallelism type and hardware utilisation achieved for ad hoc approaches when scaling up Transformer models.</div></details><details class="ng-toggle"><summary>Table 1: 2단계 문헌 수집의 시드가 된 모델 비교 (§2)</summary>
+<div class="ng-toggle-body">| Model | # Parameters | Hardware | Utilisation |<br>|---|---|---|---|<br>| GPT-3 | 175B | V100 | 21.3% |<br>| Gopher | 280B | 4096 TPU v3 | 32.5% |<br>| Megatron-Turing | 530B | 2240 A100 | 30.2% |<br>| PaLM | 540B | 6144 TPUv4 | 46.2% |</div></details><div class="ng-links"><a class="ng-link" href="./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=6" target="_blank">📄 원문 §5.1, p.6 (Table 2)</a></div></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_012,node_013,node_014,node_017" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">Discussion: MFU vs HFU, Family간 비교, Auto-parallelization Framework들</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">서로 다른 ad-hoc 구현들은 하드웨어·모델 구조가 다 달라 직접 비교가 어렵다. PaLM 저자들은 Hardware FLOPs Utilisation(HFU) 대신 Model FLOPs Utilisation(MFU)을 쓰자고 제안한다 — rematerialization(재계산) 같은 기법은 메모리를 아끼려고 추가 하드웨어 FLOPs를 쓰는데, 이게 HFU는 높이지만 실제 처리량(tokens/s)엔 영향이 없기 때문이다. 이후 Megatron 최신 논문([14])은 MFU를 채택했지만, PaLM 2 논문([2])은 아예 하드웨어 구성을 공개하지 않는다.<br><br>Table 3은 자동/수동 병렬화 프레임워크들을 intra-/inter-operator 지원 여부, 탐색방법, 전략평가 방식으로 비교하는데, 표준화된 테스트가 없어 정량적으로 어느 것이 더 나은지 결론짓기 어렵다고 저자들은 지적한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.8</span></summary>
+<div class="ng-orig-text">MFU is based on the actual throughput of the system (tokens per second in the case of Transformers) compared to the theoretical maximum of the system.</div></details><details class="ng-toggle"><summary>Table 3: 자동/수동 병렬화 프레임워크 비교</summary>
+<div class="ng-toggle-body">| Mode | Framework/Paper(s) | Intra-operator | Inter-operator | Search method | Strategy evaluation |<br>|---|---|---|---|---|---|<br>| Automatic | RaNNC [30] | - | v | Dynamic programming | Profiling operators |<br>| Automatic | FTPipe [9] | - | v | Multi-processor scheduling | Profiling operators |<br>| Automatic | Alpa [35] | v | v | Dynamic programming | Profiling-calibrated model |<br>| Automatic | FlexFlow [13,31] | v | v | Markov chain Monte Carlo | Calibrated simulation |<br>| Automatic | TensorOpt [5] | v | - | Frontier tracking | Profiling-calibrated model |<br>| Automatic | Double recursive [32] | v | - | Double recursive | Symbolic model |<br>| Manual | GPipe [11] | - | v | - | - |<br>| Manual | PipeDream [10,20] | - | v | - | - |<br>| Manual | GSPMD [34] | v | - | - | - |</div></details><div class="ng-links"><a class="ng-link" href="./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=9" target="_blank">📄 원문 §6-7, p.9 (Table 3)</a></div></div>
+</div>
+<div class="ng-node" id="node-node_006" data-children="node_018" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title">Conclusion &amp; Future Work: 표준화 부재가 핵심 병목</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">결론적으로 model parallelism은 intra-operator(오퍼레이터 내부 분할, 통신비용 높음)와 inter-operator(오퍼레이터 그래프 분할, 디바이스 활용률 문제)로 나뉘고 흔히 data parallelism과 결합된 hybrid 형태로 쓰인다. Megatron 계열은 단일 노드 내 intra-operator + 노드 간 inter-operator/data parallelism 조합을, PaLM은 특수 하드웨어로 intra-operator만으로 통신문제를 우회하는 조합을 보여준다.<br><br>저자들은 이 분야가 NAS(Neural Architecture Search)의 HW-NAS-Bench 같은 표준화된 탐색공간·벤치마크 데이터셋이 없어서, 접근법 간 비교가 근본적으로 어렵다고 지적하며 이를 향후 과제로 제안한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7 (Future work), p.10</span></summary>
+<div class="ng-orig-text">This is in part due to the nature of search problems. However, standardised representations for strategy, device, and model, would help in this regard.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#5C9E6E;border-radius:2px;left:550px;top:650px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title">Method: Pipeline Bubble 완화 — GPipe의 micro-batch vs PipeDream의 비동기 in-flight</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Pipeline bubble(파티션 간 유휴시간)을 줄이는 두 접근이 대비된다. GPipe([11])는 배치를 micro-batch로 쪼개 다음 파티션에 더 일찍 보내서 파이프라인이 더 빨리 채워지게 한다(Figure 5d). PipeDream([20])은 여러 배치를 동시에 in-flight 상태로 유지하며 비동기적으로 스케줄링해서 bubble 자체를 줄인다. 두 방법 모두 forward가 끝나야 backward가 시작 가능하다는 근본 의존성 자체를 없애지는 못한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.8</span></summary>
+<div class="ng-orig-text">[20] mitigates the pipeline bubble by keeping multiple batches in-flight and scheduling them asynchronously. Alternatively, [11] takes a different approach, noting that there is parallelism within a batch.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_008" style="--color:#9B59B6;border-radius:2px;left:550px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title">Result: Table 2 관찰 — Megatron 계열 GPU 활용률 &lt;30%→56.3%로 개선</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Megatron 원조 논문([28], 8.3B, 32×16 V100)은 하드웨어 활용률 &lt;30%에 그쳤지만, 후속 연구들은 intra 8-way를 유지하며 inter-operator/data parallelism 조합을 바꿔 52%([21], 1T, 8×384 A100), 36.2%([29], 530B, 8×420 A100), 56.3%([14], 1T, 8×64 A100, model 기준)까지 끌어올렸다. Gopher/PaLM 계열은 TPU 전용 하드웨어로 PaLM이 46.2%(model 기준)를 달성한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1, p.6</span></summary>
+<div class="ng-orig-text">With the addition of data parallelism, the authors manage to achieve 52% hardware utilisation for the largest model.</div></details><details class="ng-toggle"><summary>Table 2: Megatron/Gopher-PaLM/GPT 계열 병렬화 구성 및 활용률</summary>
+<div class="ng-toggle-body">| Family | Paper | Largest model | Training hardware | Intra-op | Inter-op | Data | Utilisation |<br>|---|---|---|---|---|---|---|---|<br>| Megatron | [28] | 8.3B | 32x16 V100s | 8 | 1 | 64 | &lt;30% (hardware) |<br>| Megatron | [21] | 1T | 8x384 A100s | 8 | 64 | 6 (presumed) | 52% (hardware) |<br>| Megatron | [29] | 530B | 8x420 A100s | 8 | 35 | 12 | 36.2% (hardware) |<br>| Megatron | [14] | 1T | 8x64 A100s | 8 | 64 | 1 | 56.3% (model) |<br>| Gopher/PaLM | [23] | 280B | 4x1024 TPUv3s | &gt;1 | 4 | &gt;1 | n/a |<br>| Gopher/PaLM | [8] | 540B | 2x3072 TPUv4s | 12 | 1 | 2x256 | 46.2% (model) |<br>| Gopher/PaLM | [2] | &lt;540B | n/a TPUv4s | n/a | n/a | n/a | n/a |<br>| GPT | [4] | 175B | n/a V100s | n/a | n/a | n/a | n/a |<br>| GPT | [22] | n/a | n/a | n/a | n/a | n/a | n/a |</div></details></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#5C9E6E;border-radius:2px;left:550px;top:1000px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title">Method: Megatron의 MLP intra-operator 분할 — column 다음 row</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">MLP의 첫 fully-connected 행렬 A를 column으로 쪼개면(GeLU가 비선형이라) 통신 없이 GeLU(XA)=[GeLU(XA1),GeLU(XA2)]로 바로 나뉜다. 이어서 두 번째 행렬 B를 row로 쪼개면 Z=Dropout(GeLU(XA1)B1+GeLU(XA2)B2)로 계산돼 GeLU(XA) 전체를 다시 모을 필요가 없어진다 — Megatron 저자들이 채택한 방식. Self-attention은 Q,K,V를 그냥 column으로 나눈다. 이 8-way intra-layer 방식으로 8.9B GPT-2를 8-GPU에서 77% throughput scaling으로 학습했다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1, p.6</span></summary>
+<div class="ng-orig-text">To demonstrate their approach, the authors have trained an 8.9B GPT-2 Transformer model on eight GPUs with 77% performance scaling in terms of throughput.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#9B59B6;border-radius:2px;left:550px;top:1150px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title">Result: Sequence Parallelism으로 활성화 메모리 footprint를 t에 비례해 완전히 나눔</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Tensor parallelism만 쓰면 t→∞로 보내도 activation memory footprint가 10·s·b·h 밑으로 안 내려간다(Dropout·layer-norm은 병렬화 안 되므로). Korthikanti et al.은 Dropout/layer-norm이 시퀀스 차원에서 독립적이라는 점을 이용해 이 부분도 나누는 sequence parallelism을 추가로 제안, 레이어당 footprint를 (s·b·h/t)(34+5·a·s/h)로 — 즉 t에 비례해서 완전히 줄인다. 22B~1T 파라미터 모델을 8~512 GPU에서 학습해 41.5%~56.3% 하드웨어 활용률을 달성했다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1, p.7</span></summary>
+<div class="ng-orig-text">Hence, even when limt→∞, the activation memory footprint is still 10s·b · h.</div></details><details class="ng-toggle"><summary>활성화 메모리 footprint 수식 비교</summary>
+<div class="ng-toggle-body">Tensor parallelism만 사용(degree $t$):<br>$$s \cdot b \cdot h\left(10 + \frac{24}{t} + \frac{5 a s}{h t}\right)$$<br>Sequence parallelism 추가:<br>$$\frac{s \cdot b \cdot h}{t}\left(34 + \frac{5 a s}{h}\right)$$<br>($s$=sequence length, $b$=micro-batch size, $h$=hidden dim, $a$=attention head 수)</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#E74C3C;border-radius:2px;left:550px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title">Claim: PaLM은 inter-operator parallelism 없이 커스텀 TPU로 통신 문제를 회피</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">PaLM은 12-way intra-layer parallelism + pod 내 256-way data parallelism + pod간 2-way data parallelism만으로 540B 모델을 3072-chip TPUv4 pod 2개에서 학습했고, inter-layer(pipeline) parallelism은 전혀 쓰지 않아 pipeline bubble 문제를 원천적으로 피한다. 저자들은 이게 가능한 이유가 TPU pod 자체가 NN 워크로드 전용으로 설계된 초고속 인터커넥트를 갖췄기 때문이라고 본다 — 인터커넥트 대역폭이 충분하면 intra-operator만으로도 12-way까지 확장 가능하다는 것.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.7</span></summary>
+<div class="ng-orig-text">the authors do not use any inter-layer parallelism, thereby avoiding the pipeline bubble problem during training.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#9B59B6;border-radius:2px;left:550px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title">Result: FlexFlow의 SOAP 탐색공간 — Sample/Operator/Attribute/Parameter 4차원</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">FlexFlow는 병렬화 전략 탐색공간을 4개 축(Sample=데이터 샘플 수, Operator=오퍼레이터 전체, Attribute=파라미터 분할이 필요없는 나머지 병렬화 방식, Parameter=모델 파라미터 분할=intra-layer parallelism)으로 정의하고, 이를 정수 튜플 집합 S로 형식화한다. device graph+operator graph+전략을 입력받아 task graph를 만들고 실행시간을 시뮬레이션으로 추정한 뒤 Markov Chain Monte Carlo로 무작위 샘플링-평가를 반복한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.8</span></summary>
+<div class="ng-orig-text">The SOAP search-space consists of four parallelisable dimensions: Sample, Operator, Attribute, and Parameter.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#E74C3C;border-radius:2px;left:550px;top:1600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title">Claim: HFU는 rematerialization 때문에 실제 처리량과 괴리될 수 있다</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Hardware FLOPs Utilisation(HFU)은 하드웨어가 수행한 실제 연산량 대비 활용률인데, rematerialization(활성화 재계산) 같은 메모리-연산 트레이드오프 기법을 쓰면 추가 FLOPs로 메모리를 아끼는 대신 HFU 수치만 올라가고 실제 처리량(tokens/s)엔 영향이 없는 착시가 생길 수 있다. 그래서 PaLM 저자는 이론적 최대 처리량 대비 실제 처리량인 Model FLOPs Utilisation(MFU)을 쓰자고 제안했고, 이후 Megatron 최신 논문([14])이 이를 채택했다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.8</span></summary>
+<div class="ng-orig-text">This creates a scenario where using additional hardware FLOPs can save memory, increasing HFU, without having an actual impact on the overall throughput of the system.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:550px;top:1750px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title">Method: Alpa의 2단계 계층적 탐색 — Intra-layer ILP + Inter-layer Dynamic Programming</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Alpa는 intra-layer와 inter-layer parallelism이 서로 다른 세분화 수준·통신 특성을 가지며 이게 오늘날 컴퓨트 클러스터의 mesh network 구조와 맞아떨어진다는 관찰에서 출발한다. 하위 레벨은 operator graph+device mesh를 받아 각 노드의 intra-layer 전략을 정수선형계획(ILP)으로 풀어 실행비용을 최소화하고, 상위 레벨은 그 결과를 보상으로 삼아 operator graph를 서브그래프로 나누고 compute cluster의 sub-mesh에 매핑하는 문제를 dynamic programming으로 푼다. Megatron-LM과 맞먹고 DeepSpeed를 능가한다고 보고됐다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.8</span></summary>
+<div class="ng-orig-text">intra-layer and inter-layer parallelism take place at different granularities of the DL computation and have distinct communication requirements, which happen to match the structure of today's compute clusters</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#E5A835;border-radius:22px;left:950px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title">Question: Auto-parallelization 비용모델이 메모리 용량을 1급 제약으로 다루는가?</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">FlexFlow의 시뮬레이터나 Alpa의 ILP 비용함수는 실행시간(연산+통신)을 최소화하는 데 초점이 맞춰져 있다. 그런데 §5.1(Korthikanti)이 보여주듯 실제로는 activation memory footprint가 t에 따라 어떻게 줄어드는지가 파티션 전략의 유효성 자체를 가른다 — footprint가 디바이스 메모리를 넘으면 그 전략은 아예 실행 불가능하다. 이 리뷰가 다루는 자동화 프레임워크들이 메모리 용량을 탐색공간의 hard constraint로 명시적으로 인코딩하는지, 아니면 사후적으로만 걸러내는지가 리뷰 안에서는 불명확하다.</div></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#1ABC9C;border-radius:22px;left:950px;top:250px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title">Gap: 메모리 용량 부족을 '디바이스를 늘려라'로만 프레이밍 — Disaggregation은 논의 안 됨</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 리뷰는 스케일업의 하드웨어 한계를 Figure 2에서 '레이어가 메모리에 안 들어감'과 '학습에 더 많은 device-hour가 필요함'으로 나누는데, 두 경우 모두 대응책은 결국 optimizations(checkpointing/compression) 아니면 parallelism(더 많은 디바이스에 나누기)이다. 즉 메모리 부족 = 더 많은 GPU/TPU를 사서 파티션을 늘리는 문제로만 프레이밍되고, '디바이스 수를 늘리지 않고 메모리 용량만 늘린다'는 축(예: CXL 기반 memory pooling/disaggregation)은 이 논문 전체에서 한 번도 등장하지 않는다. Table 2/3 어디에도 memory-capacity를 인터커넥트 대역폭과 분리해서 다루는 사례가 없다 — 이 리뷰가 전제하는 '메모리=디바이스당 고정 자원'이라는 가정 자체가 내 관심사(compute와 memory capacity를 분리하는 disaggregation)와 다른 지점이다. 정직하게 말하면 이 논문은 이 축을 반박하거나 지지하는 게 아니라 그냥 다루지 않을 뿐이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Figure 2, §3.1.1, p.2</span></summary>
+<div class="ng-orig-text">Layers don't fit in memory</div></details></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#95A5A6;border-radius:22px;left:950px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title">Reference: 핵심 비교 대상 — Megatron-LM / Alpa / FlexFlow / GPipe / PipeDream</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">본문에서 반복적으로 비교·인용되는 핵심 선행연구: Megatron-LM([28], 8-way intra-layer 원조), Narayanan et al.([21], 64-way inter-layer 확장), Smith et al.([29], Megatron+DeepSpeed 530B), Korthikanti et al.([14], sequence parallelism), Alpa([35], 계층적 auto-parallelization), FlexFlow([13], SOAP 탐색공간), GPipe([11])/PipeDream([20], pipeline parallelism 원조 두 축).</div><div class="ng-links"><a class="ng-link" href="https://arxiv.org/abs/1909.08053" target="_blank">🔗 Megatron-LM (Shoeybi et al. 2019) arXiv</a><a class="ng-link" href="https://doi.org/10.1145/3458817.3476209" target="_blank">🔗 Efficient large-scale LM training on GPU clusters (Narayanan et al. 2021) DOI</a></div></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#BDC3C7;border-radius:22px;left:950px;top:1600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
+    <span class="ng-tag" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title">내 연구방향과의 연결: 이 리뷰는 '인터커넥트 티어'를 암묵적으로만 다룬다</span>
+    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문을 관통하는 실질적 관찰은 intra-operator parallelism(극심한 통신) ↔ NVLink/TPU 전용 인터커넥트, inter-operator parallelism(낮은 통신) ↔ Ethernet/노드 간이라는 매칭이다(§6 Discussion). 즉 파티셔닝 전략의 선택이 어떤 인터커넥트/메모리 계층에 부하를 주는지를 결정한다는 그림은 이미 이 리뷰 안에 있다 — 다만 저자들은 이걸 '기존 인터커넥트 두 종류(NVLink/Ethernet) 중 어느 쪽을 쓸지'의 문제로만 그리고, CXL 같은 memory-semantic 인터커넥트나 memory disaggregation은 옵션에 아예 없다. 내가 보는 질문: 이 리뷰가 정리한 intra-/inter-operator 분류 축에 'CXL로 pooling된 메모리를 어느 파티션이 어떻게 공유하는가'라는 세 번째 축을 추가하면 tensor/pipeline parallelism의 최적 지점 자체가 어떻게 바뀌는가.</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":100,"children":["node_016"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100},{"id":"node_002","lx":100,"ly":400,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":400},{"id":"node_003","lx":100,"ly":700,"children":["node_007","node_015"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":700},{"id":"node_004","lx":100,"ly":1000,"children":["node_008","node_009","node_010","node_011"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1000},{"id":"node_005","lx":100,"ly":1300,"children":["node_012","node_013","node_014","node_017"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1300},{"id":"node_006","lx":100,"ly":1600,"children":["node_018"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1600},{"id":"node_007","lx":550,"ly":650,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":650},{"id":"node_008","lx":550,"ly":850,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":850},{"id":"node_009","lx":550,"ly":1000,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1000},{"id":"node_010","lx":550,"ly":1150,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1150},{"id":"node_011","lx":550,"ly":1300,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1300},{"id":"node_012","lx":550,"ly":1450,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1450},{"id":"node_013","lx":550,"ly":1600,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1600},{"id":"node_014","lx":550,"ly":1750,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1750},{"id":"node_015","lx":950,"ly":700,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":700},{"id":"node_016","lx":950,"ly":250,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":250},{"id":"node_017","lx":950,"ly":1300,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1300},{"id":"node_018","lx":950,"ly":1600,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1600}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_005","target":"node_006","type":"arrow","label":""},{"source":"node_001","target":"node_016","type":"line","label":"gap"},{"source":"node_003","target":"node_007","type":"line","label":""},{"source":"node_003","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_008","type":"line","label":""},{"source":"node_004","target":"node_009","type":"line","label":""},{"source":"node_004","target":"node_010","type":"line","label":""},{"source":"node_004","target":"node_011","type":"line","label":""},{"source":"node_005","target":"node_012","type":"line","label":""},{"source":"node_005","target":"node_013","type":"line","label":""},{"source":"node_005","target":"node_014","type":"line","label":""},{"source":"node_005","target":"node_017","type":"line","label":"참고"},{"source":"node_006","target":"node_018","type":"line","label":"내 연구"}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Chevron click = toggle this node only (no cascade, stopPropagation)
+function toggleFold(e, hdr) {
+  e.stopPropagation();
+  var body = hdr.nextElementSibling;
+  if (!body) return;
+  var chevron = hdr.querySelector('.ng-chevron');
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  if (chevron) chevron.textContent = expanding ? '▲' : '▼';
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Per-node drag with logical-position tracking
+function onNodeHeaderMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx += finalDX; nodeDatum.ly += finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+// Keep original node positions — collapse/expand does not push other nodes
+function getNodeRootId(nodeId) {
+  var childToParent = getChildToParentMap();
+  var cur = nodeId;
+  while (childToParent[cur]) cur = childToParent[cur];
+  return cur;
+}
+function getChildToParentMap() {
+  var map = {};
+  NODES_DATA.forEach(function(n) {
+    (n.children || []).forEach(function(childId) { map[childId] = n.id; });
+  });
+  return map;
+}
+function recomputePositions() {
+  var childToParent = getChildToParentMap();
+  function rootOf(id) {
+    var cur = id;
+    while (childToParent[cur]) cur = childToParent[cur];
+    return cur;
+  }
+  function isDescendantOf(descendant, ancestor) {
+    var cur = descendant;
+    while (childToParent[cur]) {
+      cur = childToParent[cur];
+      if (cur === ancestor) return true;
+    }
+    return false;
+  }
+  var sorted = NODES_DATA.slice().sort(function(a, b) {
+    if (a.ly !== b.ly) return a.ly - b.ly;
+    return a.lx - b.lx;
+  });
+  var renderY = {};
+  sorted.forEach(function(n) {
+    var nIsMain = n.isMain;
+    var y = n.ly;
+    var nEl = document.getElementById('node-' + n.id);
+    var nW = nEl ? nEl.offsetWidth : 300;
+    sorted.forEach(function(other) {
+      if (other.id === n.id) return;
+      if (other.ly > n.ly) return;
+      if (other.ly === n.ly && other.lx >= n.lx) return;
+      var otherY = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+      var otherEl = document.getElementById('node-' + other.id);
+      var h = otherEl ? otherEl.offsetHeight : HEADER_H;
+      var otherBottom = otherY + h;
+      if (otherBottom <= y) return;
+      if (nIsMain && other.isMain) {
+        // Main → main: always push regardless of X offset
+        var naturalBottom = other.ly + (other.nodeHeight || HEADER_H);
+        var delta = (otherY + h) - naturalBottom;
+        var nodeNaturalY = n.naturalY !== undefined ? n.naturalY : n.ly;
+        y = Math.max(y, nodeNaturalY + delta, otherBottom + 20);
+      } else {
+        // Rounded pushes: only if X ranges actually overlap (different columns don't push each other)
+        var oW = otherEl ? otherEl.offsetWidth : 300;
+        if (!(n.lx < other.lx + oW && other.lx < n.lx + nW)) return;
+        if (nIsMain) {
+          // Rounded → main: skip only if descendant AND doesn't reach this node's Y
+          if (isDescendantOf(other.id, n.id) && otherBottom <= n.ly) return;
+          var wasPushed = otherY > other.ly;
+          if (!other.contentExpanded && !wasPushed) return;
+          y = Math.max(y, otherBottom + 48);
+        } else {
+          // Sub → sub: always push when X ranges overlap, regardless of expand state
+          var gap = (rootOf(other.id) === rootOf(n.id)) ? 20 : 48;
+          y = Math.max(y, otherBottom + gap);
+        }
+      }
+    });
+    renderY[n.id] = y;
+  });
+
+  // Pass 2: sub-nodes follow their parent main node's push delta
+  NODES_DATA.forEach(function(n) {
+    if (n.isMain) return;
+    var parentMain = null;
+    var bestDist = Infinity;
+    NODES_DATA.forEach(function(m) {
+      if (!m.isMain) return;
+      var connected = m.children && m.children.indexOf(n.id) !== -1;
+      if (!connected) {
+        EDGES.some(function(e) {
+          if ((e.source === m.id && e.target === n.id) || (e.target === m.id && e.source === n.id)) {
+            connected = true; return true;
+          }
+        });
+      }
+      if (connected) {
+        var dist = Math.abs(m.ly - n.ly);
+        if (dist < bestDist) { bestDist = dist; parentMain = m; }
+      }
+    });
+    if (parentMain) {
+      var parentPush = (renderY[parentMain.id] !== undefined ? renderY[parentMain.id] : parentMain.ly) - parentMain.ly;
+      if (parentPush > 0) {
+        var cur = renderY[n.id] !== undefined ? renderY[n.id] : n.ly;
+        renderY[n.id] = Math.max(cur, n.ly + parentPush);
+      }
+    }
+  });
+
+  // Pass 3: normalize Y spacing within each bus group (same source, same X column)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  var ndMap = {};
+  NODES_DATA.forEach(function(n) { ndMap[n.id] = n; });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return ndMap[id]; });
+    if (targetIds.length < 2) return;
+    // Group targets by X column
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = ndMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = ndMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    // Sort and space within each X column group
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var sorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : ndMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < sorted.length; i++) {
+        var minY = sorted[i-1].y + sorted[i-1].h + 20;
+        var newY = Math.max(sorted[i].y, minY);
+        sorted[i].y = newY;
+        renderY[sorted[i].id] = newY;
+      }
+    });
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = n.lx + 'px';
+    el.style.top  = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape') closeLightbox();});
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

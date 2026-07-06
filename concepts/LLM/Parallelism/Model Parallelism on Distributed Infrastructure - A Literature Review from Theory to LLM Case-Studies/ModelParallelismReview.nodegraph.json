@@ -1,0 +1,370 @@
+{
+  "version": "1.0.0",
+  "title": "Model Parallelism on Distributed Infrastructure: A Literature Review from Theory to LLM Case-Studies",
+  "created": "2026-07-06T06:09:46.000Z",
+  "modified": "2026-07-06T06:09:46.000Z",
+  "source": {
+    "pdf": "Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf",
+    "authors": "Felix Brakel (University of Amsterdam / Vrije Universiteit Amsterdam), Uraz Odyurt (Radboud University / Nikhef), Ana-Lucia Varbanescu (University of Twente / University of Amsterdam)",
+    "venue": "arXiv preprint, 2024",
+    "doi": "arXiv:2403.03699",
+    "pages": 10
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic", "color": "#4B8BBE", "icon": "file-text",   "shape": "sharp" },
+    "method":     { "label": "Method",     "color": "#5C9E6E", "icon": "cpu",         "shape": "sharp" },
+    "result":     { "label": "Result",     "color": "#9B59B6", "icon": "bar-chart-2", "shape": "sharp" },
+    "claim":      { "label": "Claim",      "color": "#E74C3C", "icon": "alert-circle","shape": "sharp" },
+    "question":   { "label": "Question",   "color": "#E5A835", "icon": "help-circle", "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea", "color": "#1ABC9C", "icon": "lightbulb",   "shape": "rounded" },
+    "reference":  { "label": "Reference",  "color": "#95A5A6", "icon": "book-open",   "shape": "rounded" },
+    "memo":       { "label": "Memo",       "color": "#BDC3C7", "icon": "edit-3",      "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "문제: NN 스케일업이 하드웨어 한계에 부딪힘 — Model Parallelism의 필요성",
+      "content": "모델이 커질수록 연산량과 메모리 사용량이 비례해서 늘어난다. 레이어 수·뉴런 수가 늘면 forward/backward pass 연산이 늘고, 파라미터가 늘면 저장할 메모리가 늘고, activation tensor도 메모리를 소모한다. 이 리뷰는 이 문제를 model parallelism(모델 자체를 여러 디바이스에 파티셔닝)으로 접근한다.\n\nFigure 2는 스케일업의 구조를 정리한다: 하드웨어 한계는 '레이어가 메모리에 안 들어감'과 '학습이 더 많은 device-hour를 요구함' 두 가지로 나뉘고, 대응책은 Optimizations(checkpointing, model compression, algebraic transformation) 대 Parallelism(data parallelism, model parallelism) 두 갈래다. 디바이스 간 인터커넥트(NVLink, Ethernet)는 A100 DRAM 대역폭보다도 이미 최소 2배 느려서, 모델을 여러 디바이스에 나누는 순간 통신이 병목이 된다.",
+      "original": {
+        "text": "Even when only considering a single server, where devices can send data over NVLink, the bandwidth is already a factor two below that of the A100's DRAM [7].",
+        "location": "§1, p.1"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_001",
+          "title": "Figure 2: 스케일업 원인 → 대응책 트리",
+          "content": "Scaling up Neural Networks\n  - More layers / Wider layers / More training data\n\nBounded by ->\n\nHardware Limitations\n  - Layers don't fit in memory\n  - Training requires more device-hours\n\nAddressed by ->\n\nOptimizations                 |  Parallelism\n  - Checkpointing              |    - Data parallelism\n  - Model compression          |    - Model parallelism\n  - Algebraic transformations  |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": ["node_016"],
+      "links": [
+        { "type": "pdf", "target": "./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=2", "label": "원문 §3.1.1, p.2 (Figure 2)" }
+      ]
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "이론적 틀: Operator Graph와 Intra-/Inter-Operator Parallelism 분류",
+      "content": "논문은 NN을 operator graph O=(V,E)로 표현한다 — 노드는 operator(계산)나 tensor(데이터), 엣지는 데이터 흐름이다. 이 표현 위에서 병렬화의 두 축을 정의한다: inter-operator parallelism(그래프를 서브그래프로 쪼개 디바이스별로 배정, 통신은 서브그래프 경계에서만 발생)과 intra-operator parallelism(하나의 operator 내부 연산을 여러 디바이스에 분배, operator마다 전략이 다름). 이 둘은 배타적이지 않고 결합하면 hybrid parallelism이라 부른다.\n\nFigure 3의 taxonomy는 Model Parallelism을 Operator Graph(Intra-/Inter-Operator) 축과 Implementation(Ad-hoc vs Auto-Parallelisation, Strategy/Target Hardware/Target Model) 축으로 나눈다. Ad-hoc 접근은 특정 모델·하드웨어를 전제(예: 8×A100+NVLink를 겨냥한 Megatron, Google TPU pod 전용 Gopher/PaLM)로 하며, 이 도메인에서는 intra-/inter-operator가 흔히 tensor parallelism / pipeline parallelism이라 불린다.",
+      "original": {
+        "text": "one can either parallelise over multiple nodes in O, known as inter-operator parallelism, or parallelise the operation within an operator node oi, known as intra-operator parallelism [16].",
+        "location": "§3.2, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "Challenges: Inter-operator Bubble, Intra-operator 통신비용, Auto-parallelization 탐색문제",
+      "content": "Inter-operator parallelism은 파이프라이닝을 안 쓰면 디바이스 활용률이 낮다 — 각 파티션은 이전 파티션의 출력을 받아야 시작할 수 있어서 학습 중 자주 bubble(정체)이 생긴다. backward pass는 forward pass 결과에 의존하므로 forward가 끝나기 전엔 backward를 시작할 수 없다.\n\nIntra-operator parallelism은 반대로 극심한 통신 요구가 문제다 — 파티션된 operator의 입력 tensor를 디바이스에 흩뿌리고(scatter), 매 배치마다 출력을 모아야(gather) 한다. 두 방식을 결합하는 hybrid 전략을 찾는 것 자체가 어려운 문제이고, 이를 자동으로 탐색하는 auto-parallelization은 다시 탐색공간 정의·전략 평가(특히 통신시간 모델링)·탐색방법이라는 3개 하위 난제를 갖는다.",
+      "original": {
+        "text": "Inter-operator parallelism suffers from low device utilisation if the implementation does not make use of pipelining.",
+        "location": "§4, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": ["node_007", "node_015"],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "LLM Case-Studies: Megatron / Gopher / PaLM / GPT의 실제 병렬화 구성",
+      "content": "실제 대규모 Transformer 학습 사례를 수집했다(Table 2). Megatron 계열(4편)은 V100/A100 GPU + NVLink 환경에서 intra-operator(=tensor) parallelism을 8-way까지 단일 노드 안에서 쓰고, 이를 넘어서는 스케일은 inter-operator(=pipeline) parallelism과 data parallelism으로 확장한다.\n\nGopher/PaLM 계열은 Google의 커스텀 TPU pod + JAX/Pathways 소프트웨어를 쓰는데, PaLM은 inter-operator parallelism을 아예 안 쓰고 12-way intra-operator + pod 내 256-way data parallelism + pod간 2-way data parallelism만으로 540B 모델을 학습한다. GPT-3/GPT-4는 OpenAI가 구현 세부사항을 공개하지 않아 참고용으로만 나열된다.",
+      "original": {
+        "text": "Model size, parallelism type and hardware utilisation achieved for ad hoc approaches when scaling up Transformer models.",
+        "location": "Table 2, §5.1, p.6"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_002",
+          "title": "Table 1: 2단계 문헌 수집의 시드가 된 모델 비교 (§2)",
+          "content": "| Model | # Parameters | Hardware | Utilisation |\n|---|---|---|---|\n| GPT-3 | 175B | V100 | 21.3% |\n| Gopher | 280B | 4096 TPU v3 | 32.5% |\n| Megatron-Turing | 530B | 2240 A100 | 30.2% |\n| PaLM | 540B | 6144 TPUv4 | 46.2% |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": ["node_008", "node_009", "node_010", "node_011"],
+      "links": [
+        { "type": "pdf", "target": "./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=6", "label": "원문 §5.1, p.6 (Table 2)" }
+      ]
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "Discussion: MFU vs HFU, Family간 비교, Auto-parallelization Framework들",
+      "content": "서로 다른 ad-hoc 구현들은 하드웨어·모델 구조가 다 달라 직접 비교가 어렵다. PaLM 저자들은 Hardware FLOPs Utilisation(HFU) 대신 Model FLOPs Utilisation(MFU)을 쓰자고 제안한다 — rematerialization(재계산) 같은 기법은 메모리를 아끼려고 추가 하드웨어 FLOPs를 쓰는데, 이게 HFU는 높이지만 실제 처리량(tokens/s)엔 영향이 없기 때문이다. 이후 Megatron 최신 논문([14])은 MFU를 채택했지만, PaLM 2 논문([2])은 아예 하드웨어 구성을 공개하지 않는다.\n\nTable 3은 자동/수동 병렬화 프레임워크들을 intra-/inter-operator 지원 여부, 탐색방법, 전략평가 방식으로 비교하는데, 표준화된 테스트가 없어 정량적으로 어느 것이 더 나은지 결론짓기 어렵다고 저자들은 지적한다.",
+      "original": {
+        "text": "MFU is based on the actual throughput of the system (tokens per second in the case of Transformers) compared to the theoretical maximum of the system.",
+        "location": "§6, p.8"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_004",
+          "title": "Table 3: 자동/수동 병렬화 프레임워크 비교",
+          "content": "| Mode | Framework/Paper(s) | Intra-operator | Inter-operator | Search method | Strategy evaluation |\n|---|---|---|---|---|---|\n| Automatic | RaNNC [30] | - | v | Dynamic programming | Profiling operators |\n| Automatic | FTPipe [9] | - | v | Multi-processor scheduling | Profiling operators |\n| Automatic | Alpa [35] | v | v | Dynamic programming | Profiling-calibrated model |\n| Automatic | FlexFlow [13,31] | v | v | Markov chain Monte Carlo | Calibrated simulation |\n| Automatic | TensorOpt [5] | v | - | Frontier tracking | Profiling-calibrated model |\n| Automatic | Double recursive [32] | v | - | Double recursive | Symbolic model |\n| Manual | GPipe [11] | - | v | - | - |\n| Manual | PipeDream [10,20] | - | v | - | - |\n| Manual | GSPMD [34] | v | - | - | - |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": ["node_012", "node_013", "node_014", "node_017"],
+      "links": [
+        { "type": "pdf", "target": "./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=9", "label": "원문 §6-7, p.9 (Table 3)" }
+      ]
+    },
+    {
+      "id": "node_006",
+      "template": "main_topic",
+      "title": "Conclusion & Future Work: 표준화 부재가 핵심 병목",
+      "content": "결론적으로 model parallelism은 intra-operator(오퍼레이터 내부 분할, 통신비용 높음)와 inter-operator(오퍼레이터 그래프 분할, 디바이스 활용률 문제)로 나뉘고 흔히 data parallelism과 결합된 hybrid 형태로 쓰인다. Megatron 계열은 단일 노드 내 intra-operator + 노드 간 inter-operator/data parallelism 조합을, PaLM은 특수 하드웨어로 intra-operator만으로 통신문제를 우회하는 조합을 보여준다.\n\n저자들은 이 분야가 NAS(Neural Architecture Search)의 HW-NAS-Bench 같은 표준화된 탐색공간·벤치마크 데이터셋이 없어서, 접근법 간 비교가 근본적으로 어렵다고 지적하며 이를 향후 과제로 제안한다.",
+      "original": {
+        "text": "This is in part due to the nature of search problems. However, standardised representations for strategy, device, and model, would help in this regard.",
+        "location": "§7 (Future work), p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1500 },
+      "children": ["node_018"],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "method",
+      "title": "Method: Pipeline Bubble 완화 — GPipe의 micro-batch vs PipeDream의 비동기 in-flight",
+      "content": "Pipeline bubble(파티션 간 유휴시간)을 줄이는 두 접근이 대비된다. GPipe([11])는 배치를 micro-batch로 쪼개 다음 파티션에 더 일찍 보내서 파이프라인이 더 빨리 채워지게 한다(Figure 5d). PipeDream([20])은 여러 배치를 동시에 in-flight 상태로 유지하며 비동기적으로 스케줄링해서 bubble 자체를 줄인다. 두 방법 모두 forward가 끝나야 backward가 시작 가능하다는 근본 의존성 자체를 없애지는 못한다.",
+      "original": {
+        "text": "[20] mitigates the pipeline bubble by keeping multiple batches in-flight and scheduling them asynchronously. Alternatively, [11] takes a different approach, noting that there is parallelism within a batch.",
+        "location": "§6, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 550 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "result",
+      "title": "Result: Table 2 관찰 — Megatron 계열 GPU 활용률 <30%→56.3%로 개선",
+      "content": "Megatron 원조 논문([28], 8.3B, 32×16 V100)은 하드웨어 활용률 <30%에 그쳤지만, 후속 연구들은 intra 8-way를 유지하며 inter-operator/data parallelism 조합을 바꿔 52%([21], 1T, 8×384 A100), 36.2%([29], 530B, 8×420 A100), 56.3%([14], 1T, 8×64 A100, model 기준)까지 끌어올렸다. Gopher/PaLM 계열은 TPU 전용 하드웨어로 PaLM이 46.2%(model 기준)를 달성한다.",
+      "original": {
+        "text": "With the addition of data parallelism, the authors manage to achieve 52% hardware utilisation for the largest model.",
+        "location": "§5.1, p.6"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_003",
+          "title": "Table 2: Megatron/Gopher-PaLM/GPT 계열 병렬화 구성 및 활용률",
+          "content": "| Family | Paper | Largest model | Training hardware | Intra-op | Inter-op | Data | Utilisation |\n|---|---|---|---|---|---|---|---|\n| Megatron | [28] | 8.3B | 32x16 V100s | 8 | 1 | 64 | <30% (hardware) |\n| Megatron | [21] | 1T | 8x384 A100s | 8 | 64 | 6 (presumed) | 52% (hardware) |\n| Megatron | [29] | 530B | 8x420 A100s | 8 | 35 | 12 | 36.2% (hardware) |\n| Megatron | [14] | 1T | 8x64 A100s | 8 | 64 | 1 | 56.3% (model) |\n| Gopher/PaLM | [23] | 280B | 4x1024 TPUv3s | >1 | 4 | >1 | n/a |\n| Gopher/PaLM | [8] | 540B | 2x3072 TPUv4s | 12 | 1 | 2x256 | 46.2% (model) |\n| Gopher/PaLM | [2] | <540B | n/a TPUv4s | n/a | n/a | n/a | n/a |\n| GPT | [4] | 175B | n/a V100s | n/a | n/a | n/a | n/a |\n| GPT | [22] | n/a | n/a | n/a | n/a | n/a | n/a |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 750 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "method",
+      "title": "Method: Megatron의 MLP intra-operator 분할 — column 다음 row",
+      "content": "MLP의 첫 fully-connected 행렬 A를 column으로 쪼개면(GeLU가 비선형이라) 통신 없이 GeLU(XA)=[GeLU(XA1),GeLU(XA2)]로 바로 나뉜다. 이어서 두 번째 행렬 B를 row로 쪼개면 Z=Dropout(GeLU(XA1)B1+GeLU(XA2)B2)로 계산돼 GeLU(XA) 전체를 다시 모을 필요가 없어진다 — Megatron 저자들이 채택한 방식. Self-attention은 Q,K,V를 그냥 column으로 나눈다. 이 8-way intra-layer 방식으로 8.9B GPT-2를 8-GPU에서 77% throughput scaling으로 학습했다.",
+      "original": {
+        "text": "To demonstrate their approach, the authors have trained an 8.9B GPT-2 Transformer model on eight GPUs with 77% performance scaling in terms of throughput.",
+        "location": "§5.1, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "result",
+      "title": "Result: Sequence Parallelism으로 활성화 메모리 footprint를 t에 비례해 완전히 나눔",
+      "content": "Tensor parallelism만 쓰면 t→∞로 보내도 activation memory footprint가 10·s·b·h 밑으로 안 내려간다(Dropout·layer-norm은 병렬화 안 되므로). Korthikanti et al.은 Dropout/layer-norm이 시퀀스 차원에서 독립적이라는 점을 이용해 이 부분도 나누는 sequence parallelism을 추가로 제안, 레이어당 footprint를 (s·b·h/t)(34+5·a·s/h)로 — 즉 t에 비례해서 완전히 줄인다. 22B~1T 파라미터 모델을 8~512 GPU에서 학습해 41.5%~56.3% 하드웨어 활용률을 달성했다.",
+      "original": {
+        "text": "Hence, even when limt→∞, the activation memory footprint is still 10s·b · h.",
+        "location": "§5.1, p.7"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_005",
+          "title": "활성화 메모리 footprint 수식 비교",
+          "content": "Tensor parallelism만 사용(degree $t$):\n$$s \\cdot b \\cdot h\\left(10 + \\frac{24}{t} + \\frac{5 a s}{h t}\\right)$$\nSequence parallelism 추가:\n$$\\frac{s \\cdot b \\cdot h}{t}\\left(34 + \\frac{5 a s}{h}\\right)$$\n($s$=sequence length, $b$=micro-batch size, $h$=hidden dim, $a$=attention head 수)",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1050 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "claim",
+      "title": "Claim: PaLM은 inter-operator parallelism 없이 커스텀 TPU로 통신 문제를 회피",
+      "content": "PaLM은 12-way intra-layer parallelism + pod 내 256-way data parallelism + pod간 2-way data parallelism만으로 540B 모델을 3072-chip TPUv4 pod 2개에서 학습했고, inter-layer(pipeline) parallelism은 전혀 쓰지 않아 pipeline bubble 문제를 원천적으로 피한다. 저자들은 이게 가능한 이유가 TPU pod 자체가 NN 워크로드 전용으로 설계된 초고속 인터커넥트를 갖췄기 때문이라고 본다 — 인터커넥트 대역폭이 충분하면 intra-operator만으로도 12-way까지 확장 가능하다는 것.",
+      "original": {
+        "text": "the authors do not use any inter-layer parallelism, thereby avoiding the pipeline bubble problem during training.",
+        "location": "§5.3, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1200 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "result",
+      "title": "Result: FlexFlow의 SOAP 탐색공간 — Sample/Operator/Attribute/Parameter 4차원",
+      "content": "FlexFlow는 병렬화 전략 탐색공간을 4개 축(Sample=데이터 샘플 수, Operator=오퍼레이터 전체, Attribute=파라미터 분할이 필요없는 나머지 병렬화 방식, Parameter=모델 파라미터 분할=intra-layer parallelism)으로 정의하고, 이를 정수 튜플 집합 S로 형식화한다. device graph+operator graph+전략을 입력받아 task graph를 만들고 실행시간을 시뮬레이션으로 추정한 뒤 Markov Chain Monte Carlo로 무작위 샘플링-평가를 반복한다.",
+      "original": {
+        "text": "The SOAP search-space consists of four parallelisable dimensions: Sample, Operator, Attribute, and Parameter.",
+        "location": "§6, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1350 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "claim",
+      "title": "Claim: HFU는 rematerialization 때문에 실제 처리량과 괴리될 수 있다",
+      "content": "Hardware FLOPs Utilisation(HFU)은 하드웨어가 수행한 실제 연산량 대비 활용률인데, rematerialization(활성화 재계산) 같은 메모리-연산 트레이드오프 기법을 쓰면 추가 FLOPs로 메모리를 아끼는 대신 HFU 수치만 올라가고 실제 처리량(tokens/s)엔 영향이 없는 착시가 생길 수 있다. 그래서 PaLM 저자는 이론적 최대 처리량 대비 실제 처리량인 Model FLOPs Utilisation(MFU)을 쓰자고 제안했고, 이후 Megatron 최신 논문([14])이 이를 채택했다.",
+      "original": {
+        "text": "This creates a scenario where using additional hardware FLOPs can save memory, increasing HFU, without having an actual impact on the overall throughput of the system.",
+        "location": "§6, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1500 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "method",
+      "title": "Method: Alpa의 2단계 계층적 탐색 — Intra-layer ILP + Inter-layer Dynamic Programming",
+      "content": "Alpa는 intra-layer와 inter-layer parallelism이 서로 다른 세분화 수준·통신 특성을 가지며 이게 오늘날 컴퓨트 클러스터의 mesh network 구조와 맞아떨어진다는 관찰에서 출발한다. 하위 레벨은 operator graph+device mesh를 받아 각 노드의 intra-layer 전략을 정수선형계획(ILP)으로 풀어 실행비용을 최소화하고, 상위 레벨은 그 결과를 보상으로 삼아 operator graph를 서브그래프로 나누고 compute cluster의 sub-mesh에 매핑하는 문제를 dynamic programming으로 푼다. Megatron-LM과 맞먹고 DeepSpeed를 능가한다고 보고됐다.",
+      "original": {
+        "text": "intra-layer and inter-layer parallelism take place at different granularities of the DL computation and have distinct communication requirements, which happen to match the structure of today's compute clusters",
+        "location": "§6, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1650 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "question",
+      "title": "Question: Auto-parallelization 비용모델이 메모리 용량을 1급 제약으로 다루는가?",
+      "content": "FlexFlow의 시뮬레이터나 Alpa의 ILP 비용함수는 실행시간(연산+통신)을 최소화하는 데 초점이 맞춰져 있다. 그런데 §5.1(Korthikanti)이 보여주듯 실제로는 activation memory footprint가 t에 따라 어떻게 줄어드는지가 파티션 전략의 유효성 자체를 가른다 — footprint가 디바이스 메모리를 넘으면 그 전략은 아예 실행 불가능하다. 이 리뷰가 다루는 자동화 프레임워크들이 메모리 용량을 탐색공간의 hard constraint로 명시적으로 인코딩하는지, 아니면 사후적으로만 걸러내는지가 리뷰 안에서는 불명확하다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "gap",
+      "title": "Gap: 메모리 용량 부족을 '디바이스를 늘려라'로만 프레이밍 — Disaggregation은 논의 안 됨",
+      "content": "이 리뷰는 스케일업의 하드웨어 한계를 Figure 2에서 '레이어가 메모리에 안 들어감'과 '학습에 더 많은 device-hour가 필요함'으로 나누는데, 두 경우 모두 대응책은 결국 optimizations(checkpointing/compression) 아니면 parallelism(더 많은 디바이스에 나누기)이다. 즉 메모리 부족 = 더 많은 GPU/TPU를 사서 파티션을 늘리는 문제로만 프레이밍되고, '디바이스 수를 늘리지 않고 메모리 용량만 늘린다'는 축(예: CXL 기반 memory pooling/disaggregation)은 이 논문 전체에서 한 번도 등장하지 않는다. Table 2/3 어디에도 memory-capacity를 인터커넥트 대역폭과 분리해서 다루는 사례가 없다 — 이 리뷰가 전제하는 '메모리=디바이스당 고정 자원'이라는 가정 자체가 내 관심사(compute와 memory capacity를 분리하는 disaggregation)와 다른 지점이다. 정직하게 말하면 이 논문은 이 축을 반박하거나 지지하는 게 아니라 그냥 다루지 않을 뿐이다.",
+      "original": {
+        "text": "Layers don't fit in memory",
+        "location": "Figure 2, §3.1.1, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 150 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "reference",
+      "title": "Reference: 핵심 비교 대상 — Megatron-LM / Alpa / FlexFlow / GPipe / PipeDream",
+      "content": "본문에서 반복적으로 비교·인용되는 핵심 선행연구: Megatron-LM([28], 8-way intra-layer 원조), Narayanan et al.([21], 64-way inter-layer 확장), Smith et al.([29], Megatron+DeepSpeed 530B), Korthikanti et al.([14], sequence parallelism), Alpa([35], 계층적 auto-parallelization), FlexFlow([13], SOAP 탐색공간), GPipe([11])/PipeDream([20], pipeline parallelism 원조 두 축).",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1200 },
+      "children": [],
+      "links": [
+        { "type": "url", "target": "https://arxiv.org/abs/1909.08053", "label": "Megatron-LM (Shoeybi et al. 2019) arXiv" },
+        { "type": "url", "target": "https://doi.org/10.1145/3458817.3476209", "label": "Efficient large-scale LM training on GPU clusters (Narayanan et al. 2021) DOI" }
+      ]
+    },
+    {
+      "id": "node_018",
+      "template": "memo",
+      "title": "내 연구방향과의 연결: 이 리뷰는 '인터커넥트 티어'를 암묵적으로만 다룬다",
+      "content": "이 논문을 관통하는 실질적 관찰은 intra-operator parallelism(극심한 통신) ↔ NVLink/TPU 전용 인터커넥트, inter-operator parallelism(낮은 통신) ↔ Ethernet/노드 간이라는 매칭이다(§6 Discussion). 즉 파티셔닝 전략의 선택이 어떤 인터커넥트/메모리 계층에 부하를 주는지를 결정한다는 그림은 이미 이 리뷰 안에 있다 — 다만 저자들은 이걸 '기존 인터커넥트 두 종류(NVLink/Ethernet) 중 어느 쪽을 쓸지'의 문제로만 그리고, CXL 같은 memory-semantic 인터커넥트나 memory disaggregation은 옵션에 아예 없다. 내가 보는 질문: 이 리뷰가 정리한 intra-/inter-operator 분류 축에 'CXL로 pooling된 메모리를 어느 파티션이 어떻게 공유하는가'라는 세 번째 축을 추가하면 tensor/pipeline parallelism의 최적 지점 자체가 어떻게 바뀌는가.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1500 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+    { "id": "edge_005", "source": "node_005", "target": "node_006", "type": "arrow", "label": "" },
+    { "id": "edge_006", "source": "node_001", "target": "node_016", "type": "line", "label": "gap" },
+    { "id": "edge_007", "source": "node_003", "target": "node_007", "type": "line", "label": "" },
+    { "id": "edge_008", "source": "node_003", "target": "node_015", "type": "line", "label": "" },
+    { "id": "edge_009", "source": "node_004", "target": "node_008", "type": "line", "label": "" },
+    { "id": "edge_010", "source": "node_004", "target": "node_009", "type": "line", "label": "" },
+    { "id": "edge_011", "source": "node_004", "target": "node_010", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_004", "target": "node_011", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_005", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_005", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_015", "source": "node_005", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_005", "target": "node_017", "type": "line", "label": "참고" },
+    { "id": "edge_017", "source": "node_006", "target": "node_018", "type": "line", "label": "내 연구" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

@@ -1,0 +1,522 @@
+{
+  "version": "1.0.0",
+  "title": "KV Cache Optimization Strategies for Scalable and Efficient LLM Inference",
+  "created": "2026-07-06T06:09:46.000Z",
+  "modified": "2026-07-06T06:09:46.000Z",
+  "source": {
+    "pdf": "KV Cache Optimization Strategies for Scalable and Efficient LLM Inference.pdf",
+    "authors": "Yichun Xu, Navjot K. Khaira, Tejinder Singh (Dell Technologies)",
+    "venue": "arXiv preprint, 2026",
+    "doi": "arXiv:2603.20397",
+    "pages": 24
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic", "color": "#4B8BBE", "icon": "file-text",   "shape": "sharp" },
+    "method":     { "label": "Method",     "color": "#5C9E6E", "icon": "cpu",         "shape": "sharp" },
+    "result":     { "label": "Result",     "color": "#9B59B6", "icon": "bar-chart-2", "shape": "sharp" },
+    "claim":      { "label": "Claim",      "color": "#E74C3C", "icon": "alert-circle","shape": "sharp" },
+    "question":   { "label": "Question",   "color": "#E5A835", "icon": "help-circle", "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea", "color": "#1ABC9C", "icon": "lightbulb",   "shape": "rounded" },
+    "reference":  { "label": "Reference",  "color": "#95A5A6", "icon": "book-open",   "shape": "rounded" },
+    "memo":       { "label": "Memo",       "color": "#BDC3C7", "icon": "edit-3",      "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "배경: KV Cache 메모리 병목과 5대 분류체계",
+      "content": "KV cache는 attention 재계산을 피하기 위해 과거 토큰들의 key/value를 저장하는 Transformer 표준 최적화다. 문제는 이 크기가 컨텍스트 길이에 정확히 선형으로 커진다는 것: $$KV_{token} = 2 \\times H \\times D \\times B \\times L$$ $$KV_{cache} = KV_{token} \\times ContextLength$$ 실제로 7B 모델(0.50MB/token)도 128K 토큰에서 KV cache가 약 64GB에 달해 A100 80GB VRAM을 넘어선다(Fig.3) — weight 자체(14GB)보다 KV cache가 훨씬 더 메모리를 잡아먹는 구조.\n\nFig.4의 attention weight 행렬 예시(\"The apple tastes sweet\")는 query 'sweet'이 attention의 65%를 'apple'에 집중시키고 나머지 토큰엔 거의 배분하지 않음을 보여준다 — 이 비균일성이 selective eviction의 근거다. 논문은 최적화 기법들을 5개 방향(cache eviction, cache compression, hybrid memory solutions, new attention mechanisms, combination methods)으로 분류한다(Fig.5, Table 1).",
+      "original": {
+        "text": "This paper provides a systematic review of recent KV cache optimization techniques, organizing them into five principal directions: cache eviction, cache compression, hybrid memory solutions, novel attention mechanisms, and combination strategies.",
+        "location": "Abstract, p.1"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_001",
+          "title": "Table 1: 5대 방향 비교",
+          "content": "| Technique | Optimization Goal | Tradeoffs | Good for |\n|---|---|---|---|\n| Cache Eviction | Memory Footprint, Decoding Latency | Accuracy and quality | Long-context single requests, Edge devices, Minimal model modification |\n| Cache Compression | KV cache size, Throughput | Dequantization/reconstruction overhead, Accuracy | Bandwidth-bound workloads, Edge devices, Ultra-long contexts |\n| Hybrid memory solution | TTFT in long-context, System efficiency | Hardware requirement, complexity in management | High-throughput serving, Multi-tenant datacenter serving |\n| New Attention Calculation | computational complexity, Inference Speed | Accuracy, model retraining | Agentic/Long-horizon Tasks |\n| Combination Methods | Throughput/Latency Balance | Complexity in design and management | Consumer-Grade Hardware and Diverse Workloads, balanced performance |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "방향 1: Cache Eviction — attention score 기반 토큰 선택적 폐기",
+      "content": "Cache eviction은 attention score로 토큰 중요도를 추정해서, 중요한 토큰(주로 heavy-hitter + 최근 토큰)만 남기고 나머지를 버려 KV cache를 고정 크기로 유지하는 접근이다. H2O는 디코딩 중 누적 attention score가 가장 낮은 토큰을 그리디하게 버리고, SnapKV는 prefill 직후 observation window에서의 voting+1D pooling으로 prefix의 중요 토큰과 그 주변 컨텍스트를 함께 보존한다. NACL은 step-by-step이 아니라 proxy-token(주로 사용자 질문 등 입력 끝부분) 기준 단일 global eviction을 수행해 계산 부담을 줄이고, InfiniPot은 CaP/NuC 두 지표로 '무한' 컨텍스트를 고정 메모리 안에서 distill한다. HASHEVICT는 LSH+Hamming distance로 attention 계산 자체 없이 유사도를 추정하는 pre-attention 방식이고, MorphKV·RocketKV·KVzip은 각각 최근 attention 패턴 상관관계, 2단계(coarse+fine) 압축, self-supervised reconstruction으로 중요도를 매긴다. Ada-KV는 헤드마다 다른 budget을 동적으로 배분해 기존 기법(SnapKV 등) 위에 plug-and-play로 얹을 수 있다.\n\n이 방향의 공통 트레이드오프는 정확도와 품질(heavy-hitter를 잘못 버리면 성능 급락)이며, 대체로 fine-tuning 없이 적용 가능해 long-context 단일 요청·edge 디바이스·최소 모델 수정이 필요한 시나리오에 적합하다(Table 1).",
+      "original": {
+        "text": "Cache eviction is a strategy that selectively discards the less important cache while retaining the critical ones for accurate generation. This method usually relies on attention scores to estimate the token importance.",
+        "location": "§3.1, p.5"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_002",
+          "title": "Table 2: Cache Eviction 기법 요약",
+          "content": "| Method | Mechanism | Phase |\n|---|---|---|\n| H2O | Evict top K noncritical tokens | Decoding |\n| SnapKV | Retain critical tokens and their context | After Prefill |\n| NACL | Hybrid Proxy and Random Eviction | Prefill |\n| InfiniPot | Continual Context Distillation | Prefill |\n| HASHEVICT | Attention-Free LSH Ranking | Decoding |\n| MorphKV | Correlation-aware selection | Decoding |\n| RocketKV | Two-stage compression | Prefill and Decoding |\n| KVzip | Context reconstruction | Prefill |\n| Ada-KV | Adaptive Budget Allocation | After Prefill |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": ["node_011", "node_012", "node_013"],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "방향 2: Cache Compression — quantization과 구조적 저차원 압축",
+      "content": "Cache compression은 토큰을 버리는 대신 각 KV 값을 더 적은 비트로 표현해 메모리를 줄인다. 대표적으로 quantization(수치 정밀도 축소)과 low-rank/cross-layer 압축(구조적 중복 제거) 두 갈래가 있다. KIVI는 key는 per-channel, value는 per-token으로 비대칭 양자화하고 최근 토큰(residual)은 full precision으로 남겨둔다 — key 채널마다 값의 크기 분포가 크게 다르다는 관찰에 기반한다. KVQuant는 여기에 pre-RoPE quantization, sensitivity-weighted non-uniform quantization, per-vector dense-and-sparse(상위 1% outlier는 별도 fp16 보존), attention-sink-aware quantization(첫 토큰은 항상 full precision)까지 결합해 최대 1000만 토큰 컨텍스트를 노린다. MiniCache는 인접 레이어 간 KV state가 유사하다는 관찰로 SLERP를 이용해 레이어를 merge하고, PALU는 projection weight matrix W를 SVD로 저차원 A×B로 분해해 압축된 latent H만 캐싱한다(RoPE 적용 key는 matrix fusion이 불가해 별도 GPU 커널로 처리).\n\n이 방향은 memory footprint와 throughput을 직접 겨냥하며, 트레이드오프는 dequantization/reconstruction overhead와 정확도 손실이다. bandwidth-bound workload·edge 디바이스·ultra-long context에 특히 잘 맞는다(Table 1).",
+      "original": {
+        "text": "Cache compression aims to reduce memory footprint. The most common approach is quantization, which represents numerical values with fewer bits.",
+        "location": "§3.2, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": ["node_014", "node_015", "node_016"],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "방향 3: Hybrid Memory Solution — multi-tier storage로 GPU 메모리 한계 우회",
+      "content": "Hybrid memory solution은 KV cache 전체를 GPU에 두는 대신 CPU DRAM, disk, 혹은 근접 저장장치(specialized accelerator) 같은 더 크지만 느린 메모리 계층으로 일부를 offload해서 GPU 메모리 제약을 우회한다. PagedAttention(vLLM)이 대표 격으로, OS의 virtual memory paging에서 영감을 받아 KV cache를 고정 크기 block 단위로 나누고 block table로 논리-물리 매핑을 관리하며, 공유 prefix에 대해 copy-on-write로 메모리 공유까지 지원한다. InfiniGen은 CPU에 KV를 두고 다음 레이어에 필요할 KV만 미리 예측(partial query 근사 + SVD 기반 저차원 보정)해서 prefetch한다. LayerKV는 레이어 단위로 일부만 GPU에 남기고 나머지는 CPU로 offload해 TTFT를 줄이는 SLO-aware 스케줄러를 쓴다. INF2는 특이하게 CPU/disk가 아니라 근접 저장장치(Computational Storage Device, CSD — FPGA 부착 SSD)로 attention 계산 자체를 옮긴다. KVPR은 GPU idle time을 줄이려고 부분 KV 재계산과 CPU→GPU 전송을 겹쳐서 파이프라인화하고, Oneiros는 비활성 모델의 parameter를 remapping해 KV cache 공간을 확보하며, CLO는 query 벡터의 시간적 유사도를 이용해 인접 디코딩 스텝 간 KV 재사용 여부를 판단한다(cosine similarity 기반 reuse-or-refetch).\n\n이 방향의 목표는 TTFT와 시스템 효율성이며, 트레이드오프는 하드웨어 요구사항과 관리 복잡도다(Table 1). 이 논문이 다루는 '계층'은 딱 두 종류뿐이다: (1) CPU DRAM (PagedAttention, InfiniGen, LayerKV, KVPR, Oneiros, CLO 전부 여기), (2) near-storage CSD (INF2 하나). CXL 기반 memory pooling이나 disaggregated memory, cache coherence 프로토콜은 이 섹션은 물론 논문 전체에서 단 한 번도 언급되지 않는다 — gap 노드 참고.",
+      "original": {
+        "text": "Hybrid memory solutions address the limitations of GPU memory by leveraging multi-tier storage architectures to manage the KV cache efficiently. As context lengths grow, storing the entire KV cache on GPU becomes infeasible due to memory constraints and bandwidth bottlenecks. Hybrid approaches mitigate these challenges by offloading portions of the cache to slower but larger memory tiers, such as CPU memory, disk, or specialized accelerators.",
+        "location": "§3.3, p.11"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_003",
+          "title": "Table 4: Hybrid Memory Solutions 비교",
+          "content": "| Method | Offload destination | Key optimization |\n|---|---|---|\n| PagedAttention | CPU Memory (DRAM) | Reducing memory fragmentation and enabling cache sharing |\n| InfiniGen | CPU Memory (DRAM) | Reducing PCIe transfer volume by only fetching essential data |\n| LayerKV | CPU Memory (DRAM) | Reducing TTFT by minimizing queuing delays |\n| INF2 | Host Memory + NVMe SSDs (CSDs) | High throughput via near-storage bandwidth |\n| KVPR | CPU Memory (DRAM) | Minimizing GPU idle time |\n| Oneiros | CPU Memory (DRAM) | Optimizing multi-tenant serving via parameter remapping |\n| CLO | CPU Memory (DRAM) | Eliminating CPU bottlenecks, fully utilizing PCIe bandwidth |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": ["node_017", "node_018", "node_019", "node_025", "node_027", "node_028"],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "방향 4: New Attention Mechanism — O(N²) softmax를 근본적으로 대체",
+      "content": "이 방향은 KV를 줄이거나 옮기는 대신, attention 연산 자체의 O(N²) 복잡도를 구조적으로 낮춘다. Linear Attention(Transformers-are-RNNs)은 softmax 유사도를 커널 기반 feature map φ로 근사해 $$V'_i = \\phi(Q_i)^T S_i / \\phi(Q_i)^T Z_i$$ 형태의 recurrence로 바꿔 O(N) 시간·O(1) 메모리를 달성한다. Log-Linear Attention은 Fenwick-tree 구조로 과거 토큰을 크기가 2의 거듭제곱인 bucket들로 묶어 O(N log N) 시간·O(log N) 메모리로 softmax와 linear attention의 중간 지점을 제공한다. Local Linear Attention은 attention을 regression으로 재해석해서(softmax=local constant regression, linear=global regression) 각 query 주변에 지역적으로 linear model을 피팅한다. KIMI Linear는 forget gate α·update rate β를 가진 Kimi Delta Attention(KDA)과 full softmax attention을 3:1 비율로 결합한 hybrid 구조다.\n\n이 방향은 근본적 재훈련이 필요해 기존 모델에 plug-and-play로 적용할 수 없다는 게 결정적 제약이다(Table 1 요약: minimal-modification이 필요한 상황엔 부적합, 대신 ultra-long-context용 차세대 아키텍처 설계에 의미가 있다). Agentic/long-horizon task에 적합하다고 저자들은 본다.",
+      "original": {
+        "text": "These innovations include linear attention, log-linear attention, and hybrid methods that balance efficiency and expressiveness.",
+        "location": "§3.4, p.14"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_004",
+          "title": "Table 5: Attention Variants 비교",
+          "content": "| Method | Decoding Time Complexity | Decoding Space Complexity | Features |\n|---|---|---|---|\n| Softmax | O(T) | O(T) | High expressivity, high cost |\n| Linear | O(1) | O(1) | Limited expressivity and low cost |\n| Log Linear | O(log T) | O(log T) | Balances efficiency and expressiveness |\n| Local Linear | ~O(T) | O(T) | Superior bias-variance trade-off; high cost |\n| KIMI Linear | O(1) (mainly O(T) due to KDA) | O(1) | Outperforms full attention, needs 3:1 hybridization |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": ["node_020"],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "main_topic",
+      "title": "방향 5: Combination Methods — eviction+compression+offloading의 통합 설계",
+      "content": "Combination 방향은 단일 기법보다 여러 최적화를 조합해서 memory savings·연산비용·정확도 사이 균형을 더 잘 맞춘다. FlexGen은 model weight·activation·KV cache를 GPU·CPU·disk에 걸쳐 배치하는 최적 스케줄을 선형계획법으로 풀고, 여기에 weight·KV 모두에 4-bit group-wise quantization까지 적용한다 — 단일 GPU로 대형 모델을 서빙하는 high-throughput(저지연 아님) 시나리오를 겨냥한다. Q-Hitter는 각 토큰에 attention score와 quantization error를 함께 반영한 단일 점수 S를 매겨 '중요하면서 양자화에도 강건한' 토큰만 남긴다. ShadowKV는 pre-RoPE key는 SVD 저차원으로 GPU에 남기고 value는 CPU로 offload하며, decoding 시 landmark vector(청크 대표값)로 어떤 청크의 value를 가져올지 결정한다. TailorKV는 레이어별로 attention이 넓게 퍼지면(quantization-friendly) 압축을, 소수 토큰에 집중되면(sparsity-friendly) offloading을 선택적으로 적용하는 레이어별 전략 혼합이다.\n\n이 방향은 consumer-grade 하드웨어·다양한 workload에서 균형 잡힌 성능이 필요할 때 강점을 보인다(Table 1).",
+      "original": {
+        "text": "Combination methods integrate multiple optimization strategies to achieve greater efficiency in KV cache management than any single technique alone.",
+        "location": "§3.5, p.16"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1500 },
+      "children": ["node_021", "node_022", "node_023"],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "main_topic",
+      "title": "정량 비교: Table 6 전체 기법의 메모리/속도/정확도 트레이드오프",
+      "content": "저자들은 대표 기법들을 Memory reduction, Speedups, Accuracy loss, Tradeoffs 네 축으로 정리한다(Table 6, §4). 패턴을 보면: eviction/compression 계열은 실제 메모리 절감률(2.6×~400×)이 크지만 accuracy loss가 명시적으로 언급되고, hybrid memory 계열(PagedAttention/InfiniGen/LayerKV/INF2/KVPR/Oneiros/CLO)은 거의 전부 'Offload based (no reduction)' — 즉 메모리를 줄이는 게 아니라 옮기는 것뿐이며 대신 Lossless를 표방한다. combination 계열(FlexGen/Q-Hitter/ShadowKV/TailorKV)만 메모리 절감과 오프로딩을 동시에 갖춰 두 세계의 장점을 다 가져가려 한다.\n\n숫자로 보면 RocketKV가 최대 압축률(최대 400× 압축, negligible accuracy loss)로 눈에 띄고, LayerKV는 TTFT를 최대 69× 개선하며, INF2는 KV I/O overhead를 80% 넘게 줄인다. 반면 Linear Attention은 synthetic task에서 최대 4000× 속도지만 복잡한 task에서는 정확도 격차가 크다고 명시된다.",
+      "original": {
+        "text": "RocketKV [14]: Up to 400× compression | Up to 3.7× speedup | Negligible accuracy loss | Focused on decode; limited prefill optimization",
+        "location": "Table 6, p.18"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1800 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "main_topic",
+      "title": "실무 매핑: 7개 배포 시나리오별 권장 기법",
+      "content": "저자들은 앞선 5개 방향의 기법들을 7개 실전 배포 시나리오에 매핑한다(§5.1~5.8): (1) Long-context(>1M tokens) 단일 요청 — eviction/compression이 기본, KIMI Linear도 포함, (2) 최소 모델 수정 — Ada-KV·SnapKV·KIVI 같은 fine-tuning-free 기법, (3) High-throughput serving — PagedAttention·Oneiros·ShadowKV·FlexGen/Q-Hitter, (4) Edge/메모리 제한 디바이스 — InfiniPot·TailorKV, (5) Multi-turn 대화 — RocketKV-MT·KVzip·ShadowKV(토큰을 영구 폐기하는 H2O류는 부적합), (6) Prefill-heavy workload — NACL·HASHEVICT·LayerKV·MiniCache·CLO, (7) Accuracy-critical reasoning — PagedAttention 같은 hybrid memory(lossless) 기법이 최선이고 eviction/compression/linear attention은 지양. 추가로 hardware-specific 제약(GH200 고대역폭 PCIe엔 Oneiros/CLO, CSD 하드웨어엔 INF2, 극히 제한된 GPU엔 FlexGen)까지 다룬다.\n\n핵심은 시나리오마다 정답이 다르다는 것 — 예를 들어 H2O는 long-context엔 좋지만 multi-turn엔 부적합하다고 명시적으로 경고한다.",
+      "original": {
+        "text": "Standard cache-eviction methods such as H2O are not suitable for multi-turn conversations, as they permanently discard tokens that may be required in later turns.",
+        "location": "§5.5, p.21"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_005",
+          "title": "7개 시나리오별 권장 기법 매핑",
+          "content": "| Scenario | Recommended techniques |\n|---|---|\n| Long-context (>1M tokens) single request | Eviction, Compression, Hybrid combos, KIMI Linear |\n| Minimal model modification | Ada-KV, SnapKV, KIVI |\n| High-throughput serving | PagedAttention, Oneiros, ShadowKV, FlexGen/Q-Hitter |\n| Edge/memory-limited devices | InfiniPot, TailorKV |\n| Multi-turn conversations | RocketKV-MT, KVzip, ShadowKV |\n| Prefill-heavy workloads | NACL, HASHEVICT, LayerKV, MiniCache, CLO |\n| Accuracy-critical reasoning | PagedAttention (hybrid memory, lossless) |\n| Hardware-specific constraints | Oneiros/CLO (high PCIe BW), INF2 (CSD), FlexGen (limited GPU) |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 2100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "main_topic",
+      "title": "결론: 단일 기법은 없다 — Adaptive Multi-Stage Pipeline이 필요",
+      "content": "논문의 최종 결론은 5개 방향 각각이 서로 다른 축을 지배한다는 것이다: eviction·compression·이들의 조합은 컨텍스트가 100만 토큰을 넘는 ultra-long-context에서 두각을 나타내고(RocketKV·KVzip·ShadowKV), hybrid memory 솔루션(PagedAttention·Oneiros·KVPR·INF2)은 GPU 물리 한계를 CPU offloading·근접 저장장치로 넘어서는 데 필수적이며 high-throughput·multi-tenant serving에서 강하다. new attention(linear/log-linear/local-linear/KIMI)은 O(N)~O(N log N)으로 점근적으로 우월하지만 완전 재훈련이 필요해 아직 accuracy-critical reasoning엔 뒤처진다. combination 기법(FlexGen·Q-Hitter·ShadowKV·TailorKV)은 개별 기법으로 못 얻는 효율을 sparsity+quantization+compression+offloading을 섞어서 얻는다.\n\n결과적으로 어떤 단일 기법도 모든 상황을 지배하지 않으며, 최적 전략은 컨텍스트 길이·하드웨어 제약·workload 특성에 달려 있다 — 저자들은 이를 근거로 컨텍스트 길이·시스템 부하·하드웨어 제약에 맞춰 동적으로 적응하는 'adaptive, multi-stage optimization pipeline'을 향후 연구 방향으로 제안한다.",
+      "original": {
+        "text": "Our analysis reveals that no single technique dominates across all settings; instead, the optimal strategy depends on context length, hardware constraints, and workload characteristics, pointing toward adaptive, multi-stage optimization pipelines as a promising direction for future research.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 2400 },
+      "children": ["node_024", "node_026"],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "result",
+      "title": "H2O: 최대 5–10× 메모리 절감, 29× throughput",
+      "content": "H2O(Heavy-Hitter Oracle)는 디코딩 중 빈 캐시 슬롯이 없으면 누적 attention score가 가장 낮은 토큰을 그리디하게 버리는 정책이다. 최근 토큰과 heavy-hitter(누적 attention 상위) 토큰의 균형을 유지해서 고정 캐시 크기를 지킨다. Table 6 기준 최대 5–10× 메모리 절감, 최대 29× throughput 개선, FlexGen 대비 지연시간 1.9× 이하를 달성하지만, accumulated-attention bias와 heavy-hitter를 잘못 버릴 위험이 트레이드오프다.",
+      "original": {
+        "text": "The researchers used a greedy algorithm to manage a fixed cache size budget. The algorithm starts with an empty cache. For each new token, if the cache has space, the token will be added to the cache. Otherwise, the system computes the accumulated attention scores for each token in the cache, including the new token. The token with the lowest score will be discarded to maintain the cache size.",
+        "location": "§3.1, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 150 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "result",
+      "title": "SnapKV: 8.2× 메모리 효율, 3.6× 생성 속도",
+      "content": "SnapKV는 prefill 직후 observation window(입력 끝의 최근 구간)에서 voting으로 중요 토큰을 뽑고, 1D pooling으로 뽑힌 토큰 주변 컨텍스트까지 함께 보존해 문맥 일관성을 지킨다. Table 6 기준 8.2× 메모리 효율, 3.6× 생성 속도 향상을 baseline 대비 비슷한 정확도로 달성하지만, prefill 자체는 최적화하지 못하고 모델 고유의 context 한계를 늘릴 수는 없다.",
+      "original": {
+        "text": "SnapKV applies a voting mechanism within the observation window to identify the most important previous tokens... SnapKV employs 1D pooling to cluster nearby important tokens to \"retain the features surrounding the selected attention features\".",
+        "location": "§3.1, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "result",
+      "title": "Ada-KV: 헤드별 적응적 budget 할당, 4× 캐시 절감",
+      "content": "기존 eviction 기법 대부분은 모든 attention head에 동일한 고정 예산을 배분하는데, Ada-KV는 head마다 attention 분포가 다르다는 점(sparse head vs dispersed head)에 착안해 eviction loss의 상한을 이론적으로 유도하고 이를 최소화하도록 head별로 예산을 재배분한다. SnapKV 같은 기존 기법 위에 plug-and-play로 얹을 수 있다. Table 6 기준 4× 캐시 절감, SnapKV와 비슷한 디코딩 지연시간, 오히려 품질이 약 5% 개선되지만, 할당은 레이어 내부에서만 이뤄지고 모델 전체(레이어 간)로는 확장되지 않는다.",
+      "original": {
+        "text": "The core idea of this Ada-KV approach is to minimize the eviction loss by reallocating budget from \"attention-sparse heads\" (where weights are concentrated on few elements) to \"attention-dispersed heads\" (with widespread concentration patterns).",
+        "location": "§3.1, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 450 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "result",
+      "title": "KIVI: 2.6× 메모리, 2.35–3.47× throughput, <2% 정확도 손실",
+      "content": "KIVI는 key는 per-channel(채널마다 값의 크기 분포가 크게 다르므로), value는 per-token으로 비대칭 양자화하고, 최근 토큰(residual)은 압축 없이 full precision으로 남겨 둔다. group(예: 32 토큰)이 다 차면 residual을 그룹에 합쳐 재양자화한다. Table 6 기준 2.6× peak 메모리 절감, 2.35–3.47× throughput, 대부분 모델에서 2% 미만 정확도 하락이지만, KV head가 하나뿐인 모델은 정확도 유지를 위해 4-bit이 필요할 수 있고 초기 quantization overhead가 있다.",
+      "original": {
+        "text": "for key cache, \"there are a few fixed channels whose magnitudes are very large\"; whereas for value cache, \"there is no obvious outlier pattern\".",
+        "location": "§3.2, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "result",
+      "title": "KVQuant: 3.7–6.9× 메모리, 1000만 토큰까지, <0.1 perplexity 저하",
+      "content": "KVQuant는 per-channel key quantization, pre-RoPE quantization(RoPE 적용 전에 양자화해 회전이 만드는 quantization 어려움을 피함), sensitivity-weighted non-uniform quantization(값 분포에 맞춰 양자화 레벨을 배치), per-vector dense-and-sparse(상위 약 1% outlier는 별도 fp16 보존), attention-sink-aware quantization(첫 토큰은 항상 full fp16)까지 결합한다. Table 6 기준 3.7–6.9× 메모리 절감, 최대 약 1.7× speedup, 3-bit 양자화에서도 0.1 미만의 perplexity 저하로 최대 1000만 토큰 컨텍스트까지 겨냥하지만, 학습 단계의 long-context 대응과 더 복잡해진 dequantization 과정이 트레이드오프다.",
+      "original": {
+        "text": "Ultra-low-bit quantization is taken further in KVQuant [20], which integrates per-channel quantization, pre-RoPE processing, non-uniform quantization, and outlier preservation to enable LLM inference with context lengths up to 10 million tokens.",
+        "location": "§3.2, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 750 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "result",
+      "title": "PALU: SVD 저차원 압축, ~50% 절감, 최대 2.91× speedup",
+      "content": "PALU는 projection weight matrix W(예: 4096×128)를 SVD로 두 개의 작은 행렬 A(4096×r)와 B(r×128)로 분해해서(r<128, 예 32), 원본 KV 대신 저차원 latent H(=X·A, 크기 r)만 캐싱한다. 복원이 필요할 때만 H·B로 재구성한다. Matrix Fusion으로 B를 기존 weight에 미리 융합해 런타임 오버헤드를 줄이지만, RoPE가 적용되는 key는 fusion이 불가능해 별도의 커스텀 GPU 커널로 처리하고, Group-Head Low-Rank Decomposition(G-LRD)으로 여러 head를 묶어 정확도-비용을 절충한다. Table 6 기준 약 50% KV 압축, RoPE 조합 시 최대 2.91× speedup(quantization과 결합), 하지만 특히 key 재구성 오버헤드가 트레이드오프다.",
+      "original": {
+        "text": "PALU [19], each projection matrix W for both keys and values are decomposed into two smaller matrices A and B Via Singular Value Decomposition (SVD), such that W ≈ A × B.",
+        "location": "§3.2, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "method",
+      "title": "PagedAttention(vLLM): OS 가상메모리 페이징을 KV cache에 이식",
+      "content": "PagedAttention은 KV cache를 고정 크기 block(페이지)으로 나누고, 물리적으로 연속 저장하지 않은 채 block table로 논리-물리 매핑을 관리한다 — attention 계산 시 필요한 block만 block-by-block으로 가져온다. 여러 시퀀스가 같은 prompt를 공유하는 parallel sampling 상황에서 block을 물리적으로 공유하고, 수정이 필요할 때만 copy-on-write로 해당 block만 복제해 메모리 오버헤드를 크게 줄인다. Table 6 기준 메모리 절감은 없지만(offload/paging 기반) 동일 지연시간 대비 2–4× 높은 throughput을 lossless하게 달성한다.",
+      "original": {
+        "text": "PagedAttention [22] is an attention algorithm \"inspired by the operating system's (OS) solution to memory fragmentation and sharing: virtual memory with paging\".",
+        "location": "§3.3, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1050 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "result",
+      "title": "INF2: Computational Storage Device로 attention을 근접 저장장치에서",
+      "content": "INF2(INFerence-INFinity)는 CPU/disk가 아니라 FPGA 등 가속기가 붙은 특수 SSD(Computational Storage Device, CSD)로 KV cache 자체를 저장하고, decoding 단계의 attention 계산을 GPU-SSD 간 데이터 왕복 없이 CSD에 부착된 가속기에서 근접 수행(Attention-Near Storage)한다. GPU는 그 사이 MLP 같은 나머지 연산을 계속 처리하고, 새로 생성된 KV는 RAM에 잠시 모였다가 배치로 SSD에 전송된다. Table 6 기준 3.46× throughput, KV I/O overhead 80% 이상 감소를 lossless로 달성하지만 CPU 조율 오버헤드와 CSD 하드웨어가 필요하다는 게 제약이다.",
+      "original": {
+        "text": "Its key mechanism is to offload attention computation to accelerators near storage. During the decoding phase, instead of transferring large KV caches back and forth between GPU and storage, INF2 stores the KV cache directly on the SSDs within the CSDs.",
+        "location": "§3.3, p.12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1200 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "result",
+      "title": "LayerKV: 레이어별 GPU/CPU 배치로 TTFT 최대 69× 개선",
+      "content": "LayerKV는 prefill 단계에서 일부 레이어의 KV만 GPU에 남기고 나머지는 CPU로 offload한다. 배치 기준은 'offload time(CPU→GPU 복귀 전송 시간) ≤ prefill time'을 만족하도록 GPU에 둘 최소 레이어 수를 고르는 것 — 예: 8-layer 모델에서 1,3,5,7번 레이어는 GPU에, 0,2,4,6번은 CPU로 보내 레이어 처리와 전송을 오버랩시켜 TTFT를 줄인다. SLO-aware 스케줄러로 TPOT(Time Per Output Token) 보장도 함께 관리한다. Table 6 기준 최대 69× TTFT 개선을 lossless로 달성하지만 고부하 디코딩 상황에서 약간의 throughput 트레이드오프가 있다.",
+      "original": {
+        "text": "Comprehensive evaluations on representative models, ranging from 7B to 70B parameters, across various GPU configurations, demonstrate that LayerKV improves TTFT latency up to 69×.",
+        "location": "§5.6, p.21"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1350 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "result",
+      "title": "KIMI Linear: KDA+softmax 3:1 hybrid, 최대 75% KV 절감·6× throughput",
+      "content": "KIMI Linear는 forget gate α(과거 메모리를 얼마나 유지할지)와 update rate β(새 정보를 얼마나 반영할지)로 메모리 상태 $$S_t = (I - \\beta_t k_t k_t^T) Diag(\\alpha_t) S_{t-1} + \\beta_t k_t v_t^T$$ 를 갱신하는 Kimi Delta Attention(KDA)을 도입하고, 이를 full softmax attention과 3:1 비율로 결합한 hybrid 아키텍처다 — 저자들이 실증적으로 찾은 '효율-정확도 최적 균형'이다. 토큰을 하나씩이 아니라 chunk 단위로 처리해 병렬성도 높인다. Table 6 기준 최대 75% KV 절감, 1M 컨텍스트에서 최대 6× throughput, full attention을 오히려 능가하는 성능을 보이지만, 최대 효율을 위해서는 전용 커널 구현에 의존한다.",
+      "original": {
+        "text": "KIMI Linear introduces Kimi Delta Attention (KDA), an expressive form of linear attention designed to improve the representational capacity of linear-time architectures. KDA is the central innovation of the work, and KIMI Linear integrates KDA and full softmax attention layers in a 3:1 hybrid ratio, which the authors identify as the optimal balance between efficiency and model accuracy.",
+        "location": "§3.4, p.15"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1550 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "result",
+      "title": "FlexGen: 단일 GPU에서 40–100× 최대 throughput",
+      "content": "FlexGen은 model weight, activation, KV cache를 GPU·CPU·disk에 걸쳐 배치하는 문제를 latency·bandwidth·메모리 제약을 반영한 cost model로 세워 선형계획법(linear programming)으로 최적 배치 계획을 찾는다. 여기에 weight와 KV cache 모두에 group-wise 4-bit quantization을 적용해 메모리를 더 줄이고, zig-zag block scheduling(여러 배치를 한 레이어씩 처리하고 다음 레이어로 넘어가는 방식)으로 GPU에 이미 올라온 weight를 최대한 재사용한다. Table 6 기준 최대 10× 메모리 절감, DeepSpeed Zero-Inference·HuggingFace Accelerate 대비 40–100× 최대 throughput을 4-bit에서 무시할 만한 정확도 손실로 달성하지만, 지연시간이 크고 PCIe/disk 대역폭이 KV retrieval의 병목이 되며 작은 배치엔 부적합하다.",
+      "original": {
+        "text": "It then solves a linear programming optimization problem to minimize the per-token generation time, yielding an execution plan that balances compute and I/O overhead.",
+        "location": "§3.5, p.16"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1650 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "result",
+      "title": "ShadowKV: pre-RoPE key 저차원 압축 + value CPU offload, 3.04× throughput",
+      "content": "ShadowKV는 prefill 시 pre-RoPE key 행렬에 SVD를 적용해 저차원 성분만 GPU에 남기고('pre-RoPE key는 low-rank 구조를 보인다'는 관찰), value는 저차원 구조가 없어 CPU로 offload한다. decoding 시에는 post-RoPE key를 청크로 나눠 청크별 landmark(평균) 벡터를 만들고, 현재 query와 landmark의 코사인 유사도로 어떤 청크의 value를 CPU에서 가져올지만 선택적으로 결정한다 — landmark와 유사도가 낮은 outlier 토큰은 GPU에 그대로 전체 정밀도로 보존한다. Table 6 기준 6× GPU 메모리 절감, 3.04× throughput 개선, sparse budget이 1.56% 미만으로 내려가기 전까지는 높은 정확도를 유지하지만 성능이 부분적으로 PCIe 대역폭에 좌우된다.",
+      "original": {
+        "text": "The key insight is that pre-RoPE keys exhibit strong low-rank structure, enabling effective compression without accuracy degradation... In contrast, value vectors do not exhibit low-rank properties and therefore cannot be compressed effectively.",
+        "location": "§3.5, p.17"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1800 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "result",
+      "title": "TailorKV: 레이어별 quantization/sparsity 혼합, 73.8% GPU 메모리 절감",
+      "content": "TailorKV는 prefill 단계에서 레이어마다 마지막 query가 모든 key에 대해 갖는 top-k attention score의 합을 계산해서, 합이 작으면(attention이 넓게 퍼짐) quantization-friendly로, 합이 크면(소수 토큰에 집중) sparsity-friendly로 레이어를 분류한다. quantization-friendly 레이어는 GPU에 압축된 채 남기고, sparsity-friendly 레이어는 CPU로 offload한 뒤 decoding 시 중요 토큰만 동적으로 fetch한다(double buffering으로 전송-연산 중첩). Table 6 기준 약 73.8% GPU 메모리 절감, 표준 offloading 대비 8–18× 속도, near-lossless 정확도를 달성하지만 prefill 단계의 분석 자체가 병목이 되고 시스템 복잡도가 높다.",
+      "original": {
+        "text": "Layer-specific strategies are combined in TailorKV [36]. TailorKV as shown in Fig. 14 is a hybrid KV-cache optimization framework that exploits a key empirical observation about transformer layers.",
+        "location": "§3.5, p.18"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1950 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "claim",
+      "title": "결합 전략이 보여주는 것: 개별 기법으로 못 얻는 효율",
+      "content": "FlexGen·Q-Hitter·ShadowKV·TailorKV처럼 여러 최적화를 섞은 combination 기법들은 그 자체로 '단일 기법 지배 불가' 결론의 가장 직접적 증거다. sparsity+quantization+compression+offloading을 함께 쓰면 극단적 자원 제약(단일 GPU, consumer-grade 하드웨어) 상황에서 개별 기법 어느 하나로도 얻을 수 없는 효율이 나온다는 것이 §6 결론의 핵심 근거로 제시된다.",
+      "original": {
+        "text": "Hybrid strategies such as FlexGen, Q-Hitter, ShadowKV, and TailorKV demonstrate that no single technique dominates across all scenarios. By mixing sparsity, quantization, compression, and offloading, these frameworks deliver efficiency unattainable by individual techniques, particularly under extreme resource constraints.",
+        "location": "§6, p.22"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 2250 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "gap",
+      "title": "Gap: Hybrid Memory Solution 섹션에 CXL·memory pooling·coherence 언급 全無",
+      "content": "§3.3 Hybrid Memory Solution은 명시적으로 'multi-tier storage architectures'(CPU DRAM, disk, specialized accelerator)로 문제를 프레이밍하고, 실제로 다루는 계층은 CPU DRAM(PagedAttention, InfiniGen, LayerKV, KVPR, Oneiros, CLO)과 near-storage CSD(INF2) 딱 둘뿐이다. §5.8 Hardware-Specific Constraints에서도 GH200의 고대역폭 NVLink/PCIe, CSD 하드웨어를 언급하지만 — 논문 전체(24페이지, References 36편 포함)를 통틀어 'CXL', 'memory pooling', 'disaggregated memory', 'cache coherence' 같은 용어는 단 한 번도 등장하지 않는다. 이는 이 서베이가 KV cache를 위한 memory tiering 문제를 순수 소프트웨어(스케줄러+prefetching+offload 정책) 레벨에서만 풀고 있다는 뜻이고, CXL 기반 memory-system 아키텍처 관점에서 보면 '왜 이 tiering을 하드웨어 coherence 프로토콜로 투명하게 처리하지 않는가'가 이 서베이가 다루지 않는, 그러나 정확히 내 연구 방향(memory disaggregation/coherence)이 답할 수 있는 질문이다.",
+      "original": {
+        "text": "Hybrid memory solutions address the limitations of GPU memory by leveraging multi-tier storage architectures to manage the KV cache efficiently. As context lengths grow, storing the entire KV cache on GPU becomes infeasible due to memory constraints and bandwidth bottlenecks. Hybrid approaches mitigate these challenges by offloading portions of the cache to slower but larger memory tiers, such as CPU memory, disk, or specialized accelerators.",
+        "location": "§3.3, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "question",
+      "title": "Adaptive multi-stage pipeline은 소프트웨어 스케줄러인가, HW/메모리 시스템 차원인가?",
+      "content": "논문은 결론에서 컨텍스트 길이·시스템 부하·하드웨어 제약에 맞춰 동적으로 전환하는 adaptive multi-stage optimization pipeline을 future work로 제안하지만, 이걸 구체적으로 어느 레벨에서 구현할지는 설명하지 않는다 — TailorKV·LayerKV 정도가 레이어별 정책 전환의 소프트웨어 스케줄러 사례를 보여줄 뿐이다. 이 적응(adaptive switching) 자체를 메모리 컨트롤러/coherence 프로토콜 레벨로 내려서 구현한다면(예: CXL 스위치가 tier 배치를 투명하게 결정), 소프트웨어 스케줄러 오버헤드와 CPU 조율 비용(INF2·KVPR가 공통으로 언급하는 트레이드오프)을 없앨 수 있는가?",
+      "original": {
+        "text": "Ultimately, the future of long-context inference lies in integrated, multi-stage KV optimization pipelines that adapt dynamically to context length, system load, and hardware constraints.",
+        "location": "§6, p.22"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 2400 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "reference",
+      "title": "핵심 참고문헌: PagedAttention/vLLM — hybrid memory 계열의 공통 토대",
+      "content": "이 서베이가 다루는 hybrid memory 기법 대부분(LayerKV, KVPR, Oneiros, CLO 등)은 PagedAttention/vLLM의 block 기반 KV 관리 아이디어를 전제하거나 그 위에서 확장한다. CXL 연구 맥락에서 이 논문을 다시 읽을 가치가 있는 이유: PagedAttention의 'OS 가상메모리에서 영감을 받은 논리-물리 매핑'이라는 프레이밍이, CXL의 memory pooling/tiering이 하드웨어 레벨에서 하려는 것과 거의 동형(isomorphic) 문제라서다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 750 },
+      "children": [],
+      "links": [
+        { "type": "url", "target": "https://arxiv.org/abs/2309.06180", "label": "PagedAttention (vLLM) arXiv" },
+        { "type": "url", "target": "https://arxiv.org/abs/2502.09921", "label": "INF2 arXiv" }
+      ]
+    },
+    {
+      "id": "node_028",
+      "template": "memo",
+      "title": "내 연구방향과의 연결: 소프트웨어 tiering vs CXL 하드웨어 tiering",
+      "content": "이 서베이의 hybrid memory 분류(§3.3)는 결국 'GPU 메모리가 부족하니 더 크고 느린 계층으로 데이터를 옮긴다'는 문제를, 매번 애플리케이션(스케줄러·prefetcher)이 직접 어떤 KV block을 언제 어디로 옮길지 결정하는 방식으로 풀고 있다(PagedAttention의 block table, InfiniGen/CLO의 predictive prefetching, LayerKV의 SLO-aware 레이어 배치). 내가 보고 있는 CXL memory pooling/disaggregation 방향에서는 이런 tier 간 데이터 이동과 coherence 유지를 하드웨어(CXL switch, coherence protocol)가 투명하게 대신 처리한다 — 즉 이 서베이가 다루는 hybrid 기법 전부가 소프트웨어로 흉내 내고 있는 문제를, CXL이 시스템 레벨에서 어떻게 다르게(혹은 더 잘) 풀 수 있는지가 이 논문과 내 연구 사이의 가장 구체적인 접점이다. 특히 INF2·KVPR가 공통으로 언급하는 'CPU 조율 오버헤드'는 coherence protocol이 하드웨어에서 해소할 수 있는 종류의 비용으로 보인다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1050 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+    { "id": "edge_005", "source": "node_005", "target": "node_006", "type": "arrow", "label": "" },
+    { "id": "edge_006", "source": "node_006", "target": "node_007", "type": "arrow", "label": "" },
+    { "id": "edge_007", "source": "node_007", "target": "node_008", "type": "arrow", "label": "" },
+    { "id": "edge_008", "source": "node_008", "target": "node_009", "type": "arrow", "label": "" },
+    { "id": "edge_009", "source": "node_002", "target": "node_011", "type": "line", "label": "" },
+    { "id": "edge_010", "source": "node_002", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_011", "source": "node_002", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_003", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_003", "target": "node_015", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_003", "target": "node_016", "type": "line", "label": "" },
+    { "id": "edge_015", "source": "node_004", "target": "node_017", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_004", "target": "node_018", "type": "line", "label": "" },
+    { "id": "edge_017", "source": "node_004", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_018", "source": "node_004", "target": "node_025", "type": "line", "label": "gap" },
+    { "id": "edge_019", "source": "node_004", "target": "node_027", "type": "line", "label": "참고" },
+    { "id": "edge_020", "source": "node_004", "target": "node_028", "type": "line", "label": "내 연구" },
+    { "id": "edge_021", "source": "node_005", "target": "node_020", "type": "line", "label": "" },
+    { "id": "edge_022", "source": "node_006", "target": "node_021", "type": "line", "label": "" },
+    { "id": "edge_023", "source": "node_006", "target": "node_022", "type": "line", "label": "" },
+    { "id": "edge_024", "source": "node_006", "target": "node_023", "type": "line", "label": "" },
+    { "id": "edge_025", "source": "node_009", "target": "node_024", "type": "line", "label": "" },
+    { "id": "edge_026", "source": "node_009", "target": "node_026", "type": "line", "label": "" },
+    { "id": "edge_027", "source": "node_025", "target": "node_028", "type": "line", "label": "연결" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

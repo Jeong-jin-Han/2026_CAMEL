@@ -1,0 +1,466 @@
+{
+  "version": "1.0.0",
+  "title": "Demystifying Parallel and Distributed Deep Learning: An In-Depth Concurrency Analysis",
+  "created": "2026-07-06T06:09:46.000Z",
+  "modified": "2026-07-06T06:09:46.000Z",
+  "source": {
+    "pdf": "Demystifying Parallel and Distributed Deep Learning - An In-Depth Concurrency Analysis.pdf",
+    "authors": "Tal Ben-Nun, Torsten Hoefler (ETH Zurich)",
+    "venue": "ACM Computing Surveys (CSUR), 2019",
+    "doi": "arXiv:1802.09941",
+    "pages": 47
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic", "color": "#4B8BBE", "icon": "file-text",   "shape": "sharp" },
+    "method":     { "label": "Method",     "color": "#5C9E6E", "icon": "cpu",         "shape": "sharp" },
+    "result":     { "label": "Result",     "color": "#9B59B6", "icon": "bar-chart-2", "shape": "sharp" },
+    "claim":      { "label": "Claim",      "color": "#E74C3C", "icon": "alert-circle","shape": "sharp" },
+    "question":   { "label": "Question",   "color": "#E5A835", "icon": "help-circle", "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea", "color": "#1ABC9C", "icon": "lightbulb",   "shape": "rounded" },
+    "reference":  { "label": "Reference",  "color": "#95A5A6", "icon": "book-open",   "shape": "rounded" },
+    "memo":       { "label": "Memo",       "color": "#BDC3C7", "icon": "edit-3",      "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "서베이의 스코프: 세 층위로 본 DNN 병렬성",
+      "content": "이 논문은 240편의 관련 연구를 분석해서 딥러닝의 병렬성을 세 층위로 정리한다: (1) 단일 오퍼레이터(§4-5, convolution/FC/RNN 연산 자체를 어떻게 병렬화하는가), (2) 전체 네트워크 단위의 학습/추론(§6, data/model/pipeline/hybrid parallelism), (3) 분산 학습(§7, synchronization spectrum, parameter server vs decentralized, 압축, model consolidation, architecture search). 세 층위를 관통하는 공통 척도로 Work-Depth 모델(§2.5)을 사용해서, 서로 다른 병렬화 기법들의 concurrency를 정량적으로 비교한다.\n\n논문 자체가 강조하듯 스코프는 '병렬/분산' 그 자체이지 DNN 아키텍처나 최적화 이론이 아니다 — 관련 다른 서베이(DNN 자체, 하드웨어 아키텍처)와 상호보완적 위치에 있다고 명시한다.",
+      "original": {
+        "text": "In this survey, we describe the problem from a theoretical perspective, followed by approaches for its parallelization. We then review and model the different types of concurrency in DNNs: from the single operator, through parallelism in network inference and training, to distributed deep learning.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": ["node_024"],
+      "links": [
+        { "type": "pdf", "target": "./Demystifying Parallel and Distributed Deep Learning - An In-Depth Concurrency Analysis.pdf#page=1", "label": "원문 Abstract, p.1" }
+      ]
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "병렬 알고리즘 기초: DAG, Work-Depth, Allreduce 통신 하한",
+      "content": "모든 계산은 DAG(정점=연산, 간선=데이터 의존성)로 모델링된다. 그래프의 총 work $\\mathbf{W}$(정점 수)와 depth $\\mathbf{D}$(최장 경로 길이)로 계산 복잡도를 특징짓고, p개 프로세서에서의 실행시간은 $\\min\\{\\mathbf{W}/p, \\mathbf{D}\\} \\le T_p \\le O(\\mathbf{W}/p + \\mathbf{D})$로 유계다. 평균 병렬성은 $\\mathbf{W}/\\mathbf{D}$.\n\nDNN의 텐서 연산은 대부분 데이터-병렬적이고, summation(allreduce 등 reduction 연산)만 의존성을 만든다. 분산 환경에서 allreduce는 노드 간 대역폭이 로컬 메모리 대역폭보다 훨씬 낮기 때문에 가장 비용이 큰 연산으로 꼽힌다 — 단순화된 LogP 모델(point-to-point latency L, per-byte cost G, P개 머신)에서 tree 알고리즘의 통신시간은 $T_{tree} = 2\\log_2(P)(L+\\gamma m G)$이고, 중복 계산을 허용하지 않으면 이론적 하한은 더 강해진다.",
+      "original": {
+        "text": "In multi-machine environments, these tables are distributed across the machines which participate in the overall reduction operation. Due to the relatively low bandwidth between the machines (compared to local memory bandwidths), this operation is often most critical for distributed learning.",
+        "location": "§2.5, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": ["node_010", "node_011", "node_025"],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "효율성 트레이드오프: 미니배치 크기, 일반화 vs 활용률",
+      "content": "SGD를 minibatch 단위로 실행하면 병렬성이 생기지만, minibatch 크기는 그 자체로 최적화 대상이다. 너무 작으면(region A) 하드웨어 병렬성을 못 살리고, 너무 크면(region C) 일반화 성능이 떨어진다 — 이 사이 어딘가(region B)가 실무적 최적점이다. 대규모 minibatch(8k, 32k, 심지어 64k)를 정확도 손실 없이 쓰려는 시도들은 학습률 워밍업, 배치-크기 기반 gradient variance 제어, 적응적 minibatch 증가 등으로 이 상한을 밀어올릴 뿐, 상한 자체를 없애지는 못한다.",
+      "original": {
+        "text": "Overall, such works increase the upper bound on feasible minibatch sizes, but do not remove it.",
+        "location": "§3, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": ["node_012"],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "단일 오퍼레이터 수준 병렬성: Convolution·FC·RNN",
+      "content": "FC layer는 GEMM(행렬곱)으로 직접 매핑되어 CUBLAS/MKL 같은 라이브러리로 최적화된다. Convolution은 직접 계산(Direct), im2col(Toeplitz 행렬로 변환 후 GEMM), FFT(주파수 영역 원소곱), Winograd(최소 필터링, 작은 커널 전용) 네 가지 방법이 있고 커널·이미지 크기에 따라 최적 방법이 갈린다 — '만능 최선'은 없다. RNN(LSTM/GRU)은 게이트 연산들을 하나의 fused kernel로 묶고, 레이어 간에는 파이프라이닝으로 동시성을 확보한다.\n\ndata layout(NCHW vs CHWN) 선택만으로도 최대 27.9배 성능 차이가 보고되는 등, 저수준 구현 디테일이 이론적 Work-Depth로는 안 잡히는 실제 성능을 좌우한다는 점을 저자들은 반복해서 강조한다.",
+      "original": {
+        "text": "Table 6 lists the concurrency characteristics of the aforementioned convolution implementations, using the Work-Depth model. From the table, we can see that each method exhibits different behavior... This coincides with experimental results, which show that there is no \"one-size-fits-all\" convolution method.",
+        "location": "§5.3, p.17"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": ["node_013", "node_014"],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "전체 네트워크 병렬성: Data / Model / Pipeline / Hybrid",
+      "content": "Data parallelism은 미니배치를 프로세서에 나눠주고 gradient를 allreduce로 합친다 — 가장 널리 쓰이지만 Batch Normalization이 미니배치 전체에 걸친 동기화를 요구해 확장성 병목이 된다. Model parallelism은 뉴런·채널 차원으로 네트워크 자체를 쪼개 여러 프로세서에 배치 — 메모리는 아끼지만 레이어마다 통신이 필요하고, FC layer에서는 all-to-all 통신이 발생한다. Pipelining은 레이어 단위로 프로세서를 나눠 forward/backward/weight-update를 겹쳐 실행한다.\n\n세 방식은 상호 배타적이지 않다 — DistBelief/Project Adam 같은 실제 시스템은 data parallelism(모델 복제본 간) + model parallelism(레이어 내 뉴런 분할) + pipelining(레이어 간)을 동시에 조합하는 hybrid parallelism을 쓴다.",
+      "original": {
+        "text": "The combination of multiple parallelism schemes can overcome the drawbacks of each scheme. Below we overview successful instances of such hybrids.",
+        "location": "§6.4, p.22"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": ["node_015", "node_016"],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "main_topic",
+      "title": "분산 학습: Model Consistency 스펙트럼과 중앙화 방식",
+      "content": "분산 SGD에서 여러 training agent가 각자 파라미터 $w$의 사본을 들고 학습할 때, 모두가 항상 최신 $w$를 본다고 보장하면 'consistent'(synchronous), staleness를 허용하면 'inconsistent'(asynchronous, 대표적으로 HOGWILD)다. 스펙트럼 중간에 Stale-Synchronous Parallelism(SSP)이 있어 최대 staleness를 유계로 강제한다. 아키텍처 축으로는 parameter server(PS, 중앙집중) vs decentralized(allreduce 기반)로 나뉘며, PS는 fault tolerance·이질적 환경 대응에 유리하고 decentralized는 통신을 네트워크 전 경로에 분산시킬 수 있다.\n\n실무에서는 32-50개 노드까지는 synchronous가 잘 확장되고, 그 이상 규모나 이질적 환경에서는 asynchronous/SSP가 선호된다는 관찰을 제시한다.",
+      "original": {
+        "text": "In practical implementations, the prominently-used model consistency approaches are synchronous for up to 32–50 nodes, where the allreduce operation still scales nearly linearly; and asynchronous/SSP for larger clusters and heterogeneous environments",
+        "location": "§7.1, p.24"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1500 },
+      "children": ["node_017", "node_018", "node_022", "node_023"],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "main_topic",
+      "title": "통신량 줄이기: 압축과 Model Consolidation",
+      "content": "통신 비용을 줄이는 두 축: (1) 메시지 개수를 줄이기(§7.1의 model consistency 완화), (2) 메시지 크기를 줄이기 — quantization(32비트를 더 적은 비트로, stochastic rounding으로 기댓값 보존)과 sparsification(작은 gradient는 아예 안 보냄, top-k 선택)이 대표적. Model consolidation은 아예 매 스텝 동기화를 포기하고, 학습 후(또는 아주 드물게) 여러 모델을 합치는 방식 — ensemble, knowledge distillation, model averaging(EASGD 등)이 있다.\n\n이 스펙트럼(Fig 23)은 결국 §7.1의 model consistency 스펙트럼과 같은 축의 극단적 형태 — consolidation은 '동기화를 거의 하지 않는' 극단으로 볼 수 있다.",
+      "original": {
+        "text": "In this section, we discuss the far (inconsistent) end of the parameter consistency spectrum (shown in Fig. 23) in distributed deep learning. In such cases, parameter updates are highly infrequent (or nonexistent), and thus precautions must be taken with the received values.",
+        "location": "§7.4, p.28"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1800 },
+      "children": ["node_019", "node_020"],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "main_topic",
+      "title": "메타-최적화: 하이퍼파라미터 탐색과 Neural Architecture Search",
+      "content": "학습 자체가 볼록하지 않은 최적화 문제이므로, 남는 계산 자원을 하이퍼파라미터 탐색(learning rate, momentum, staleness 등)이나 아키텍처 탐색에 쓸 수 있다. Architecture search는 세 갈래다: Sequential Model-Based Optimization(SMBO, 예: DARTS의 미분가능한 bi-level 최적화), Reinforcement Learning(정확도를 보상으로 삼아 레이어 구성을 액션으로), Evolutionary Algorithms(유전 인코딩+tournament selection). 모듈·블록의 self-similarity를 활용하면 탐색 공간을 계층적으로 줄일 수 있다.\n\nRegularized Evolution(AmoebaNet)은 기존 수작업/RL 기반 탐색을 모두 능가하는 ImageNet 3.8% / CIFAR-10 2.13% 오차를 달성했다.",
+      "original": {
+        "text": "AmoebaNets outperform all existing methods, including manually engineered DNNs and RL-based searches, with 3.8% error for ImageNet and 2.13% error for CIFAR-10 (compared to 5.29% and 3.62% on the best instances of DenseNet, see Table 5).",
+        "location": "§7.5.3, p.32"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 2100 },
+      "children": ["node_021"],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "main_topic",
+      "title": "결론: 컴파일러 최적화, 압축, 적응형 분산 시스템으로",
+      "content": "저자들의 마무리 진단: 단일 오퍼레이터 최적화는 이미 고도로 성숙했고(§5), 현재 연구는 레이어-간·전체-DNN 최적화(TensorFlow XLA, TVM, Tensor Comprehensions 같은 컴파일러가 그래프 전체를 fusion 등으로 변환, 최대 4배 속도향상)로 옮겨가고 있다. 모바일·엣지 배포를 위한 post-training compression도 계속 중요해질 것. 분산 학습 기법들은 표준 프로그래밍 인터페이스로 수렴 중이며, 클라우드의 elastic 노드 스케줄링과 진화적 최적화가 결합해 '적응적이고 financially-viable한' 최적화로 이어질 것으로 전망한다.\n\n마지막으로, 현재 컴퓨터 비전 SOTA(AmoebaNet)가 이미 사람이 아니라 자동화된 architecture search의 산물이라는 사실을 들어, 수작업 튜닝이 점점 obsolete해질 것이라 전망하며 글을 맺는다.",
+      "original": {
+        "text": "The world of deep learning is brimming with concurrency. Nearly every aspect of training, from the computation of a convolution to the meta-optimization of DNN architectures, is inherently parallel.",
+        "location": "§8, p.32"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 2400 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "method",
+      "title": "DAG 실행시간의 이론적 상·하한",
+      "content": "프로세서가 1개면 $T_1=\\mathbf{W}$, 무한히 많으면 $T_\\infty=\\mathbf{D}$. 이 두 극단을 잇는 부등식이 실제 p개 프로세서에서의 실행시간을 위아래로 조인다 — 어떤 연산이든 병렬화의 이론적 최선은 depth로, 최악은 순차 실행(work)으로 결정된다는 뜻. 이 논문 전체에서 각 병렬화 기법을 비교하는 공통 잣대로 쓰인다.",
+      "original": {
+        "text": "we can show that the execution time of such a DAG on p processors is bounded by: min{W/p, D} ≤ Tp ≤ O(W/p + D)",
+        "location": "§2.5, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 220 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "result",
+      "title": "Table 4: 연산 종류별 Work-Depth 점근 복잡도",
+      "content": "활성화함수는 $O(NCHW)$ work에 $O(1)$ depth로 완전 병렬. FC layer는 $\\nabla x$의 depth가 $O(\\log C_{in})$까지 커진다. Convolution(direct)은 work이 커널·채널·이미지 크기에 곱셈적으로 늘지만 depth는 로그 스케일을 유지한다. 공통 패턴: work은 다항적으로 크지만 depth는 최대 log 오더라서, 이론적으로는 모든 DNN 연산이 프로세서 수에 선형으로 확장 가능하다는 것이 이 표의 핵심 메시지.",
+      "original": {
+        "text": "Table 4 shows that the work (W) performed in each layer asymptotically dominates the maximal operation dependency path (D), which is at most logarithmic in the parameters. This result reaffirms the state of the practice, in which parallelism plays a major part in the feasibility of evaluating and training DNNs.",
+        "location": "§4.2, p.13"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_001",
+          "title": "Table 4 (발췌): Operator별 Work-Depth",
+          "content": "| Operator | Eval | Work (W) | Depth (D) |\n|---|---|---|---|\n| Activation | y | O(NCHW) | O(1) |\n| Fully Connected | ∇x | O(Cin·N·Cout) | O(log Cin) |\n| Convolution (Direct) | y | O(N·Cout·Cin·H'·W'·Ky·Kx) | O(log Kx+log Ky+log Cin) |\n| Pooling | y | O(NCHW) | O(log Kx+log Ky) |\n| Batch Normalization | y | O(NCHW) | O(log N) |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 380 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "result",
+      "title": "미니배치 크기의 이중효과: 수렴성 vs 활용률",
+      "content": "$f$의 gradient가 L-Lipschitz일 때 descent lemma를 SGD에 적용하면 큰 배치일수록 gradient variance 항이 커져서 수렴을 저해하는 부등식이 도출된다. 실제로 ResNet-50/ImageNet 실험(Fig 6b)에서도 minibatch가 대략 8k를 넘어서면 top-1 validation error가 눈에 띄게 나빠지는 것으로 보고된다.",
+      "original": {
+        "text": "This indicates that a large minibatch (with adjusted learning rate) can increase the convergence rate (negative term), but along with it the gradient variance and learning rate, which causes the last term to hinder convergence.",
+        "location": "§3, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "Convolution 4대 계산법의 Work-Depth 비교 (Table 6)",
+      "content": "Direct와 im2col은 이론적 Work-Depth가 동일하지만 im2col이 캐싱·메모리 재사용 덕에 실제로는 더 빠른 경우가 많다 — Work-Depth만으로는 절대 성능을 설명할 수 없다는 저자들의 핵심 지적이다. FFT는 큰 커널일수록 유리(GEMM 대비 최대 16배), Winograd는 3×3 같은 작은 커널 전용으로 곱셈 수를 줄인다.",
+      "original": {
+        "text": "Note that for a single minibatch, it is enough to transform w once and reuse results. Experimental results have shown that the larger the convolution kernels are, the more beneficial FFT becomes, yielding up to 16× performance over the GEMM method",
+        "location": "§5.3, p.16"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_002",
+          "title": "Table 6: Convolution 계산법별 Work-Depth",
+          "content": "| Method | Work (W) | Depth (D) |\n|---|---|---|\n| Direct | N·Cout·H'·W'·Cin·Ky·Kx | ⌈log2 Cin⌉+⌈log2 Ky⌉+⌈log2 Kx⌉ |\n| im2col | N·Cout·H'·W'·Cin·Ky·Kx | ⌈log2 Cin⌉+⌈log2 Ky⌉+⌈log2 Kx⌉ |\n| FFT | c·HWlog2(HW)·(Cout·Cin+N·Cin+N·Cout)+HWN·Cin·Cout | 2⌈log2 HW⌉+⌈log2 Cin⌉ |\n| Winograd (m×m tiles, r×r 커널) | α(r²+αr+2α²+αm+m²)+Cout·Cin·P | 2⌈log2 r⌉+4⌈log2 α⌉+⌈log2 Cin⌉ |",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 820 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "result",
+      "title": "Persistent RNN 최대 30배, data layout 전치로 최대 27.9배",
+      "content": "Persistent RNNs는 RNN 유닛의 weight를 GPU 레지스터에 캐싱하고 GPU 커널을 'persistent'하게(자체 전역 동기화) 실행해서, 작은 minibatch·긴 시퀀스 조건에서 기존 대비 최대 약 30배 속도를 낸다 — GPU당 여러 TFLOP/s를 GEMM 없이 달성. 별도로, 단순히 데이터 레이아웃을 NCHW에서 CHWN으로 전치하는 것만으로도 단일 오퍼레이터 기준 최대 27.9배, AlexNet 전체 기준 5.6배의 성능 향상이 보고된다.",
+      "original": {
+        "text": "The approach attains up to ∼30× speedup over previous state-of-the-art for low minibatch sizes, performing on the order of multiple TFLOP/s per-GPU, even though it does not execute GEMM operations",
+        "location": "§5.4, p.18"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 980 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "method",
+      "title": "BN의 동기화 병목과 Weight Normalization의 우회",
+      "content": "Batch Normalization은 미니배치 전체에 걸친 평균·분산을 계산해야 해서 완전한 동기화 지점이 된다 — data parallelism의 확장성을 해치는 대표 오퍼레이터. 실무에서는 최소 32개 샘플의 로컬 서브셋만으로 BN을 근사해 동기화를 로컬화한다. Weight Normalization은 가중치를 크기($g$)와 방향($v$)으로 재매개변수화해서 미니배치 간 의존성(depth) 자체를 $O(\\log N)$에서 $O(1)$로 없앤다.",
+      "original": {
+        "text": "WN decreases the depth (D) of the operator from O(log N) to O(1), removing inter-dependencies within the minibatch. According to the authors, WN reduces the need for BN, achieving comparable accuracy using a simplified version of BN (without variance correction).",
+        "location": "§6.1.1, p.19"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1120 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "result",
+      "title": "Hybrid Parallelism 실측 스피드업 (AlexNet 등)",
+      "content": "AlexNet을 4-GPU에서 data 또는 model parallelism 단독으로 매핑하면 최선이 약 2.2배. Convolution엔 data parallelism, FC엔 model parallelism을 섞으면 8-GPU에서 최대 6.25배(정확도 손실 <1%). 다른 hybrid 구현들도 4-GPU에서 3.1배를 재현했다. AMPNet은 fine-grained model parallelism을 비동기 스케줄링과 결합해 TensorFlow 대비 최대 3.94배.",
+      "original": {
+        "text": "One successful example applies a hybrid scheme applies data parallelism to the convolutional layer, and model parallelism to the fully connected part... Using this hybrid approach, a speedup of up to 6.25× can be achieved for 8 GPUs over one, with less than 1% accuracy loss",
+        "location": "§6.4, p.22"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1280 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "claim",
+      "title": "PS든 decentralized든 결국 통신 대역폭·지연이 확장성을 결정",
+      "content": "PS 방식이든 decentralized(allreduce) 방식이든, 어느 쪽을 쓸지는 네트워크 토폴로지·대역폭·통신 지연·업데이트 빈도·fault tolerance 요구에 달려있다고 저자들은 명시적으로 프레이밍한다. allreduce는 이론적으로 reduce-then-broadcast와 동일한 시간이 걸리고, PS는 통신을 특정 노드로 집중시키는 대신 fault tolerance와 이질성 대응력을 얻는다 — 이 절 전체가 '통신 자원을 어떻게 배분하느냐'의 트레이드오프로 요약된다.",
+      "original": {
+        "text": "The choice between designing a centralized and a decentralized network architecture for DNN training depends on multiple factors, including the network topology, bandwidth, communication latency, parameter update frequency, and desired fault tolerance.",
+        "location": "§7.2, p.24"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1420 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "method",
+      "title": "HOGWILD / SSP: staleness 유계 수렴 조건",
+      "content": "HOGWILD는 잠금 없이 공유 파라미터를 여러 agent가 동시에 읽고·덮어쓰며 gradient를 누적하는 비동기 SGD로, atomic write + Lipschitz 연속미분 + 강볼록성 + 유계 staleness라는 조건 하에 수렴이 증명되어 있다. SSP는 이 staleness에 명시적 상한(maximal staleness)을 두고, 그 한도에 도달한 노드가 있으면 전역 동기화를 강제하는 절충안이다 — 이질적·느린 노드(straggler) 환경에서 특히 유리하다고 보고된다.",
+      "original": {
+        "text": "Stale-Synchronous Parallelism (SSP) proposes a compromise between consistent and inconsistent models. In SSP (Fig. 20d), the gradient staleness is enforced to be bounded by performing a global synchronization step after a maximal staleness may have been reached by one of the nodes.",
+        "location": "§7.1, p.24"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1580 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "result",
+      "title": "압축 수치: sparsification 최대 54배, 압축비 최대 2871배",
+      "content": "최초의 gradient sparsification 기법은 정적 threshold 이하 값을 아예 전송하지 않는 방식으로 80노드에서 최대 54배 속도향상, 오차 증가는 최대 1.8%에 그쳤다. 32비트 고정소수점 양자화까지 포함하면 비-convolutional DNN에서 압축비가 846~2871배에 달한다. Sparse allreduce 프레임워크 SparCML은 top-k 인덱스 압축 + 양자화로 잘 튜닝된 CNTK 구현 대비 20배 이상의 속도향상을 보고한다.",
+      "original": {
+        "text": "The first application of gradient sparsification prunes gradient values using a static threshold, below which an element should not be sent. Results show up to 54× speedup for 80 nodes and even an up to 1.8% reduction in error.",
+        "location": "§7.3.2, p.27-28"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1720 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "method",
+      "title": "Knowledge Distillation과 EASGD",
+      "content": "Knowledge distillation은 2단계로 나눠 (1) 큰 네트워크 또는 앙상블을 정상적으로 학습, (2) 단일의 작은 네트워크가 그 출력을 모방하도록 학습 — 라벨 데이터 대신 앙상블 출력을 teacher로 쓰는 셈이다. 결과적으로 단일 모델이 10개 DNN 앙상블과 동등한 word error rate를 달성한 사례가 보고된다. EASGD는 각 agent의 파라미터 뷰와 PS의 평균 뷰 사이에 elastic force를 둬서, agent들이 평균에서 더 자유롭게 벗어나(탐색) 통신을 드물게 해도 되도록 만든다.",
+      "original": {
+        "text": "Results show that the second network is easier to train on the ensemble than on a labeled dataset, attaining the same word error rate as an ensemble of 10 DNNs.",
+        "location": "§7.4.1, p.29"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 1880 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "result",
+      "title": "ENAS: 파라미터 공유로 탐색 비용 1000배 절감",
+      "content": "ENAS는 탐색 공간에 속한 자식(child) 네트워크들이 파라미터를 공유하도록 해서, 매번 새로 처음부터 학습시키는 표준 NAS 대비 연산 비용을 세 자릿수(약 1000배) 줄인다. 이는 architecture search를 병렬성이 아니라 '재사용'으로 가속할 수 있음을 보여주는 사례.",
+      "original": {
+        "text": "ENAS, which significantly reduces computational time over NAS (by three orders of magnitude) by sharing parameters across children DNNs.",
+        "location": "§7.5.3, p.32"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 450, "y": 2100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "gap",
+      "title": "'통신 대역폭 병목' 프레임은 CXL/memory-fabric까지 안 간다",
+      "content": "이 논문 전체에서 분산학습의 성능은 결국 인터커넥트의 latency·bandwidth·message-rate 세 지표로 수렴한다(§2.3.2, §7.2). PS냐 decentralized냐의 선택도 '네트워크 토폴로지, 대역폭, 통신 지연, 파라미터 업데이트 빈도'에 달려있다고 명시한다. 그런데 이 논문(2018)은 이 통신을 시종일관 네트워크(Ethernet/InfiniBand/MPI) 층위에서만 다루고, 로컬 메모리 대역폭과 네트워크 대역폭 사이의 격차를 언급하면서도(§2.5, allreduce 하한 유도부) 그 격차 자체를 좁히는 방향(예: CXL 기반 memory-fabric으로 노드 간 인터커넥트를 메모리 계층에 편입시키는 접근)은 스코프 밖이다. 내 관심사인 memory disaggregation·coherence는 정확히 이 '네트워크 대역폭 ≪ 로컬 메모리 대역폭' 격차를 좁히려는 시도로 읽힌다 — 이 서베이는 그 격차의 존재는 명확히 보여주지만, 해법은 논하지 않는다.",
+      "original": {
+        "text": "Due to the relatively low bandwidth between the machines (compared to local memory bandwidths), this operation is often most critical for distributed learning.",
+        "location": "§2.5, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1420 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "question",
+      "title": "HOGWILD/SSP의 수렴 증명, 비볼록 DNN에도 정말 유효한가?",
+      "content": "HOGWILD류 비동기 SGD의 수렴 증명은 (a) atomic write, (b) Lipschitz 연속미분+강볼록성, (c) staleness 유계라는 세 조건에 의존한다(§7.1). 그런데 DNN의 손실함수는 일반적으로 비볼록(non-convex)이다. 저자들도 이 갭을 명시적으로 다루지 않고 '희소 학습 문제(sparse learning problems)'라는 조건부로 넘어간다 — 실제 대규모 비볼록 DNN 학습에서 이 수렴 보장들이 어느 정도까지 근사적으로 유효한지 궁금하다.",
+      "original": {
+        "text": "Based on foundations of distributed asynchronous SGD, the proofs impose that (a) write-accesses (adding gradients) are always atomic; (b) Lipschitz continuous differentiability and strong convexity on fw; and (c) that the staleness, i.e., the maximal number of iterations between reading w and writing ∇w, is bounded.",
+        "location": "§7.1, p.23"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1620 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "reference",
+      "title": "인접 서베이들: DNN 자체 / 스케일링 관점 / 하드웨어 아키텍처",
+      "content": "저자들이 관련 서베이로 명시적으로 언급한 것들: DNN 자체와 학습 알고리즘을 역사적 관점에서 다루는 서베이 3편, Bengio의 모델·최적화·데이터셋 관점 스케일링 서베이(비동기·희소 통신도 일부 다룸), DNN 연산자를 하드웨어에 매핑하는 아키텍처 서베이, FPGA 전용 서베이. 이 논문은 그중 '병렬·분산' 축만 전담해서 깊게 파는 위치에 있다고 스스로 자리매김한다.",
+      "original": {
+        "text": "Surveys of hardware architectures mostly focus on the computational side of training rather than the optimization. This includes a recent survey that reviews computation techniques for DNN operators (layer types) and mapping computations to hardware, exploiting inherent parallelism.",
+        "location": "§1.1, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 0 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "memo",
+      "title": "내 연구방법과의 연결: 공통 척도로 병렬화 기법 비교하기",
+      "content": "이 논문 전체가 하는 일은 결국 '각 병렬화 기법을 Work-Depth라는 공통 척도로 환산해서 비교 가능하게 만드는 것'이다. 내가 CXL·coherence 가설을 검증할 때도 비슷한 방법론이 쓸모 있을 것 같다 — HW 메커니즘(예: directory-based coherence vs snoop-based, 혹은 CXL의 다양한 캐싱 정책)마다 Work-Depth류 정량 모델을 세우면 '이 코히어런스 방식이 이 workload에 왜/언제 유리한가'를 풀 성능 시뮬레이션 없이도 1차로 걸러낼 수 있을 것.\n\n다만 이 논문의 W-D 모델은 순수 계산 DAG 기준이라, 메모리 계층·coherence protocol의 상태 전이(예: MESI 전이 비용) 같은 것까지 그대로 확장되지는 않을 것 같다 — 그 확장이 실제로 필요한지, 필요하다면 무엇을 새 축으로 추가해야 하는지가 내 질문으로 남는다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 300 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+    { "id": "edge_005", "source": "node_005", "target": "node_006", "type": "arrow", "label": "" },
+    { "id": "edge_006", "source": "node_006", "target": "node_007", "type": "arrow", "label": "" },
+    { "id": "edge_007", "source": "node_007", "target": "node_008", "type": "arrow", "label": "" },
+    { "id": "edge_008", "source": "node_008", "target": "node_009", "type": "arrow", "label": "" },
+    { "id": "edge_009", "source": "node_002", "target": "node_010", "type": "line", "label": "" },
+    { "id": "edge_010", "source": "node_002", "target": "node_011", "type": "line", "label": "" },
+    { "id": "edge_011", "source": "node_003", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_004", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_004", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_005", "target": "node_015", "type": "line", "label": "" },
+    { "id": "edge_015", "source": "node_005", "target": "node_016", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_006", "target": "node_017", "type": "line", "label": "" },
+    { "id": "edge_017", "source": "node_006", "target": "node_018", "type": "line", "label": "" },
+    { "id": "edge_018", "source": "node_007", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_019", "source": "node_007", "target": "node_020", "type": "line", "label": "" },
+    { "id": "edge_020", "source": "node_008", "target": "node_021", "type": "line", "label": "" },
+    { "id": "edge_021", "source": "node_006", "target": "node_022", "type": "line", "label": "gap" },
+    { "id": "edge_022", "source": "node_006", "target": "node_023", "type": "line", "label": "" },
+    { "id": "edge_023", "source": "node_001", "target": "node_024", "type": "line", "label": "참고" },
+    { "id": "edge_024", "source": "node_002", "target": "node_025", "type": "line", "label": "내 연구" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}
