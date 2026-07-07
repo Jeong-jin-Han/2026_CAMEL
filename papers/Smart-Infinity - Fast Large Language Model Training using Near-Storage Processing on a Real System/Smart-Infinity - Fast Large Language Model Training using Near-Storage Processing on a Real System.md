@@ -162,7 +162,7 @@ Smart-Infinity는 세 가지 구성요소를 둔다.
 관련: [[Sparse Checkpointing for Fast and Reliable MoE Training]], [[SkyByte]], [[XHarvest]]
 
 ## References worth following
-- **[96] ZeRO-Infinity** (Rajbhandari et al., SC 2021) — Smart-Infinity의 baseline storage-offloaded training framework.
+- **[96] ZeRO-Infinity** (Rajbhandari et al., SC 2021) — Smart-Infinity의 baseline storage-offloaded training framework. 📄 정독 요약: [ZeRO-Infinity 노트](<refs/ZeRO-Infinity - Breaking the GPU Memory Wall for Extreme Scale Deep Learning/ZeRO-Infinity - Breaking the GPU Memory Wall for Extreme Scale Deep Learning.md>) · 🕸️ [NodeGraph JSON](<refs/ZeRO-Infinity - Breaking the GPU Memory Wall for Extreme Scale Deep Learning/ZeRO-Infinity.nodegraph.json>)
 - **[95] ZeRO** (Rajbhandari et al., SC 2020) — optimizer state partitioning으로 메모리 최적화, 6M 분석 근거.
 - **[98] ZeRO-Offload** (Ren et al., USENIX ATC 2021) — host memory offloaded training.
 - **[58] OptimStore** (Kim et al., HPCA 2023) & **[57] GradPIM** (Kim et al., HPCA 2021) — DNN training용 near-data update 선행연구(시뮬레이터/dedicated die 가정).

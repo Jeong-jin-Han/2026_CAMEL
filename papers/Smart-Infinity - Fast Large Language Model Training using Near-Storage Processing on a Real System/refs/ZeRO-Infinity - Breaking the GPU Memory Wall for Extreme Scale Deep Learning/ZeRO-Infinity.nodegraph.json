@@ -1,0 +1,424 @@
+{
+  "version": "1.0.0",
+  "title": "ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning",
+  "created": "2026-07-07T00:00:00Z",
+  "modified": "2026-07-07T00:00:00Z",
+  "source": {
+    "pdf": "ZeRO-Infinity - Breaking the GPU Memory Wall for Extreme Scale Deep Learning.pdf",
+    "authors": "Samyam Rajbhandari, Olatunji Ruwase, Jeff Rasley, Shaden Smith, Yuxiong He (Microsoft)",
+    "venue": "SC '21 (Int'l Conf. for High Performance Computing, Networking, Storage and Analysis)",
+    "doi": "arXiv:2104.07857v1",
+    "pages": 14
+  },
+  "nodeTemplates": {
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#2E86AB",
+      "icon": "tool",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#1B998B",
+      "icon": "chart-bar",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#3A506B",
+      "icon": "quote",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Ext. reference",
+      "color": "#9C6ADE",
+      "icon": "external-link",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#E24B4A",
+      "icon": "flame",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#6B7280",
+      "icon": "note",
+      "shape": "rounded"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "문제 — GPU memory wall",
+      "content": "모델이 3년간 1000배 커지는 동안 GPU 메모리는 5배(16→80GB)뿐 → 극단 규모는 여러 GPU의 aggregate memory에 억지로 맞추는 3D parallelism(data+model+pipeline)이 필요해 복잡·비쌈. ZeRO-Infinity는 GPU+CPU+NVMe 이질적(heterogeneous) 메모리로 이 벽을 넘음 — model code 리팩터링 없이.",
+      "original": {
+        "text": "the largest dense deep learning models have grown over 1000x ... while the GPU memory has only grown by 5x (16 GB to 80 GB).",
+        "location": "§Abstract, p.1"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_002",
+        "node_010"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "result",
+      "title": "대역폭 요구 vs 단일 PCIe",
+      "content": "offload가 실용적이려면: parameter·gradient $>70$ GB/s, optimizer state $>1.5$ TB/s, activation $1$~$4$ GB/s. 그런데 단일 GPU↔CPU/NVMe PCIe는 $\\approx 12$ GB/s뿐 → 그대로는 턱없이 부족 → 병렬화(bandwidth-centric)가 필요.",
+      "original": {
+        "text": "the bandwidth must be greater than 70GB/s, 1.5TB/s, and 1-4 GB/s ... a meager 12 GB/s PCIe bandwidth from a single GPU to CPU memory or NVMe ... is simply not sufficient",
+        "location": "§5.2, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 440,
+        "y": 0
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "method",
+      "title": "ZeRO-3 배경 (모든 model state 분할)",
+      "content": "ZeRO는 data-parallel의 메모리 **중복 제거** 최적화. ZeRO-1/2/3 = optimizer state / +gradient / +parameter를 DP rank들에 분할(partition). ZeRO-Infinity는 **ZeRO-3 위에** 세워짐(모든 model state 분할).",
+      "original": {
+        "text": "ZeRO-Infinity is built on top of ZeRO-3 which partitions all model states to remove memory redundancy.",
+        "location": "§5.1.1, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 160
+      },
+      "children": [
+        "node_003"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "method",
+      "title": "Infinity offload engine",
+      "content": "ZeRO-3로 분할된 **모든 model state를 CPU 또는 NVMe로 offload**(또는 GPU 유지), 메모리 요구에 따라 배치. NVMe는 GPU 메모리의 50배↑ → 96노드(1536 GPU) NVMe에 100T 모델 state도 수용. activation checkpoint도 CPU로 내림.",
+      "original": {
+        "text": "the infinity offload engine which can offload all of the partitioned model states to CPU or NVMe memory, or keep them on the GPU based on the memory requirements.",
+        "location": "§5.1.1, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 320
+      },
+      "children": [
+        "node_004"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "method",
+      "title": "★ Bandwidth-centric partitioning",
+      "content": "기존 ZeRO/Offload는 파라미터를 한 DP가 소유·broadcast → PCIe 하나만 활성. ZeRO-Infinity는 파라미터를 **전 DP에 분할**하고 **allgather** → 모든 PCIe가 병렬로 각 $1/dp$ 전송 → CPU/NVMe→GPU 유효 대역폭이 $dp$(device 수)에 **선형 비례**.",
+      "original": {
+        "text": "all PCIe links are active in parallel, each bringing in 1/dp portion of the parameter ... the effective communication bandwidth between NVMe or CPU to the GPU, increases linearly with the dp degree.",
+        "location": "§6.1, p.6"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 480
+      },
+      "children": [
+        "node_005",
+        "node_011"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "claim",
+      "title": "broadcast(1 PCIe) vs allgather(전 PCIe)",
+      "content": "broadcast: 파라미터를 소유 GPU로 먼저 옮겨야 해서 **PCIe 하나만** 활성, 나머지 idle. allgather: 전 DP가 각자 자기 몫을 병렬로 → **전 PCIe 동시**. GPU-only면 data 이동량 같아 무의미하나, offload(NVMe/CPU) 상황에선 game changer.",
+      "original": {
+        "text": "only a single PCIe can be active for this process, while all the PCIe links connected to all the other GPUs are idle.",
+        "location": "§6.1, p.6"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 440,
+        "y": 480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "method",
+      "title": "Memory-centric tiling",
+      "content": "큰 operator(예: 대형 linear)를 **수학적으로 동등한 작은 tile들의 순차 실행**으로 바꿈. ZeRO-3의 fetch/release로 tile 하나씩 가져오고 놓음 → working memory가 tile 수에 반비례 감소 → **임의 크기 layer를 model parallelism 없이** 처리.",
+      "original": {
+        "text": "breaking down a large operator into smaller tiles that can be executed sequentially ... ZeRO-Infinity can support operators of arbitrary sizes, without relying on model parallelism",
+        "location": "§5.1.3, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 640
+      },
+      "children": [
+        "node_006",
+        "node_012"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "memo",
+      "title": "\"block 어떻게 쪼개나\"의 답",
+      "content": "Smart-Infinity가 상술 안 한 'block 분할'의 답이 여기: **block = layer 단위**, 큰 layer는 memory-centric tiling으로 **tile로 더 쪼갬**. 크기는 working memory(GPU)에 맞춤. (Smart-Inf의 subgroup = 이 발상의 update-단계·FPGA DRAM 판)",
+      "original": {
+        "text": "",
+        "location": ""
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 440,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "method",
+      "title": "Overlap-centric (dynamic prefetcher)",
+      "content": "dynamic prefetcher가 연산 순서를 그때그때 추적 → i번째 실행 중 i+1/i+2/i+3에 필요한 **3단계 전송(NVMe→CPU, CPU→GPU, GPU→GPU)을 미리·병렬**로. backward는 gradient reduce-scatter/offload를 연산과 overlap. temporary buffer 재사용으로 fragmentation↓.",
+      "original": {
+        "text": "before executing the i operator, the prefetcher can invoke nc, cg, and gg-transfer for parameters required by i+3, i+2, and i+1 operators",
+        "location": "§6.2, p.6~7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 800
+      },
+      "children": [
+        "node_007"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "method",
+      "title": "Ease of use (리팩터링 불필요)",
+      "content": "**자동 data movement**: PyTorch submodule에 pre/post forward-backward **hook** → 쓰기 직전 allgather, 직후 partition/offload. **자동 model partitioning at init**: 모듈 생성자 wrap → 초기화 즉시 분할·offload, 전체 모델이 한 프로세스에 통째로 안 올라감 → 수동 리팩터링 불필요.",
+      "original": {
+        "text": "automated data movement to gather and partition parameters right before and after they are required ... automated model partitioning during initialization",
+        "location": "§5.3 / §7, p.7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 960
+      },
+      "children": [
+        "node_008"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "result",
+      "title": "Evaluation",
+      "content": "**32조 파라미터**(3D parallelism ~650B 대비 **50배**). 512 GPU 최대 20T at $34$~$49$ TFlops/GPU. 1T에서 64→512 GPU **superlinear**. 단일 노드(16 GPU)로 ≤100B를 $>40$ TFlops/GPU(GPT-3급 DGX-2 1대 fine-tuning=**민주화**). tiling으로 hidden 8K→**64K**. ZeRO-Offload 대비 64 GPU에서 **약 2배**.",
+      "original": {
+        "text": "ZeRO-Infinity trains models over 32 trillion parameters compared to about 650B parameters with 3D parallelism ... a leap of 50x",
+        "location": "§8.2, p.8"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1120
+      },
+      "children": [
+        "node_009"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "claim",
+      "title": "결론 & Smart-Infinity 연결",
+      "content": "이질적 메모리(GPU+CPU+NVMe)로 memory wall 초월, 리팩터링 없이 규모·민주화. **★ 단 update는 여전히 host CPU**(NVMe→CPU로 올려 처리). Smart-Infinity가 이 update를 **CSD FPGA로** 옮겨 그 traffic을 제거. bandwidth-centric partitioning($dp$ 비례) ↔ Smart-Inf aggregate internal bandwidth(CSD 수 비례) = **같은 발상**.",
+      "original": {
+        "text": "",
+        "location": "(종합, §9)"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1280
+      },
+      "children": [
+        "node_013"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "memo",
+      "title": "내 연구 연결 (CXL/disaggregation)",
+      "content": "bandwidth-centric partitioning의 '대역폭이 device 수에 비례'는 CXL/disaggregation의 '**per-device path 병렬 합산**'과 대응. shared fabric(고정) vs per-device path(확장) 구도 = 내 memory-system 연구의 핵심 축. Smart-Inf는 그 확장을 CSD 내부 P2P로 실현.",
+      "original": {
+        "text": "",
+        "location": ""
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 440,
+        "y": 1280
+      },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_005",
+      "target": "node_006",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_006",
+      "source": "node_006",
+      "target": "node_007",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_007",
+      "source": "node_007",
+      "target": "node_008",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_008",
+      "source": "node_008",
+      "target": "node_009",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_009",
+      "source": "node_001",
+      "target": "node_010",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_010",
+      "source": "node_004",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_005",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_012",
+      "source": "node_009",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

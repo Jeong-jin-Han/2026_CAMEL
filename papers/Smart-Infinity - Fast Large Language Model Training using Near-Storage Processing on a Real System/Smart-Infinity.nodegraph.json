@@ -80,7 +80,8 @@
       "children": [
         "node_011",
         "node_012",
-        "node_051"
+        "node_051",
+        "node_078"
       ],
       "links": []
     },
@@ -167,14 +168,15 @@
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": {
-        "x": 0,
-        "y": 1200
+        "x": 6.105791252178361,
+        "y": 1199.1277441068316
       },
       "children": [
         "node_020",
         "node_021"
       ],
-      "links": []
+      "links": [],
+      "nodeNaturalY": 1199.1277441068316
     },
     {
       "id": "node_006",
@@ -217,7 +219,8 @@
       },
       "children": [
         "node_049",
-        "node_063"
+        "node_063",
+        "node_080"
       ],
       "links": [],
       "nodeWidth": 471
@@ -419,9 +422,9 @@
     },
     {
       "id": "node_012",
-      "template": "question",
+      "template": "reference",
       "title": "왜 storage-offloaded인가? (배경)",
-      "content": "GPU 메모리에 optimizer states까지 다 못 올리므로, ZeRO-Infinity류는 optimizer states·gradients를 host memory와 SSD로 내보내 GPU 용량 벽을 넘는다. FP16 파라미터 크기를 M이라 할 때 mixed precision Adam의 optimizer states(파라미터·momentum·variance FP32)가 6M을 차지하는 게 핵심 부담.",
+      "content": "GPU 메모리에 optimizer states까지 다 못 올리므로, ZeRO-Infinity류는 optimizer states·gradients를 host memory와 SSD로 내보내 GPU 용량 벽을 넘는다. FP16 파라미터 크기를 M이라 할 때 mixed precision Adam의 optimizer states(파라미터·momentum·variance FP32)가 6M을 차지하는 게 핵심 부담.\n\n**★ Fig 1 다시 읽기 — \"다 올라가 있는데 왜 SSD?\" (환경 세팅)**\n그림은 각 데이터의 *집(어느 tier에 사나)*과 dataflow를 보여주는 개념도지, 전부가 동시에 host에 올라간 스냅샷이 아니다.\n- **집(home tier)**: Param(FP16)·Act → **host memory**(forward/backward마다 자주 씀). Optimizer States(6M)·Grad → **SSD**(update 때만, iter당 1회).\n- **왜 SSD 필요**: 전체 학습 메모리 16 B/param 중 **optimizer state가 12 B(6M)로 지배**. 큰 모델은 이게 GPU VRAM은 물론 host DRAM도 초과 → \"Act·Param에 Optimizer까지 다 올리면 안 들어감\"(정진 가설 맞음). 그래서 가장 크고 가장 드물게 쓰는 optimizer state를 가장 크고 느린 tier(SSD)로 내림 = memory tiering(hot→빠른 tier, cold+big→느린 tier).\n- **\"일부씩 번갈아\"도 맞음**: 한 순간엔 현재 block/subgroup만 working memory에, 나머지는 SSD (§II-A: 모델을 block으로 쪼개 한 번에 하나씩). update도 subgroup씩 올려 갱신→되쓰기 반복.\n- **Fig 1(c)가 스트리밍을 그림으로 보여줌**: 아래 줄 SSD = Grad·Optimizer States의 집. 위로 올림(① ② 2M+6M) → CPU update(③) → 갱신 Param→host(④) → 갱신 Optimizer States를 SSD로 되내림(⑤ 6M). 위쪽 \"Optimizer States\" 상자는 update 동안의 **임시 복사본**(SSD에서 스트리밍)이지 상주 아님 → SSD↔host 왕복 화살표가 \"SSD가 집\"이라는 증거.\n- **정리**: 몇 %가 올라가나는 고정값이 아니라 **block/subgroup 크기(=가용 메모리에 맞춘 양)**만 그때그때. 모델이 GPU/host에 다 안 들어가서 SSD tier가 필요 = 이 논문의 capacity-bound 전제.\n\n**★★ \"다 못 올리는데 왜 6M이 PCIe를 지나나\" — capacity ≠ traffic**\n그림이 \"다 올라간 것\"처럼 보이는 건 conceptual diagram이라 **iteration당 총 이동량**을 그렸기 때문(시간적 chunking은 추상화). 두 축을 분리해야 함:\n- **capacity(순간 상주량)**: 한 번에 다 못 올림 → block/subgroup **chunk씩만** working memory에. (그래서 SSD tier 필요) — \"다 못 올린다\"는 이 축.\n- **traffic(iteration당 총 이동량)**: chunk로 나눠 옮겨도 **총합은 6M**. 모든 파라미터의 optimizer state가 iter당 정확히 1회 read+update+write → 다 합치면 6M(up)+6M(down)이 PCIe 통과. 그림의 \"6M\" = 이 traffic이지 residency가 아님.\n\n**\"PCIe가 감당할 게 6M이 아니지 않나?\" 답**: 순간엔 chunk만 지나감(맞음). 하지만 **iteration 전체로는 6M 전부가 PCIe를 통과**하고, chunking은 총량을 안 줄임. 병목 = 총 전송시간 = 총 볼륨 ÷ 대역폭이라, 6M을 1 burst로 보내든 chunk로 나누든 총 시간 동일($6M / \\text{BW}$) → **aggregate 6M이 병목의 정확한 수**. 그래서 Smart-Infinity가 update를 CSD로 옮겨 이 6M을 PCIe에서 제거(내부 P2P). 6M이 실제 traffic이 아니었다면 풀 병목도 없음.\n\n**한 줄**: \"다 못 올린다\"(capacity, 순간) ≠ \"6M이 안 지나간다\"(traffic, 총량). 다 못 올려 chunk로 옮기지만, iter당 6M 전부가 결국 PCIe를 통과 → 그림의 6M은 그 총 traffic.\n\n**그럼 한 번에 PCIe로 전달되는 양은 얼마? = block/subgroup 크기 (메모리에 맞춤)**\n순간 전송량 = 현재 block/subgroup 하나의 데이터. 그 크기 기준:\n- **baseline(host CPU update)**: block-wise 처리, §IV-B \"the number of parameters in each block is decided based on the estimated memory requirement\" → block 크기 = host 메모리 여유에 맞춤.\n- **SmartUpdate 내부(SSD↔FPGA)**: §V-A subgroup D = \"fits into the DRAM size of the accelerator\" → FPGA DRAM(4GB)에 맞춤. handler가 runtime에 buffer 크기 계산·pre-allocate.\n- **FPGA 내부 연산(DRAM→BRAM)**: chunk S = \"fits into an internal BRAM buffer\" → BRAM에 맞춤(더 작음).\n\n**⚠️ 논문은 구체 byte 수치 안 줌**: D·S는 \"DRAM/BRAM에 맞는 크기\"로만 정의, 고정값 명시 없음 → 정확값은 모델·config 의존. 상한만: 내부 전송 chunk ≤ FPGA DRAM 4GB, 그마저 param+momentum+variance + double-buffer로 나뉘어 각 변수 chunk는 4GB의 일부(수백 MB~1GB 수준 추정 = 내 추론, 논문 밖).\n\n**요점**: 한 번 전달량 = \"메모리에 맞는 chunk\" = **가변**. 하지만 iter당 총량은 chunk 개수와 무관하게 **6M 고정**(위 capacity ≠ traffic) — chunk를 크게/작게 잡아도 총 PCIe traffic은 6M 그대로.",
       "original": {
         "text": "The FP32 optimizer states occupy 6M capacity (model parameter, momentum, and variance in FP32) under mixed precision training, regarding the FP16 model parameter size as M.",
         "location": "§II-A, p.2"
@@ -435,7 +438,9 @@
       },
       "children": [
         "node_036",
-        "node_043"
+        "node_043",
+        "node_077",
+        "node_079"
       ],
       "links": []
     },
@@ -504,7 +509,7 @@
       "id": "node_037",
       "template": "question",
       "title": "Adam은 어떻게 작동하나 — 왜 momentum(1차) + variance(2차) 둘 다?",
-      "content": "Adam = Adaptive Moment Estimation. gradient의 지수이동평균 2개를 유지한다 — momentum m(1차 모멘트, '방향')과 variance v(2차 모멘트, '보폭').\n\n**모멘트 갱신 (step t)**\n\n$$m_t=\\beta_1\\,m_{t-1}+(1-\\beta_1)\\,g_t$$\n\n$$v_t=\\beta_2\\,v_{t-1}+(1-\\beta_2)\\,g_t^{2}$$\n\n**편향 보정**\n\n$$\\hat{m}_t=\\frac{m_t}{1-\\beta_1^{\\,t}}\\qquad \\hat{v}_t=\\frac{v_t}{1-\\beta_2^{\\,t}}$$\n\n**파라미터 갱신**\n\n$$\\theta_t=\\theta_{t-1}-\\eta\\,\\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t}+\\epsilon}$$\n\n★ variance가 필요한 이유: 위 식에서 2차 모멘트의 제곱근으로 나눠 **파라미터별 학습률**을 적응 조절한다 — gradient가 크고 노이즈 많으면 스텝↓, 작고 일정하면 스텝↑ (RMSProp 아이디어). m은 '어느 방향', v는 '얼마나 큰 보폭'.\n\n**상태 3종 → 6M**\n\n$$\\underbrace{\\theta}_{2M}+\\underbrace{m}_{2M}+\\underbrace{v}_{2M}=6M$$\n\n참고: SGD-momentum은 m만(상태 2종), AdaGrad/AdamW도 이 moving average의 변형 → Smart-Infinity의 AXPBY 유닛(general averaging, 「AXPBY 범용 유닛」)이 계수만 바꿔 공통 처리한다.",
+      "content": "Adam = Adaptive Moment Estimation. gradient의 지수이동평균 2개를 유지한다 — momentum m(1차 모멘트, '방향')과 variance v(2차 모멘트, '보폭').\n\n**모멘트 갱신 (step t)**\n\n$$m_t=\\beta_1\\,m_{t-1}+(1-\\beta_1)\\,g_t$$\n\n$$v_t=\\beta_2\\,v_{t-1}+(1-\\beta_2)\\,g_t^{2}$$\n\n**편향 보정**\n\n$$\\hat{m}_t=\\frac{m_t}{1-\\beta_1^{\\,t}}\\qquad \\hat{v}_t=\\frac{v_t}{1-\\beta_2^{\\,t}}$$\n\n**파라미터 갱신**\n\n$$\\theta_t=\\theta_{t-1}-\\eta\\,\\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t}+\\epsilon}$$\n\n★ variance가 필요한 이유: 위 식에서 2차 모멘트의 제곱근으로 나눠 **파라미터별 학습률**을 적응 조절한다 — gradient가 크고 노이즈 많으면 스텝↓, 작고 일정하면 스텝↑ (RMSProp 아이디어). m은 '어느 방향', v는 '얼마나 큰 보폭'.\n\n**상태 3종 → 6M**\n\n$$\\underbrace{\\theta}_{2M}+\\underbrace{m}_{2M}+\\underbrace{v}_{2M}=6M$$\n\n참고: SGD-momentum은 m만(상태 2종), AdaGrad/AdamW도 이 moving average의 변형 → Smart-Infinity의 AXPBY 유닛(general averaging, 「AXPBY 범용 유닛」)이 계수만 바꿔 공통 처리한다.\n\n**용어 정밀화 — \"variance\"는 사실 2nd (raw) moment**\n논문·통념이 $v$를 \"variance\"라 부르지만 엄밀히는 **2차 (uncentered) moment** $v \\approx \\mathbb{E}[g^2]$. 진짜 분산은 $\\mathrm{Var}[g] = \\mathbb{E}[g^2] - (\\mathbb{E}[g])^2$.\n- 둘이 같아지는 조건 = $\\mathbb{E}[g] = 0$ (gradient 평균 0) → zero-mean 가정에서만 정확한 loose 네이밍.\n- 단 Adam이 원하는 건 애초에 $\\mathbb{E}[g^2]$(gradient 크기 RMS)로 step 정규화: update $\\propto m/\\sqrt{v}$ 에서 $\\sqrt{v}$ = 전형적 gradient 크기. 그래서 분산이 아니라 raw 2차 moment를 일부러 씀.",
       "original": {
         "text": "We use Adam optimizer [59] as an example because it is the primary choice for modern LLM training.",
         "location": "§IV-A, p.4 (Adam 자체는 논문 밖 배경 — Kingma & Ba, ref [59])"
@@ -664,7 +669,7 @@
       "id": "node_046",
       "template": "question",
       "title": "갱신 파라미터는 왜 2M(FP32)? M이면 안 되나 + 누가 변환?",
-      "content": "SSD→host로 가는 갱신 파라미터가 왜 2M(FP32)이고 M(FP16)이 아닌가? 그리고 누가 변환하나?\n\n**사실 (논문)**\n- ④에서 전송되는 \"updated weight parameters (2M)\"는 **FP32 master weight** = single-precision 변수 1개(6M=FP32 3개 중 1개). Table I도 이 2M을 'optimizer states read'로 셈(§IV-A).\n\n**왜 2M(FP32)? GPU는 FP16(M)만 쓰는데?**\n- update는 FP32 master에 누적하므로 결과물도 **FP32(2M)**. FPGA는 이 FP32 master를 그대로 host로 보냄.\n- GPU용 **FP16(M)은 이 FP32 master를 down-cast**해서 얻는다:\n\n$$\\text{FP32 master}(2M)\\ \\xrightarrow{\\ \\text{down-cast}\\ }\\ \\text{FP16}(M)\\ \\text{(GPU forward용)}$$\n\n**질문의 방향이 반대**: 'CPU가 M을 2M으로 키우는' 게 아니라, CSD가 **2M(FP32)을 주고 host가 M(FP16)으로 줄이는(2M→M)** 것. 아무도 M→2M로 키우지 않는다.\n\n**★ 네 직관은 타당한 gap**: GPU가 어차피 FP16(M)만 쓰니, FPGA에서 미리 down-cast해 **M만 보내면 upstream 대역폭이 절반**. 논문은 FP32(2M)를 그대로 보내고 이 ④ 트래픽을 \"comparably small overhead\"라고만 할 뿐, **왜 M이 아닌 2M인지는 명시적으로 정당화하지 않음** → 최적화 여지(다음 노드: CXL 아이디어).",
+      "content": "SSD→host로 가는 갱신 파라미터가 왜 2M(FP32)이고 M(FP16)이 아닌가? 그리고 누가 변환하나?\n\n**사실 (논문)**\n- ④에서 전송되는 \"updated weight parameters (2M)\"는 **FP32 master weight** = single-precision 변수 1개(6M=FP32 3개 중 1개). Table I도 이 2M을 'optimizer states read'로 셈(§IV-A).\n\n**왜 2M(FP32)? GPU는 FP16(M)만 쓰는데?**\n- update는 FP32 master에 누적하므로 결과물도 **FP32(2M)**. FPGA는 이 FP32 master를 그대로 host로 보냄.\n- GPU용 **FP16(M)은 이 FP32 master를 down-cast**해서 얻는다:\n\n$$\\text{FP32 master}(2M)\\ \\xrightarrow{\\ \\text{down-cast}\\ }\\ \\text{FP16}(M)\\ \\text{(GPU forward용)}$$\n\n**질문의 방향이 반대**: 'CPU가 M을 2M으로 키우는' 게 아니라, CSD가 **2M(FP32)을 주고 host가 M(FP16)으로 줄이는(2M→M)** 것. 아무도 M→2M로 키우지 않는다.\n\n**★ 네 직관은 타당한 gap**: GPU가 어차피 FP16(M)만 쓰니, FPGA에서 미리 down-cast해 **M만 보내면 upstream 대역폭이 절반**. 논문은 FP32(2M)를 그대로 보내고 이 ④ 트래픽을 \"comparably small overhead\"라고만 할 뿐, **왜 M이 아닌 2M인지는 명시적으로 정당화하지 않음** → 최적화 여지(다음 노드: CXL 아이디어).\n\n**★ \"누가 변환하나\"가 논문에 어디까지 나오나 (정직 정리)**\n- **명시됨 — update로 갱신 파라미터를 만드는 주체**:\n  - baseline(Fig 1c, §II-A): \"the CPU replaces the mixed precision parameters with updated ones\" → **CPU**가 갱신된 mixed-precision(FP16) 파라미터를 만든다.\n  - SmartUpdate(§IV-A): \"the accelerators update the parameters using an update module\" → **CSD FPGA의 update module**이 갱신을 수행하고 갱신 weight(2M)를 host로 보냄.\n- **명시 안 됨 — FP16→FP32 master로 \"변환\"하는 단계 자체**: 논문은 FP32 master를 optimizer state로 *유지*한다고만 하고(mixed precision training [80] 인용), **최초 FP16→FP32 master를 누가/어떻게 만드는지는 상술하지 않음**(framework 동작).\n- 정리: 논문이 말하는 \"변환 주체\"는 *update 결과 파라미터를 만드는* 주체(baseline=CPU, SmartUpdate=FPGA update module)까지. FP16↔FP32 master 캐스팅의 세부 주체·시점은 명시 없음 → 그 부분은 framework(예: autocast/mixed-precision optimizer)에 위임된 것으로 봐야 함(논문 밖).",
       "original": {
         "text": "The updated weight parameters (2M) are transferred from SSD to the host memory. This traffic did not exist in the baseline, but it is comparably small overhead considering the size of the previous traffic volume was upload/offload optimizer states (6M, three single-precision variables per parameter).",
         "location": "§IV-A, p.4 (2M=single-precision 1개=FP32 master; Table I는 이를 opt-states read로 셈)"
@@ -1209,7 +1214,8 @@
         "y": 700
       },
       "children": [
-        "node_058"
+        "node_058",
+        "node_074"
       ],
       "links": []
     },
@@ -1299,7 +1305,7 @@
       "id": "node_062",
       "template": "question",
       "title": "Q. tasklet이 뭔가 + Fig 5: interconnect 2M인데 왜 내부선 Param·Mmt·Var 3개? + FPGA DRAM",
-      "content": "[[IMG:img_1783325761958.png:460x448]]\n\n**① tasklet = \"한 subgroup의 update 1사이클\"**\n모델을 가속기 DRAM 용량에 맞는 크기 D(=subgroup)로 쪼갠 뒤, subgroup 하나를 처리하는 단위. buffer 할당 → SSD에서 read(주황) → compute(파랑) → SSD로 writeback(초록). Fig 5(a)에서 tasklet들이 순차인 건 각 tasklet이 device memory 전체를 차지해서.\n\n**② interconnect엔 2M인데 왜 Fig 5는 Param·Mmt·Var 3행? — 두 경로 구분**\n- **system interconnect(SSD↔host, PCIe)**: 2M만 감 (6M optimizer state는 이 비싼 경로 안 탐).\n- **CSD 내부(SSD↔FPGA DRAM, P2P)**: update 연산엔 Adam상 param+momentum+variance = 6M 전부 필요 → 내부 대역폭으로 오감.\n- ⇒ Fig 5의 3행은 *interconnect 전송이 아니라 FPGA DRAM 내부 buffer 관리*. \"6M을 host로 전송할 필요 없다\"는 맞지만 연산·내부이동·device memory 관리엔 3개 다 필요.\n- handler 규칙: Param은 GPU가 다음 FW/BW에 당장 필요 → 우선 writeback(Thread 0). Momentum·Variance는 다음 iteration update에만 쓰임 → lazy writeback(Thread 1, 저우선). (Fig 5(b): Param 초록이 먼저, 화살표=Thread 0→1 handoff, Buffer Reuse)\n\n**③ internal data transfer = CSD 내부 이동**\nSSD(NAND) ↔ FPGA DRAM(↔ BRAM ↔ compute), 내부 PCIe switch P2P. host로 가는 external(system interconnect) 전송과 대비. handler가 이 내부 6M 이동을 관리해 재할당 회피·OOM 방지·compute와 overlap (→ 「OOM→handler 3가지 이득」).\n\n**④ FPGA DRAM 존재 + 설계 동기 = 용량(4GB), bandwidth 아님**\n- 있음: Kintex UltraScale+ KU15P에 DDR4 4GB DRAM(+522K LUT·984 BRAM·1968 DSP). subgroup D = \"DRAM에 들어가는 크기\".\n- handler 동기 = \"device memory consumption / OOM\" = **capacity(4GB) 한계** + 전송-연산 overlap. *DRAM 자체 bandwidth 때문이 아님.*\n- 주의: SSD write<read 대역폭은 handler가 아니라 SmartComp(gradient 압축) 동기.",
+      "content": "[[IMG:img_1783325761958.png:460x448]]\n\n**① tasklet = \"한 subgroup의 update 1사이클\"**\n모델을 가속기 DRAM 용량에 맞는 크기 D(=subgroup)로 쪼갠 뒤, subgroup 하나를 처리하는 단위. buffer 할당 → SSD에서 read(주황) → compute(파랑) → SSD로 writeback(초록). Fig 5(a)에서 tasklet들이 순차인 건 각 tasklet이 device memory 전체를 차지해서.\n\n**② interconnect엔 2M인데 왜 Fig 5는 Param·Mmt·Var 3행? — 두 경로 구분**\n- **system interconnect(SSD↔host, PCIe)**: 2M만 감 (6M optimizer state는 이 비싼 경로 안 탐).\n- **CSD 내부(SSD↔FPGA DRAM, P2P)**: update 연산엔 Adam상 param+momentum+variance = 6M 전부 필요 → 내부 대역폭으로 오감.\n- ⇒ Fig 5의 3행은 *interconnect 전송이 아니라 FPGA DRAM 내부 buffer 관리*. \"6M을 host로 전송할 필요 없다\"는 맞지만 연산·내부이동·device memory 관리엔 3개 다 필요.\n- handler 규칙: Param은 GPU가 다음 FW/BW에 당장 필요 → 우선 writeback(Thread 0). Momentum·Variance는 다음 iteration update에만 쓰임 → lazy writeback(Thread 1, 저우선). (Fig 5(b): Param 초록이 먼저, 화살표=Thread 0→1 handoff, Buffer Reuse)\n\n**③ internal data transfer = CSD 내부 이동**\nSSD(NAND) ↔ FPGA DRAM(↔ BRAM ↔ compute), 내부 PCIe switch P2P. host로 가는 external(system interconnect) 전송과 대비. handler가 이 내부 6M 이동을 관리해 재할당 회피·OOM 방지·compute와 overlap (→ 「OOM→handler 3가지 이득」).\n\n**④ FPGA DRAM 존재 + 설계 동기 = 용량(4GB), bandwidth 아님**\n- 있음: Kintex UltraScale+ KU15P에 DDR4 4GB DRAM(+522K LUT·984 BRAM·1968 DSP). subgroup D = \"DRAM에 들어가는 크기\".\n- handler 동기 = \"device memory consumption / OOM\" = **capacity(4GB) 한계** + 전송-연산 overlap. *DRAM 자체 bandwidth 때문이 아님.*\n- 주의: SSD write<read 대역폭은 handler가 아니라 SmartComp(gradient 압축) 동기.\n\n**buffer가 왜 필요한가 + 왜 재사용 (Fig 5)**\n- **buffer = FPGA DRAM 속 subgroup 작업 공간**: 한 subgroup(param·mmt·var)을 담아 load→compute→writeback하는 자리. 연산하려면 데이터가 메모리 주소에 올라와 있어야 하니 필수 → **Buffer Init = 그 자리 할당**.\n- **naive의 문제 (Fig 5a)**: subgroup마다 할당→load→compute→writeback→해제 **반복**(재할당 overhead) + 순차라 overlap 불가. overlap을 시도하면 다음 subgroup용 **두 번째 buffer**가 필요 → FPGA DRAM(4GB) 초과 → **OOM**.\n- **handler (Fig 5b) = pre-allocation + reuse**: 초기화 때 **가장 큰 subgroup 크기로 buffer를 한 번만 할당**하고, 모든 subgroup이 **그 buffer를 재사용(Buffer Reuse)**. → ① 재할당 overhead 제거, ② 미리 크게 잡아 OOM 없이 overlap, ③ param은 우선 writeback / mmt·var는 lazy로 같은 buffer 재사용.\n- **한 줄**: buffer는 원래 필요한 것(연산 자리). Fig 5의 기여 = 그 buffer를 **미리 크게 잡아 돌려써서** 재할당 overhead와 OOM을 동시에 해결.\n\n**★ buffer/subgroup 구조 정리 (Fig 5 오해 방지)**\n- **\"3\"은 subgroup이 아니라 변수 3개**: subgroup = 파라미터를 쪼갠 chunk(DRAM에 맞는 크기, 수십 개 = Tasklet 1,2,3…). 변수 3개 = param(master)·momentum·variance(Adam state). Fig 5 = 세로 3행(변수) × 가로(subgroup 시간축).\n- **변수별 buffer 분리 이유**: 우선순위 차등(param 급함→즉시 write, mom·var→defer). 한 buffer에 뭉치면 param만 골라 먼저 못 뺌.\n- **overlap엔 두 subgroup분 공간 필요**: 다음 걸 load하며 현재 걸 write하려면 순간적으로 2개분 데이터가 DRAM에 있어야 함 → naive는 현재 subgroup이 메모리 전체를 점유해 추가 공간이 없음 → OOM. param을 먼저 write해 자리를 비우면 다음 param 들어올 공간 확보.\n- **naive가 reuse 못한 이유**: subgroup마다 exact-fit으로 alloc→쓰고→free(매번 재init) → 다음용으로 안 남김. handler는 \"가장 큰 subgroup 크기로 한 번 pre-alloc → free 없이 재사용\" = 이 pre-alloc 아이디어가 reuse를 가능케 한 기여.\n- **용어**: buffer = FPGA DRAM에 할당된 작업 공간. buffer init = 그 DRAM 자리를 예약(reserve)해 빈 공간 보장. pre-alloc = 재사용 가능한 largest 자리를 미리 확보.\n\n**한 번에 전달/처리량 = working memory가 결정 (숫자 감, FPGA 4GB 기준)**\n한 번 처리량 = subgroup 크기 = FPGA DRAM(4GB)에 맞춤 = working memory가 결정. 숫자 대입(GPT-2 8.4B, 내 추정): $M = 16.8\\text{ GB}$, $6M = 100.8\\text{ GB}$. update엔 param당 grad+master+mom+var $= 4 \\times 4\\text{ B} = 16\\text{ B}$ → subgroup $\\approx 4\\text{GB} \\div 16\\text{ B} \\approx 250\\text{M}$ param $\\approx 3\\%$ (double-buffer면 32 B → 125M $\\approx 1.5\\%$). → 한 tasklet ≈ 모델의 1.5~3%, subgroup 수 ≈ 33~67. (논문은 \"DRAM에 맞는 크기\"로만 정의, %는 내 추정)\n\n**★ \"buffer\" 용어의 의미 + reuse ⊥ pipeline (독립)**\n- **buffer(완충기)** = 두 단계(생산자–소비자) 사이에 데이터를 임시로 담아 **decouple**하는 공간. 여기선 SSD I/O(load·write) ↔ compute 사이의 DRAM 자리. 한쪽이 채우는 동안 다른 쪽이 비우게 해 overlap을 가능케 하는 \"완충\" 역할이라 buffer라 부름 (단순 할당 공간이 아니라 단계 잇는 임시 저장소).\n- **reuse ⊥ pipeline (독립 축)**:\n  - **reuse without pipeline**: 순차여도 buffer 한 번 pre-alloc해 재사용 가능(재할당만 없앰) — 가능.\n  - **pipeline without reuse**: overlap하되 매 tasklet 새로 alloc/free 가능(재할당 overhead) — 가능.\n  - naive = 둘 다 안 함 / handler = 둘 다 함.\n- **왜 함께 썼나**: 개념상 독립이지만, 4GB DRAM 안에서 overlap하려면 매번 alloc/free는 fragmentation·OOM 위험 → largest pre-alloc + reuse가 pipeline을 \"4GB 내 실용적\"으로 만듦. 그래서 묶었을 뿐 원리상 분리 가능.\n- **\"3\"의 존재 vs 분절**: 3(param·mom·var)이 있는 건 Adam이 유지해서. 이 3을 엇갈리게(staggered) 처리하는 건 pipeline(+우선순위) 때문.",
       "original": {
         "text": "SmartUpdate also sets the size of a subgroup of model parameters according to the accelerator's device memory capacity, and each subgroup is processed with a single tasklet.",
         "location": "§IV-B, p.5"
@@ -1371,7 +1377,8 @@
         "y": 700
       },
       "children": [
-        "node_066"
+        "node_066",
+        "node_073"
       ],
       "links": []
     },
@@ -1514,6 +1521,401 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_073",
+      "template": "reference",
+      "title": "FW/BW dataflow — 왜 BW가 Param+Act로 Grad를 만드나 (chain rule 수식)",
+      "content": "**Forward (linear + activation layer)**\n$$z = W x, \\qquad a = \\sigma(z)$$\n- $x$ = 입력 activation, $W$ = weight(Param), $a$ = 출력 activation, $\\sigma$ = 활성화 함수.\n\n**Backward** — 내려온 오차 $\\delta = \\partial L / \\partial a$ 로부터 세 계산:\n\n① 비선형 통과 (여기만 \"미분\"):\n$$\\delta_z = \\delta \\odot \\sigma'(z)$$\n② weight gradient (= Grad, offload 대상):\n$$\\frac{\\partial L}{\\partial W} = \\delta_z\\, x^{\\top}$$\n(= 오차 × activation \"값\" $x$)\n③ 앞 layer로 전파:\n$$\\frac{\\partial L}{\\partial x} = W^{\\top} \\delta_z$$\n(= weight × 오차)\n\n**그래서 Fig 1의 BW가 Param + Act를 둘 다 받는 이유**\n- **Act(값 $x$)** → ②의 weight gradient에 필요 (forward 때 host에 저장한 것을 여기서 회수).\n- **Param($W$)** → ③의 전파에 필요 (chain을 앞 layer로 잇기).\n- \"미분\"이 붙는 activation은 ①의 활성화 **함수** $\\sigma'(z)$ 뿐. 저장된 Act는 값으로 쓰임.\n\n**offload 관점 (non-offload와 대조)**\n- non-offload: param·grad·optimizer(6M)·activation 전부 GPU VRAM.\n- offload: param·activation은 host memory, optimizer state·gradient는 SSD. activation을 host에 두는 이유 = backward ②에서 Grad 만들 때 재사용하기 때문.\n- 결과 Grad(2M)는 SSD로 offload → SmartUpdate가 CSD 내부에서 optimizer step.\n\n**CSD로 가는 gradient의 형태**\nCSD가 받는 건 loss(스칼라 1개)가 아니라 **파라미터와 같은 shape의 완성된 per-parameter gradient** ($\\partial L/\\partial W_i$ 각각). GPU backward가 chain rule로 전 layer gradient를 다 계산해 넘김 → CSD는 backprop 안 하고 받아서 element-wise update만.\n\n**backward→update 분리는 표준 (offload가 만든 게 아님)**\npure GPU 학습도 forward→backward→update 순서로 분리한다. 이유: (1) 소프트웨어 구조(loss.backward() → optimizer.step()), (2) correctness 제약 — gradient clipping은 전체 gradient의 norm을, loss scaling은 NaN/Inf를 **전체에서 먼저** 확인해야 update 가능 → 모든 gradient 나온 뒤 update. offload는 이 update 단계를 CPU/CSD로 **위치만** 옮김(순서·구조는 그대로). \"backward 중 즉시 update(fused)\"도 개념상 가능하나 위 제약·표준 때문에 보통 분리.",
+      "original": {
+        "text": "In the forward pass, GPU checkpoints the activation of block to host memory. In the backward pass, GPU loads mixed precision parameters and activations, and conducts backward processing whose resulting gradients are sent to the host memory.",
+        "location": "§II-A, Fig 1, p.2"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1687.816995656908,
+        "y": 987.4248434931394
+      },
+      "children": [],
+      "links": [],
+      "nodeNaturalY": 987.4248434931394
+    },
+    {
+      "id": "node_074",
+      "template": "question",
+      "title": "Q. 왜 update를 CPU로 옮겼나? (ZeRO-Offload) — swap이 아니라 compute placement",
+      "content": "**정진 자기교정 맞음**: ZeRO-Offload/Infinity는 \"VRAM swap을 DRAM→DRAM+SSD로 확장\"만이 아니라, **update 연산을 CPU로 옮긴** compute placement 결정이기도 함.\n\n**원래 update 위치** = pure GPU 학습에선 **GPU** (전부 VRAM, GPU가 optimizer step까지).\n\n**왜 CPU로? — 6M을 PCIe로 안 옮기려고** (개념 비교, 내 분석):\n- 순수 swap(update를 GPU가) 이면 매 iter마다 optimizer state를 GPU로 올렸다 내림: $$6M\\,(\\text{host}\\to\\text{GPU}) + 6M\\,(\\text{GPU}\\to\\text{host}) = 12M$$\n- CPU가 update 하면 6M은 host에 머물고 PCIe엔 gradient·param만: $$2M\\,(\\text{grad in}) + 2M\\,(\\text{param out}) = 4M$$\n- → 거대한 6M을 셔틀 안 해 PCIe 트래픽 급감.\n\n**왜 CPU가 감당 가능?**\nupdate(Adam)는 element-wise = 저연산·memory-bound(matmul 없음) → 강력 GPU 불필요. GPU는 compute-heavy forward/backward에 전념, CPU update는 그것과 overlap.\n\n**핵심 원리 = compute follows data**\n저연산 update를 대용량 optimizer state가 사는 곳(CPU)에서 수행 → 큰 데이터를 옮기지 말고 작은 연산을 데이터 옆으로.\n\n**계보 = update를 데이터에 점점 가까이**\nGPU update(all in VRAM) → CPU update(ZeRO-Offload, states in host) → CSD FPGA update(Smart-Infinity, states on SSD, P2P).\n\n**단 SSD 확장도 맞음(둘 다)**: ZeRO-Infinity = (a) 메모리 계층 SSD 확장(capacity) + (b) update를 CPU 배치. 남은 문제 = CPU update도 states를 SSD→host로 올려야 함 → 6M이 SSD↔host 통과 → 그게 Smart-Infinity가 없앤 병목.\n\n**update 위치 계보 (표)**\n| 방식 | forward/backward | update(optimizer step) | optimizer state 위치 |\n|---|---|---|---|\n| pure GPU (no offload) | GPU | **GPU** | GPU VRAM |\n| ZeRO-Offload (ATC'21) | GPU | **CPU** | host DRAM |\n| ZeRO-Infinity (baseline) | GPU | **CPU** | host DRAM + NVMe SSD |\n| Smart-Infinity | GPU | **CSD FPGA** | SSD (P2P, host 안 거침) |\n\n**왜 GPU 아니라 CPU가 이기나 — arithmetic intensity + 대역폭 계층**\n- update는 element-wise → 연산 밀도 $I = \\dfrac{\\text{FLOPs}}{\\text{bytes}}$ 가 낮음 → **memory-bandwidth-bound** (matmul은 compute-bound라 대조). bandwidth-bound 연산 속도 = \"데이터를 먹여주는 대역폭\"이 결정.\n\n| 경로 | 대역폭 (order of magnitude) |\n|---|---|\n| GPU HBM (VRAM 내부) | ~1–3 TB/s |\n| CPU DRAM (host 내부) | ~100 GB/s |\n| PCIe Gen3 x16 (GPU↔host) | ~16 GB/s |\n\n- GPU가 update → states가 VRAM에 없어 PCIe로 6M을 실어와야 함 → GPU의 TB/s HBM 무용지물.\n- CPU가 update → states가 host DRAM에 로컬 → PCIe 안 거침.\n- ⇒ 실제 비교 = GPU-over-PCIe($\\sim 16$ GB/s) vs CPU-local DRAM($\\sim 100$ GB/s) → **CPU 승**.\n- GPU 가속이 이기는 조건 = ① 연산이 compute-bound거나 ② 데이터가 이미 VRAM에 있을 때. update는 **둘 다 아님** → \"작은 연산을 데이터 옆으로\"가 이김. (Smart-Infinity는 states가 SSD에 있으니 같은 논리로 CSD FPGA)",
+      "original": {
+        "text": "the baseline updates parameters using the host CPU. The gradients and optimizer states should be uploaded from SSDs to conduct the update procedure with the CPU.",
+        "location": "§IV-A, p.4"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -960,
+        "y": 820
+      },
+      "children": [
+        "node_075"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_075",
+      "template": "reference",
+      "title": "배경 — FLOPs·연산밀도·Roofline·GPU 수치 원리 (약자·출처 포함)",
+      "content": "**약자 풀이**\n- **FLOP** = FLoating-point OPeration (부동소수점 연산 1회 — 덧셈·곱셈·나눗셈·제곱근 등)\n- **FLOPs** = FLOP 복수 = 연산 총 개수(일의 양) · **FLOP/s** (=FLOPS) = 초당 연산 수(속도) · **TFLOP/s** = Tera($10^{12}$) FLOP/s\n- **HBM** = High Bandwidth Memory (GPU에 붙은 초고대역폭 메모리) · **VRAM** = Video RAM · **DRAM** = Dynamic Random Access Memory (host)\n- **TB/s** = Tera($10^{12}$) Byte/s · **GB/s** = Giga($10^9$) Byte/s · **PCIe** = Peripheral Component Interconnect express · **A100** = NVIDIA Ampere 데이터센터 GPU\n\n**개념 — FLOP vs FLOP/s, 연산 밀도**\nFLOPs=\"일의 양\", FLOP/s=\"속도\"(다른 것). 연산 밀도(arithmetic intensity) = 옮긴 바이트당 연산 수 = 데이터 재사용도:\n$$I = \\frac{\\text{FLOPs}}{\\text{bytes}}$$\n$I$ 작음 = 조금 계산하고 또 읽어야 함 → 데이터 이동이 지배.\n\n**Roofline — 병목 판정**\n도달 성능 $= \\min(\\text{peak FLOP/s},\\ I \\times \\text{bandwidth})$, 경계 $I^{*} = \\dfrac{\\text{peak FLOP/s}}{\\text{peak bandwidth}}$.\n$I < I^{*}$ → memory-bound(대역폭 병목) · $I > I^{*}$ → compute-bound(연산 병목).\n\n**matmul vs Adam update**\n| 연산 | $I$ | 성질 |\n|---|---|---|\n| matmul ($N\\times N$) | $O(N)$ 큼 | compute-bound (재사용 많음) |\n| Adam (element-wise) | ~0.4 작음 | memory-bound (재사용 없음) |\n\nAdam은 파라미터마다 $g,m,v,w$ 읽고 $m,v,w$ 쓰는데 연산 몇 번뿐 → $I \\approx \\dfrac{\\sim 12}{\\sim 28} \\approx 0.4$. A100 $I^{*} \\approx \\dfrac{19.5\\text{ TFLOP/s}}{2\\text{ TB/s}} \\approx 10$ → $0.4 \\ll 10$ → 깊이 memory-bound → GPU FLOP/s 놀고 대역폭이 결정 → states 있는 곳(CPU/CSD)에서 하는 게 이김.\n\n**★ GPU의 이 수치는 무엇이 정하나 (원리)**\n- **peak FLOP/s** $= (\\text{cores}) \\times 2\\,(\\text{FMA}) \\times (\\text{clock})$. A100: $6912 \\times 2 \\times 1.41\\text{ GHz} \\approx 19.5$ TFLOP/s. 요인 = 코어 수 · FMA(곱셈+덧셈=1 cycle에 2 FLOP) · 클럭. Tensor Core는 matmul 전용 유닛이라 FP16 tensor면 ~312 TFLOP/s로 급등.\n- **용어 (PE·CUDA core·ALU)**: PE(Processing Element) = vendor 중립 \"연산 유닛\" 일반명. NVIDIA에선 CUDA core = FP32 ALU lane(1 FMA/cycle) → 셋은 같은 것의 다른 이름. peak FP32 FLOP/s는 주로 CUDA core 수 × 2 × clock로 결정(A100 = 6912 core). 단 matmul은 CUDA core가 아니라 Tensor Core가 담당해 훨씬 높음 → \"GPU FLOPs\"는 어떤 유닛 기준이냐에 따라 다름.\n- **peak bandwidth** $= \\dfrac{(\\text{bus width}) \\times (\\text{data rate})}{8}$. A100 HBM2e: $\\dfrac{5120\\text{ bit} \\times 3.2\\text{ Gbit/s}}{8} \\approx 2$ TB/s. 요인 = 버스 폭(핀 수) · 핀당 데이터율(메모리 클럭).\n- **왜 HBM ≫ DRAM ≫ PCIe (원리 = 폭 × 주파수)**: HBM은 수천-bit 초광폭 버스를 GPU 옆 on-package로 적층 → **폭**으로 이김(TB/s). host DRAM은 DDR 채널(채널당 64bit × 수 채널 = 수백 bit) → ~100 GB/s. PCIe는 serial 16 lane뿐 → 좁아 ~16 GB/s. → 물리적 **버스 폭·근접성**이 계층을 가름.\n- **연결**: Tensor Core로 FLOP/s를 올리면 $I^{*}$가 더 커져(~150) 더 많은 연산이 memory-bound가 됨 → GPU는 고밀도 matmul에 최적, element-wise update는 손해 → near-data(CPU/CSD)로 옮기는 근거.\n\n**수치 출처 (정직 표기)**: A100 19.5 TFLOP/s · 2 TB/s · 6912 core · 5120-bit = NVIDIA 공개 사양. Adam FLOPs·bytes(~12, ~28 B) = element-wise 연산·변수 개수로 내가 추정(정확값 아님, 감 잡기용). DRAM/PCIe = 대표적 order of magnitude(기기별 상이). PCIe Gen3 x16 유도는 「bandwidth 계산 완전 분해」.\n\n**★ Roofline 그래프 읽는 법 (직관)**\n[[IMG:img_1783397511777.png:480x282]]\n- **왜 $I$ = 재사용도**: 분모 bytes = 옮긴 데이터, 분자 FLOPs = 한 일 → 옮긴 1 byte당 연산 수 = 한 번 가져온 값을 몇 번 써먹나. matmul은 값 하나를 N번 재사용($I$ 큼), element-wise는 1번($I$ 작음).\n- **대각선(I/O bandwidth roof) = $I \\times \\text{BW}$**: bandwidth 고정이라 $I$ 커질수록 선형 상승(기울기 = BW). 같은 공급속도인데 byte당 일을 더 하니 총 FLOP/s↑. → bandwidth 고정 가정 때문에 I 따라 오름.\n- **수평선(computational roof) = peak FLOP/s = $(\\text{PE}) \\times (\\text{FLOP/cycle}) \\times (\\text{freq})$**: 데이터 무한 공급돼도 ALU가 한계. 못 넘는 이유 = PE 수·클럭 고정. 올리려면 PE↑·freq↑·Tensor Core.\n- **두 선의 교점** = ridge point $I^{*} = \\dfrac{\\text{peak}}{\\text{BW}}$. 왼쪽=memory-bound(대각선), 오른쪽=compute-bound(수평).\n- **실제 성능 = min(두 천장)**. A100(peak 19.5 TFLOP/s, BW 2 TB/s): Adam($I{=}0.4$) → $0.4{\\times}2{=}0.8$ vs 19.5 → **0.8 TFLOP/s**(peak의 ~4%, 96%는 데이터 대기). matmul($I{\\sim}100$) → 200 vs 19.5 → **19.5**(ALU saturate).\n- **peak FLOP/s를 보는 이유** = 메모리 천장($I\\times$BW)과 비교해 *어느 천장에 걸리는지* 판정하려고. update는 메모리 천장(0.8)에 걸려 peak(19.5)가 무의미 → GPU 밖(CPU/CSD)으로 옮기는 정당성.",
+      "original": {
+        "text": "(개념 설명 — FLOP/FLOP-s 구분, arithmetic intensity I=FLOPs/bytes, roofline model. 논문 원문 아님. 수치는 예시: A100 약 19.5 TFLOP/s FP32, HBM 약 2 TB/s.)",
+        "location": "— (배경, roofline model)"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -1425.3915694464126,
+        "y": 929.0621936930554
+      },
+      "children": [],
+      "links": [],
+      "nodeNaturalY": 929.0621936930554
+    },
+    {
+      "id": "node_077",
+      "template": "reference",
+      "title": "배경 — 논문 실험 환경(Table II) + 무엇이 어느 tier에 상주하나",
+      "content": "**실험 환경 (Table II)**\n- **GPU**: NVIDIA A5000(24GB, 기본) · A100(40GB) · A4000(16GB)\n- **CPU**: Xeon Gold 6342 (2×48C, 96T)\n- **host memory**: 32×32GB DDR4-3200 = **1 TB**\n- **SSD**: SAMSUNG SmartSSD 4TB × 최대 **10개** (내부 Kintex UltraScale+ KU15P FPGA, DDR4 **4GB**, PCIe Gen3 x4)\n- **PCIe 확장**: H3 Falcon 4109 (물리 슬롯 확장) · **SW**: Ubuntu 20.04 · PyTorch 1.12.1 · CUDA 11.6.2 · DeepSpeed 0.9.3 · Vitis/XRT 2023.1\n- **Model**: GPT-2(8.4B~33B) · BERT · BLOOM · ViT · **baseline** = DeepSpeed ZeRO-Infinity + SW RAID0, **batch size 4**(GPU 메모리 제한 상황 겨냥)\n\n**메모리 계층 크기 (§I)**\n논문 표현: \"capacities typically differ by orders of magnitude (∼80G, ∼2TB, ∼100TB for GPU memory, host memory, and storage)\" → GPU ~80GB → host ~2TB → storage ~100TB(각 tier 수십 배씩). 이 실험 실제값: GPU 24GB · host 1TB · SSD 4TB×10=40TB.\n\n**무엇이 어느 tier에 \"상주\"하나**\n- **GPU VRAM(24GB)**: 전체 모델 못 담음. 현재 block + activation working set만. 예: GPT-2 8.4B은 $16\\text{ B/param} \\times 8.4\\text{B} \\approx 134\\text{ GB} \\gg 24\\text{ GB}$ → 통째론 불가 → offload 필요.\n- **host DRAM(1TB)**: FP16 param + activation의 집.\n- **SSD(40TB)**: optimizer states(6M) + gradient의 집.\n\n**정리**: 이 setup은 **GPU 메모리 제한 regime(batch 4)**을 겨냥 → 모델을 GPU에 다 못 올리고 host+SSD로 확장. \"다 올라가는 것\"은 없고, GPU엔 현재 block만, 나머지는 host/SSD tier에 상주하며 block/subgroup씩 스트리밍. (33B은 $33\\text{B} \\times 16\\text{ B} = 528\\text{ GB}$로 host 1TB엔 들어가지만, storage-offloaded 학습이 연구 대상이라 optimizer state는 SSD로 offload.)",
+      "original": {
+        "text": "We use at most 10 SAMSUNG SmartSSD devices. Each SmartSSD has a 4TB NVMe SSD ... Kintex UltraScale+ KU15P FPGA ... DDR4 4GB DRAM. ... RTX A5000 (24GB), Tesla A100 (40GB), and RTX A4000 (16GB). We use RTX A5000 as a default.",
+        "location": "Table II · §VII-A, p.8"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1900,
+        "y": 60
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_078",
+      "template": "reference",
+      "title": "논문 어휘 정리 (glossary) — block·subgroup·tasklet·buffer·6M 등",
+      "content": "논문 어휘 정리 — 특히 헷갈리는 것 위주.\n\n**Tiling 단위 (파라미터를 쪼갠 것, 메모리 block 아님!)**\n| 용어 | 무엇 | 맞추는 메모리 |\n|---|---|---|\n| **block** (§II-A) | 모델 layer 묶음, forward/backward 스트리밍 단위 | GPU/host |\n| **subgroup (D)** (§IV-B,V-A) | update 스트리밍 단위, block의 update 대응물 | FPGA DRAM(4GB) |\n| **chunk (S)** (§V-A) | FPGA 내부 연산 단위 | BRAM |\n| **tasklet** | 한 subgroup의 update 1사이클(load→compute→writeback) | — |\n⚠️ 이 넷은 전부 파라미터를 쪼갠 단위지 **DRAM/SSD block(메모리 granularity)이 아님**.\n\n**메모리/데이터**\n| 용어 | 의미 |\n|---|---|\n| **M** | FP16 파라미터 크기(2 B/param) 기준 단위 |\n| **6M = optimizer states** | FP32 (master weight + momentum + variance), 각 2M |\n| **master weight** | 파라미터의 FP32 복사본(정밀 누적용), optimizer state의 일부 |\n| **buffer** | FPGA DRAM에 잡은 임시 작업 공간(생산자↔소비자 완충) |\n| **variance** | 엄밀히 2nd (raw) moment E[g²]; 평균 0 가정에서만 진짜 분산 |\n| **activation** | forward 중간 출력, backward에서 gradient 계산에 필요 → host에 checkpoint |\n\n**하드웨어/기법**\n| 용어 | 의미 |\n|---|---|\n| **CSD** | Computational Storage Device (SSD + FPGA + 내부 PCIe switch) |\n| **NSP** | near-storage processing |\n| **P2P** | 내부 PCIe switch로 SSD↔FPGA 직접 전송(host 우회) |\n| **SmartUpdate** | update를 CSD FPGA로 이동 ((6+2)M→2M) |\n| **SmartComp** | GPU Top-K 압축 / FPGA 복원 (2M→c%×2M) |\n| **handler** | internal data transfer handler (largest pre-alloc + reuse + overlap) |\n| **mixed precision** | FP16 연산 + FP32 누적(master/optimizer) |\n\n**★ 헷갈리는 구분 (한눈에)**\n- **block(모델 layer) ≠ DRAM/SSD block(메모리 단위)**.\n- **subgroup의 \"3\" = 변수(param·mom·var) 3개** ≠ subgroup 개수(수십 개).\n- **capacity(순간 상주) ≠ traffic(iter당 총 이동 = 6M)**.\n- **\"variance\" = 2nd moment**(진짜 분산 아님).\n- **block/subgroup 쪼개기 = 순차 tiling(메모리 관리)**, TP(디바이스 간 병렬)와 다름. 기반은 DP/ZeRO+offload(기본 1 GPU), TP는 §VIII-A 확장 실험에만.\n\n**FPGA 내부 메모리 (BRAM ≠ DRAM)**\n- **BRAM** = FPGA 칩 **내부**(on-chip), 작음(KB~MB, KU15P 984개), 빠름·저지연 → chunk **S**의 scratchpad.\n- **DRAM(DDR4 4GB)** = 칩 **외부**(off-chip, memory controller 경유), 큼, 느림 → subgroup **D**의 working set.\n- 계층: register → BRAM/URAM(on-chip) → DDR4 DRAM(off-chip 4GB) → NAND SSD. 데이터가 SSD→DRAM(D)→BRAM(S)→연산유닛으로 점점 작은 단위로 내려옴.\n\n**★ FW/BW block vs update block — 둘 다 layer가 아니다! (자주 헷갈림)**\n- **FW/BW block = layer(submodule)** ✅ — allgather로 그 submodule param 모아 forward/backward. 거대 layer면 tile(part). (ZeRO-Inf §6.1·5.1.3)\n- **update block(=subgroup/chunk/tasklet) = layer 아님** ❌ — flatten한 파라미터를 **처리 메모리에 맞는 고정크기 flat 슬라이스**로 자름. ZeRO-Inf: **CPU mem**에 맞는 chunk, one-chunk-at-a-time(§6) / Smart-Inf: **FPGA DRAM $D$**(§V). layer 경계 무관.\n- 결론: **FW/BW만 layer 단위, update는 flat 고정크기 기준.** \"둘 다 layer\"는 오해.\n- ⚠️ **용어 함정 (다음에 또 헷갈리지 말 것)**: Smart-Inf **§II는 baseline update를 \"block-wise\"·\"updating all blocks\"·\"(e.g., layers)\"** 로 부른다 — FW/BW 서술을 그대로 재활용한 loose한 표현. 하지만 ZeRO-Inf **실제** update 단위는 **CPU mem에 맞는 flat chunk**(§6, one-at-a-time, = DeepSpeed `sub_group_size`)다. → **\"block\"이라 쓰여 있어도 update 쪽은 layer가 아니라 flat 고정크기.** (Smart-Inf는 그 크기를 FPGA DRAM $D$로 잡음.) 상세: 「flatten은 누가 + ZeRO-Inf update block 기준」 노드.",
+      "original": {
+        "text": "(논문 어휘 종합 정리 — 각 용어는 논문 해당 절 표기. 헷갈리는 구분 위주로 내가 정리.)",
+        "location": "— (glossary, 전 절 종합)"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 2400,
+        "y": 0
+      },
+      "children": [],
+      "links": [],
+      "nodeWidth": 745
+    },
+    {
+      "id": "node_079",
+      "template": "reference",
+      "title": "배경 — ZeRO-Infinity 분할 방식 (layer·memory-centric tiling·bandwidth-centric, 웹)",
+      "content": "**ZeRO-Infinity의 block/분할 방식** (Smart-Infinity가 물려받은 baseline — Smart-Inf는 재설명 없이 [96] 인용만).\n\n- **layer 단위 처리 + prefetch/overlap**: 각 layer 파라미터를 필요 직전에 fetch(gather) → 계산 → 곧 release. overlap engine이 NVMe↔CPU↔GPU 전송을 동시 수행해 전송 지연 숨김.\n- **memory-centric tiling**: 큰 layer(연산자)가 메모리에 안 들어가면 여러 tile로 쪼개 **순차 실행**(param/grad를 tile 하나씩 fetch/release) → 임의 크기 layer를 model parallelism 없이 처리. → \"block\"이 항상 layer 하나가 아니라, 큰 layer는 더 잘게 tile로 나뉨.\n- **bandwidth-centric partitioning**: 파라미터를 모든 DP 프로세스에 분할 → NVMe/CPU 대역폭이 device 수에 비례 증가(single-GPU면 미사용).\n\n**★ Smart-Infinity와의 연결**: ZeRO-Inf의 \"대역폭이 device 수에 비례\"(bandwidth-centric)는 Smart-Inf의 \"aggregate internal bandwidth가 CSD 수에 비례\"와 같은 발상 — 병렬 메모리 접근으로 대역폭 확장. Smart-Inf는 그걸 CSD 내부로 옮긴 것.\n\n**결론**: block = layer(기본), 큰 layer는 tile로 더 분할, 크기는 memory에 맞춤. Smart-Inf의 \"block (e.g., layers)\"가 이것.\n\n출처(웹): [ZeRO-Infinity arXiv 2104.07857](https://arxiv.org/pdf/2104.07857) · [Microsoft Research blog](https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/) · [DeepSpeed ZeRO-3 docs](https://deepspeed.readthedocs.io/en/latest/zero3.html)",
+      "original": {
+        "text": "(외부 웹 조사 — ZeRO-Infinity 원논문/DeepSpeed 문서 요약. Smart-Infinity 원문 아님. 논문은 이 분할을 [96]으로 인용만.)",
+        "location": "— (web, ZeRO-Infinity SC'21)"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 2400,
+        "y": 300
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_080",
+      "template": "question",
+      "title": "Q. block/subgroup을 누가 쪼개고 할당? + update는 왜 layer에 안 묶이나 (flatten)",
+      "content": "**정진 통찰 확인 — update는 activation이 없어 layer 구조에 안 묶임**\n- **forward/backward(block)**: activation이 layer→layer로 흐르고 backward가 forward의 activation 재사용 → **layer 구조·순서 필수**.\n- **update(subgroup)**: param·grad·momentum·variance만 쓰고 **activation 없음** + **element-wise**(파라미터마다 독립) → layer 순서·구조 무관. → 파라미터를 **flatten(1D)** 해 나누므로 subgroup이 **여러 layer 걸친 flat 조각**이어도 됨.\n- 논문 §IV-D: \"all the operations in updating optimizer states are conducted in an element-wise manner. Using this, Smart-Infinity flattens the model parameters and equally distributes them to the CSDs\" / \"agnostic to the model architecture ... do not need to consider ... layers, hidden dimensions, or number of heads.\"\n\n**누가 쪼개고 할당하나 (§IV-D, §VI)**\n- **쪼갬(flatten + 균등분배)** = Smart-Infinity **host software**(DeepSpeed 통합). 파라미터를 flatten → CSD 수로 균등 분배. subgroup 크기는 FPGA DRAM 용량 기준(SmartUpdate).\n- **할당(어느 CSD가 어느 param)** = flat·균등이라 **매핑 자명**(index→CSD). 각 CSD가 owns, optimizer state도 그 CSD에서 allocate·init.\n- **matching(gradient→owner)** = Smart-Inf가 **DeepSpeed gradient offloading path 수정** → gradient가 owner SSD로 감(\"the gradients should be located in the corresponding SSD\" §VI). multi-GPU면 각 GPU가 owner CSD를 식별.\n- **update 실행** = **owner CSD의 FPGA**가 P2P로.\n\n**요점**: 쪼개고 할당하는 건 host의 Smart-Infinity 소프트웨어(flatten+균등분배+gradient 라우팅), 실제 update는 owner CSD FPGA. flatten 덕에 layer를 몰라도 매핑이 자명(architecture-agnostic) → subgroup은 layer 경계와 무관한 flat 조각. 이게 \"matching\"의 정체.",
+      "original": {
+        "text": "all the operations in updating optimizer states are conducted in an element-wise manner. Using this, Smart-Infinity flattens the model parameters and equally distributes them to the CSDs, where each CSD takes the responsibility to update the owned parameters.",
+        "location": "§IV-D, p.7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1240,
+        "y": 1700
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_081",
+      "template": "reference",
+      "title": "flatten이란? — shape·layer 무시 1D로 편 뒤 균등 k등분 (≠ TP)",
+      "content": "**flatten 정의** — 모든 파라미터 텐서를 shape·layer 경계를 무시하고 한 줄로 이어붙여 1차원 배열로 만드는 것.\n$$W_1\\in\\mathbb{R}^{d\\times d},\\ b_1\\in\\mathbb{R}^{d},\\ W_2\\in\\mathbb{R}^{4d\\times d},\\dots\\ \\Rightarrow\\ \\theta=[\\,W_1\\text{ 원소},\\,b_1,\\,W_2\\text{ 원소},\\,\\dots\\,]\\in\\mathbb{R}^{N}$$\n그 뒤 CSD 수 $k$로 균등 연속 분할: $\\text{CSD}_i \\leftarrow \\theta\\big[\\,i\\cdot\\tfrac{N}{k}\\ :\\ (i{+}1)\\cdot\\tfrac{N}{k}\\,\\big]$. 한 chunk가 layer 경계를 자유롭게 가로지름(예: $W_2$ 뒷부분 + $b_2$ + $W_3$ 앞부분).\n\n**\"TP랑 유사?\" — 결과는 닮았지만 메커니즘이 다름**\n\n| | TP (Tensor Parallelism) | flatten-distribute |\n|---|---|---|\n| 나누는 연산 | matmul(FW/BW) — **coupled** | optimizer update — **element-wise** |\n| 원소 간 의존 | 있음(부분합 합쳐야) | 없음 |\n| 장치 간 통신 | all-reduce/all-gather 필수 | **0** |\n| 분할 기준 | 행렬 구조 존중(row/col) | shape 무시, 1D 균등 |\n| layer 경계 | 존중 | 가로질러도 됨 |\n\n**핵심**: \"layer를 흩어 병목 회피\"라는 목적은 TP와 같음. 하지만 TP는 coupled 연산을 **통신 비용 감수하며** 쪼개는 것이고, flatten은 update가 element-wise라 **통신 0으로 공짜로** 쪼갬 → 논문이 부르는 **architecture-agnostic**. 「누가 쪼개나」의 flatten이 왜 성립하는지의 정의.",
+      "original": {
+        "text": "all the operations in updating optimizer states are conducted in an element-wise manner. Using this, Smart-Infinity flattens the model parameters and equally distributes them to the CSDs ... agnostic to the model architecture.",
+        "location": "§IV-D, p.7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": 1887.9852077648509,
+        "y": 1534.1903538379413
+      },
+      "children": [],
+      "links": [],
+      "nodeWidth": 599,
+      "nodeNaturalY": 1534.1903538379413
+    },
+    {
+      "id": "node_082",
+      "template": "question",
+      "title": "Q. act은 flatten param에 어떻게? layer 끝나도록 flatten 경계 조정?",
+      "content": "**핵심 한 줄: flatten-distribute는 update 전용 → 그 시점엔 activation도 layer 구조도 이미 불필요.**\n\n**Q1. activation은 flatten param에 어떻게 배치?** → 배치할 필요 없음. **activation은 CSD로 가지 않음.**\n- activation은 FW/BW 단계에만 존재하고, FW/BW는 **GPU에서 정상적으로 layer 순서대로** 돎.\n- CSD로 offload되는 건 **update뿐**. update가 쓰는 값은 param·grad·momentum·variance 4종 — 전부 **param과 같은 shape의 element-wise 짝**. update 식 $\\theta \\leftarrow \\theta - \\eta\\,\\hat{m}/(\\sqrt{\\hat{v}}+\\epsilon)$ 에 activation이 아예 없음.\n\n**Q2. flatten 종결점을 layer 끝에 맞춰 조정해야?** → 불필요.\n- \"weight 행렬 마지막이 act와 연관\"은 FW $y=Wx$(matmul) 얘기. 하지만 update는 matmul도 activation도 안 만들고 **원소별 독립 연산**.\n- flatten하는 시점 = FW/BW가 **다 끝난 뒤**. layer 구조를 신경 쓰는 유일한 것(FW/BW)이 이미 종료 → chunk가 layer 중간을 잘라도 무의미.\n- **gradient가 정렬을 자동 보장**: $\\partial L/\\partial\\theta$ 는 $\\theta$ 와 정확히 같은 shape·개수 → gradient를 param과 **같은 flatten**으로 펴면 $i$번째 grad 원소가 $i$번째 param 원소와 자동 매칭. 그래서 layer 경계 정렬을 따로 안 해도 각 원소가 자기 grad로 독립 update → 결과 동일.\n\n**타임라인**: ① FW(GPU, layer대로, act 생성) → ② BW(GPU, chain rule, act 소비, grad 생성) → ③ grad를 param과 같은 flatten으로 펴 owner CSD로 라우팅 → ④ update(owner CSD FPGA, element-wise, act 없음). **layer·act를 쓰는 ①②는 flatten(③)보다 앞에서 이미 끝남** → flatten이 layer를 몰라도 되는 이유.\n\n**보충 — optimizer를 flatten했으니 gradient도 flatten?** → **그렇다.** update는 원소마다 $\\{$param, gradient, momentum, variance$\\}$ 4종이 **같은 자리**에 있어야 하는 element-wise 연산 → gradient도 **param과 동일 layout으로 flatten·분배**되어야 $i$번째 grad가 owner CSD의 $i$번째 param과 만남. Smart-Infinity는 이를 위해 **DeepSpeed gradient offloading path를 수정**해 gradient를 owner SSD로 라우팅(§VI: \"the gradients should be located in the corresponding SSD\"). DeepSpeed도 gradient를 **reduce-scatter로 param과 같은 partition**으로 만들어 자연히 정렬됨. 요약: **param·grad·momentum·variance 네 텐서가 전부 같은 flatten 좌표계를 공유**한다.",
+      "original": {
+        "text": "Smart-Infinity flattens the model parameters and equally distributes them to the CSDs, where each CSD takes the responsibility to update the owned parameters.",
+        "location": "§IV-D, p.7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": 1821.3102885128662,
+        "y": 1839.357234621544
+      },
+      "children": [],
+      "links": [],
+      "nodeNaturalY": 1839.357234621544
+    },
+    {
+      "id": "node_083",
+      "template": "reference",
+      "title": "단위(M) + tier별 상주 — host=fp16 param+act / fp32 6M=SSD block단위",
+      "content": "**단위**: $M$ = FP16 파라미터 크기 $= 2\\text{ bytes}\\times P$ ($P$=파라미터 수). §II 명시.\n\n| 텐서 | 정밀도 | 크기 |\n|---|---|---|\n| fp16 param | 16-bit | $M$ |\n| fp32 master param | 32-bit | $2M$ |\n| fp32 momentum | 32-bit | $2M$ |\n| fp32 variance | 32-bit | $2M$ |\n| **→ optimizer states 합** | | $6M$ |\n| fp32 gradient | 32-bit | $2M$ |\n\n**\"통째로\" 어디에 올라가나** (§II: \"make host memory hold only activations and mixed precision parameters\")\n\n| tier | 통째 상주 | 비고 |\n|---|---|---|\n| **SSD** | fp32 optimizer states $6M$ | update 때 **block 단위로만** host로 |\n| **host DRAM** | **fp16 param $M$ + activation** | ← host memory \"벽\"을 정하는 것 |\n| **GPU HBM** | 현재 block fp16 param(+working) | layer 단위 스트리밍 |\n\n**직답(「fp32 2M이 다 올라가나?」)**: 아니오. fp32($6M$ optimizer + $2M$ grad) 어느 것도 host에 통째로 안 올라감 → SSD 상주, block 단위로만 오르내림. host가 통째로 드는 건 **fp16 param($M$) + activation**. storage-offload의 존재 이유 = **fp32 $6M$을 host에 안 올려도 되게** 만드는 것. 「flatten」은 이 SSD 상주 optimizer state를 CSD들에 나누는 것.\n\n**단, update 중엔 예외(일시 상주)**: SSD에서 **한 block의 grad+optimizer state**가 host로 잠깐 올라와 CPU가 update 후 다시 SSD로 내려감(§II Fig 1c, block 단위). 전체 $6M$이 아니라 **block 하나치**뿐 → host 상주 집합은 여전히 fp16 param$+$act. 「가정 사다리」에서 정밀화.",
+      "original": {
+        "title": "원문 (Smart-Infinity §II)",
+        "text": "The FP32 optimizer states occupy 6M capacity (model parameter, momentum, and variance in FP32) under mixed precision training, regarding the FP16 model parameter size as M. They offload the optimizer states to storages and make host memory hold only activations and mixed precision parameters.",
+        "location": "§II, p.2"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": 2100,
+        "y": 1560
+      },
+      "children": [],
+      "links": [],
+      "nodeWidth": 314
+    },
+    {
+      "id": "node_084",
+      "template": "reference",
+      "title": "가정 사다리 — ZeRO-Offload → ZeRO-Infinity → Smart-Infinity",
+      "content": "**가정 사다리 표**\n\n| | 어디에 $6M$을? | 누가 update? | 벽 |\n|---|---|---|---|\n| **① ZeRO-Offload** | host DRAM **전체** 상주 | CPU | host memory 크기 |\n| **② ZeRO-Infinity** | NVMe(SSD); host엔 fp16+act **상주**(update 때 block단위 grad+opt 일시) | CPU(block씩 올려서) | NVMe 용량(GPU $50\\times$↑) |\n| **③ Smart-Infinity** | SSD, 그대로 | **CSD FPGA**(PCIe 안 건넘) | — (near-storage) |\n\n**정밀화 — \"host = fp16+act만\"의 정확한 뜻 (상주 vs 일시)**\nFig 1(c) update에서 grad·optimizer state가 host로 올라오는 건 맞지만 **전체가 아니라 block 하나치**다:\n- **상주(iteration 내내)**: fp16 param($M$) + activation **전체**.\n- **일시(update 중, block 단위)**: SSD→host로 **한 block의 grad+optimizer state**만 올라옴 → CPU update → 다시 SSD로 offload(§II Fig 1c: \"uploaded from the storage to the host memory ... in a block-wise manner ... offloads the optimizer states to the NVMe device\").\n- **절대 통째 상주 안 함**: optimizer states **전체 $6M$**. 오직 **한 block씩** 잠깐.\n\n**→ \"host가 다 담을 수 있어야 하는 것\"의 조건**: fp16 param($M$)+activation **전체** $+$ **block 하나치 working set**($\\approx$ 그 block의 grad+optimizer). 모델 전체 $6M$을 담을 필요가 **없어서** host memory보다 큰 모델도 학습 가능 — 이게 storage-offload가 host 벽을 깨는 원리.\n\n---\n\n**가정 사다리 — offload 대상이 커질수록 한 칸씩 내려감**\n\n**① ZeRO-Offload (host-memory offload · baseline 개념)**\n- 가정: **host DRAM이 optimizer states $6M$ 전체를 담음**, **CPU가** update.\n- 한계: **host memory 크기가 벽** → 그보다 큰 모델 불가. (update가 element-wise·저강도라 CPU offload가 매력적이라는 근거.)\n\n**② ZeRO-Infinity (storage offload · Smart-Inf의 직전 baseline)**\n- ZeRO-3 위에 구축(model state를 DP rank로 partition).\n- 가정: **GPU + CPU + NVMe aggregate 용량**이 모델을 담음(NVMe가 GPU의 $50\\times$↑, CPU의 $20\\times$↑). \"Infinity\"=용량 상한이 DRAM이 아니라 **NVMe**.\n- host엔 **fp16 param + activation만**, optimizer states $6M$은 **NVMe(SSD)**.\n- **memory-centric tiling**: layer 하나조차 GPU에 안 들어가면 tile로 쪼갬 → \"한 layer가 GPU에 담긴다\"는 가정을 **안 함**.\n- update: block 단위로 SSD→host 올려 **CPU가** 수행.\n\n**③ Smart-Infinity (near-storage · 본 논문)**\n- ②의 storage-offload 상주 그대로(SSD$=6M$, host$=$fp16 param$+$act).\n- **새 기여**: update를 **CPU가 아니라 CSD 내부 FPGA**가 → optimizer states가 **PCIe를 안 건넘**. subgroup을 **FPGA DRAM(4GB)** 통해 tiling.\n- **element-wise** update 가정 → 파라미터 **flatten + 여러 CSD 균등분배**(architecture-agnostic).\n- 상용 CSD(SmartSSD) + DeepSpeed drop-in, **단일 머신**(feasibility-by-building).\n\n**한 줄**: DRAM에 $6M$ 다 담김(①) → 안 담겨 **NVMe로**(②) → NVMe에 두되 **update까지 그 안(CSD)에서**(③). 각 단계는 \"무엇을 어디에 담을 수 있나\"의 가정이 한 칸씩 내려간 것.",
+      "original": {
+        "title": "원문① (ZeRO-Infinity §5.1)",
+        "text": "ZeRO-Infinity is built on top of ZeRO-3, which partitions all model states to remove memory redundancy. In addition to the GPU memory, they have CPU memory as well as massive NVMe storage that is over 50x larger than the GPU memory and nearly 20x larger than CPU memory. Memory-centric tiling supports extremely large individual layers that would otherwise not fit in GPU memory even one layer at a time.",
+        "location": "ZeRO-Infinity §5.1"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": 2442.9252192337703,
+        "y": 1926.6560770080803
+      },
+      "children": [],
+      "links": [],
+      "toggleItems": [
+        {
+          "id": "toggle_084_smartinf",
+          "title": "원문② (Smart-Infinity §II)",
+          "content": "They offload the optimizer states to storages and make host memory hold only activations and mixed precision parameters.",
+          "expanded": false
+        }
+      ],
+      "nodeWidth": 1014,
+      "nodeNaturalY": 1926.6560770080803
+    },
+    {
+      "id": "node_085",
+      "template": "question",
+      "title": "Q. DRAM에 다 넣는 게 best? → 큰 모델은 용량 초과라 SSD 강제 → 안 나르고 CSD에서 update",
+      "content": "**Q. ZeRO-Offload처럼 host DRAM에 $6M$ 다 넣고 CPU update가 best 아닌가?**\n- **들어가면 best 맞음** = 그게 곧 ZeRO-Offload. $6M$이 DRAM에 들어가는 작은~중간 모델이면 SSD 갈 이유 없음.\n- **문제는 큰 모델**(345M~530B): $6M$이 host DRAM조차 초과 → ZeRO-Offload **불가** → SSD로 **강제** offload. Smart-Infinity가 겨냥하는 영역이 바로 여기.\n\n**Q. 그럼 $6M$을 block씩 올리지 말고 SSD에서 끝내자, 이 마인드?**\n- baseline(storage-offload): SSD로 밀렸어도 update는 host CPU가 하니 **iteration마다 $6M$을 block씩 공유 PCIe로 왕복** → 병목.\n- Smart-Infinity: optimizer state를 PCIe로 안 옮기고 **CSD 안(FPGA)에서 바로 update** → 이동은 SSD↔FPGA **내부 대역폭**(여러 CSD면 aggregate 선형↑), 공유 PCIe 트래픽 $6M \\to$ 거의 0(gradient만 $2M$, SmartComp면 $c\\% \\times 2M$).\n\n**한 줄**: DRAM에 다 넣는 게 best지만 **큰 모델은 안 들어가서** SSD로 밀림 → 밀린 이상 $6M$의 PCIe 왕복이 병목이니 **안 나르고 CSD에서 끝내는 것**이 Smart-Infinity. ZeRO-Offload의 \"저강도 element-wise update를 offload\" 아이디어를 용량 무한한 SSD로 옮기되 **연산도 CSD FPGA로 따라 내려보낸** 것.\n\n**보충 — 시간 vs 대역폭**: 병목을 \"시간\"으로 봐도 맞다 — $t \\approx \\text{bytes}/\\text{BW}$. 단 이 전송은 **bandwidth-bound**($6M$이 커서 지속처리량이 지배) → block 수·per-block 지연이 아니라 **분모(어느 BW로 나누나)가 레버**. Smart-Infinity는 bytes·block 수를 안 줄이고 분모를 **공유 PCIe($\\sim$12–16 GB/s) → aggregate 내부 CSD BW(CSD 수에 선형↑)**로 바꿈. overlap으론 공유 링크 대역폭 천장을 못 넘고(pipeline해도 bytes는 결국 건너야 함), **near-storage만이 분모를 바꿈**. (ZeRO-Infinity도 같은 원리로 broadcast→allgather 바꿔 모든 PCIe를 병렬화, BW $\\propto dp$: §5.2.1.)",
+      "original": {
+        "title": "원문① 용량 한계 (Smart-Infinity §II)",
+        "text": "To train larger LLMs with model sizes of 345M to 530B, which cannot be trained even with the host memory-offloaded training, some works provide solutions to further utilize storage devices.",
+        "location": "§II, p.2"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_085_bw",
+          "title": "원문② PCIe → 내부BW (§II)",
+          "content": "Smart-Infinity targets to reduce the data transfer through the system interconnect with a computational storage device. Smart-Infinity enjoys the aggregated internal CSD bandwidth instead of limited system interconnect bandwidth.",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": 3326.9102288141557,
+        "y": 1998.023379697687
+      },
+      "children": [],
+      "links": [],
+      "nodeNaturalY": 1998.023379697687
+    },
+    {
+      "id": "node_086",
+      "template": "reference",
+      "title": "block 구현 상세 — update subgroup(§V, D-slice, layer무관) vs FW/BW block(ZeRO-Inf submodule allgather+tiling)",
+      "content": "**두 chunk 비교 표**\n\n| | FW/BW **block** | update **subgroup / chunk** |\n|---|---|---|\n| 정의 | 모델을 GPU/host가 한 번에 다룰 크기로 쪼갬 \"e.g., layers\" (§II) | flatten 후 **처리 메모리에 맞는 고정크기 flat 슬라이스** |\n| 인덱스 | submodule(layer) 단위 | $[\\,iD,\\ (i{+}1)D\\,)$, $D$=처리 메모리 크기 |\n| layer와 관계 | 보통 layer, 거대하면 **tile(part)** | **layer 무관** (flat) |\n| 크기 기준 | GPU/host 수용량 | ZeRO-Inf: **CPU mem** / Smart-Inf: **FPGA DRAM($D$)** |\n| 누가 | DeepSpeed ZeRO-Infinity | 개념=ZeRO-Inf(§6) · 크기·연산위치=Smart-Inf(§V, CSD FPGA) |\n\n**정정**: update 쪽 \"flat 고정크기 chunk로 처리\"는 Smart-Inf만의 것이 아님 — **ZeRO-Infinity가 이미** \"CPU mem에 맞는 chunk, one chunk at a time\"으로 함(§6). Smart-Inf 기여 = 그 크기를 **FPGA DRAM($D$)**로 잡고 **update를 CSD 안에서** 수행. 어느 쪽이든 **update chunk는 layer가 아님**.\n\n---\n\n**두 chunk를 구분** (「누가 쪼개나」 이어서):\n\n**① update subgroup / tasklet (Smart-Infinity 자체, §V)**\n- flatten 후 **$D$개 원소 연속 슬라이스**($D$ = FPGA DRAM 크기). subgroup $i$ = 인덱스 $[\\,iD,\\ (i{+}1)D\\,)$. 내부 처리 chunk $S$ = BRAM buffer 크기.\n- **layer와 완전 무관** — layer 일부/여러 layer 걸침 자유. (DeepSpeed 옵티마이저 step의 `sub_group_size`에 대응.)\n\n**② FW/BW block (ZeRO-Infinity, Smart-Inf는 그대로 상속) — \"정확한 구현\"**\n- **granularity = PyTorch submodule(≈layer)**: **pre-FW/BW hook**이 그 submodule param을 **allgather**로 모으고, **post hook**이 다시 **partition·offload**. 즉 block = submodule 단위로 필요할 때 모았다 쓰고 버림. (§6.1 automated data movement)\n- **partition 단위 = 개별 parameter를 dp rank로 쪼갬**: ZeRO-Offload는 한 layer param을 한 rank가 소유하지만, ZeRO-Infinity는 **모든 파라미터를 $dp$개로 쪼개** 각 rank가 $1/dp$만 소유 → allgather로 복원(bandwidth-centric: 모든 PCIe 병렬 → BW $\\propto dp$). (§5.2.1)\n- **layer가 GPU에 안 들어가면 → memory-centric tiling**: 큰 operator를 **수학적으로 동등한 작은 tile operator 시퀀스**로 쪼개 순차 실행 → working memory $\\propto 1/(\\text{tile 수})$. 그래서 layer도 **part(tile)**로 처리 가능. (§5.1.3)\n- 초기화 때 submodule param을 만들자마자 partition·offload → **전체 모델을 한 프로세스에 절대 다 안 올림**. (§7.2)\n\n**\"전체 layer냐 일부냐\" 직답**\n- FW/BW block: 보통 **submodule=layer 단위**(그 순간 allgather로 param 전체 모음). 단 평소 각 rank엔 $1/dp$만 상주, 거대 layer는 **tile(part)**.\n- update subgroup: **layer가 아니라 flat $D$-슬라이스** → layer 개념 자체가 없음.\n\n**어디를 봐야**: Smart-Inf **§V**(subgroup)·**§IV-D**(flatten) / ZeRO-Inf **§5.1.3**(tiling)·**§5.2.1**(bandwidth-centric partition)·**§6.1·§7.2**(hook·init) / 코드 = **DeepSpeed ZeRO-3·Infinity**(`sub_group_size`, pre/post hook).\n\n**보충 — 이 \"layer\"는 transformer layer인가 세부 layer인가?** 고정이 아니라 **PyTorch `nn.Module`(submodule) 계층**이다. allgather는 **submodule의 forward마다** 트리거되므로 그 단위가 **transformer block 전체**일 수도, 그 안의 **attention/FFN·개별 Linear**일 수도 있음(모델 module 구조·hook 등록에 따름). §II의 \"e.g., layers\"는 느슨한 표현일 뿐. 극단적으로 **Linear operator 하나조차 너무 크면 memory-centric tiling으로 tile 분할**(§5.1.3)하므로 최소 단위는 transformer layer가 아니라 **operator 수준까지 내려감**. → 즉 실제 gather·tiling 단위는 transformer layer로 못 박히지 않고 **하위 module/operator**까지 가변.",
+      "original": {
+        "title": "원문① submodule hook (ZeRO-Infinity §6.1)",
+        "text": "ZeRO-Infinity does this by injecting pre forward/backward hooks into PyTorch submodules that trigger allgather collectives to collect the parameters required before its forward/backward pass and post forward/backward hooks that trigger parameter/gradient partitioning and optionally offloading them to CPU or NVMe.",
+        "location": "ZeRO-Infinity §6.1"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_086_tiling",
+          "title": "원문② memory-centric tiling (§5.1.3)",
+          "content": "ZeRO-Infinity represents the operator as a mathematically equivalent sequence of smaller linear operators consisting of tiles of parameters from the original operator, and executes them sequentially. When combined with ZeRO-3, the parameter and gradients of each tile can be fetched and released one at a time.",
+          "expanded": false
+        },
+        {
+          "id": "toggle_086_bwpart",
+          "title": "원문③ bandwidth-centric partition (§5.2.1)",
+          "content": "ZeRO-Infinity partitions individual parameters across all the data parallel process, and uses an allgather instead of a broadcast when a parameter needs to be accessed. With the partitioned parameter and allgather based approach, all PCIe links are active in parallel, each bringing in 1/dp-th portion of the parameter.",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": 1800.5661603556393,
+        "y": 2067.8803770302684
+      },
+      "children": [],
+      "links": [],
+      "nodeWidth": 889,
+      "nodeNaturalY": 2067.8803770302684
+    },
+    {
+      "id": "node_087",
+      "template": "question",
+      "title": "Q. flatten은 누가? (host CPU SW) + ZeRO-Inf update block 기준 = CPU mem 맞는 chunk (layer 아님)",
+      "content": "**Q1. flatten은 누가 하나? 논문에 있나?**\n- §IV-D: \"**Smart-Infinity flattens** the model parameters and equally distributes them to the CSDs\" → 주어가 Smart-Infinity = **host 소프트웨어**(DeepSpeed 통합, §VI). 즉 flatten·분배 layout은 **host CPU 소프트웨어**가 결정.\n- \"the optimizer states are **allocated and initialized at CSDs** that own the associated parameters\"(§IV-D) → fp32 optimizer state는 **각 owner CSD에서 할당·초기화**(host가 통째로 fp32 만들어 밀지 않음).\n\n**정진님 가설 검토** (\"CPU가 flatten, SSD에 저장, fp32 변환\"):\n- **대체로 맞음** — flatten·layout은 host(CPU) 소프트웨어, optimizer state는 SSD 상주.\n- **단 \"param 전체가 host에 들어가 fp32 변환\"은 부정확**: host엔 **fp16 param($M$)+activation만** 상주, **fp32($6M$)는 CSD/SSD에서 allocate·init**. flatten은 전체를 host에 안 올려도 되는 **index/layout 재배열**(element-wise라 조각별 처리 가능).\n\n**Q2. ZeRO-Inf update block(Grad+optimizer 한 block)의 기준? layer인가?**\n- **layer 아님.** ZeRO-Inf §6: NVMe offload 시 \"bring the data from NVMe to CPU memory and back **in chunks that can fit in the CPU memory** to perform the optimizer step, **one chunk at a time**.\" → update chunk 기준 = **CPU memory에 맞는 flat 크기**, layer 경계 무관.\n- Smart-Inf subgroup(=**FPGA DRAM 크기 $D$**, §V)과 **같은 개념·다른 sizing**. \"flat 고정크기 chunk로 update\"는 ZeRO-Inf가 이미 함 → Smart-Inf는 크기를 **FPGA DRAM**으로 잡고 **CSD 안에서** update.\n\n**정리**: **FW/BW block = layer(submodule)** / **update chunk = 처리 메모리에 맞는 flat 크기**(ZeRO-Inf: CPU mem / Smart-Inf: FPGA DRAM). **update 쪽은 양쪽 다 layer 아님.** flatten 주체 = host CPU 소프트웨어, fp32 optimizer는 owner CSD에서 init.\n\n**보충 — Smart-Inf §II는 이걸 \"block\"이라 부른다 (혼동의 근원)**\n- §II 원문: baseline update를 *\"in a block-wise manner\"* 로, block을 *\"(e.g., layers)\"* 로 서술 + *\"updating all blocks\"*. → 그래서 \"update도 layer block\"처럼 읽힘.\n- 하지만 실제(ZeRO-Inf §6 · DeepSpeed): optimizer-step 단위 = **CPU mem에 맞는 flat chunk**(= `sub_group_size`), layer 아님.\n\n| | Smart-Inf §II (용어·느슨한 그림) | ZeRO-Inf §6 (실제 구현) |\n|---|---|---|\n| 부르는 말 | \"block (e.g., layers)\", \"block-wise\" | chunk |\n| 실제 단위 | (FW/BW 그림을 update에 재활용) | **CPU mem에 맞는 flat 고정크기** (one-at-a-time) |\n\n→ **§II의 \"block(e.g. layers)\"은 FW/BW 서술을 update에도 재활용한 loose한 표현**이고, ZeRO-Inf의 진짜 optimizer-step 단위는 flat 크기 chunk. (CPU-offload면 all-at-once 병렬, NVMe-offload면 chunk 단위 — Smart-Inf는 NVMe/storage 경로라 chunk 단위 해당.)",
+      "original": {
+        "title": "원문① update chunk 기준 (ZeRO-Infinity §6)",
+        "text": "With NVMe offload, it is necessary to bring the data from NVMe to CPU memory and back in chunks that can fit in the CPU memory to perform the optimizer step, one chunk at a time.",
+        "location": "ZeRO-Infinity §6"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_087_flatten",
+          "title": "원문② flatten 주체·CSD init (Smart-Infinity §IV-D)",
+          "content": "Smart-Infinity flattens the model parameters and equally distributes them to the CSDs, where each CSD takes the responsibility to update the owned parameters. Then, the optimizer states are allocated and initialized at CSDs that own the associated parameters.",
+          "expanded": false
+        },
+        {
+          "id": "toggle_087_ii",
+          "title": "원문③ §II는 update도 'block'이라 부름 (Smart-Infinity §II)",
+          "content": "When the forward and backward passes are finished, the host starts the update procedure for the parameters of a model in a block-wise manner. The host keeps updating all blocks by repeatedly conducting these steps.",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": 3108.9487887555124,
+        "y": 2139.070873233997
+      },
+      "children": [],
+      "links": [],
+      "nodeWidth": 654,
+      "nodeNaturalY": 2139.070873233997
+    },
+    {
+      "id": "node_088",
+      "template": "question",
+      "title": "Q. abstract는 왜 accelerator가 compress한 듯 쓰나? → GPU 압축 / accelerator는 decompress (naming=복원이 스킴을 성립시켜서)",
+      "content": "**정진님 관찰 맞음**: 압축은 **GPU**, 복원(decompression)은 **CSD accelerator(FPGA)**. (§IV-C: \"compress the gradients using GPU, and decompress them before updating on CSDs\")\n- **GPU**: magnitude-based Top-K로 상위 $c\\%$(예: 1%) 원소 선택 → (값 + 위치 index)로 압축.\n- **FPGA(CSD)**: index로 원위치 복원(나머지 0) → Adam update.\n\n**그럼 왜 \"accelerator-assisted / CSD-aided gradient compression\"이라 부르나?**\n- \"compression/decompression\"은 **한 쌍**이고 accelerator의 몫은 **decompression**. 이름의 \"accelerator-assisted\"는 *압축 step을 accelerator가 한다*가 아니라 **accelerator가 이 압축 스킴을 성립시킨다**는 뜻.\n- **왜 accelerator가 있어야 압축이 성립하나**: 압축은 **PCIe를 건너기 전(GPU)**에 해야 트래픽이 줆($2M \\to c\\% \\times 2M$). 그런데 update는 **full gradient**가 필요 → 어딘가서 복원해야 함. host에서 복원하면 full gradient가 다시 생겨 CSD로 또 보내야 함(절약 무의미). **CSD accelerator가 in-storage로 복원**하기에 \"GPU 압축 → CSD 복원 → CSD update\"가 PCIe를 딱 $c\\% \\times 2M$만 쓰고 닫힘.\n- 즉 **accelerator(복원)가 있어야 GPU 압축이 near-storage update와 맞물림** → 전체 스킴을 \"accelerator-assisted\"라 명명.\n\n**한 줄**: GPU가 압축, accelerator가 복원. \"accelerator-assisted\"는 \"accelerator가 압축한다\"가 아니라 **\"accelerator의 near-storage 복원이 이 압축 스킴을 가능케 한다\"**는 의미.",
+      "original": {
+        "title": "원문① 분업 (Smart-Infinity §IV-C)",
+        "text": "With the aid of the accelerator in CSDs, we propose SmartComp that applies gradient compression on top of SmartUpdate: compress the gradients using GPU, and decompress them before updating on CSDs.",
+        "location": "§IV-C, p.6"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_088_abs",
+          "title": "원문② abstract 표현",
+          "content": "Lastly, we propose accelerator-assisted gradient compression/decompression to enhance the scalability of Smart-Infinity. To alleviate this, we compress the gradients on the GPU and decompress them on the accelerators.",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": 851.1766888350501,
+        "y": 1234.0383701173014
+      },
+      "children": [],
+      "links": [],
+      "nodeNaturalY": 1234.0383701173014
+    },
+    {
+      "id": "node_089",
+      "template": "reference",
+      "title": "왜 DNN 학습은 gradient 오차에 관대한가 — magnitude sparsity + error compensation (+Adam 한계)",
+      "content": "**논문 주장**: \"DNN training is tolerable to some degree of errors, **especially the gradients**\"(§IV-C). 근거 문헌 = gradient compression [11],[12],[73],[110],[118].\n\n**왜 gradient가 특히 오차에 관대한가 — grounded 3가지**\n1. **magnitude sparsity(크기 편중)**: 한 step에서 gradient \"신호\"는 소수의 큰 값에 몰림 → 작은 값 다수를 버려도(magnitude top-k) update 방향이 거의 안 변함. 논문(§IX): sparsification은 \"sends some portion of gradients, usually using the **magnitude criteria**\".\n2. **error compensation(잔차 보정) — 핵심**: 버린 작은 gradient를 **없애지 않고 memorize(누적)했다가 다음 step의 gradient에 더해** 압축 → **영구 손실 없이 지연될 뿐** → 계통 편향(bias) 없음 → 최종 정확도 보존. 논문(§IX): \"memorizes errors from the compression and adds them to gradients at the next step before compression\". ([11] AdaComp의 residual, [73] DGC)\n3. **수렴 증명**: magnitude sparsification의 convergence가 선행연구 [3],[106]에서 증명 → 경험적으로도 comparable accuracy(§IX).\n\n**⚠️ 정직 caveat — Adam엔 error compensation이 그대로 안 됨**\n- 논문(§IX): \"[115] found that error compensation **does not apply to the Adam optimizer due to its nonlinearity**\" → variance term을 warm-up 후 precondition해 momentum SGD와 동등화해야 함.\n- 그래서 **SmartComp 자체가 error feedback을 구현한다고 논문이 명시하진 않음**. SmartComp = magnitude top-k(기본 2% = top 1%) + **경험적 comparable accuracy** 확인(§VII: \"SmartComp adopts lossy compression, but achieves comparable accuracy in all datasets\"). 관대함의 *일반 근거*는 위 3가지, SmartComp는 그 관대함 + 실측 검증에 기댐.\n\n**추가(일반 ML): gradient는 애초에 noisy**\n- SGD gradient는 mini-batch 추정치라 **원래 noisy** → 압축 오차 = 추가 noise인데 최적화가 이에 강건. (param은 모델 상태라 오차 민감 ↔ gradient는 방향 추정치라 관대 — 「왜 gradient만 압축」 대비.)\n\n**인용 논문 (bibliography 검증됨)**\n- **[73] Deep Gradient Compression** — Lin, Han, Mao, Wang, Dally, *ICLR 2018* (magnitude top-k + error feedback; DGC 자체 기법으로 momentum correction·local gradient clipping·warm-up).\n- **[11] AdaComp** — Chen et al., *AAAI 2018* (adaptive **residual** gradient compression).\n- **[12] ScaleCom** — Chen et al., *NeurIPS 2020* (scalable sparsified).\n- **[118] PowerSGD** — Vogels, Karimireddy, Jaggi, *NeurIPS 2019* (**low-rank** decomposition, power iteration).\n- **[110] Optimus-CC** — Song et al., *ASPLOS 2023* (3D-parallelism aware comm. compression).",
+      "original": {
+        "title": "원문① error compensation (Smart-Infinity §IX)",
+        "text": "Both approaches use error compensation, which memorizes errors from the compression and adds them to gradients at the next step before compression. [115] found that error compensation does not apply to the Adam optimizer due to its nonlinearity.",
+        "location": "§IX (Related Work)"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_089_tol",
+          "title": "원문② gradient가 오차에 관대 (§IV-C)",
+          "content": "It is widely known that DNN training is tolerable to some degree of errors, especially the gradients. Gradient compression methods are widely used to mitigate communication overhead in neural network training.",
+          "expanded": false
+        },
+        {
+          "id": "toggle_089_sparse",
+          "title": "원문③ sparsification=magnitude criteria + 수렴증명 (§IX)",
+          "content": "Gradient compression can largely be categorized into two groups: gradient sparsification and low-rank decomposition. The former sends some portion of gradients, usually using the magnitude criteria. Its convergence was proven in previous works, and it showed comparable accuracy.",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": true,
+      "position": {
+        "x": 871.769132328376,
+        "y": 962.815313362006
+      },
+      "children": [],
+      "links": [],
+      "nodeNaturalY": 962.815313362006
     }
   ],
   "edges": [
@@ -1993,6 +2395,111 @@
       "source": "node_066",
       "target": "node_072",
       "type": "line"
+    },
+    {
+      "id": "edge_073",
+      "source": "node_065",
+      "target": "node_073",
+      "type": "line"
+    },
+    {
+      "id": "edge_074",
+      "source": "node_057",
+      "target": "node_074",
+      "type": "line"
+    },
+    {
+      "id": "edge_075",
+      "source": "node_074",
+      "target": "node_075",
+      "type": "line"
+    },
+    {
+      "id": "edge_077",
+      "source": "node_012",
+      "target": "node_077",
+      "type": "line"
+    },
+    {
+      "id": "edge_078",
+      "source": "node_001",
+      "target": "node_078",
+      "type": "line"
+    },
+    {
+      "id": "edge_079",
+      "source": "node_012",
+      "target": "node_079",
+      "type": "line"
+    },
+    {
+      "id": "edge_080",
+      "source": "node_048",
+      "target": "node_080",
+      "type": "line"
+    },
+    {
+      "id": "edge_node_080_node_081",
+      "source": "node_080",
+      "target": "node_081",
+      "type": "default",
+      "label": "flatten이란?"
+    },
+    {
+      "id": "edge_node_080_node_082",
+      "source": "node_080",
+      "target": "node_082",
+      "type": "default",
+      "label": "act·경계는?"
+    },
+    {
+      "id": "edge_node_082_node_083",
+      "source": "node_082",
+      "target": "node_083",
+      "type": "default",
+      "label": "그럼 뭐가 다 올라가나?"
+    },
+    {
+      "id": "edge_node_083_node_084",
+      "source": "node_083",
+      "target": "node_084",
+      "type": "default",
+      "label": "가정 비교"
+    },
+    {
+      "id": "edge_node_084_node_085",
+      "source": "node_084",
+      "target": "node_085",
+      "type": "default",
+      "label": "DRAM best?→왜 in-CSD"
+    },
+    {
+      "id": "edge_node_080_node_086",
+      "source": "node_080",
+      "target": "node_086",
+      "type": "default",
+      "label": "block 구현 상세"
+    },
+    {
+      "id": "edge_node_086_node_087",
+      "source": "node_086",
+      "target": "node_087",
+      "type": "default",
+      "label": "누가 flatten·update 기준"
+    },
+    {
+      "id": "edge_node_005_node_088",
+      "source": "node_005",
+      "target": "node_088",
+      "type": "default",
+      "label": "압축=GPU/복원=accel"
+    },
+    {
+      "id": "edge_node_005_node_089",
+      "source": "node_005",
+      "target": "node_089",
+      "type": "default",
+      "label": "왜 gradient 압축이 되나(관대함)"
     }
   ],
   "viewport": {
