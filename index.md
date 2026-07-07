@@ -30,6 +30,7 @@ SSD Internals Intensive Seminar (26S) 논문 위키. **75편 전부 정독(deep)
 - [[2026]] · [[2025]] · [[2024]] · [[2023]]
 
 ## 📚 배경 개념
+- 🧭 허브: [[Concepts]] (전체 개념 index) · [[Design Principles]] (논문 읽는 고정 렌즈 — Amdahl·Locality·Parallelism·Hierarchy)
 - CXL: [[CXL Overview]] · [[CXL 3.0]] · [[CXL 3.2]] · [[CXL 4.0]] · [[CXL SOTA & Roadmap]] · [[CXL Glossary]]
 - 메모리 아키텍처 심화 (CXL/disaggregation/coherence — 내 연구 틀. *AT = Architecture*이지 Address Translation 아님): [[CXL Address Translation]] (주소 4종·HPA/DPA) → [[CXL Distributed Translation]] (변환 분산·control/data plane) → [[CXL Coherence]] (CXL.cache·용어) → [[CXL Multi-node Coherence]] (directory 난관·NVLink 비교) → [[PGAS]] (분할 전역 주소 공간·release consistency)
 - 내 연구 가설 (검증 전): [[Hypotheses]] — [[H1 — 워크로드 특화로 multi-node coherence 줄이기|H1: 왜 워크로드 특화]] → [[H2 — CXL 위에서 PGAS 재해석|H2: 어떻게 = CXL 위 PGAS]]
