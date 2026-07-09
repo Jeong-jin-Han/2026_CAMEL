@@ -4,7 +4,7 @@
 > **AI agents: read this file to understand what tools are available on this machine.**
 > Re-generated each time a `.nodegraph.json` file is opened.
 
-Generated: `2026-07-09T12:25:09.351Z`
+Generated: `2026-07-09T12:08:49.883Z`
 
 ---
 

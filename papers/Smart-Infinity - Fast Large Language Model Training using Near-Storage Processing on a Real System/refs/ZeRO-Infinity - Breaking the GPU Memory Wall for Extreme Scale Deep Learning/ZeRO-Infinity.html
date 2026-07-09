@@ -25,7 +25,7 @@ button:hover{background:#e8e8e8;border-color:#aaa}
 #viewport.pan-drag{cursor:grabbing}
 #canvas{position:absolute;transform-origin:0 0}
 #wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
-.ng-node{position:absolute;min-width:220px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
 .ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
 .ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
@@ -134,7 +134,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">ZeRO-3 배경 (모든 model state 분할)</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">ZeRO는 data-parallel의 메모리 **중복 제거** 최적화. ZeRO-1/2/3 = optimizer state / +gradient / +parameter를 DP rank들에 분할(partition). ZeRO-Infinity는 **ZeRO-3 위에** 세워짐(모든 model state 분할).</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1.1, p.5</span></summary>
+  <div class="ng-body" style="display:none"><div class="ng-content">ZeRO는 data-parallel의 메모리 <strong style="font-size:1.1em">중복 제거</strong> 최적화. ZeRO-1/2/3 = optimizer state / +gradient / +parameter를 DP rank들에 분할(partition). ZeRO-Infinity는 <strong style="font-size:1.1em">ZeRO-3 위에</strong> 세워짐(모든 model state 분할).</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1.1, p.5</span></summary>
 <div class="ng-orig-text">ZeRO-Infinity is built on top of ZeRO-3 which partitions all model states to remove memory redundancy.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_003" data-children="node_004" style="--color:#2E86AB;border-radius:2px;left:100px;top:420px">
@@ -142,7 +142,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Infinity offload engine</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">ZeRO-3로 분할된 **모든 model state를 CPU 또는 NVMe로 offload**(또는 GPU 유지), 메모리 요구에 따라 배치. NVMe는 GPU 메모리의 50배↑ → 96노드(1536 GPU) NVMe에 100T 모델 state도 수용. activation checkpoint도 CPU로 내림.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1.1, p.5</span></summary>
+  <div class="ng-body" style="display:none"><div class="ng-content">ZeRO-3로 분할된 <strong style="font-size:1.1em">모든 model state를 CPU 또는 NVMe로 offload</strong>(또는 GPU 유지), 메모리 요구에 따라 배치. NVMe는 GPU 메모리의 50배↑ → 96노드(1536 GPU) NVMe에 100T 모델 state도 수용. activation checkpoint도 CPU로 내림.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1.1, p.5</span></summary>
 <div class="ng-orig-text">the infinity offload engine which can offload all of the partitioned model states to CPU or NVMe memory, or keep them on the GPU based on the memory requirements.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_004" data-children="node_005,node_011" style="--color:#2E86AB;border-radius:2px;left:100px;top:580px">
@@ -150,7 +150,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">★ Bandwidth-centric partitioning</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">기존 ZeRO/Offload는 파라미터를 한 DP가 소유·broadcast → PCIe 하나만 활성. ZeRO-Infinity는 파라미터를 **전 DP에 분할**하고 **allgather** → 모든 PCIe가 병렬로 각 $1/dp$ 전송 → CPU/NVMe→GPU 유효 대역폭이 $dp$(device 수)에 **선형 비례**.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1, p.6</span></summary>
+  <div class="ng-body" style="display:none"><div class="ng-content">기존 ZeRO/Offload는 파라미터를 한 DP가 소유·broadcast → PCIe 하나만 활성. ZeRO-Infinity는 파라미터를 <strong style="font-size:1.1em">전 DP에 분할</strong>하고 <strong style="font-size:1.1em">allgather</strong> → 모든 PCIe가 병렬로 각 $1/dp$ 전송 → CPU/NVMe→GPU 유효 대역폭이 $dp$(device 수)에 <strong style="font-size:1.1em">선형 비례</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1, p.6</span></summary>
 <div class="ng-orig-text">all PCIe links are active in parallel, each bringing in 1/dp portion of the parameter ... the effective communication bandwidth between NVMe or CPU to the GPU, increases linearly with the dp degree.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_011" style="--color:#3A506B;border-radius:2px;left:540px;top:580px">
@@ -158,7 +158,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#3A506B 22%,transparent);color:#3A506B">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">broadcast(1 PCIe) vs allgather(전 PCIe)</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">broadcast: 파라미터를 소유 GPU로 먼저 옮겨야 해서 **PCIe 하나만** 활성, 나머지 idle. allgather: 전 DP가 각자 자기 몫을 병렬로 → **전 PCIe 동시**. GPU-only면 data 이동량 같아 무의미하나, offload(NVMe/CPU) 상황에선 game changer.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1, p.6</span></summary>
+  <div class="ng-body" style="display:none"><div class="ng-content">broadcast: 파라미터를 소유 GPU로 먼저 옮겨야 해서 <strong style="font-size:1.1em">PCIe 하나만</strong> 활성, 나머지 idle. allgather: 전 DP가 각자 자기 몫을 병렬로 → <strong style="font-size:1.1em">전 PCIe 동시</strong>. GPU-only면 data 이동량 같아 무의미하나, offload(NVMe/CPU) 상황에선 game changer.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1, p.6</span></summary>
 <div class="ng-orig-text">only a single PCIe can be active for this process, while all the PCIe links connected to all the other GPUs are idle.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_005" data-children="node_006,node_012" style="--color:#2E86AB;border-radius:2px;left:100px;top:740px">
@@ -166,7 +166,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Memory-centric tiling</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">큰 operator(예: 대형 linear)를 **수학적으로 동등한 작은 tile들의 순차 실행**으로 바꿈. ZeRO-3의 fetch/release로 tile 하나씩 가져오고 놓음 → working memory가 tile 수에 반비례 감소 → **임의 크기 layer를 model parallelism 없이** 처리.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1.3, p.5</span></summary>
+  <div class="ng-body" style="display:none"><div class="ng-content">큰 operator(예: 대형 linear)를 <strong style="font-size:1.1em">수학적으로 동등한 작은 tile들의 순차 실행</strong>으로 바꿈. ZeRO-3의 fetch/release로 tile 하나씩 가져오고 놓음 → working memory가 tile 수에 반비례 감소 → <strong style="font-size:1.1em">임의 크기 layer를 model parallelism 없이</strong> 처리.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1.3, p.5</span></summary>
 <div class="ng-orig-text">breaking down a large operator into smaller tiles that can be executed sequentially ... ZeRO-Infinity can support operators of arbitrary sizes, without relying on model parallelism</div></details></div>
 </div>
 <div class="ng-node" id="node-node_012" style="--color:#6B7280;border-radius:22px;left:540px;top:740px">
@@ -174,7 +174,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#6B7280 22%,transparent);color:#6B7280">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">&quot;block 어떻게 쪼개나&quot;의 답</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">Smart-Infinity가 상술 안 한 'block 분할'의 답이 여기: **block = layer 단위**, 큰 layer는 memory-centric tiling으로 **tile로 더 쪼갬**. 크기는 working memory(GPU)에 맞춤. (Smart-Inf의 subgroup = 이 발상의 update-단계·FPGA DRAM 판)</div><details class="ng-original"><summary>Original</summary>
+  <div class="ng-body" style="display:none"><div class="ng-content">Smart-Infinity가 상술 안 한 'block 분할'의 답이 여기: <strong style="font-size:1.1em">block = layer 단위</strong>, 큰 layer는 memory-centric tiling으로 <strong style="font-size:1.1em">tile로 더 쪼갬</strong>. 크기는 working memory(GPU)에 맞춤. (Smart-Inf의 subgroup = 이 발상의 update-단계·FPGA DRAM 판)</div><details class="ng-original"><summary>Original</summary>
 <div class="ng-orig-text"></div></details></div>
 </div>
 <div class="ng-node" id="node-node_006" data-children="node_007" style="--color:#2E86AB;border-radius:2px;left:100px;top:900px">
@@ -182,7 +182,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Overlap-centric (dynamic prefetcher)</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">dynamic prefetcher가 연산 순서를 그때그때 추적 → i번째 실행 중 i+1/i+2/i+3에 필요한 **3단계 전송(NVMe→CPU, CPU→GPU, GPU→GPU)을 미리·병렬**로. backward는 gradient reduce-scatter/offload를 연산과 overlap. temporary buffer 재사용으로 fragmentation↓.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.2, p.6~7</span></summary>
+  <div class="ng-body" style="display:none"><div class="ng-content">dynamic prefetcher가 연산 순서를 그때그때 추적 → i번째 실행 중 i+1/i+2/i+3에 필요한 <strong style="font-size:1.1em">3단계 전송(NVMe→CPU, CPU→GPU, GPU→GPU)을 미리·병렬</strong>로. backward는 gradient reduce-scatter/offload를 연산과 overlap. temporary buffer 재사용으로 fragmentation↓.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.2, p.6~7</span></summary>
 <div class="ng-orig-text">before executing the i operator, the prefetcher can invoke nc, cg, and gg-transfer for parameters required by i+3, i+2, and i+1 operators</div></details></div>
 </div>
 <div class="ng-node" id="node-node_007" data-children="node_008" style="--color:#2E86AB;border-radius:2px;left:100px;top:1060px">
@@ -190,7 +190,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#2E86AB 22%,transparent);color:#2E86AB">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Ease of use (리팩터링 불필요)</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">**자동 data movement**: PyTorch submodule에 pre/post forward-backward **hook** → 쓰기 직전 allgather, 직후 partition/offload. **자동 model partitioning at init**: 모듈 생성자 wrap → 초기화 즉시 분할·offload, 전체 모델이 한 프로세스에 통째로 안 올라감 → 수동 리팩터링 불필요.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3 / §7, p.7</span></summary>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">자동 data movement</strong>: PyTorch submodule에 pre/post forward-backward <strong style="font-size:1.1em">hook</strong> → 쓰기 직전 allgather, 직후 partition/offload. <strong style="font-size:1.1em">자동 model partitioning at init</strong>: 모듈 생성자 wrap → 초기화 즉시 분할·offload, 전체 모델이 한 프로세스에 통째로 안 올라감 → 수동 리팩터링 불필요.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3 / §7, p.7</span></summary>
 <div class="ng-orig-text">automated data movement to gather and partition parameters right before and after they are required ... automated model partitioning during initialization</div></details></div>
 </div>
 <div class="ng-node" id="node-node_008" data-children="node_009" style="--color:#1B998B;border-radius:2px;left:100px;top:1220px">
@@ -198,7 +198,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1B998B 22%,transparent);color:#1B998B">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Evaluation</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">**32조 파라미터**(3D parallelism ~650B 대비 **50배**). 512 GPU 최대 20T at $34$~$49$ TFlops/GPU. 1T에서 64→512 GPU **superlinear**. 단일 노드(16 GPU)로 ≤100B를 $&gt;40$ TFlops/GPU(GPT-3급 DGX-2 1대 fine-tuning=**민주화**). tiling으로 hidden 8K→**64K**. ZeRO-Offload 대비 64 GPU에서 **약 2배**.</div><details class="ng-original"><summary>Original <span class="ng-loc">§8.2, p.8</span></summary>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">32조 파라미터</strong>(3D parallelism ~650B 대비 <strong style="font-size:1.1em">50배</strong>). 512 GPU 최대 20T at $34$~$49$ TFlops/GPU. 1T에서 64→512 GPU <strong style="font-size:1.1em">superlinear</strong>. 단일 노드(16 GPU)로 ≤100B를 $&gt;40$ TFlops/GPU(GPT-3급 DGX-2 1대 fine-tuning=<strong style="font-size:1.1em">민주화</strong>). tiling으로 hidden 8K→<strong style="font-size:1.1em">64K</strong>. ZeRO-Offload 대비 64 GPU에서 <strong style="font-size:1.1em">약 2배</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">§8.2, p.8</span></summary>
 <div class="ng-orig-text">ZeRO-Infinity trains models over 32 trillion parameters compared to about 650B parameters with 3D parallelism ... a leap of 50x</div></details></div>
 </div>
 <div class="ng-node" id="node-node_009" data-children="node_013" style="--color:#3A506B;border-radius:2px;left:100px;top:1380px">
@@ -206,7 +206,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#3A506B 22%,transparent);color:#3A506B">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 &amp; Smart-Infinity 연결</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">이질적 메모리(GPU+CPU+NVMe)로 memory wall 초월, 리팩터링 없이 규모·민주화. **★ 단 update는 여전히 host CPU**(NVMe→CPU로 올려 처리). Smart-Infinity가 이 update를 **CSD FPGA로** 옮겨 그 traffic을 제거. bandwidth-centric partitioning($dp$ 비례) ↔ Smart-Inf aggregate internal bandwidth(CSD 수 비례) = **같은 발상**.</div><details class="ng-original"><summary>Original <span class="ng-loc">(종합, §9)</span></summary>
+  <div class="ng-body" style="display:none"><div class="ng-content">이질적 메모리(GPU+CPU+NVMe)로 memory wall 초월, 리팩터링 없이 규모·민주화. <strong style="font-size:1.1em">★ 단 update는 여전히 host CPU</strong>(NVMe→CPU로 올려 처리). Smart-Infinity가 이 update를 <strong style="font-size:1.1em">CSD FPGA로</strong> 옮겨 그 traffic을 제거. bandwidth-centric partitioning($dp$ 비례) ↔ Smart-Inf aggregate internal bandwidth(CSD 수 비례) = <strong style="font-size:1.1em">같은 발상</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">(종합, §9)</span></summary>
 <div class="ng-orig-text"></div></details></div>
 </div>
 <div class="ng-node" id="node-node_013" style="--color:#6B7280;border-radius:22px;left:540px;top:1380px">
@@ -214,7 +214,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#6B7280 22%,transparent);color:#6B7280">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구 연결 (CXL/disaggregation)</span>
   </div>
-  <div class="ng-body" style="display:none"><div class="ng-content">bandwidth-centric partitioning의 '대역폭이 device 수에 비례'는 CXL/disaggregation의 '**per-device path 병렬 합산**'과 대응. shared fabric(고정) vs per-device path(확장) 구도 = 내 memory-system 연구의 핵심 축. Smart-Inf는 그 확장을 CSD 내부 P2P로 실현.</div><details class="ng-original"><summary>Original</summary>
+  <div class="ng-body" style="display:none"><div class="ng-content">bandwidth-centric partitioning의 '대역폭이 device 수에 비례'는 CXL/disaggregation의 '<strong style="font-size:1.1em">per-device path 병렬 합산</strong>'과 대응. shared fabric(고정) vs per-device path(확장) 구도 = 내 memory-system 연구의 핵심 축. Smart-Inf는 그 확장을 CSD 내부 P2P로 실현.</div><details class="ng-original"><summary>Original</summary>
 <div class="ng-orig-text"></div></details></div>
 </div>
   </div>
@@ -308,6 +308,7 @@ function onTitleClick(e, titleEl) {
   if (!body) return;
   var expanding = body.style.display === 'none';
   body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
   var nodeId = nodeEl.id.replace('node-', '');
   for (var i = 0; i < NODES_DATA.length; i++) {
     if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
@@ -373,6 +374,12 @@ function getExpandDescendants(nodeId, isRoot, visited) {
 }
 
 // Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
 function applyFold(nodeIds, expand) {
   nodeIds.forEach(function(id) {
     var el = document.getElementById('node-' + id);
@@ -381,6 +388,7 @@ function applyFold(nodeIds, expand) {
     var chevron = el.querySelector('.ng-chevron');
     if (body) body.style.display = expand ? '' : 'none';
     if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
     for (var i = 0; i < NODES_DATA.length; i++) {
       if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
     }
@@ -441,138 +449,147 @@ function onNodeTagMousedown(e, nodeEl) {
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
     nodeEl.classList.remove('ng-dragging');
-    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx += finalDX; nodeDatum.ly += finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
   }
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
 }
 
 function recomputePositions() {
-  var childToParent = {};
-  NODES_DATA.forEach(function(n) {
-    (n.children || []).forEach(function(childId) { childToParent[childId] = n.id; });
-  });
-  function getRootId(id) {
-    var cur = id;
-    while (childToParent[cur]) cur = childToParent[cur];
-    return cur;
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
   }
-  function isDescendantOf(descendant, ancestor) {
-    var cur = descendant;
-    while (childToParent[cur]) { cur = childToParent[cur]; if (cur === ancestor) return true; }
-    return false;
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
   }
-  function isDirectedConnected(sourceId, targetId) {
-    return EDGES.some(function(e) { return e.source === sourceId && e.target === targetId; });
-  }
-
-  var sorted = NODES_DATA.slice().sort(function(a, b) {
-    if (a.ly !== b.ly) return a.ly - b.ly;
-    return a.lx - b.lx;
-  });
-  var renderY = {};
-  var MAX_ITER = 8;
-
-  for (var iter = 0; iter < MAX_ITER; iter++) {
-    var prevSnapshot = {};
-    NODES_DATA.forEach(function(n) { prevSnapshot[n.id] = renderY[n.id] !== undefined ? renderY[n.id] : n.ly; });
-
-    // Pass 1: Y-overlap push-down
-    sorted.forEach(function(node) {
-      var nEl = document.getElementById('node-' + node.id);
-      var nodeW = nEl ? nEl.offsetWidth : (node.nodeWidth || 300);
-      var y = node.ly;
-
-      sorted.forEach(function(other) {
-        if (other.id === node.id) return;
-        if (other.ly > node.ly) return;
-        if (other.ly === node.ly && other.lx >= node.lx) return;
-
-        var otherEl = document.getElementById('node-' + other.id);
-        var otherW = otherEl ? otherEl.offsetWidth : (other.nodeWidth || 300);
-        var otherY = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
-        var otherH = otherEl ? otherEl.offsetHeight : HEADER_H;
-        var otherBottom = otherY + otherH;
-        if (otherBottom <= y) return;
-
-        if (node.isMain && other.isMain) {
-          // Main→Main: X 범위가 겹칠 때만 밀어냄 (다른 컬럼 cascade 방지)
-          if (!(node.lx < other.lx + otherW && other.lx < node.lx + nodeW)) return;
-          var naturalBottom = other.ly + (other.nodeHeight || HEADER_H);
-          var delta = (otherY + otherH) - naturalBottom;
-          var nodeNaturalY = node.naturalY !== undefined ? node.naturalY : node.ly;
-          y = Math.max(y, nodeNaturalY + delta, otherBottom + 20);
-        } else {
-          // 방향 엣지 연결이면 X overlap 없어도 밀어냄
-          var connected = isDirectedConnected(other.id, node.id);
-          if (!connected && !(node.lx < other.lx + otherW && other.lx < node.lx + nodeW)) return;
-          if (node.isMain) {
-            if (isDescendantOf(other.id, node.id) && otherBottom <= node.ly) return;
-            y = Math.max(y, otherBottom + 48);
-          } else {
-            var isSameRoot = getRootId(other.id) === getRootId(node.id);
-            y = Math.max(y, otherBottom + (isSameRoot ? 30 : 48));
-          }
-        }
-      });
-      renderY[node.id] = y;
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
     });
+  }
 
-    // Pass 2: 서브노드가 부모 main의 push delta만큼 따라 내려감
-    NODES_DATA.forEach(function(node) {
-      if (node.isMain) return;
-      var parentMain = null;
-      var bestDist = Infinity;
-      NODES_DATA.forEach(function(m) {
-        if (!m.isMain) return;
-        var connected = (m.children && m.children.indexOf(node.id) !== -1) ||
-          EDGES.some(function(e) {
-            return (e.source === m.id && e.target === node.id) || (e.target === m.id && e.source === node.id);
-          });
-        if (connected) {
-          var dist = Math.abs(m.ly - node.ly);
-          if (dist < bestDist) { bestDist = dist; parentMain = m; }
-        }
-      });
-      if (parentMain) {
-        var parentPush = (renderY[parentMain.id] !== undefined ? renderY[parentMain.id] : parentMain.ly) - parentMain.ly;
-        if (parentPush > 0) {
-          var cur = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
-          renderY[node.id] = Math.max(cur, node.ly + parentPush);
-        }
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
       }
     });
-
-    // 수렴 확인
-    var converged = NODES_DATA.every(function(n) {
-      var cur = renderY[n.id] !== undefined ? renderY[n.id] : n.ly;
-      var prev = prevSnapshot[n.id] !== undefined ? prevSnapshot[n.id] : n.ly;
-      return cur === prev;
-    });
-    if (converged) break;
+    return effY;
   }
 
-  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px, 에디터와 동일)
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
   var lineBySource = {};
   EDGES.forEach(function(e) {
     if (e.type !== 'line') return;
     if (!lineBySource[e.source]) lineBySource[e.source] = [];
     lineBySource[e.source].push(e.target);
   });
-  var ndMap = {};
-  NODES_DATA.forEach(function(n) { ndMap[n.id] = n; });
   Object.keys(lineBySource).forEach(function(srcId) {
-    var targetIds = lineBySource[srcId].filter(function(id) { return ndMap[id]; });
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
     if (targetIds.length < 2) return;
     var xGroups = [];
     targetIds.forEach(function(id) {
       var el = document.getElementById('node-' + id);
-      var nx = ndMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
       var placed = false;
       for (var gi = 0; gi < xGroups.length; gi++) {
         var firstId = xGroups[gi][0];
         var fEl = document.getElementById('node-' + firstId);
-        var fx = ndMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
         if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
       }
       if (!placed) xGroups.push([id]);
@@ -581,7 +598,7 @@ function recomputePositions() {
       if (grp.length < 2) return;
       var grpSorted = grp.map(function(id) {
         var el = document.getElementById('node-' + id);
-        return { id: id, y: renderY[id] !== undefined ? renderY[id] : ndMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
       }).sort(function(a, b) { return a.y - b.y; });
       for (var i = 1; i < grpSorted.length; i++) {
         var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
@@ -592,10 +609,38 @@ function recomputePositions() {
     });
   });
 
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
   NODES_DATA.forEach(function(n) {
     var el = document.getElementById('node-' + n.id);
     if (!el) return;
-    el.style.left = n.lx + 'px';
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
     el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
   });
   drawEdges();
