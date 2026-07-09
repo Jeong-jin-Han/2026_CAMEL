@@ -11,10 +11,14 @@
             "id": "cb557382138c9a7f",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "type": "markdown",
+              "state": {
+                "file": "papers/OmniCache - Collaborative Caching for Near-storage Accelerators/OmniCache - Collaborative Caching for Near-storage Accelerators.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "OmniCache - Collaborative Caching for Near-storage Accelerators"
             }
           }
         ]
@@ -192,6 +196,7 @@
   },
   "active": "cb557382138c9a7f",
   "lastOpenFiles": [
+    "concepts/CXL/CXL SOTA & Roadmap.md",
     "index.md.tmp.3450007.ac7de6e1e2cf",
     "insights/LightPC/LightPC.md",
     "insights/LightPC/LightPC.md.tmp.3450007.ae2c5ee2e89d",
@@ -206,7 +211,6 @@
     "index.md.tmp.58717.c50d03a788e8",
     "workflow/paper_wiki.md.tmp.12933.4167ffbd9273",
     "papers/Sparse Checkpointing for Fast and Reliable MoE Training/Sparse Checkpointing for Fast and Reliable MoE Training.md",
-    "papers/Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory/Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory.md.tmp.3391362.12151d0a83b5",
     "hubs/venues/SOSP.md",
     "hubs/venues/OSDI.md",
     "hubs/venues/MICRO.md",

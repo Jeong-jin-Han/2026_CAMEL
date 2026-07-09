@@ -21,19 +21,17 @@ body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFo
 button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
 button:hover{background:#e8e8e8;border-color:#aaa}
 .tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
-#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
 #viewport.pan-drag{cursor:grabbing}
 #canvas{position:absolute;transform-origin:0 0}
 #wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
 .ng-node{position:absolute;min-width:220px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
 .ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
-.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;user-select:none}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
 .ng-header:hover{background:rgba(0,0,0,.04)}
-.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap}
-.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap}
-.ng-chevron{font-size:9px;opacity:.5;flex-shrink:0;padding:2px 4px;border-radius:2px}
-.ng-chevron:hover{background:rgba(0,0,0,.08);opacity:.9}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
 .ng-body{padding:8px 10px 10px;font-size:12px}
 .ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
 .ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
@@ -66,10 +64,17 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 #lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
 #lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
 /* Search */
-#search-bar{display:none;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:5px;padding:2px 6px}
-#search-bar.open{display:flex}
-#search-input{border:none;outline:none;font-size:12px;width:160px;background:transparent;color:#111}
-#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:52px;text-align:right}
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
 .ng-node.ng-search-match{border:2px solid #fcd34d !important}
 .ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
 </style>
@@ -86,20 +91,20 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
     <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
     <div class="tb-sep"></div>
-    <button id="search-btn" onclick="openSearch()" title="Search nodes (Ctrl+F)">🔍 Search</button>
-    <div id="search-bar">
-      <input id="search-input" placeholder="Search nodes…" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)">
-      <span id="search-count"></span>
-      <div style="width:1px;height:14px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
-      <button onclick="searchPrev()" title="Previous (Shift+Enter)" style="border:none;background:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#374151">↑</button>
-      <button onclick="searchNext()" title="Next (Enter)" style="border:none;background:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#374151">↓</button>
-      <button onclick="closeSearch()" title="Close (Escape)" style="border:none;background:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#6b7280">✕</button>
-    </div>
     <div class="tb-sep"></div>
     <span id="tb-sel" style="opacity:.35">Click a node to select</span>
   </div>
 </div>
 <div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
   <div id="canvas">
     <svg id="wire-svg">
       <defs>
@@ -109,199 +114,177 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
       </defs>
     </svg>
     <div class="ng-node" id="node-node_001" data-children="node_009,node_010" style="--color:#4B8BBE;border-radius:2px;left:100px;top:180px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">문제: 저지연 디코딩에서 TP와 Speculative Decoding 각각의 한계</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">문제: 저지연 디코딩에서 TP와 Speculative Decoding 각각의 한계</span>
   </div>
   <div class="ng-body"><div class="ng-content">LLM 디코딩은 응답이 길어질수록(예: Chain-of-Thought) 지연시간이 누적되어 치명적이다. 기존에 지연시간을 줄이는 두 축이 있다: (1) tensor parallelism(TP)으로 GPU를 늘려 연산을 분산, (2) speculative decoding으로 작은 draft 모델이 후보 토큰을 만들고 큰 target 모델이 한 번에 검증.<br><br>문제는 이 둘을 그냥 합치면 잘 안 된다는 것이다. TP는 GPU를 늘려도 금방 diminishing return에 도달하고, draft 모델처럼 작은 모델은 GPU를 늘릴수록 오히려 통신 오버헤드 때문에 더 느려진다(Table 1). Speculative decoding도 draft 단계가 target 검증과 순차적으로 묶여 있어 draft 자체가 critical path의 오버헤드가 된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
 <div class="ng-orig-text">Prior work on speculative decoding (which combines a small draft model with a larger target model) and tensor parallelism has each accelerated decoding. However, conventional approaches fail to apply both simultaneously due to imbalanced compute requirements (between draft and target models), KV-cache inconsistencies, and communication overheads under small-batch tensor-parallelism.</div></details><details class="ng-toggle"><summary>Table 1: 모델 크기별 TP 확장 시 추론시간(ms)</summary>
 <div class="ng-toggle-body">| 모델 | #gpus=1 | #gpus=2 | #gpus=4 | #gpus=8 |<br>|------|---------|---------|---------|---------|<br>| Llama3-1B | 1.58ms | 1.58ms | 1.73ms | 1.72ms |<br>| Llama3-3B | 2.77ms | 2.61ms | 2.80ms | 3.27ms |<br>| Llama3-8B | 4.30ms | 3.46ms | 3.50ms | 3.78ms |<br>| Llama3-70B | 24.78ms | 15.90ms | 11.86ms | 11.22ms |<br><br>3B 모델은 TP 2→4에서 오히려 2.61ms→2.80ms로 느려진다(통신 오버헤드가 계산량 감소분을 상쇄).</div></details><div class="ng-links"><a class="ng-link" href="./SwiftSpec - Ultra-Low Latency LLM Decoding by Scaling Asynchronous Speculative Decoding.pdf#page=2" target="_blank">📄 원문 §1, p.2 (Table 1)</a></div></div>
 </div>
 <div class="ng-node" id="node-node_002" data-children="node_011,node_021" style="--color:#4B8BBE;border-radius:2px;left:100px;top:480px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">핵심 재설계: Draft/Target를 비동기·분리된 GPU 그룹으로</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 재설계: Draft/Target를 비동기·분리된 GPU 그룹으로</span>
   </div>
   <div class="ng-body"><div class="ng-content">SwiftSpec의 핵심 아이디어는 draft 모델과 target 모델을 아예 다른 GPU 그룹에 배치해서 비동기로 돌리는 것이다. target 그룹이 iteration n-1을 검증하는 동안, draft 그룹은 동시에 iteration n의 후보를 계속 생성한다. 검증이 끝나면 그 결과를 draft 쪽에 동기화해서 다음 후보 셋을 받는다.<br><br>이렇게 하면 (1) draft/target을 각자 컴퓨팅 요구량에 맞는 GPU 수로 독립적으로 스케일링할 수 있고, (2) 둘 사이의 순차 의존성이 끊어져서 draft가 critical path에서 빠진다. 대신 세 가지 새 문제가 생긴다: draft가 아직 확정 안 된 검증 결과를 두고 계속 생성해야 하는 문제, KV cache 일관성 문제, 통신 지연을 숨기는 문제.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
 <div class="ng-orig-text">We partition GPUs into two groups: verification and draft. Rather than co-located on the same hardware, the target model runs on the verification group, and the draft model runs on the draft group. The verification and draft phases proceed in parallel: while the verification group verifies iteration n − 1, the draft group concurrently produces candidates for iteration n.</div></details><details class="ng-toggle"><summary>Table 2: 기존 시스템과의 기능 비교</summary>
 <div class="ng-toggle-body">| System | Spec Type | Spec Parallel | Consistent KV-Cache Management | Latency-Optimized Kernels |<br>|---|---|---|---|---|<br>| SpecInfer, EAGLE | Tree | No | easy to manage | standard kernels |<br>| PEARL | Sequence | Yes | easy to manage | standard kernels |<br>| PipeInfer | Tree | Yes | no fine-grained re-use of draft cache | standard kernels/CPU operations |<br>| AMUSD | Sequence | Yes | easy to manage | standard kernels |<br>| SGLang, vLLM | Tree | No | easy to manage | limited optimization |<br>| SwiftSpec (Ours) | Tree | Yes | fine-grained reorganization, zero waste | fused latency-optimized ops |</div></details></div>
 </div>
 <div class="ng-node" id="node-node_003" data-children="node_012" style="--color:#4B8BBE;border-radius:2px;left:100px;top:780px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">Parallel Tree Generation (§3.1)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Parallel Tree Generation (§3.1)</span>
   </div>
   <div class="ng-body"><div class="ng-content">Draft worker는 계속 draft tree를 확장하고, target worker는 그 tree의 subgraph를 배치로 받아 검증한다. 매 iteration마다 검증된 토큰 경로로 tree를 재-rooting한다.<br><br>tree 확장은 log-softmax 값을 노드의 weight로 써서(루트에서부터 누적) 가장 확률 높은 leaf를 우선순위 큐로 뽑는 maximum-likelihood 방식이다. GPU 배분은 k개 중 x개를 target에 주는데, draft 모델이 강력할수록 최적 x가 작아진다는 실증 결과가 있다. batch size bs=8, tree expansion width w=8을 실험적으로 정했다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.6</span></summary>
 <div class="ng-orig-text">In one iteration, the draft worker expands the draft tree d times, by running inference on w unexpanded leaves (i.e., the leaves where the KV-cache and logits (probability distribution of the next token) are not yet calculated) from the tree with the highest probability. After that, it synchronizes with the target worker to get the verified tokens.</div></details><details class="ng-toggle"><summary>Figure 3 예시: 3 iteration 동안의 tree 재-rooting</summary>
 <div class="ng-toggle-body">시작 draft tree = t1..t6, bs=4, d=3, w=2.<br>Iteration 1: target이 input1=(t1,t2,t3,t5)를 검증해 output1=(t1,t3,t6). draft는 6개 새 노드를 키움. 그 결과 (t1,t3,t6)가 유효 경로임을 확인하고 t6에서 재-rooting.<br>Iteration 2: draft가 6개 더 키워 input2=(t6,t9,t10,t11) 전달. target output2=(t6,t9,t16). t16이 아직 tree에 없어 t16에서 재-rooting하며 계속 확장.<br>Iteration 3: 같은 과정 반복.<br>각 iteration마다 draft·target이 병렬로 돌면서 tree를 키우고 검증한다.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_004" data-children="node_013,node_014,node_020,node_022" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1080px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">KV Cache Consistency Management (§3.2)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">KV Cache Consistency Management (§3.2)</span>
   </div>
   <div class="ng-body"><div class="ng-content">검증마다 draft tree를 재구성해야 하는데, 이때 KV cache를 최대한 재사용하는 게 핵심이다. draft 모델의 KV cache는 항상 두 부분으로 나눠 유지된다: 검증된 토큰들의 KV state가 연속으로 저장되는 prefix cache, 그리고 tree 노드들의 KV state가 저장되는 tree cache.<br><br>새 검증 토큰이 오면 draft worker가 tree를 그 토큰까지 walk-down해서 재-rooting하고, 그 서브트리에 남아있던 KV state는 그대로 prefix/tree cache 자리를 옮겨가며 재사용한다 — 즉 예측이 틀린 가지만 버리고 맞은 부분은 재계산 없이 재사용한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.8</span></summary>
 <div class="ng-orig-text">Throughout the execution, we organize the KV Cache of the draft model as follows and keep it as an invariant throughout the execution: the KV states of the verified tokens are stored continuously in the prefix of the KV cache (which we call prefix cache), and the KV states of the tree are stored right after the prefix (which we call tree cache).</div></details><details class="ng-toggle"><summary>Figure 5 예시: 재-rooting 시 prefix/tree cache 재배치</summary>
 <div class="ng-toggle-body">verified sequence가 (t1,t3,t7,t10)까지 이미 확정된 상태에서, 새로 (t1,t3,t7,t10,t12,t15)가 검증되면: t12,t15의 KV state를 prefix cache로 옮기고, 그 서브트리에 남아있던 t17,t18(아직 유효한 미래 후보)은 그대로 tree cache의 다음 위치로 재배치, 더 이상 쓸모없는 t11 등은 버린다. 재계산은 없다.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_005" data-children="node_015,node_016" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1380px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">Latency-Optimized Fused Kernels (§3.3)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Latency-Optimized Fused Kernels (§3.3)</span>
   </div>
   <div class="ng-body"><div class="ng-content">저배치 상황에서는 GEMM/attention/all-reduce 커널의 대역폭·연산 활용률이 매우 낮아(all-reduce 대역폭 활용률 &lt;10%) 대부분 시간이 동기화·커널 launch 대기에 쓰인다. SwiftSpec은 NCCL의 Low-Latency(LL) 프로토콜을 활용해 명시적 barrier 없이 GPU 간 send/receive를 구현하고, 이를 GEMM+all-reduce 융합 커널과 SwiGLU 융합 연산에 적용한다.<br><br>LL 프로토콜의 핵심은: 64비트 값을 32비트 두 조각으로 쪼개 flag와 함께 원자적으로 store하고, 수신측은 그 flag가 기대한 값과 일치할 때까지 폴링만 한다는 것이다 — 그러면 별도 동기화 기제 없이도 데이터가 준비됐음을 알 수 있다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.9</span></summary>
 <div class="ng-orig-text">Assume that last time we store some value x as a flag, and this time we use x + 1. The other compute unit (another stream multi-processor in the same GPU or on another GPU) will know the data is ready when it sees x + 1 as the flag, without any additional synchronization. In our latency-optimized kernels, we heavily rely on this powerful primitive to reduce synchronization overhead both within and across GPUs.</div></details><details class="ng-toggle"><summary>Fused SwiGLU 연산식</summary>
 <div class="ng-toggle-body">$$SwiGLU(x, W, V, b, c) = \sigma(xW + b) \otimes (xV + c)$$<br>각 threadblock이 두 matrix multiplication의 동일 tile을 동시에 계산해서 입력을 GPU HBM에서 두 번 로드하는 것을 피한다.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_006" data-children="node_017" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1680px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">End-to-End 평가: 평균 1.75×, Llama3-70B 348 tokens/s</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">End-to-End 평가: 평균 1.75×, Llama3-70B 348 tokens/s</span>
   </div>
   <div class="ng-body"><div class="ng-content">5개 모델 패밀리(Llama3, DeepSeek-Coder, Qwen2, DeepSeek-R1-Distill-Qwen/Llama) × 6개 데이터셋(MT-bench, HumanEval, GSM8K, Alpaca, CNN/DailyMail, Natural Questions)에서 vLLM, SGLang, TRT-LLM, SwiftSpec-base와 비교했다. vLLM/TRT-LLM은 tree-based+TP 조합을 지원하지 않아 SwiftSpec-base(순수 커널 최적화만 적용한 버전)와 SGLang(EAGLE tree 지원)이 가장 경쟁력 있는 baseline이다.<br><br>SwiftSpec-full은 SwiftSpec-base 대비 평균 1.75×, SGLang 대비 평균 2.23× 빠르다. Llama3-70B는 8×H800에서 평균 348 tokens/s로, 이 논문이 아는 한 이 규모에서 가장 빠른 low-latency 서빙이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, p.11</span></summary>
 <div class="ng-orig-text">As shown in Figure 7, our SwiftSpec system consistently outperforms SwiftSpec-base (by an average of 1.75×) and SGLang (on average 2.23×), the two most competitive baselines.</div></details><details class="ng-toggle"><summary>Table 4: 평가에 쓰인 target/draft 모델 조합</summary>
 <div class="ng-toggle-body">| Target model | Draft model |<br>|---|---|<br>| Llama-3-70b-Instruct | Llama-3.2-3B, EAGLE-0.99B |<br>| deepseek-coder-33b-instruct | deepseek-coder-1.3b-instruct |<br>| Qwen2-72B-Instruct | Qwen2-1.5B-Instruct, EAGLE-1.05B |<br>| DeepSeek-R1-Distill-Qwen-32B | DeepSeek-R1-Distill-Qwen-1.5B |<br>| DeepSeek-R1-Distill-Llama-70B | DeepSeek-R1-Distill-Llama-8B |</div></details></div>
 </div>
 <div class="ng-node" id="node-node_007" data-children="node_018" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1980px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">Ablation: 두 optimization 클래스의 개별 기여 분해</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Ablation: 두 optimization 클래스의 개별 기여 분해</span>
   </div>
   <div class="ng-body"><div class="ng-content">SwiftSpec의 성능 향상은 두 축에서 온다: (A) parallel tree generation + KV cache consistency, (B) latency-optimized fused kernel. 4가지 조합(SwiftSpec-full / only-parallel-tree / only-kernel-opt / base)을 비교해서 분리했다.<br><br>parallel tree generation의 효과: ①(full)이 ③(kernel-opt만)보다 평균 1.43× 빠르고, ②(parallel-tree만)가 ④(base)보다 평균 1.50× 빠르다 — 평균 43% 개선. latency-optimized kernel의 효과: ①이 ②보다 1.16×, ③이 ④보다 1.21× — 최소 16%의 end-to-end 개선.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.12-13</span></summary>
 <div class="ng-orig-text">As shown in Figure 8, ① outperforms ③ by an average speedup of 1.43×, and ② outperforms ④ by an average speed of 1.50×... those two kernel optimizations give the end-to-end improvement of at least 16% for both parallel and serial tree generation.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_008" data-children="node_019" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2280px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">Discussion, Limitations &amp; Conclusion</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Discussion, Limitations &amp; Conclusion</span>
   </div>
   <div class="ng-body"><div class="ng-content">저자 스스로 인정한 한계 셋: (1) EAGLE처럼 target 출력에 강하게 의존하는 draft 모델에는 이 비동기 분리 기법을 적용하기 어렵다 — future work로 남겼다. (2) int4 양자화 기반이라 batch≥64의 고throughput 시나리오엔 원래 안 맞지만, 통신량을 줄인다는 점에서 인터커넥트가 느릴 때는 유용할 수 있다고 추측한다. (3) prefill/decoding을 분리하는 기존 disaggregation(SplitWise, DistServe)과는 직교(orthogonal)하다 — SwiftSpec은 decoding 단계 '안'에서 draft/target을 분리하는 것이므로 두 접근은 결합 가능하다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.14</span></summary>
 <div class="ng-orig-text">While SwiftSpec could make normal speculative decoding with a smaller draft model faster, it is non-trivial to apply them into EAGLE speculative decoding, since the EAGLE model takes the target model output of the verified tokens as input, imposing an even stricter dependency between draft model and target model that is hard to break.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_009" style="--color:#9B59B6;border-radius:2px;left:550px;top:100px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Table 1 관찰: TP는 diminishing return, 작은 모델은 역효과</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 1 관찰: TP는 diminishing return, 작은 모델은 역효과</span>
   </div>
   <div class="ng-body"><div class="ng-content">TP를 2→4로 늘리면 70B는 15.90ms→11.86ms로 계속 개선되지만, 3B는 2.61ms→2.80ms로 오히려 느려진다. 즉 draft/target에 같은 TP degree를 강제하는 게 근본적으로 비효율적이라는 관찰이 SwiftSpec 설계의 출발점이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
 <div class="ng-orig-text">extending from 2 GPUs to 4 GPUs, a lightweight Llama 3B draft model has even longer inference time (increasing from 2.61ms to 2.80ms per inference), while the Llama 70B target model still has good improvements (decreasing from 15.90ms to 11.86ms).</div></details></div>
 </div>
 <div class="ng-node" id="node-node_010" style="--color:#9B59B6;border-radius:2px;left:550px;top:280px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Figure 2 관찰: 저지연엔 큰 배치가 불필요</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Figure 2 관찰: 저지연엔 큰 배치가 불필요</span>
   </div>
   <div class="ng-body"><div class="ng-content">target/draft 배치 크기를 늘려도 16을 넘어서면 compression ratio(평균 정답 토큰 수) 개선이 미미해진다. throughput 최적화 시스템과 달리, 단일 요청 저지연을 목표로 하면 배치를 굳이 키울 이유가 없다는 근거로 쓰인다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.3.2, p.5</span></summary>
 <div class="ng-orig-text">to minimize the latency of serving a single request, it is usually sufficient to use a small batch size (≤ 16) for both the target and draft models. Note that this characteristic is different from throughput-oriented systems... where larger batch sizes improve system throughput while satisfying SLOs, rather than minimizing the end-to-end generation of a single request.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_011" style="--color:#E74C3C;border-radius:2px;left:550px;top:480px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
-    <span class="ng-title">SwiftSpec만 Tree+Parallel+정밀 KV관리+융합커널을 모두 갖춤</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">SwiftSpec만 Tree+Parallel+정밀 KV관리+융합커널을 모두 갖춤</span>
   </div>
   <div class="ng-body"><div class="ng-content">Table 2 비교에서 SGLang/vLLM은 tree 방식이지만 병렬(비동기) 실행은 안 되고, PipeInfer는 병렬이지만 draft cache 재사용이 fine-grained하지 않다. SwiftSpec만 이 네 축(Tree, Parallel, fine-grained KV 재구성, fused latency-optimized kernel)을 동시에 만족한다고 주장한다.</div></div>
 </div>
 <div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:550px;top:780px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">Algorithm 1: draft/target worker의 비동기 루프</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Algorithm 1: draft/target worker의 비동기 루프</span>
   </div>
   <div class="ng-body"><div class="ng-content">draft worker는 while(true) 루프에서 매 라운드 w개의 최확률 leaf를 d번 확장하고, target으로부터 verified token을 받아 KV cache/tree를 갱신한 뒤, tree 크기가 bs 미만이면 더 확장해서 target에 다음 subgraph를 보낸다. target worker는 draft tree worker로부터 draft token을 받아 batch 추론으로 검증하고 verified token을 돌려보내는 것을 반복한다. 두 루프는 동기화 지점(한 iteration 끝)에서만 서로를 기다린다.</div></div>
 </div>
 <div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:550px;top:960px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">Figure 4: Non-square tree mask</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Figure 4: Non-square tree mask</span>
   </div>
   <div class="ng-body"><div class="ng-content">target 모델의 verify 단계는 한 번에 트리 하나만 다루니 square mask면 충분하지만, draft 모델은 여러 leaf를 동시에 확장하면서 각 leaf가 자신의 ancestor만 attend해야 하므로 non-square mask가 필요하다. 예를 들어 크기 6인 tree에서 4개의 probable leaf의 logit을 계산하려면 최소 (4,10) 크기의 mask가 있어야 leaf-ancestor 관계와 prefix cache 정보를 모두 담을 수 있다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.7</span></summary>
 <div class="ng-orig-text">Consider the example in Figure 4 with a current tree of size 6, and we want to calculate the logits of 4 probable leaves, then regarding the tree cache, we only calculate the attention of each leave with its ancestor on the tree (and also all the data that is in the prefix cache). In this case, we need a mask of at least size (4, 10) to contain all the necessary information.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_014" style="--color:#9B59B6;border-radius:2px;left:550px;top:1130px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Table 6: KV 재사용 스킴의 실제 효과 (Qwen2-72B/1.5B)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 6: KV 재사용 스킴의 실제 효과 (Qwen2-72B/1.5B)</span>
   </div>
   <div class="ng-body"><div class="ng-content">병렬 tree generation + KV cache 재사용 스킴을 켰을 때(target TP=6/draft TP=2, 총 8GPU 중 분배): compression ratio는 직렬(3.72) 대비 병렬(3.56)이 약 9% 낮아지지만, draft 모델 추론시간은 3.72ms→3.25ms로 줄고(2 GPU만 써서 79% GPU 절감), target 추론시간은 10.34ms→10.48ms로 거의 그대로(6 GPU로도 25% 절감). 결과적으로 최종 처리량은 200→275 tokens/s (+37%).</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.12</span></summary>
 <div class="ng-orig-text">our draft model inference time decreases from 3.72ms to 3.25ms using only 2 GPUs instead of 8 GPUs saving 79% of the GPU cycles during one round of drafting, and our target model has nearly no slow down using 6 GPUs instead of 8 GPUs, still saving 25% of the GPUs cycles during one round of target verification. As a result, the end-to-end tokens-per-second of Qwen2-72B model increases from 200 to 275 (by 37%) by applying our parallel tree generation and KV cache management scheme.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_015" style="--color:#5C9E6E;border-radius:2px;left:550px;top:1300px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">NCCL LL protocol 기반 barrier-free 융합 커널</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">NCCL LL protocol 기반 barrier-free 융합 커널</span>
   </div>
   <div class="ng-body"><div class="ng-content">Fused GEMM+all-reduce: 각 threadblock이 결과 행렬의 일부 열을 계산 → NCCL LL 프로토콜로 각 GPU에 즉시 전송 → 결과가 도착하면 합산 후 global memory에 저장, 이 세 단계 사이에 별도 barrier가 없다. Masked attention도 같은 원리로 thread block 간 합산을 명시적 동기화 없이 수행한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.9</span></summary>
 <div class="ng-orig-text">The synchronization between steps 2 and 3 is implemented using just the NCCL LL protocol described above and no additional, expensive mechanisms.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:550px;top:1500px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Table 7: 커널별 microbenchmark (Llama3, batch=8)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 7: 커널별 microbenchmark (Llama3, batch=8)</span>
   </div>
   <div class="ng-body"><div class="ng-content">예: 70B, tp=8일 때 fused GEMM(attn) 13.3us(ours) vs vllm 25.7us vs TRT 17.2us. attention 커널(context len=1000)은 8.1us(ours) vs FlashInfer 32.7us vs FlashAttention 18.2us. 전반적으로 attn/mlp fused GEMM+all-reduce는 FlashAttention/FlashInfer 대비 30~56% 시간 절감(단 70B의 MLP fused GEMM은 예외 — AWQ marlin 등 더 정교한 커널을 쓰는 vllm/TRT가 더 빠르다).</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.4, p.13</span></summary>
 <div class="ng-orig-text">our optimization kernel constantly saves 30% to 56% of the running time compared to FA and FI under two representative context lengths, 500 and 1000, across different model configurations.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_017" style="--color:#9B59B6;border-radius:2px;left:550px;top:1680px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">5모델×6데이터셋 벤치마크 결과</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">5모델×6데이터셋 벤치마크 결과</span>
   </div>
   <div class="ng-body"><div class="ng-content">vLLM/TRT-LLM은 sequence 기반 speculative decoding만 지원해 SGLang·SwiftSpec-base와 직접 비교가 어렵다. Llama3-70B/Qwen2-72B는 EAGLE을 지원하는 SGLang과, 나머지 세 모델(DeepSeek-Coder, R1-Qwen, R1-Llama)은 자동회귀 디코딩 기준 SwiftSpec-base와 비교했다.</div></div>
 </div>
 <div class="ng-node" id="node-node_018" style="--color:#9B59B6;border-radius:2px;left:550px;top:1980px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">기여도 분해 수치</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">기여도 분해 수치</span>
   </div>
   <div class="ng-body"><div class="ng-content">parallel tree generation 단독 효과 = 평균 43% 개선(③→①, ④→②). latency-optimized kernel 단독 효과 = 최소 16% 개선(②→①, ④→③). 두 최적화가 상호보완적으로 곱해져서 전체 1.75×가 나온다.</div></div>
 </div>
 <div class="ng-node" id="node-node_019" style="--color:#E5A835;border-radius:22px;left:550px;top:2180px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
-    <span class="ng-title">EAGLE류(tighter dependency)로 일반화 가능한가?</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">EAGLE류(tighter dependency)로 일반화 가능한가?</span>
   </div>
   <div class="ng-body"><div class="ng-content">SwiftSpec은 draft 모델이 target의 최종 출력과 독립적으로 계속 tree를 키울 수 있다는 전제 위에 서 있다. EAGLE처럼 draft가 target의 verified token '자체'를 입력으로 받는 구조라면, 비동기 분리가 애초에 성립하지 않는다. 저자들도 이걸 미해결로 남겼는데 — 어느 정도까지 의존성을 완화하면(예: stale/approximate 입력 허용) 비동기화가 가능해질지가 궁금하다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.14</span></summary>
 <div class="ng-orig-text">How to integrate our method with EAGLE is left as future work.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_020" style="--color:#1ABC9C;border-radius:22px;left:950px;top:1080px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
-    <span class="ng-title">Multi-node(NVLink 밖)로 확장하면 이 KV consistency 스킴은?</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Multi-node(NVLink 밖)로 확장하면 이 KV consistency 스킴은?</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문의 KV cache consistency 스킴은 8-GPU 단일 노드, NVLink로 강하게 결합된 환경을 전제로 barrier-free NCCL LL 프로토콜을 쓴다. 만약 draft 그룹과 target 그룹이 서로 다른 노드(NVLink 범위 밖, 예: CXL로 연결된 disaggregated 메모리/컴퓨트)에 있다면, flag-polling 방식의 latency 특성이 완전히 달라질 것이다. 논문은 이 축을 아예 다루지 않는다 — 내 관심사인 multi-node coherence 문제와 맞닿는 지점.</div></div>
 </div>
 <div class="ng-node" id="node-node_021" style="--color:#95A5A6;border-radius:22px;left:950px;top:480px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
-    <span class="ng-title">비교 대상 시스템: PipeInfer / EAGLE-2 / PEARL / DistServe</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">비교 대상 시스템: PipeInfer / EAGLE-2 / PEARL / DistServe</span>
   </div>
   <div class="ng-body"><div class="ng-content">SwiftSpec이 직접 비교하거나 언급하는 핵심 선행연구: PipeInfer(tree 기반 비동기 speculative decoding), EAGLE-2(target 의존적 tree draft), PEARL(sequence 기반 parallel speculative decoding), DistServe/SplitWise(prefill-decoding disaggregation, orthogonal 관계로 언급됨). KV cache 관리 방식을 이해하려면 PagedAttention과의 대비도 참고할 만하다.</div><div class="ng-links"><a class="ng-link" href="https://arxiv.org/abs/2407.11798" target="_blank">🔗 PipeInfer arXiv</a><a class="ng-link" href="https://arxiv.org/abs/2406.16858" target="_blank">🔗 EAGLE-2 arXiv</a><a class="ng-link" href="https://arxiv.org/abs/2408.11850" target="_blank">🔗 PEARL arXiv</a><a class="ng-link" href="https://arxiv.org/abs/2401.09670" target="_blank">🔗 DistServe arXiv</a></div></div>
 </div>
 <div class="ng-node" id="node-node_022" style="--color:#BDC3C7;border-radius:22px;left:950px;top:1230px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
-    <span class="ng-title">내 연구방향과의 연결: workload-specific consistency</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향과의 연결: workload-specific consistency</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문의 핵심은 결국 강한 coherence를 매번 유지하는 대신, 재-rooting이라는 특정 동기화 지점에서만 명시적으로 맞추고 나머지는 비동기로 흘려보낸다는 것이다. 이건 내가 보고 있는 multi-node CXL coherence 가설(워크로드에 특화해서 필요한 동기화만 남긴다, H1)과 같은 모양의 문제를 소프트웨어 스케줄러 레벨에서 푼 사례로 읽힌다. 차이는 이 논문이 memory subsystem 자체를 재설계하지 않고 순수 애플리케이션 레벨(스케줄러+커널 fusion)에서 풀었다는 것 — 이걸 HW/OS 레벨로 내리면 무엇이 달라지는지가 내 질문이다.</div></div>
 </div>
@@ -388,21 +371,23 @@ function onHeaderClick(hdr) {
   selectNode(selectedNodeId === nodeId ? null : nodeId);
 }
 
-// Chevron click = toggle this node only (no cascade, stopPropagation)
-function toggleFold(e, hdr) {
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
   e.stopPropagation();
-  var body = hdr.nextElementSibling;
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
   if (!body) return;
-  var chevron = hdr.querySelector('.ng-chevron');
   var expanding = body.style.display === 'none';
   body.style.display = expanding ? '' : 'none';
-  if (chevron) chevron.textContent = expanding ? '▲' : '▼';
-  var nodeEl = hdr.parentNode;
   var nodeId = nodeEl.id.replace('node-', '');
   for (var i = 0; i < NODES_DATA.length; i++) {
     if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
   }
   setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
 }
 
 // Get node datum by id
@@ -502,8 +487,8 @@ function doCollapse() {
   }
 }
 
-// Per-node drag with logical-position tracking
-function onNodeHeaderMousedown(e, nodeEl) {
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
   e.stopPropagation();
   lastWasDrag = false;
   var x0 = e.clientX, y0 = e.clientY;
@@ -533,110 +518,112 @@ function onNodeHeaderMousedown(e, nodeEl) {
   window.addEventListener('mouseup', onUp);
 }
 
-// Keep original node positions — collapse/expand does not push other nodes
-function getNodeRootId(nodeId) {
-  var childToParent = getChildToParentMap();
-  var cur = nodeId;
-  while (childToParent[cur]) cur = childToParent[cur];
-  return cur;
-}
-function getChildToParentMap() {
-  var map = {};
-  NODES_DATA.forEach(function(n) {
-    (n.children || []).forEach(function(childId) { map[childId] = n.id; });
-  });
-  return map;
-}
 function recomputePositions() {
-  var childToParent = getChildToParentMap();
-  function rootOf(id) {
+  var childToParent = {};
+  NODES_DATA.forEach(function(n) {
+    (n.children || []).forEach(function(childId) { childToParent[childId] = n.id; });
+  });
+  function getRootId(id) {
     var cur = id;
     while (childToParent[cur]) cur = childToParent[cur];
     return cur;
   }
   function isDescendantOf(descendant, ancestor) {
     var cur = descendant;
-    while (childToParent[cur]) {
-      cur = childToParent[cur];
-      if (cur === ancestor) return true;
-    }
+    while (childToParent[cur]) { cur = childToParent[cur]; if (cur === ancestor) return true; }
     return false;
   }
+  function isDirectedConnected(sourceId, targetId) {
+    return EDGES.some(function(e) { return e.source === sourceId && e.target === targetId; });
+  }
+
   var sorted = NODES_DATA.slice().sort(function(a, b) {
     if (a.ly !== b.ly) return a.ly - b.ly;
     return a.lx - b.lx;
   });
   var renderY = {};
-  sorted.forEach(function(n) {
-    var nIsMain = n.isMain;
-    var y = n.ly;
-    var nEl = document.getElementById('node-' + n.id);
-    var nW = nEl ? nEl.offsetWidth : 300;
-    sorted.forEach(function(other) {
-      if (other.id === n.id) return;
-      if (other.ly > n.ly) return;
-      if (other.ly === n.ly && other.lx >= n.lx) return;
-      var otherY = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
-      var otherEl = document.getElementById('node-' + other.id);
-      var h = otherEl ? otherEl.offsetHeight : HEADER_H;
-      var otherBottom = otherY + h;
-      if (otherBottom <= y) return;
-      if (nIsMain && other.isMain) {
-        // Main → main: always push regardless of X offset
-        var naturalBottom = other.ly + (other.nodeHeight || HEADER_H);
-        var delta = (otherY + h) - naturalBottom;
-        var nodeNaturalY = n.naturalY !== undefined ? n.naturalY : n.ly;
-        y = Math.max(y, nodeNaturalY + delta, otherBottom + 20);
-      } else {
-        // Rounded pushes: only if X ranges actually overlap (different columns don't push each other)
-        var oW = otherEl ? otherEl.offsetWidth : 300;
-        if (!(n.lx < other.lx + oW && other.lx < n.lx + nW)) return;
-        if (nIsMain) {
-          // Rounded → main: skip only if descendant AND doesn't reach this node's Y
-          if (isDescendantOf(other.id, n.id) && otherBottom <= n.ly) return;
-          var wasPushed = otherY > other.ly;
-          if (!other.contentExpanded && !wasPushed) return;
-          y = Math.max(y, otherBottom + 48);
+  var MAX_ITER = 8;
+
+  for (var iter = 0; iter < MAX_ITER; iter++) {
+    var prevSnapshot = {};
+    NODES_DATA.forEach(function(n) { prevSnapshot[n.id] = renderY[n.id] !== undefined ? renderY[n.id] : n.ly; });
+
+    // Pass 1: Y-overlap push-down
+    sorted.forEach(function(node) {
+      var nEl = document.getElementById('node-' + node.id);
+      var nodeW = nEl ? nEl.offsetWidth : (node.nodeWidth || 300);
+      var y = node.ly;
+
+      sorted.forEach(function(other) {
+        if (other.id === node.id) return;
+        if (other.ly > node.ly) return;
+        if (other.ly === node.ly && other.lx >= node.lx) return;
+
+        var otherEl = document.getElementById('node-' + other.id);
+        var otherW = otherEl ? otherEl.offsetWidth : (other.nodeWidth || 300);
+        var otherY = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        var otherH = otherEl ? otherEl.offsetHeight : HEADER_H;
+        var otherBottom = otherY + otherH;
+        if (otherBottom <= y) return;
+
+        if (node.isMain && other.isMain) {
+          // Main→Main: X 범위가 겹칠 때만 밀어냄 (다른 컬럼 cascade 방지)
+          if (!(node.lx < other.lx + otherW && other.lx < node.lx + nodeW)) return;
+          var naturalBottom = other.ly + (other.nodeHeight || HEADER_H);
+          var delta = (otherY + otherH) - naturalBottom;
+          var nodeNaturalY = node.naturalY !== undefined ? node.naturalY : node.ly;
+          y = Math.max(y, nodeNaturalY + delta, otherBottom + 20);
         } else {
-          // Sub → sub: always push when X ranges overlap, regardless of expand state
-          var gap = (rootOf(other.id) === rootOf(n.id)) ? 20 : 48;
-          y = Math.max(y, otherBottom + gap);
+          // 방향 엣지 연결이면 X overlap 없어도 밀어냄
+          var connected = isDirectedConnected(other.id, node.id);
+          if (!connected && !(node.lx < other.lx + otherW && other.lx < node.lx + nodeW)) return;
+          if (node.isMain) {
+            if (isDescendantOf(other.id, node.id) && otherBottom <= node.ly) return;
+            y = Math.max(y, otherBottom + 48);
+          } else {
+            var isSameRoot = getRootId(other.id) === getRootId(node.id);
+            y = Math.max(y, otherBottom + (isSameRoot ? 30 : 48));
+          }
+        }
+      });
+      renderY[node.id] = y;
+    });
+
+    // Pass 2: 서브노드가 부모 main의 push delta만큼 따라 내려감
+    NODES_DATA.forEach(function(node) {
+      if (node.isMain) return;
+      var parentMain = null;
+      var bestDist = Infinity;
+      NODES_DATA.forEach(function(m) {
+        if (!m.isMain) return;
+        var connected = (m.children && m.children.indexOf(node.id) !== -1) ||
+          EDGES.some(function(e) {
+            return (e.source === m.id && e.target === node.id) || (e.target === m.id && e.source === node.id);
+          });
+        if (connected) {
+          var dist = Math.abs(m.ly - node.ly);
+          if (dist < bestDist) { bestDist = dist; parentMain = m; }
+        }
+      });
+      if (parentMain) {
+        var parentPush = (renderY[parentMain.id] !== undefined ? renderY[parentMain.id] : parentMain.ly) - parentMain.ly;
+        if (parentPush > 0) {
+          var cur = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+          renderY[node.id] = Math.max(cur, node.ly + parentPush);
         }
       }
     });
-    renderY[n.id] = y;
-  });
 
-  // Pass 2: sub-nodes follow their parent main node's push delta
-  NODES_DATA.forEach(function(n) {
-    if (n.isMain) return;
-    var parentMain = null;
-    var bestDist = Infinity;
-    NODES_DATA.forEach(function(m) {
-      if (!m.isMain) return;
-      var connected = m.children && m.children.indexOf(n.id) !== -1;
-      if (!connected) {
-        EDGES.some(function(e) {
-          if ((e.source === m.id && e.target === n.id) || (e.target === m.id && e.source === n.id)) {
-            connected = true; return true;
-          }
-        });
-      }
-      if (connected) {
-        var dist = Math.abs(m.ly - n.ly);
-        if (dist < bestDist) { bestDist = dist; parentMain = m; }
-      }
+    // 수렴 확인
+    var converged = NODES_DATA.every(function(n) {
+      var cur = renderY[n.id] !== undefined ? renderY[n.id] : n.ly;
+      var prev = prevSnapshot[n.id] !== undefined ? prevSnapshot[n.id] : n.ly;
+      return cur === prev;
     });
-    if (parentMain) {
-      var parentPush = (renderY[parentMain.id] !== undefined ? renderY[parentMain.id] : parentMain.ly) - parentMain.ly;
-      if (parentPush > 0) {
-        var cur = renderY[n.id] !== undefined ? renderY[n.id] : n.ly;
-        renderY[n.id] = Math.max(cur, n.ly + parentPush);
-      }
-    }
-  });
+    if (converged) break;
+  }
 
-  // Pass 3: normalize Y spacing within each bus group (same source, same X column)
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px, 에디터와 동일)
   var lineBySource = {};
   EDGES.forEach(function(e) {
     if (e.type !== 'line') return;
@@ -648,7 +635,6 @@ function recomputePositions() {
   Object.keys(lineBySource).forEach(function(srcId) {
     var targetIds = lineBySource[srcId].filter(function(id) { return ndMap[id]; });
     if (targetIds.length < 2) return;
-    // Group targets by X column
     var xGroups = [];
     targetIds.forEach(function(id) {
       var el = document.getElementById('node-' + id);
@@ -662,18 +648,17 @@ function recomputePositions() {
       }
       if (!placed) xGroups.push([id]);
     });
-    // Sort and space within each X column group
     xGroups.forEach(function(grp) {
       if (grp.length < 2) return;
-      var sorted = grp.map(function(id) {
+      var grpSorted = grp.map(function(id) {
         var el = document.getElementById('node-' + id);
         return { id: id, y: renderY[id] !== undefined ? renderY[id] : ndMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
       }).sort(function(a, b) { return a.y - b.y; });
-      for (var i = 1; i < sorted.length; i++) {
-        var minY = sorted[i-1].y + sorted[i-1].h + 20;
-        var newY = Math.max(sorted[i].y, minY);
-        sorted[i].y = newY;
-        renderY[sorted[i].id] = newY;
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
       }
     });
   });
@@ -682,7 +667,7 @@ function recomputePositions() {
     var el = document.getElementById('node-' + n.id);
     if (!el) return;
     el.style.left = n.lx + 'px';
-    el.style.top  = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
   });
   drawEdges();
 }
@@ -797,67 +782,138 @@ function closeLightbox(){document.getElementById('lightbox').classList.remove('a
 document.addEventListener('keydown',function(e){
   if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
   if(e.key==='Escape'){
-    if(document.getElementById('search-bar').classList.contains('open')){closeSearch();return;}
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
     closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
   }
 });
 
 // Search
-var searchMatchIds=[];
-var searchActiveIdx=-1;
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
 function openSearch(){
-  var bar=document.getElementById('search-bar');
-  bar.classList.add('open');
-  document.getElementById('search-btn').style.display='none';
+  document.getElementById('search-wrap').classList.add('open');
   var inp=document.getElementById('search-input');
   inp.focus();inp.select();
+  kbIdx=-1;
   if(inp.value) doSearch(inp.value);
 }
 function closeSearch(){
   clearSearchHighlights();
-  searchMatchIds=[];searchActiveIdx=-1;
-  document.getElementById('search-bar').classList.remove('open');
-  document.getElementById('search-btn').style.display='';
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
   document.getElementById('search-input').value='';
   document.getElementById('search-count').textContent='';
+  closeDropdown();
 }
 function clearSearchHighlights(){
   document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
 }
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
 function doSearch(q){
   clearSearchHighlights();
-  searchMatchIds=[];searchActiveIdx=0;
+  searchSelectedId=null;kbIdx=-1;
   var query=q.trim().toLowerCase();
-  if(!query){document.getElementById('search-count').textContent='';return;}
-  NODES_DATA.forEach(function(n){if(n.searchText&&n.searchText.indexOf(query)!==-1) searchMatchIds.push(n.id);});
-  searchMatchIds.forEach(function(id){var el=document.getElementById('node-'+id);if(el) el.classList.add('ng-search-match');});
-  if(searchMatchIds.length>0){searchActiveIdx=0;activateSearchMatch(0);}
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
   updateSearchCount();
 }
-function activateSearchMatch(idx){
-  document.querySelectorAll('.ng-search-active').forEach(function(el){el.classList.remove('ng-search-active');});
-  if(!searchMatchIds.length) return;
-  var el=document.getElementById('node-'+searchMatchIds[idx]);
-  if(el){el.classList.add('ng-search-active');flyToNode(searchMatchIds[idx]);}
-}
-function searchNext(){
-  if(!searchMatchIds.length) return;
-  searchActiveIdx=(searchActiveIdx+1)%searchMatchIds.length;
-  activateSearchMatch(searchActiveIdx);updateSearchCount();
-}
-function searchPrev(){
-  if(!searchMatchIds.length) return;
-  searchActiveIdx=(searchActiveIdx-1+searchMatchIds.length)%searchMatchIds.length;
-  activateSearchMatch(searchActiveIdx);updateSearchCount();
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
 }
 function updateSearchCount(){
   var el=document.getElementById('search-count');
   if(!el) return;
   var q=document.getElementById('search-input').value.trim();
   if(!q){el.textContent='';return;}
-  if(!searchMatchIds.length){el.style.color='#ef4444';el.textContent='0 results';return;}
-  el.style.color='#6b7280';
-  el.textContent=(searchActiveIdx+1)+' / '+searchMatchIds.length;
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
 }
 function flyToNode(nodeId){
   var el=document.getElementById('node-'+nodeId);
@@ -871,8 +927,19 @@ function flyToNode(nodeId){
   applyTransform();
 }
 function onSearchKey(e){
-  if(e.key==='Enter'){e.shiftKey?searchPrev():searchNext();e.preventDefault();}
-  if(e.key==='Escape'){closeSearch();e.preventDefault();}
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
   e.stopPropagation();
 }
 

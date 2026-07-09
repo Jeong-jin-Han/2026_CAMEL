@@ -21,19 +21,17 @@ body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFo
 button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
 button:hover{background:#e8e8e8;border-color:#aaa}
 .tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
-#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
 #viewport.pan-drag{cursor:grabbing}
 #canvas{position:absolute;transform-origin:0 0}
 #wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
 .ng-node{position:absolute;min-width:220px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
 .ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
-.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;user-select:none}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
 .ng-header:hover{background:rgba(0,0,0,.04)}
-.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap}
-.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap}
-.ng-chevron{font-size:9px;opacity:.5;flex-shrink:0;padding:2px 4px;border-radius:2px}
-.ng-chevron:hover{background:rgba(0,0,0,.08);opacity:.9}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
 .ng-body{padding:8px 10px 10px;font-size:12px}
 .ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
 .ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
@@ -66,10 +64,17 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 #lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
 #lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
 /* Search */
-#search-bar{display:none;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:5px;padding:2px 6px}
-#search-bar.open{display:flex}
-#search-input{border:none;outline:none;font-size:12px;width:160px;background:transparent;color:#111}
-#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:52px;text-align:right}
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
 .ng-node.ng-search-match{border:2px solid #fcd34d !important}
 .ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
 </style>
@@ -86,20 +91,20 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
     <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
     <div class="tb-sep"></div>
-    <button id="search-btn" onclick="openSearch()" title="Search nodes (Ctrl+F)">🔍 Search</button>
-    <div id="search-bar">
-      <input id="search-input" placeholder="Search nodes…" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)">
-      <span id="search-count"></span>
-      <div style="width:1px;height:14px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
-      <button onclick="searchPrev()" title="Previous (Shift+Enter)" style="border:none;background:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#374151">↑</button>
-      <button onclick="searchNext()" title="Next (Enter)" style="border:none;background:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#374151">↓</button>
-      <button onclick="closeSearch()" title="Close (Escape)" style="border:none;background:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#6b7280">✕</button>
-    </div>
     <div class="tb-sep"></div>
     <span id="tb-sel" style="opacity:.35">Click a node to select</span>
   </div>
 </div>
 <div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
   <div id="canvas">
     <svg id="wire-svg">
       <defs>
@@ -109,228 +114,203 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
       </defs>
     </svg>
     <div class="ng-node" id="node-node_001" data-children="node_024" style="--color:#4B8BBE;border-radius:2px;left:100px;top:100px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">서베이의 스코프: 세 층위로 본 DNN 병렬성</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">서베이의 스코프: 세 층위로 본 DNN 병렬성</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문은 240편의 관련 연구를 분석해서 딥러닝의 병렬성을 세 층위로 정리한다: (1) 단일 오퍼레이터(§4-5, convolution/FC/RNN 연산 자체를 어떻게 병렬화하는가), (2) 전체 네트워크 단위의 학습/추론(§6, data/model/pipeline/hybrid parallelism), (3) 분산 학습(§7, synchronization spectrum, parameter server vs decentralized, 압축, model consolidation, architecture search). 세 층위를 관통하는 공통 척도로 Work-Depth 모델(§2.5)을 사용해서, 서로 다른 병렬화 기법들의 concurrency를 정량적으로 비교한다.<br><br>논문 자체가 강조하듯 스코프는 '병렬/분산' 그 자체이지 DNN 아키텍처나 최적화 이론이 아니다 — 관련 다른 서베이(DNN 자체, 하드웨어 아키텍처)와 상호보완적 위치에 있다고 명시한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
 <div class="ng-orig-text">In this survey, we describe the problem from a theoretical perspective, followed by approaches for its parallelization. We then review and model the different types of concurrency in DNNs: from the single operator, through parallelism in network inference and training, to distributed deep learning.</div></details><div class="ng-links"><a class="ng-link" href="./Demystifying Parallel and Distributed Deep Learning - An In-Depth Concurrency Analysis.pdf#page=1" target="_blank">📄 원문 Abstract, p.1</a></div></div>
 </div>
 <div class="ng-node" id="node-node_002" data-children="node_010,node_011,node_025" style="--color:#4B8BBE;border-radius:2px;left:100px;top:400px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">병렬 알고리즘 기초: DAG, Work-Depth, Allreduce 통신 하한</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">병렬 알고리즘 기초: DAG, Work-Depth, Allreduce 통신 하한</span>
   </div>
   <div class="ng-body"><div class="ng-content">모든 계산은 DAG(정점=연산, 간선=데이터 의존성)로 모델링된다. 그래프의 총 work $\mathbf{W}$(정점 수)와 depth $\mathbf{D}$(최장 경로 길이)로 계산 복잡도를 특징짓고, p개 프로세서에서의 실행시간은 $\min\{\mathbf{W}/p, \mathbf{D}\} \le T_p \le O(\mathbf{W}/p + \mathbf{D})$로 유계다. 평균 병렬성은 $\mathbf{W}/\mathbf{D}$.<br><br>DNN의 텐서 연산은 대부분 데이터-병렬적이고, summation(allreduce 등 reduction 연산)만 의존성을 만든다. 분산 환경에서 allreduce는 노드 간 대역폭이 로컬 메모리 대역폭보다 훨씬 낮기 때문에 가장 비용이 큰 연산으로 꼽힌다 — 단순화된 LogP 모델(point-to-point latency L, per-byte cost G, P개 머신)에서 tree 알고리즘의 통신시간은 $T_{tree} = 2\log_2(P)(L+\gamma m G)$이고, 중복 계산을 허용하지 않으면 이론적 하한은 더 강해진다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.5, p.9</span></summary>
 <div class="ng-orig-text">In multi-machine environments, these tables are distributed across the machines which participate in the overall reduction operation. Due to the relatively low bandwidth between the machines (compared to local memory bandwidths), this operation is often most critical for distributed learning.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_003" data-children="node_012" style="--color:#4B8BBE;border-radius:2px;left:100px;top:700px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">효율성 트레이드오프: 미니배치 크기, 일반화 vs 활용률</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">효율성 트레이드오프: 미니배치 크기, 일반화 vs 활용률</span>
   </div>
   <div class="ng-body"><div class="ng-content">SGD를 minibatch 단위로 실행하면 병렬성이 생기지만, minibatch 크기는 그 자체로 최적화 대상이다. 너무 작으면(region A) 하드웨어 병렬성을 못 살리고, 너무 크면(region C) 일반화 성능이 떨어진다 — 이 사이 어딘가(region B)가 실무적 최적점이다. 대규모 minibatch(8k, 32k, 심지어 64k)를 정확도 손실 없이 쓰려는 시도들은 학습률 워밍업, 배치-크기 기반 gradient variance 제어, 적응적 minibatch 증가 등으로 이 상한을 밀어올릴 뿐, 상한 자체를 없애지는 못한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.10</span></summary>
 <div class="ng-orig-text">Overall, such works increase the upper bound on feasible minibatch sizes, but do not remove it.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_004" data-children="node_013,node_014" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1000px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">단일 오퍼레이터 수준 병렬성: Convolution·FC·RNN</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">단일 오퍼레이터 수준 병렬성: Convolution·FC·RNN</span>
   </div>
   <div class="ng-body"><div class="ng-content">FC layer는 GEMM(행렬곱)으로 직접 매핑되어 CUBLAS/MKL 같은 라이브러리로 최적화된다. Convolution은 직접 계산(Direct), im2col(Toeplitz 행렬로 변환 후 GEMM), FFT(주파수 영역 원소곱), Winograd(최소 필터링, 작은 커널 전용) 네 가지 방법이 있고 커널·이미지 크기에 따라 최적 방법이 갈린다 — '만능 최선'은 없다. RNN(LSTM/GRU)은 게이트 연산들을 하나의 fused kernel로 묶고, 레이어 간에는 파이프라이닝으로 동시성을 확보한다.<br><br>data layout(NCHW vs CHWN) 선택만으로도 최대 27.9배 성능 차이가 보고되는 등, 저수준 구현 디테일이 이론적 Work-Depth로는 안 잡히는 실제 성능을 좌우한다는 점을 저자들은 반복해서 강조한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.17</span></summary>
 <div class="ng-orig-text">Table 6 lists the concurrency characteristics of the aforementioned convolution implementations, using the Work-Depth model. From the table, we can see that each method exhibits different behavior... This coincides with experimental results, which show that there is no &quot;one-size-fits-all&quot; convolution method.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_005" data-children="node_015,node_016" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1300px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">전체 네트워크 병렬성: Data / Model / Pipeline / Hybrid</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">전체 네트워크 병렬성: Data / Model / Pipeline / Hybrid</span>
   </div>
   <div class="ng-body"><div class="ng-content">Data parallelism은 미니배치를 프로세서에 나눠주고 gradient를 allreduce로 합친다 — 가장 널리 쓰이지만 Batch Normalization이 미니배치 전체에 걸친 동기화를 요구해 확장성 병목이 된다. Model parallelism은 뉴런·채널 차원으로 네트워크 자체를 쪼개 여러 프로세서에 배치 — 메모리는 아끼지만 레이어마다 통신이 필요하고, FC layer에서는 all-to-all 통신이 발생한다. Pipelining은 레이어 단위로 프로세서를 나눠 forward/backward/weight-update를 겹쳐 실행한다.<br><br>세 방식은 상호 배타적이지 않다 — DistBelief/Project Adam 같은 실제 시스템은 data parallelism(모델 복제본 간) + model parallelism(레이어 내 뉴런 분할) + pipelining(레이어 간)을 동시에 조합하는 hybrid parallelism을 쓴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.4, p.22</span></summary>
 <div class="ng-orig-text">The combination of multiple parallelism schemes can overcome the drawbacks of each scheme. Below we overview successful instances of such hybrids.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_006" data-children="node_017,node_018,node_022,node_023" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1600px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">분산 학습: Model Consistency 스펙트럼과 중앙화 방식</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">분산 학습: Model Consistency 스펙트럼과 중앙화 방식</span>
   </div>
   <div class="ng-body"><div class="ng-content">분산 SGD에서 여러 training agent가 각자 파라미터 $w$의 사본을 들고 학습할 때, 모두가 항상 최신 $w$를 본다고 보장하면 'consistent'(synchronous), staleness를 허용하면 'inconsistent'(asynchronous, 대표적으로 HOGWILD)다. 스펙트럼 중간에 Stale-Synchronous Parallelism(SSP)이 있어 최대 staleness를 유계로 강제한다. 아키텍처 축으로는 parameter server(PS, 중앙집중) vs decentralized(allreduce 기반)로 나뉘며, PS는 fault tolerance·이질적 환경 대응에 유리하고 decentralized는 통신을 네트워크 전 경로에 분산시킬 수 있다.<br><br>실무에서는 32-50개 노드까지는 synchronous가 잘 확장되고, 그 이상 규모나 이질적 환경에서는 asynchronous/SSP가 선호된다는 관찰을 제시한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.1, p.24</span></summary>
 <div class="ng-orig-text">In practical implementations, the prominently-used model consistency approaches are synchronous for up to 32–50 nodes, where the allreduce operation still scales nearly linearly; and asynchronous/SSP for larger clusters and heterogeneous environments</div></details></div>
 </div>
 <div class="ng-node" id="node-node_007" data-children="node_019,node_020" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1900px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">통신량 줄이기: 압축과 Model Consolidation</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">통신량 줄이기: 압축과 Model Consolidation</span>
   </div>
   <div class="ng-body"><div class="ng-content">통신 비용을 줄이는 두 축: (1) 메시지 개수를 줄이기(§7.1의 model consistency 완화), (2) 메시지 크기를 줄이기 — quantization(32비트를 더 적은 비트로, stochastic rounding으로 기댓값 보존)과 sparsification(작은 gradient는 아예 안 보냄, top-k 선택)이 대표적. Model consolidation은 아예 매 스텝 동기화를 포기하고, 학습 후(또는 아주 드물게) 여러 모델을 합치는 방식 — ensemble, knowledge distillation, model averaging(EASGD 등)이 있다.<br><br>이 스펙트럼(Fig 23)은 결국 §7.1의 model consistency 스펙트럼과 같은 축의 극단적 형태 — consolidation은 '동기화를 거의 하지 않는' 극단으로 볼 수 있다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.4, p.28</span></summary>
 <div class="ng-orig-text">In this section, we discuss the far (inconsistent) end of the parameter consistency spectrum (shown in Fig. 23) in distributed deep learning. In such cases, parameter updates are highly infrequent (or nonexistent), and thus precautions must be taken with the received values.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_008" data-children="node_021" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2200px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">메타-최적화: 하이퍼파라미터 탐색과 Neural Architecture Search</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">메타-최적화: 하이퍼파라미터 탐색과 Neural Architecture Search</span>
   </div>
   <div class="ng-body"><div class="ng-content">학습 자체가 볼록하지 않은 최적화 문제이므로, 남는 계산 자원을 하이퍼파라미터 탐색(learning rate, momentum, staleness 등)이나 아키텍처 탐색에 쓸 수 있다. Architecture search는 세 갈래다: Sequential Model-Based Optimization(SMBO, 예: DARTS의 미분가능한 bi-level 최적화), Reinforcement Learning(정확도를 보상으로 삼아 레이어 구성을 액션으로), Evolutionary Algorithms(유전 인코딩+tournament selection). 모듈·블록의 self-similarity를 활용하면 탐색 공간을 계층적으로 줄일 수 있다.<br><br>Regularized Evolution(AmoebaNet)은 기존 수작업/RL 기반 탐색을 모두 능가하는 ImageNet 3.8% / CIFAR-10 2.13% 오차를 달성했다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.5.3, p.32</span></summary>
 <div class="ng-orig-text">AmoebaNets outperform all existing methods, including manually engineered DNNs and RL-based searches, with 3.8% error for ImageNet and 2.13% error for CIFAR-10 (compared to 5.29% and 3.62% on the best instances of DenseNet, see Table 5).</div></details></div>
 </div>
 <div class="ng-node" id="node-node_009" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2500px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">결론: 컴파일러 최적화, 압축, 적응형 분산 시스템으로</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론: 컴파일러 최적화, 압축, 적응형 분산 시스템으로</span>
   </div>
   <div class="ng-body"><div class="ng-content">저자들의 마무리 진단: 단일 오퍼레이터 최적화는 이미 고도로 성숙했고(§5), 현재 연구는 레이어-간·전체-DNN 최적화(TensorFlow XLA, TVM, Tensor Comprehensions 같은 컴파일러가 그래프 전체를 fusion 등으로 변환, 최대 4배 속도향상)로 옮겨가고 있다. 모바일·엣지 배포를 위한 post-training compression도 계속 중요해질 것. 분산 학습 기법들은 표준 프로그래밍 인터페이스로 수렴 중이며, 클라우드의 elastic 노드 스케줄링과 진화적 최적화가 결합해 '적응적이고 financially-viable한' 최적화로 이어질 것으로 전망한다.<br><br>마지막으로, 현재 컴퓨터 비전 SOTA(AmoebaNet)가 이미 사람이 아니라 자동화된 architecture search의 산물이라는 사실을 들어, 수작업 튜닝이 점점 obsolete해질 것이라 전망하며 글을 맺는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§8, p.32</span></summary>
 <div class="ng-orig-text">The world of deep learning is brimming with concurrency. Nearly every aspect of training, from the computation of a convolution to the meta-optimization of DNN architectures, is inherently parallel.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:550px;top:320px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">DAG 실행시간의 이론적 상·하한</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">DAG 실행시간의 이론적 상·하한</span>
   </div>
   <div class="ng-body"><div class="ng-content">프로세서가 1개면 $T_1=\mathbf{W}$, 무한히 많으면 $T_\infty=\mathbf{D}$. 이 두 극단을 잇는 부등식이 실제 p개 프로세서에서의 실행시간을 위아래로 조인다 — 어떤 연산이든 병렬화의 이론적 최선은 depth로, 최악은 순차 실행(work)으로 결정된다는 뜻. 이 논문 전체에서 각 병렬화 기법을 비교하는 공통 잣대로 쓰인다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.5, p.8</span></summary>
 <div class="ng-orig-text">we can show that the execution time of such a DAG on p processors is bounded by: min{W/p, D} ≤ Tp ≤ O(W/p + D)</div></details></div>
 </div>
 <div class="ng-node" id="node-node_011" style="--color:#9B59B6;border-radius:2px;left:550px;top:480px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Table 4: 연산 종류별 Work-Depth 점근 복잡도</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 4: 연산 종류별 Work-Depth 점근 복잡도</span>
   </div>
   <div class="ng-body"><div class="ng-content">활성화함수는 $O(NCHW)$ work에 $O(1)$ depth로 완전 병렬. FC layer는 $\nabla x$의 depth가 $O(\log C_{in})$까지 커진다. Convolution(direct)은 work이 커널·채널·이미지 크기에 곱셈적으로 늘지만 depth는 로그 스케일을 유지한다. 공통 패턴: work은 다항적으로 크지만 depth는 최대 log 오더라서, 이론적으로는 모든 DNN 연산이 프로세서 수에 선형으로 확장 가능하다는 것이 이 표의 핵심 메시지.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.13</span></summary>
 <div class="ng-orig-text">Table 4 shows that the work (W) performed in each layer asymptotically dominates the maximal operation dependency path (D), which is at most logarithmic in the parameters. This result reaffirms the state of the practice, in which parallelism plays a major part in the feasibility of evaluating and training DNNs.</div></details><details class="ng-toggle"><summary>Table 4 (발췌): Operator별 Work-Depth</summary>
 <div class="ng-toggle-body">| Operator | Eval | Work (W) | Depth (D) |<br>|---|---|---|---|<br>| Activation | y | O(NCHW) | O(1) |<br>| Fully Connected | ∇x | O(Cin·N·Cout) | O(log Cin) |<br>| Convolution (Direct) | y | O(N·Cout·Cin·H'·W'·Ky·Kx) | O(log Kx+log Ky+log Cin) |<br>| Pooling | y | O(NCHW) | O(log Kx+log Ky) |<br>| Batch Normalization | y | O(NCHW) | O(log N) |</div></details></div>
 </div>
 <div class="ng-node" id="node-node_012" style="--color:#9B59B6;border-radius:2px;left:550px;top:700px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">미니배치 크기의 이중효과: 수렴성 vs 활용률</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">미니배치 크기의 이중효과: 수렴성 vs 활용률</span>
   </div>
   <div class="ng-body"><div class="ng-content">$f$의 gradient가 L-Lipschitz일 때 descent lemma를 SGD에 적용하면 큰 배치일수록 gradient variance 항이 커져서 수렴을 저해하는 부등식이 도출된다. 실제로 ResNet-50/ImageNet 실험(Fig 6b)에서도 minibatch가 대략 8k를 넘어서면 top-1 validation error가 눈에 띄게 나빠지는 것으로 보고된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.10</span></summary>
 <div class="ng-orig-text">This indicates that a large minibatch (with adjusted learning rate) can increase the convergence rate (negative term), but along with it the gradient variance and learning rate, which causes the last term to hinder convergence.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:550px;top:920px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">Convolution 4대 계산법의 Work-Depth 비교 (Table 6)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Convolution 4대 계산법의 Work-Depth 비교 (Table 6)</span>
   </div>
   <div class="ng-body"><div class="ng-content">Direct와 im2col은 이론적 Work-Depth가 동일하지만 im2col이 캐싱·메모리 재사용 덕에 실제로는 더 빠른 경우가 많다 — Work-Depth만으로는 절대 성능을 설명할 수 없다는 저자들의 핵심 지적이다. FFT는 큰 커널일수록 유리(GEMM 대비 최대 16배), Winograd는 3×3 같은 작은 커널 전용으로 곱셈 수를 줄인다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.16</span></summary>
 <div class="ng-orig-text">Note that for a single minibatch, it is enough to transform w once and reuse results. Experimental results have shown that the larger the convolution kernels are, the more beneficial FFT becomes, yielding up to 16× performance over the GEMM method</div></details><details class="ng-toggle"><summary>Table 6: Convolution 계산법별 Work-Depth</summary>
 <div class="ng-toggle-body">| Method | Work (W) | Depth (D) |<br>|---|---|---|<br>| Direct | N·Cout·H'·W'·Cin·Ky·Kx | ⌈log2 Cin⌉+⌈log2 Ky⌉+⌈log2 Kx⌉ |<br>| im2col | N·Cout·H'·W'·Cin·Ky·Kx | ⌈log2 Cin⌉+⌈log2 Ky⌉+⌈log2 Kx⌉ |<br>| FFT | c·HWlog2(HW)·(Cout·Cin+N·Cin+N·Cout)+HWN·Cin·Cout | 2⌈log2 HW⌉+⌈log2 Cin⌉ |<br>| Winograd (m×m tiles, r×r 커널) | α(r²+αr+2α²+αm+m²)+Cout·Cin·P | 2⌈log2 r⌉+4⌈log2 α⌉+⌈log2 Cin⌉ |</div></details></div>
 </div>
 <div class="ng-node" id="node-node_014" style="--color:#9B59B6;border-radius:2px;left:550px;top:1080px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Persistent RNN 최대 30배, data layout 전치로 최대 27.9배</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Persistent RNN 최대 30배, data layout 전치로 최대 27.9배</span>
   </div>
   <div class="ng-body"><div class="ng-content">Persistent RNNs는 RNN 유닛의 weight를 GPU 레지스터에 캐싱하고 GPU 커널을 'persistent'하게(자체 전역 동기화) 실행해서, 작은 minibatch·긴 시퀀스 조건에서 기존 대비 최대 약 30배 속도를 낸다 — GPU당 여러 TFLOP/s를 GEMM 없이 달성. 별도로, 단순히 데이터 레이아웃을 NCHW에서 CHWN으로 전치하는 것만으로도 단일 오퍼레이터 기준 최대 27.9배, AlexNet 전체 기준 5.6배의 성능 향상이 보고된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.4, p.18</span></summary>
 <div class="ng-orig-text">The approach attains up to ∼30× speedup over previous state-of-the-art for low minibatch sizes, performing on the order of multiple TFLOP/s per-GPU, even though it does not execute GEMM operations</div></details></div>
 </div>
 <div class="ng-node" id="node-node_015" style="--color:#5C9E6E;border-radius:2px;left:550px;top:1220px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">BN의 동기화 병목과 Weight Normalization의 우회</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">BN의 동기화 병목과 Weight Normalization의 우회</span>
   </div>
   <div class="ng-body"><div class="ng-content">Batch Normalization은 미니배치 전체에 걸친 평균·분산을 계산해야 해서 완전한 동기화 지점이 된다 — data parallelism의 확장성을 해치는 대표 오퍼레이터. 실무에서는 최소 32개 샘플의 로컬 서브셋만으로 BN을 근사해 동기화를 로컬화한다. Weight Normalization은 가중치를 크기($g$)와 방향($v$)으로 재매개변수화해서 미니배치 간 의존성(depth) 자체를 $O(\log N)$에서 $O(1)$로 없앤다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1.1, p.19</span></summary>
 <div class="ng-orig-text">WN decreases the depth (D) of the operator from O(log N) to O(1), removing inter-dependencies within the minibatch. According to the authors, WN reduces the need for BN, achieving comparable accuracy using a simplified version of BN (without variance correction).</div></details></div>
 </div>
 <div class="ng-node" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:550px;top:1380px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Hybrid Parallelism 실측 스피드업 (AlexNet 등)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Hybrid Parallelism 실측 스피드업 (AlexNet 등)</span>
   </div>
   <div class="ng-body"><div class="ng-content">AlexNet을 4-GPU에서 data 또는 model parallelism 단독으로 매핑하면 최선이 약 2.2배. Convolution엔 data parallelism, FC엔 model parallelism을 섞으면 8-GPU에서 최대 6.25배(정확도 손실 &lt;1%). 다른 hybrid 구현들도 4-GPU에서 3.1배를 재현했다. AMPNet은 fine-grained model parallelism을 비동기 스케줄링과 결합해 TensorFlow 대비 최대 3.94배.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.4, p.22</span></summary>
 <div class="ng-orig-text">One successful example applies a hybrid scheme applies data parallelism to the convolutional layer, and model parallelism to the fully connected part... Using this hybrid approach, a speedup of up to 6.25× can be achieved for 8 GPUs over one, with less than 1% accuracy loss</div></details></div>
 </div>
 <div class="ng-node" id="node-node_017" style="--color:#E74C3C;border-radius:2px;left:550px;top:1520px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
-    <span class="ng-title">PS든 decentralized든 결국 통신 대역폭·지연이 확장성을 결정</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">PS든 decentralized든 결국 통신 대역폭·지연이 확장성을 결정</span>
   </div>
   <div class="ng-body"><div class="ng-content">PS 방식이든 decentralized(allreduce) 방식이든, 어느 쪽을 쓸지는 네트워크 토폴로지·대역폭·통신 지연·업데이트 빈도·fault tolerance 요구에 달려있다고 저자들은 명시적으로 프레이밍한다. allreduce는 이론적으로 reduce-then-broadcast와 동일한 시간이 걸리고, PS는 통신을 특정 노드로 집중시키는 대신 fault tolerance와 이질성 대응력을 얻는다 — 이 절 전체가 '통신 자원을 어떻게 배분하느냐'의 트레이드오프로 요약된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.2, p.24</span></summary>
 <div class="ng-orig-text">The choice between designing a centralized and a decentralized network architecture for DNN training depends on multiple factors, including the network topology, bandwidth, communication latency, parameter update frequency, and desired fault tolerance.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_018" style="--color:#5C9E6E;border-radius:2px;left:550px;top:1680px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">HOGWILD / SSP: staleness 유계 수렴 조건</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">HOGWILD / SSP: staleness 유계 수렴 조건</span>
   </div>
   <div class="ng-body"><div class="ng-content">HOGWILD는 잠금 없이 공유 파라미터를 여러 agent가 동시에 읽고·덮어쓰며 gradient를 누적하는 비동기 SGD로, atomic write + Lipschitz 연속미분 + 강볼록성 + 유계 staleness라는 조건 하에 수렴이 증명되어 있다. SSP는 이 staleness에 명시적 상한(maximal staleness)을 두고, 그 한도에 도달한 노드가 있으면 전역 동기화를 강제하는 절충안이다 — 이질적·느린 노드(straggler) 환경에서 특히 유리하다고 보고된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.1, p.24</span></summary>
 <div class="ng-orig-text">Stale-Synchronous Parallelism (SSP) proposes a compromise between consistent and inconsistent models. In SSP (Fig. 20d), the gradient staleness is enforced to be bounded by performing a global synchronization step after a maximal staleness may have been reached by one of the nodes.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_019" style="--color:#9B59B6;border-radius:2px;left:550px;top:1820px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">압축 수치: sparsification 최대 54배, 압축비 최대 2871배</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">압축 수치: sparsification 최대 54배, 압축비 최대 2871배</span>
   </div>
   <div class="ng-body"><div class="ng-content">최초의 gradient sparsification 기법은 정적 threshold 이하 값을 아예 전송하지 않는 방식으로 80노드에서 최대 54배 속도향상, 오차 증가는 최대 1.8%에 그쳤다. 32비트 고정소수점 양자화까지 포함하면 비-convolutional DNN에서 압축비가 846~2871배에 달한다. Sparse allreduce 프레임워크 SparCML은 top-k 인덱스 압축 + 양자화로 잘 튜닝된 CNTK 구현 대비 20배 이상의 속도향상을 보고한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.3.2, p.27-28</span></summary>
 <div class="ng-orig-text">The first application of gradient sparsification prunes gradient values using a static threshold, below which an element should not be sent. Results show up to 54× speedup for 80 nodes and even an up to 1.8% reduction in error.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_020" style="--color:#5C9E6E;border-radius:2px;left:550px;top:1980px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">Knowledge Distillation과 EASGD</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Knowledge Distillation과 EASGD</span>
   </div>
   <div class="ng-body"><div class="ng-content">Knowledge distillation은 2단계로 나눠 (1) 큰 네트워크 또는 앙상블을 정상적으로 학습, (2) 단일의 작은 네트워크가 그 출력을 모방하도록 학습 — 라벨 데이터 대신 앙상블 출력을 teacher로 쓰는 셈이다. 결과적으로 단일 모델이 10개 DNN 앙상블과 동등한 word error rate를 달성한 사례가 보고된다. EASGD는 각 agent의 파라미터 뷰와 PS의 평균 뷰 사이에 elastic force를 둬서, agent들이 평균에서 더 자유롭게 벗어나(탐색) 통신을 드물게 해도 되도록 만든다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.4.1, p.29</span></summary>
 <div class="ng-orig-text">Results show that the second network is easier to train on the ensemble than on a labeled dataset, attaining the same word error rate as an ensemble of 10 DNNs.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_021" style="--color:#9B59B6;border-radius:2px;left:550px;top:2200px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">ENAS: 파라미터 공유로 탐색 비용 1000배 절감</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">ENAS: 파라미터 공유로 탐색 비용 1000배 절감</span>
   </div>
   <div class="ng-body"><div class="ng-content">ENAS는 탐색 공간에 속한 자식(child) 네트워크들이 파라미터를 공유하도록 해서, 매번 새로 처음부터 학습시키는 표준 NAS 대비 연산 비용을 세 자릿수(약 1000배) 줄인다. 이는 architecture search를 병렬성이 아니라 '재사용'으로 가속할 수 있음을 보여주는 사례.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.5.3, p.32</span></summary>
 <div class="ng-orig-text">ENAS, which significantly reduces computational time over NAS (by three orders of magnitude) by sharing parameters across children DNNs.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_022" style="--color:#1ABC9C;border-radius:22px;left:950px;top:1520px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
-    <span class="ng-title">'통신 대역폭 병목' 프레임은 CXL/memory-fabric까지 안 간다</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">'통신 대역폭 병목' 프레임은 CXL/memory-fabric까지 안 간다</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문 전체에서 분산학습의 성능은 결국 인터커넥트의 latency·bandwidth·message-rate 세 지표로 수렴한다(§2.3.2, §7.2). PS냐 decentralized냐의 선택도 '네트워크 토폴로지, 대역폭, 통신 지연, 파라미터 업데이트 빈도'에 달려있다고 명시한다. 그런데 이 논문(2018)은 이 통신을 시종일관 네트워크(Ethernet/InfiniBand/MPI) 층위에서만 다루고, 로컬 메모리 대역폭과 네트워크 대역폭 사이의 격차를 언급하면서도(§2.5, allreduce 하한 유도부) 그 격차 자체를 좁히는 방향(예: CXL 기반 memory-fabric으로 노드 간 인터커넥트를 메모리 계층에 편입시키는 접근)은 스코프 밖이다. 내 관심사인 memory disaggregation·coherence는 정확히 이 '네트워크 대역폭 ≪ 로컬 메모리 대역폭' 격차를 좁히려는 시도로 읽힌다 — 이 서베이는 그 격차의 존재는 명확히 보여주지만, 해법은 논하지 않는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.5, p.9</span></summary>
 <div class="ng-orig-text">Due to the relatively low bandwidth between the machines (compared to local memory bandwidths), this operation is often most critical for distributed learning.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_023" style="--color:#E5A835;border-radius:22px;left:950px;top:1720px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
-    <span class="ng-title">HOGWILD/SSP의 수렴 증명, 비볼록 DNN에도 정말 유효한가?</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">HOGWILD/SSP의 수렴 증명, 비볼록 DNN에도 정말 유효한가?</span>
   </div>
   <div class="ng-body"><div class="ng-content">HOGWILD류 비동기 SGD의 수렴 증명은 (a) atomic write, (b) Lipschitz 연속미분+강볼록성, (c) staleness 유계라는 세 조건에 의존한다(§7.1). 그런데 DNN의 손실함수는 일반적으로 비볼록(non-convex)이다. 저자들도 이 갭을 명시적으로 다루지 않고 '희소 학습 문제(sparse learning problems)'라는 조건부로 넘어간다 — 실제 대규모 비볼록 DNN 학습에서 이 수렴 보장들이 어느 정도까지 근사적으로 유효한지 궁금하다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.1, p.23</span></summary>
 <div class="ng-orig-text">Based on foundations of distributed asynchronous SGD, the proofs impose that (a) write-accesses (adding gradients) are always atomic; (b) Lipschitz continuous differentiability and strong convexity on fw; and (c) that the staleness, i.e., the maximal number of iterations between reading w and writing ∇w, is bounded.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_024" style="--color:#95A5A6;border-radius:22px;left:950px;top:100px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
-    <span class="ng-title">인접 서베이들: DNN 자체 / 스케일링 관점 / 하드웨어 아키텍처</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">인접 서베이들: DNN 자체 / 스케일링 관점 / 하드웨어 아키텍처</span>
   </div>
   <div class="ng-body"><div class="ng-content">저자들이 관련 서베이로 명시적으로 언급한 것들: DNN 자체와 학습 알고리즘을 역사적 관점에서 다루는 서베이 3편, Bengio의 모델·최적화·데이터셋 관점 스케일링 서베이(비동기·희소 통신도 일부 다룸), DNN 연산자를 하드웨어에 매핑하는 아키텍처 서베이, FPGA 전용 서베이. 이 논문은 그중 '병렬·분산' 축만 전담해서 깊게 파는 위치에 있다고 스스로 자리매김한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1.1, p.2</span></summary>
 <div class="ng-orig-text">Surveys of hardware architectures mostly focus on the computational side of training rather than the optimization. This includes a recent survey that reviews computation techniques for DNN operators (layer types) and mapping computations to hardware, exploiting inherent parallelism.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_025" style="--color:#BDC3C7;border-radius:22px;left:950px;top:400px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
-    <span class="ng-title">내 연구방법과의 연결: 공통 척도로 병렬화 기법 비교하기</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방법과의 연결: 공통 척도로 병렬화 기법 비교하기</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문 전체가 하는 일은 결국 '각 병렬화 기법을 Work-Depth라는 공통 척도로 환산해서 비교 가능하게 만드는 것'이다. 내가 CXL·coherence 가설을 검증할 때도 비슷한 방법론이 쓸모 있을 것 같다 — HW 메커니즘(예: directory-based coherence vs snoop-based, 혹은 CXL의 다양한 캐싱 정책)마다 Work-Depth류 정량 모델을 세우면 '이 코히어런스 방식이 이 workload에 왜/언제 유리한가'를 풀 성능 시뮬레이션 없이도 1차로 걸러낼 수 있을 것.<br><br>다만 이 논문의 W-D 모델은 순수 계산 DAG 기준이라, 메모리 계층·coherence protocol의 상태 전이(예: MESI 전이 비용) 같은 것까지 그대로 확장되지는 않을 것 같다 — 그 확장이 실제로 필요한지, 필요하다면 무엇을 새 축으로 추가해야 하는지가 내 질문으로 남는다.</div></div>
 </div>
@@ -417,21 +397,23 @@ function onHeaderClick(hdr) {
   selectNode(selectedNodeId === nodeId ? null : nodeId);
 }
 
-// Chevron click = toggle this node only (no cascade, stopPropagation)
-function toggleFold(e, hdr) {
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
   e.stopPropagation();
-  var body = hdr.nextElementSibling;
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
   if (!body) return;
-  var chevron = hdr.querySelector('.ng-chevron');
   var expanding = body.style.display === 'none';
   body.style.display = expanding ? '' : 'none';
-  if (chevron) chevron.textContent = expanding ? '▲' : '▼';
-  var nodeEl = hdr.parentNode;
   var nodeId = nodeEl.id.replace('node-', '');
   for (var i = 0; i < NODES_DATA.length; i++) {
     if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
   }
   setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
 }
 
 // Get node datum by id
@@ -531,8 +513,8 @@ function doCollapse() {
   }
 }
 
-// Per-node drag with logical-position tracking
-function onNodeHeaderMousedown(e, nodeEl) {
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
   e.stopPropagation();
   lastWasDrag = false;
   var x0 = e.clientX, y0 = e.clientY;
@@ -562,110 +544,112 @@ function onNodeHeaderMousedown(e, nodeEl) {
   window.addEventListener('mouseup', onUp);
 }
 
-// Keep original node positions — collapse/expand does not push other nodes
-function getNodeRootId(nodeId) {
-  var childToParent = getChildToParentMap();
-  var cur = nodeId;
-  while (childToParent[cur]) cur = childToParent[cur];
-  return cur;
-}
-function getChildToParentMap() {
-  var map = {};
-  NODES_DATA.forEach(function(n) {
-    (n.children || []).forEach(function(childId) { map[childId] = n.id; });
-  });
-  return map;
-}
 function recomputePositions() {
-  var childToParent = getChildToParentMap();
-  function rootOf(id) {
+  var childToParent = {};
+  NODES_DATA.forEach(function(n) {
+    (n.children || []).forEach(function(childId) { childToParent[childId] = n.id; });
+  });
+  function getRootId(id) {
     var cur = id;
     while (childToParent[cur]) cur = childToParent[cur];
     return cur;
   }
   function isDescendantOf(descendant, ancestor) {
     var cur = descendant;
-    while (childToParent[cur]) {
-      cur = childToParent[cur];
-      if (cur === ancestor) return true;
-    }
+    while (childToParent[cur]) { cur = childToParent[cur]; if (cur === ancestor) return true; }
     return false;
   }
+  function isDirectedConnected(sourceId, targetId) {
+    return EDGES.some(function(e) { return e.source === sourceId && e.target === targetId; });
+  }
+
   var sorted = NODES_DATA.slice().sort(function(a, b) {
     if (a.ly !== b.ly) return a.ly - b.ly;
     return a.lx - b.lx;
   });
   var renderY = {};
-  sorted.forEach(function(n) {
-    var nIsMain = n.isMain;
-    var y = n.ly;
-    var nEl = document.getElementById('node-' + n.id);
-    var nW = nEl ? nEl.offsetWidth : 300;
-    sorted.forEach(function(other) {
-      if (other.id === n.id) return;
-      if (other.ly > n.ly) return;
-      if (other.ly === n.ly && other.lx >= n.lx) return;
-      var otherY = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
-      var otherEl = document.getElementById('node-' + other.id);
-      var h = otherEl ? otherEl.offsetHeight : HEADER_H;
-      var otherBottom = otherY + h;
-      if (otherBottom <= y) return;
-      if (nIsMain && other.isMain) {
-        // Main → main: always push regardless of X offset
-        var naturalBottom = other.ly + (other.nodeHeight || HEADER_H);
-        var delta = (otherY + h) - naturalBottom;
-        var nodeNaturalY = n.naturalY !== undefined ? n.naturalY : n.ly;
-        y = Math.max(y, nodeNaturalY + delta, otherBottom + 20);
-      } else {
-        // Rounded pushes: only if X ranges actually overlap (different columns don't push each other)
-        var oW = otherEl ? otherEl.offsetWidth : 300;
-        if (!(n.lx < other.lx + oW && other.lx < n.lx + nW)) return;
-        if (nIsMain) {
-          // Rounded → main: skip only if descendant AND doesn't reach this node's Y
-          if (isDescendantOf(other.id, n.id) && otherBottom <= n.ly) return;
-          var wasPushed = otherY > other.ly;
-          if (!other.contentExpanded && !wasPushed) return;
-          y = Math.max(y, otherBottom + 48);
+  var MAX_ITER = 8;
+
+  for (var iter = 0; iter < MAX_ITER; iter++) {
+    var prevSnapshot = {};
+    NODES_DATA.forEach(function(n) { prevSnapshot[n.id] = renderY[n.id] !== undefined ? renderY[n.id] : n.ly; });
+
+    // Pass 1: Y-overlap push-down
+    sorted.forEach(function(node) {
+      var nEl = document.getElementById('node-' + node.id);
+      var nodeW = nEl ? nEl.offsetWidth : (node.nodeWidth || 300);
+      var y = node.ly;
+
+      sorted.forEach(function(other) {
+        if (other.id === node.id) return;
+        if (other.ly > node.ly) return;
+        if (other.ly === node.ly && other.lx >= node.lx) return;
+
+        var otherEl = document.getElementById('node-' + other.id);
+        var otherW = otherEl ? otherEl.offsetWidth : (other.nodeWidth || 300);
+        var otherY = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        var otherH = otherEl ? otherEl.offsetHeight : HEADER_H;
+        var otherBottom = otherY + otherH;
+        if (otherBottom <= y) return;
+
+        if (node.isMain && other.isMain) {
+          // Main→Main: X 범위가 겹칠 때만 밀어냄 (다른 컬럼 cascade 방지)
+          if (!(node.lx < other.lx + otherW && other.lx < node.lx + nodeW)) return;
+          var naturalBottom = other.ly + (other.nodeHeight || HEADER_H);
+          var delta = (otherY + otherH) - naturalBottom;
+          var nodeNaturalY = node.naturalY !== undefined ? node.naturalY : node.ly;
+          y = Math.max(y, nodeNaturalY + delta, otherBottom + 20);
         } else {
-          // Sub → sub: always push when X ranges overlap, regardless of expand state
-          var gap = (rootOf(other.id) === rootOf(n.id)) ? 20 : 48;
-          y = Math.max(y, otherBottom + gap);
+          // 방향 엣지 연결이면 X overlap 없어도 밀어냄
+          var connected = isDirectedConnected(other.id, node.id);
+          if (!connected && !(node.lx < other.lx + otherW && other.lx < node.lx + nodeW)) return;
+          if (node.isMain) {
+            if (isDescendantOf(other.id, node.id) && otherBottom <= node.ly) return;
+            y = Math.max(y, otherBottom + 48);
+          } else {
+            var isSameRoot = getRootId(other.id) === getRootId(node.id);
+            y = Math.max(y, otherBottom + (isSameRoot ? 30 : 48));
+          }
+        }
+      });
+      renderY[node.id] = y;
+    });
+
+    // Pass 2: 서브노드가 부모 main의 push delta만큼 따라 내려감
+    NODES_DATA.forEach(function(node) {
+      if (node.isMain) return;
+      var parentMain = null;
+      var bestDist = Infinity;
+      NODES_DATA.forEach(function(m) {
+        if (!m.isMain) return;
+        var connected = (m.children && m.children.indexOf(node.id) !== -1) ||
+          EDGES.some(function(e) {
+            return (e.source === m.id && e.target === node.id) || (e.target === m.id && e.source === node.id);
+          });
+        if (connected) {
+          var dist = Math.abs(m.ly - node.ly);
+          if (dist < bestDist) { bestDist = dist; parentMain = m; }
+        }
+      });
+      if (parentMain) {
+        var parentPush = (renderY[parentMain.id] !== undefined ? renderY[parentMain.id] : parentMain.ly) - parentMain.ly;
+        if (parentPush > 0) {
+          var cur = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+          renderY[node.id] = Math.max(cur, node.ly + parentPush);
         }
       }
     });
-    renderY[n.id] = y;
-  });
 
-  // Pass 2: sub-nodes follow their parent main node's push delta
-  NODES_DATA.forEach(function(n) {
-    if (n.isMain) return;
-    var parentMain = null;
-    var bestDist = Infinity;
-    NODES_DATA.forEach(function(m) {
-      if (!m.isMain) return;
-      var connected = m.children && m.children.indexOf(n.id) !== -1;
-      if (!connected) {
-        EDGES.some(function(e) {
-          if ((e.source === m.id && e.target === n.id) || (e.target === m.id && e.source === n.id)) {
-            connected = true; return true;
-          }
-        });
-      }
-      if (connected) {
-        var dist = Math.abs(m.ly - n.ly);
-        if (dist < bestDist) { bestDist = dist; parentMain = m; }
-      }
+    // 수렴 확인
+    var converged = NODES_DATA.every(function(n) {
+      var cur = renderY[n.id] !== undefined ? renderY[n.id] : n.ly;
+      var prev = prevSnapshot[n.id] !== undefined ? prevSnapshot[n.id] : n.ly;
+      return cur === prev;
     });
-    if (parentMain) {
-      var parentPush = (renderY[parentMain.id] !== undefined ? renderY[parentMain.id] : parentMain.ly) - parentMain.ly;
-      if (parentPush > 0) {
-        var cur = renderY[n.id] !== undefined ? renderY[n.id] : n.ly;
-        renderY[n.id] = Math.max(cur, n.ly + parentPush);
-      }
-    }
-  });
+    if (converged) break;
+  }
 
-  // Pass 3: normalize Y spacing within each bus group (same source, same X column)
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px, 에디터와 동일)
   var lineBySource = {};
   EDGES.forEach(function(e) {
     if (e.type !== 'line') return;
@@ -677,7 +661,6 @@ function recomputePositions() {
   Object.keys(lineBySource).forEach(function(srcId) {
     var targetIds = lineBySource[srcId].filter(function(id) { return ndMap[id]; });
     if (targetIds.length < 2) return;
-    // Group targets by X column
     var xGroups = [];
     targetIds.forEach(function(id) {
       var el = document.getElementById('node-' + id);
@@ -691,18 +674,17 @@ function recomputePositions() {
       }
       if (!placed) xGroups.push([id]);
     });
-    // Sort and space within each X column group
     xGroups.forEach(function(grp) {
       if (grp.length < 2) return;
-      var sorted = grp.map(function(id) {
+      var grpSorted = grp.map(function(id) {
         var el = document.getElementById('node-' + id);
         return { id: id, y: renderY[id] !== undefined ? renderY[id] : ndMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
       }).sort(function(a, b) { return a.y - b.y; });
-      for (var i = 1; i < sorted.length; i++) {
-        var minY = sorted[i-1].y + sorted[i-1].h + 20;
-        var newY = Math.max(sorted[i].y, minY);
-        sorted[i].y = newY;
-        renderY[sorted[i].id] = newY;
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
       }
     });
   });
@@ -711,7 +693,7 @@ function recomputePositions() {
     var el = document.getElementById('node-' + n.id);
     if (!el) return;
     el.style.left = n.lx + 'px';
-    el.style.top  = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
   });
   drawEdges();
 }
@@ -826,67 +808,138 @@ function closeLightbox(){document.getElementById('lightbox').classList.remove('a
 document.addEventListener('keydown',function(e){
   if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
   if(e.key==='Escape'){
-    if(document.getElementById('search-bar').classList.contains('open')){closeSearch();return;}
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
     closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
   }
 });
 
 // Search
-var searchMatchIds=[];
-var searchActiveIdx=-1;
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
 function openSearch(){
-  var bar=document.getElementById('search-bar');
-  bar.classList.add('open');
-  document.getElementById('search-btn').style.display='none';
+  document.getElementById('search-wrap').classList.add('open');
   var inp=document.getElementById('search-input');
   inp.focus();inp.select();
+  kbIdx=-1;
   if(inp.value) doSearch(inp.value);
 }
 function closeSearch(){
   clearSearchHighlights();
-  searchMatchIds=[];searchActiveIdx=-1;
-  document.getElementById('search-bar').classList.remove('open');
-  document.getElementById('search-btn').style.display='';
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
   document.getElementById('search-input').value='';
   document.getElementById('search-count').textContent='';
+  closeDropdown();
 }
 function clearSearchHighlights(){
   document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
 }
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
 function doSearch(q){
   clearSearchHighlights();
-  searchMatchIds=[];searchActiveIdx=0;
+  searchSelectedId=null;kbIdx=-1;
   var query=q.trim().toLowerCase();
-  if(!query){document.getElementById('search-count').textContent='';return;}
-  NODES_DATA.forEach(function(n){if(n.searchText&&n.searchText.indexOf(query)!==-1) searchMatchIds.push(n.id);});
-  searchMatchIds.forEach(function(id){var el=document.getElementById('node-'+id);if(el) el.classList.add('ng-search-match');});
-  if(searchMatchIds.length>0){searchActiveIdx=0;activateSearchMatch(0);}
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
   updateSearchCount();
 }
-function activateSearchMatch(idx){
-  document.querySelectorAll('.ng-search-active').forEach(function(el){el.classList.remove('ng-search-active');});
-  if(!searchMatchIds.length) return;
-  var el=document.getElementById('node-'+searchMatchIds[idx]);
-  if(el){el.classList.add('ng-search-active');flyToNode(searchMatchIds[idx]);}
-}
-function searchNext(){
-  if(!searchMatchIds.length) return;
-  searchActiveIdx=(searchActiveIdx+1)%searchMatchIds.length;
-  activateSearchMatch(searchActiveIdx);updateSearchCount();
-}
-function searchPrev(){
-  if(!searchMatchIds.length) return;
-  searchActiveIdx=(searchActiveIdx-1+searchMatchIds.length)%searchMatchIds.length;
-  activateSearchMatch(searchActiveIdx);updateSearchCount();
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
 }
 function updateSearchCount(){
   var el=document.getElementById('search-count');
   if(!el) return;
   var q=document.getElementById('search-input').value.trim();
   if(!q){el.textContent='';return;}
-  if(!searchMatchIds.length){el.style.color='#ef4444';el.textContent='0 results';return;}
-  el.style.color='#6b7280';
-  el.textContent=(searchActiveIdx+1)+' / '+searchMatchIds.length;
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
 }
 function flyToNode(nodeId){
   var el=document.getElementById('node-'+nodeId);
@@ -900,8 +953,19 @@ function flyToNode(nodeId){
   applyTransform();
 }
 function onSearchKey(e){
-  if(e.key==='Enter'){e.shiftKey?searchPrev():searchNext();e.preventDefault();}
-  if(e.key==='Escape'){closeSearch();e.preventDefault();}
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
   e.stopPropagation();
 }
 

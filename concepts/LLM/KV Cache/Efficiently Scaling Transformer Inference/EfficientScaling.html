@@ -21,19 +21,17 @@ body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFo
 button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
 button:hover{background:#e8e8e8;border-color:#aaa}
 .tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
-#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
 #viewport.pan-drag{cursor:grabbing}
 #canvas{position:absolute;transform-origin:0 0}
 #wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
 .ng-node{position:absolute;min-width:220px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
 .ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
-.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;user-select:none}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
 .ng-header:hover{background:rgba(0,0,0,.04)}
-.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap}
-.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap}
-.ng-chevron{font-size:9px;opacity:.5;flex-shrink:0;padding:2px 4px;border-radius:2px}
-.ng-chevron:hover{background:rgba(0,0,0,.08);opacity:.9}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
 .ng-body{padding:8px 10px 10px;font-size:12px}
 .ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
 .ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
@@ -66,10 +64,17 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 #lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
 #lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
 /* Search */
-#search-bar{display:none;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:5px;padding:2px 6px}
-#search-bar.open{display:flex}
-#search-input{border:none;outline:none;font-size:12px;width:160px;background:transparent;color:#111}
-#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:52px;text-align:right}
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
 .ng-node.ng-search-match{border:2px solid #fcd34d !important}
 .ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
 </style>
@@ -86,20 +91,20 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
     <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
     <div class="tb-sep"></div>
-    <button id="search-btn" onclick="openSearch()" title="Search nodes (Ctrl+F)">🔍 Search</button>
-    <div id="search-bar">
-      <input id="search-input" placeholder="Search nodes…" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)">
-      <span id="search-count"></span>
-      <div style="width:1px;height:14px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
-      <button onclick="searchPrev()" title="Previous (Shift+Enter)" style="border:none;background:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#374151">↑</button>
-      <button onclick="searchNext()" title="Next (Enter)" style="border:none;background:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#374151">↓</button>
-      <button onclick="closeSearch()" title="Close (Escape)" style="border:none;background:none;cursor:pointer;padding:2px 5px;font-size:12px;color:#6b7280">✕</button>
-    </div>
     <div class="tb-sep"></div>
     <span id="tb-sel" style="opacity:.35">Click a node to select</span>
   </div>
 </div>
 <div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
   <div id="canvas">
     <svg id="wire-svg">
       <defs>
@@ -109,226 +114,201 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
       </defs>
     </svg>
     <div class="ng-node" id="node-node_001" data-children="node_009,node_010" style="--color:#4B8BBE;border-radius:2px;left:100px;top:180px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">추론 비용의 세 축: Latency, Throughput, MFU 트레이드오프</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">추론 비용의 세 축: Latency, Throughput, MFU 트레이드오프</span>
   </div>
   <div class="ng-body"><div class="ng-content">생성형 Transformer 추론의 비용을 재는 세 지표: latency(전체 추론 시간, prefill+decode로 분해), throughput(초당 처리/생성 토큰 수), MFU(model FLOPS utilization, 관측 처리량 대비 이론적 최대 처리량 비율). 저자들은 이 셋 사이의 근본적 트레이드오프를 분석한다.<br><br>메모리 비용 관점에서 핵심 관찰: 배치 크기와 시퀀스 길이가 작을 때는 weight를 HBM에서 로드하는 시간이 지배적이고(weight-loading이 병목), 배치·시퀀스 길이가 커지면(예: 2048+ 토큰에 배치 512+) KV cache를 로드하는 시간이 지배적으로 바뀐다. 이 KV cache 로딩 동안 칩의 연산 코어는 사실상 idle 상태다 — 즉 decode 단계는 본질적으로 memory-bandwidth-bound다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.3</span></summary>
 <div class="ng-orig-text">At small batch sizes and sequence lengths, the time to load weights dominates. At larger batch sizes and sequence lengths (e.g. 2048+ tokens with batch size 512+), the time to load the KV cache dominates.</div></details><div class="ng-links"><a class="ng-link" href="./Efficiently Scaling Transformer Inference.pdf#page=3" target="_blank">📄 원문 §2, p.3</a></div></div>
 </div>
 <div class="ng-node" id="node-node_002" data-children="node_011" style="--color:#4B8BBE;border-radius:2px;left:100px;top:480px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">파티셔닝 표기법과 통신 collective (BLE, all-gather/reduce-scatter/all-to-all)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">파티셔닝 표기법과 통신 collective (BLE, all-gather/reduce-scatter/all-to-all)</span>
   </div>
   <div class="ng-body"><div class="ng-content">저자들은 텐서 shape를 B(batch)·L(sequence)·E(model/embed dim)·F(feedforward dim)·H(heads)로 표기하고, 아래첨자로 TPU v4 3D torus의 X/Y/Z 축 중 어디에 분할됐는지 표시한다(예: BLE_xyz는 E를 X×Y×Z개 조각으로 분할). 축이 표기에서 생략되면 그 축은 복제(replicated)된 것이고, 'partialsum-x'는 x축에 대해 아직 합산 전인 부분합임을 뜻한다.<br><br>세 가지 핵심 통신 collective: all-gather(x)는 x축을 따라 텐서를 모아 x배 큰 복제 텐서로 만들고, reduce-scatter(x)는 x축에 대해 부분합을 리듀스하면서 동시에 샤딩하며, all-reduce(x)는 이 둘을 합친 것(리듀스+브로드캐스트)이다. all-to-all은 한 텐서 차원의 샤딩을 다른 차원으로 옮긴다(예: BLH_xQ → B_xLHQ).</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.4</span></summary>
 <div class="ng-orig-text">We use several communication collectives originating from MPI (Clarke et al., 1994). The all-reduce(x) primitive sums a partialsum tensor such as BLEyz(partialsum-x) across sets of chips in the x axis of the torus and broadcasts the sum back to all the involved chips, returning BLEyz.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_003" data-children="node_012,node_013,node_014" style="--color:#4B8BBE;border-radius:2px;left:100px;top:780px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">Feedforward 파티셔닝: 1D/2D Weight-Stationary vs Weight-Gathered</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Feedforward 파티셔닝: 1D/2D Weight-Stationary vs Weight-Gathered</span>
   </div>
   <div class="ng-body"><div class="ng-content">FFN 가중치를 칩에 분산하는 세 가지 레이아웃. (1) 1D weight-stationary: E×F 가중치를 d_model 또는 d_ff 한 축으로만 나눠 각 칩에 고정하고, activation을 all-gather/reduce-scatter로 주고받는다. 통신시간이 칩 수에 무관하게 거의 일정해서 칩이 늘수록 병목이 된다. (2) 2D weight-stationary: 가중치를 E와 F 두 축 모두로 나눠(E_x F_yz) 통신량을 O(1/√n_chips)로 줄인다 — √n_chips &gt; d_ff/d_model(보통 n_chips&gt;16)일 때 1D보다 효율적. (3) weight-gathered: activation을 고정하고 가중치를 칩 간에 통째로 옮기는 방식으로, 배치가 매우 클 때(활성값이 가중치보다 커질 때) 더 경제적이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.2, p.5</span></summary>
 <div class="ng-orig-text">2D weight-stationary becomes more communication-efficient when √nchips &gt; dff/dmodel. Since typically dff = 4dmodel, this occurs when nchips &gt; 16.</div></details><details class="ng-toggle"><summary>FFN 파티셔닝 전략별 통신 비용 공식</summary>
 <div class="ng-toggle-body">| 전략 | 통신 시간 |<br>|---|---|<br>| 1D weight-stationary | $\frac{2BLE}{\text{bw}}$ |<br>| 2D weight-stationary | $\frac{8BLE}{\sqrt{n_{chips}}\,\text{bw}}$ |<br>| Weight-gathered (XYZ) | $\frac{4E\sqrt{BLF}}{\sqrt{n_{chips}}\,\text{bw}}$ |<br><br>weight-stationary 계열은 배치토큰수(BL)에 선형, weight-gathered 계열은 √BL에 비례 — 배치가 커질수록 weight-gathered가 유리해진다.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_004" data-children="node_015,node_016,node_017" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1080px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">Multiquery Attention: 배치 축으로 샤딩해 KV cache 메모리비용 절감</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Multiquery Attention: 배치 축으로 샤딩해 KV cache 메모리비용 절감</span>
   </div>
   <div class="ng-body"><div class="ng-content">Multihead attention은 head마다 별도 K/V를 갖지만, multiquery attention(Shazeer 2019; PaLM도 채용)은 Q는 그대로 n_heads개를 두되 K/V는 단 하나의 head만 두고 모든 query head가 공유한다. 이것만으로 KV cache 크기가 n_heads배 줄어든다.<br><br>그런데 기존 방식대로 head 축으로 샤딩하면(Fig.4b), K/V head가 하나뿐이라 각 칩에 그대로 복제해야 해서 multiquery의 메모리 절감 효과가 사라진다. 저자들이 제안하는 대안은 Q/K/V를 batch(B) 축으로 n_chips개로 쪼개는 것(Fig.4c) — 이러면 각 칩은 자기 몫의 시퀀스에 대한 K만 있으면 되므로 칩당 KV cache 메모리비용이 n_chips배 줄어든다. 대가는 activation을 재정렬하기 위한 all-to-all 통신이 추가된다는 것.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.6</span></summary>
 <div class="ng-orig-text">An alternative approach, called multiquery attention (Shazeer, 2019; Chowdhery et al., 2022), still emits nheads for the query tensor, but only a single head for the key and value tensors. This key and value head is shared across the nheads query heads. This reduces the size of the KV cache tensors by a factor of nheads and hence the memory time spent loading them.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_005" data-children="node_018,node_019" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1380px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">Parallel formulation + Looped CollectiveEinsum + int8 양자화</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Parallel formulation + Looped CollectiveEinsum + int8 양자화</span>
   </div>
   <div class="ng-body"><div class="ng-content">세 가지 저수준 최적화. (1) Parallel attention/FFN: layernorm된 입력에서 attention과 FFN을 각각 독립으로 계산해 더한다(직렬 대신 병렬). layernorm이 레이어당 1번으로 줄고, FFN의 입력 행렬을 attention의 W_Q와, W_K/W_V를 서로, W_O와 FFN 출력행렬을 각각 fuse할 수 있어 더 큰 GEMM으로 뭉쳐진다. 무엇보다 d_ff/n_heads 파티셔닝에 필요한 all-reduce 2번 중 1번이 아예 없어져서 통신시간이 절반으로 준다.<br><br>(2) Looped CollectiveEinsum: 통신(reduce-scatter/all-gather)을 계산과 동시에 진행되도록 겹치는 기법(Wang et al. 2023). reduce-scatter를 batch/sequence 축이 아니라 hidden 축(E 또는 F)으로 하도록 선택해 이 겹침 기회를 늘렸다.<br><br>(3) AQT 라이브러리로 16비트 가중치를 int8로 양자화 — 품질 저하 없이 weight-loading 메모리시간과 weight-gathered 레이아웃의 통신량을 줄인다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.4, p.7</span></summary>
 <div class="ng-orig-text">The benefits from the parallel formulation are as follows. First, there is only one layernorm per layer instead of two, which reduces latency at small batch sizes.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_006" data-children="node_020" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1680px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">PaLM 540B 사례 연구: 저지연 29ms/token, 고처리량 76% MFU</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">PaLM 540B 사례 연구: 저지연 29ms/token, 고처리량 76% MFU</span>
   </div>
   <div class="ng-body"><div class="ng-content">PaLM 계열(8B/62B/540B, bfloat16 또는 int8)에 걸쳐 효율-지연 파레토 프론티어를 구했다. 540B, 64 TPU v4 칩 기준: 저배치(생성) 구간에서 int8 가중치로 28.5ms/token(bfloat16은 36.9ms/token), 대배치(prefill) 구간에서 76% MFU를 달성 — 이는 2048 토큰 컨텍스트를 지원하면서 나온 수치다. 비용은 chip-seconds per token = n_chips × time / (B×L)로 정의되며, MFU에 반비례한다. 배치512 근처가 최소 비용 지점이고, 배치를 줄이면 지연은 개선되지만 토큰당 비용은 늘어난다(최소 지연은 배치512 대비 3배 낮다).</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
 <div class="ng-orig-text">Finally, we achieve a low-batch-size latency of 29ms per token during generation (using int8 weight quantization) and a 76% MFU during large-batch-size processing of input tokens, while supporting a long context length of 2048 tokens on the PaLM 540B parameter model.</div></details><details class="ng-toggle"><summary>Table 2: PaLM 540B 예시 구성 (저지연 vs 고처리량, 64칩)</summary>
 <div class="ng-toggle-body">| | Low-latency Prefill | Low-latency Decode | High-throughput Prefill | High-throughput Decode |<br>|---|---|---|---|---|<br>| Chips | 64 | 64 | 64 | 64 |<br>| Batch | 1 | 64 | 512 | 512 |<br>| FFN layout | WS 2D | WS 2D | WG XYZ | WS 2D |<br>| Attention sharding | Head | Batch | Batch | Batch |<br>| Weights | int8 | int8 | bfloat16 | bfloat16 |<br>| MFU | 43% | 14% | 76% | 33% |<br>| Latency | 0.29s | 1.82s | 85.2s | 6.0s |<br><br>(Table 2, p.10)</div></details></div>
 </div>
 <div class="ng-node" id="node-node_007" data-children="node_021" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1980px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">FasterTransformer/Megatron 대비: 최대 64-way TP에서도 44% MFU 유지</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">FasterTransformer/Megatron 대비: 최대 64-way TP에서도 44% MFU 유지</span>
   </div>
   <div class="ng-body"><div class="ng-content">60-input/20-output 토큰 벤치마크에서 NVIDIA A100 16~32장 기반 FasterTransformer(Megatron-530B 등)와 비교. 절대 latency와 MFU 모두에서 이 논문 구현이 대부분의 지연 목표에서 최고 MFU를 기록했고, PaLM 구현은 parallel attention/ffn 레이어 덕에 자체 Megatron 구현보다 최대 10%p MFU가 높다. multiquery attention의 이점은 이 벤치마크의 컨텍스트 길이가 짧아 두드러지지 않았다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.10</span></summary>
 <div class="ng-orig-text">Our PaLM implementation outperforms our Megatron implementation by up to 10% MFU in this benchmark primarily because of the parallel attention/ffn layers.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_008" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2280px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
-    <span class="ng-title">결론: FLOP·통신량이 근본 한계, sparsity/MoE가 향후 방향</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론: FLOP·통신량이 근본 한계, sparsity/MoE가 향후 방향</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문은 500B+ 파라미터 모델을 64+ 칩으로 확장하는 실전 파티셔닝 원칙을 제시했다고 요약한다. 다만 저자들 스스로 인정하듯, dense Transformer의 FLOP 수와 통신량 자체가 성능의 근본 한계다. task-based mixture-of-experts 같은 sparsity 기법이나, 입력·생성 스텝마다 계산량을 다르게 배정하는 adaptive computation 기법이 토큰당 FLOP을 줄여줄 잠재력이 있다고 언급하며 향후 연구로 남긴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7, p.11</span></summary>
 <div class="ng-orig-text">we observe that FLOP count and communication volume can fundamentally limit performance of dense Transformer models. Sparsity techniques, such as task-based mixture of expert architectures... and adaptive computation techniques that allocate different amounts of compute per input and generation timestep... promise to reduce FLOPs per token of Transformer models.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_009" style="--color:#9B59B6;border-radius:2px;left:550px;top:100px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">예시: 챗봇 시나리오, 64칩에서 1.9초 응답</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">예시: 챗봇 시나리오, 64칩에서 1.9초 응답</span>
   </div>
   <div class="ng-body"><div class="ng-content">int8 weight의 PaLM 540B를 64 TPU v4 칩에 올렸을 때: 사용자 입력 64토큰을 처리하고, 캐시된 대화 이력 1920토큰을 참조하고, 64토큰 응답을 생성하는 전체 과정이 1.9초에 끝난다. 오프라인 throughput 시나리오에서는 입력 1984토큰+출력 64토큰 처리에서 전체 FLOPS 효율 73%를 달성한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
 <div class="ng-orig-text">For an interactive application such as a chatbot running on PaLM 540B with int8 weights, our implementation on 64 TPU v4 chips can process 64 tokens of text from a user, consult a cached conversation history of 1920 tokens, and generate a 64-token response in a total of 1.9 seconds.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_010" style="--color:#9B59B6;border-radius:2px;left:550px;top:280px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">KV cache가 파라미터보다 3배 커지는 지점</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">KV cache가 파라미터보다 3배 커지는 지점</span>
   </div>
   <div class="ng-body"><div class="ng-content">배치 512, 컨텍스트 길이 2048에서 KV cache 총량은 3TB로, 모델 파라미터 크기의 3배에 달한다. 이 KV cache를 생성되는 토큰마다 매번 off-chip 메모리에서 새로 로드해야 하고, 그동안 칩의 연산 코어는 사실상 놀고 있다 — decode 단계에서 메모리 대역폭이 병목이 되는 물리적 근거다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.3</span></summary>
 <div class="ng-orig-text">cache grows large: for batch size 512 and context length 2048, the KV cache totals 3TB, which is 3 times the size of the model's parameters. The on-chip memory needs to load this KV cache from off-chip memory once for every token generated during which the computational core of the chip is essentially idle.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:550px;top:480px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">Appendix A.1: all-gather/reduce-scatter 통신시간 공식</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Appendix A.1: all-gather/reduce-scatter 통신시간 공식</span>
   </div>
   <div class="ng-body"><div class="ng-content">K개 파티션에 대한 all-gather에서, 각 칩이 크기 D의 출력을 만든다면 통신 패턴은 (K-1)/K 비율의 데이터를 (K-1)개 링크에 걸쳐 전송해야 한다. 따라서 $T_{comm(all-gather)} = \frac{D}{bw} \times \frac{K-1}{K}$. reduce-scatter도 같은 공식이되 D가 더 큰 입력 버퍼 크기가 된다. all-reduce는 이 둘을 합친 것이므로 $T_{comm(all-reduce)} = 2 \times T_{comm(all-gather)}$. K≫1로 가정하면 (K-1)/K ≈ 1로 근사해서 계산을 단순화한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Appendix A.1, p.15</span></summary>
 <div class="ng-orig-text">For an all-gather over K partitions, where each chip produces an output of size D, the communication pattern requires chunks of size D/K to be transferred over (K − 1) interconnect links in the process of getting copied to (K − 1) chips.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:550px;top:660px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">1D weight-stationary 통신시간 공식</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">1D weight-stationary 통신시간 공식</span>
   </div>
   <div class="ng-body"><div class="ng-content">각 칩은 reduce-scatter/all-gather에서 각각 BLE shape(비분할)의 입출력을 주고받는다. 유도 결과 $T_{comm} = \frac{2BLE}{\text{network bandwidth}}$ — 칩 수(n_chips)가 분모에 없다는 게 핵심: 칩을 늘려도 통신시간이 줄지 않아 결국 병목이 된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.1, p.4</span></summary>
 <div class="ng-orig-text">In this 1D weight-stationary partitioning strategy, each chip gets inputs and outputs of shape BLE in the reduce-scatter and all-gather respectively.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:550px;top:810px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
-    <span class="ng-title">2D weight-stationary: X=0.5√n, YZ=2√n 최적 분할</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">2D weight-stationary: X=0.5√n, YZ=2√n 최적 분할</span>
   </div>
   <div class="ng-body"><div class="ng-content">가중치를 E_x F_yz로 분할, X×Y×Z=n_chips 제약에서 통신시간을 최소화하는 값은 X=0.5√n_chips, YZ=2√n_chips(d_ff=4d_model 가정). 결과 통신시간 $T_{comm} = \frac{8BLE}{\sqrt{n_{chips}}}$ — 분모에 √n_chips가 있어 칩을 늘릴수록 통신시간이 계속 줄어든다(1D와 대비되는 핵심 장점).</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.2, p.5</span></summary>
 <div class="ng-orig-text">We have a free choice of X, Y and Z subject to available TPU v4 slice shapes and X × Y × Z = nchips. Assuming dff = 4 × dmodel, we achieve the minimum communication time with X = 0.5 × √nchips and Y Z = 2 × √nchips.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_014" style="--color:#9B59B6;border-radius:2px;left:550px;top:960px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Weight-gathered는 배치가 커지면 √BL로만 증가 (Fig.3)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Weight-gathered는 배치가 커지면 √BL로만 증가 (Fig.3)</span>
   </div>
   <div class="ng-body"><div class="ng-content">weight-stationary 계열의 통신시간은 배치 토큰수(BL)에 선형으로 비례하지만, weight-gathered 계열은 √BL에만 비례한다. 그래서 배치와 prefill 시퀀스 길이가 충분히 커지면 weight-gathered가 더 싸진다 — Figure 3은 토큰수가 커질수록 최적 레이아웃이 2D weight-stationary에서 X→XY→XYZ weight-gathered로 순차적으로 전환됨을 보여준다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.3, p.6</span></summary>
 <div class="ng-orig-text">The communication time for the weight-stationary layout is linear in BL, while the communication time for the weight-gathered layout is linear in √BL. Therefore, the weight-gathered layout becomes cheaper when the batch size and prefill sequence length are sufficiently large.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_015" style="--color:#9B59B6;border-radius:2px;left:550px;top:1110px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Table 1: 최적화된 multiquery는 컨텍스트 길이 32-64배 확장</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 1: 최적화된 multiquery는 컨텍스트 길이 32-64배 확장</span>
   </div>
   <div class="ng-body"><div class="ng-content">attention variant별 64칩에서 지원 가능한 최대 컨텍스트 길이(총 메모리의 30%를 KV cache에 할당한다고 가정): multihead(d_head=128)는 배치128에서 1320, 배치512에서 330. baseline multiquery(head축 샤딩, d_head=256)는 660/165로 오히려 더 나쁘다(head당 크기를 키웠는데 복제 손실이 더 큼). 반면 batch축으로 샤딩한 optimized multiquery는 43,000/10,700 — multihead 대비 최대 32-64배.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.9</span></summary>
 <div class="ng-orig-text">Table 1 shows that the optimized multiquery layout can fit up to 32–64 times longer context lengths than the multihead and baseline multiquery variant.</div></details><details class="ng-toggle"><summary>Table 1: attention variant별 최대 컨텍스트 길이 (64칩)</summary>
 <div class="ng-toggle-body">| Model variant | d_head | Max context (batch=128) | Max context (batch=512) |<br>|---|---|---|---|<br>| Multihead | 128 | 1320 | 330 |<br>| Baseline multiquery | 256 | 660 | 165 |<br>| Optimized multiquery | 256 | 43000 | 10700 |</div></details></div>
 </div>
 <div class="ng-node" id="node-node_016" style="--color:#E74C3C;border-radius:2px;left:550px;top:1260px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
-    <span class="ng-title">핵심 주장: batch 샤딩이 칩당 KV cache 메모리비용을 n_chips배 줄인다</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 주장: batch 샤딩이 칩당 KV cache 메모리비용을 n_chips배 줄인다</span>
   </div>
   <div class="ng-body"><div class="ng-content">Q/K/V를 batch 축으로 n_chips개 파티션에 나누는 제안 레이아웃(Fig.4c)에서, 각 칩은 자기 몫 시퀀스의 K/V만 로드하면 되므로 칩당 KV cache 로딩에 드는 memory time이 정확히 n_chips분의 1로 줄어든다는 것이 이 논문의 핵심 주장이다. 이는 head 축 샤딩(Fig.4b, K/V head를 각 칩에 복제해야 함)과 근본적으로 다른 절감 메커니즘이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.6-7</span></summary>
 <div class="ng-orig-text">We instead propose a partitioning strategy for the multiquery attention where the Q, K, and V matrices are partitioned over the batch B dimension into nchips partitions. Figure 4(c) shows that this reduces the memory cost of loading the KV cache per chip by a factor of nchips, thereby reducing the memory time by the same factor.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_017" style="--color:#9B59B6;border-radius:2px;left:950px;top:1100px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">Fig.8: multiquery면 attention이 전체 런타임의 8-31%에 불과</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Fig.8: multiquery면 attention이 전체 런타임의 8-31%에 불과</span>
   </div>
   <div class="ng-body"><div class="ng-content">8-layer PaLM 540B에서 optimized multiquery 레이아웃을 쓰면 컨텍스트 길이 8192(배치512)~32,768(배치128)까지도 attention이 차지하는 비중이 전체 런타임의 8~31%에 그친다 — 대부분의 시간이 여전히 feedforward 연산에 쓰이고, attention/KV-cache가 병목이 되는 시점을 크게 뒤로 미룬다는 뜻.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.9</span></summary>
 <div class="ng-orig-text">Multiquery attention scales up to sequence lengths of 8192–32,768 tokens (batch sizes 512 and 128 respectively) with attention taking only 8–31% of total runtime.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_018" style="--color:#9B59B6;border-radius:2px;left:550px;top:1360px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">AQT int8: 품질저하 없이 weight 메모리비용 절감</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">AQT int8: 품질저하 없이 weight 메모리비용 절감</span>
   </div>
   <div class="ng-body"><div class="ng-content">AQT(Accurate Quantized Training) 라이브러리로 16비트 가중치를 int8로 변환해 눈에 띄는 품질 저하 없이 메모리비용을 줄인다. 이는 특히 저배치 구간(weight-loading이 지배적인 구간)에서 도움이 크고, weight-gathered 레이아웃의 통신량도 줄인다. activation quantization은 이 논문에서는 구현하지 않았지만, 향후 compute time과 통신량을 추가로 줄일 수 있을 것으로 기대한다고 언급.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.6, p.7-8</span></summary>
 <div class="ng-orig-text">We use the AQT library (Lew et al., 2022) to reduce the memory cost of 16-bit weights by converting them to int8 without noticeable quality loss.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_019" style="--color:#E74C3C;border-radius:2px;left:550px;top:1500px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
-    <span class="ng-title">실증: parallel formulation이 직렬 대비 decode 지연 14% 감소</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">실증: parallel formulation이 직렬 대비 decode 지연 14% 감소</span>
   </div>
   <div class="ng-body"><div class="ng-content">2D weight-stationary, 64칩, 배치512 조건에서 직렬(serial) attention/FFN 구성은 병렬(parallel) 구성 대비 스텝당 inference latency가 14% 더 높다 — activation 통신시간이 늘기 때문이다. prefill 단계에서는 weight-gathered 레이아웃이 activation 통신을 덜 필요로 하므로 이 차이가 줄어든다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.9</span></summary>
 <div class="ng-orig-text">The serial formulation incurs 14% higher inference latency per step than the parallel version because of the increased communication time for activations.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_020" style="--color:#9B59B6;border-radius:2px;left:550px;top:1680px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">실제 최소 latency: int8에서 28.5ms/token (bf16 대비 약 2배 비용 개선)</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">실제 최소 latency: int8에서 28.5ms/token (bf16 대비 약 2배 비용 개선)</span>
   </div>
   <div class="ng-body"><div class="ng-content">Figure 1(left)의 파레토 프론티어에서 얻어지는 구체적 수치: PaLM 540B, 배치64에서 int8 가중치로 28.5ms/token, bfloat16 가중치로는 36.9ms/token. 저지연 목표에서는 비용이 weight-loading 시간에 지배되므로 양자화가 비용을 약 2배 개선하지만, 대배치(비용이 compute-time에 지배)에서는 int8과 bfloat16의 비용 차이가 훨씬 작아진다(matmul 자체는 여전히 bfloat16 연산).</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.4, p.9</span></summary>
 <div class="ng-orig-text">We observe that int8 weight quantization achieves the minimum latency in Figure 1 (left): for example, we achieve 28.5ms/token with int8 weights at batch size 64 on PaLM 540B, while we achieve 36.9ms/token with bfloat16 weights.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_021" style="--color:#9B59B6;border-radius:2px;left:550px;top:1980px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
-    <span class="ng-title">FasterTransformer의 32-way TP는 33% MFU에서 정체 — 통신 병목</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">FasterTransformer의 32-way TP는 33% MFU에서 정체 — 통신 병목</span>
   </div>
   <div class="ng-body"><div class="ng-content">FasterTransformer는 8/16/32-way tensor parallelism 결과를 보고하는데, 32-way에서 최대 33% MFU에 그친다(16-way의 46% MFU보다 오히려 낮음 — TP를 더 늘리면 통신 병목으로 역효과). 반면 이 논문의 2D weight-stationary 파티셔닝은 64-way tensor parallelism까지 확장해도 44% MFU를 유지한다 — TPU v4의 더 빠른 인터커넥트 도메인과 √n_chips 스케일링 통신 공식 덕분이라고 해석.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.11</span></summary>
 <div class="ng-orig-text">In contrast, our implementation is able to scale up to 64-way tensor parallelism while still achieving 44% MFU, suggesting superior scalability of our 2D weight-stationary partitioning strategy on TPU v4's larger high-speed interconnect domains.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_022" style="--color:#1ABC9C;border-radius:22px;left:950px;top:1280px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
-    <span class="ng-title">KV cache가 CXL 같은 느리지만 큰 메모리 티어로 spill한다면?</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">KV cache가 CXL 같은 느리지만 큰 메모리 티어로 spill한다면?</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문의 메모리-절감 논증(multiquery로 KV cache를 n_heads배, batch 샤딩으로 다시 n_chips배 줄이는 것)은 철저히 '어느 칩의 HBM에 몇 바이트가 있는가'를 조정하는 compute-side 샤딩 문제다 — 메모리 계층(tiering) 자체는 건드리지 않는다.<br><br>만약 KV cache 일부를 CXL 같은 disaggregated, 용량은 크지만 대역폭/지연이 HBM보다 못한 티어로 흘려보낼 수 있다면 어떻게 될까? 두 가능성이 있다: (1) 직교(orthogonal) 가설 — 이 논문의 통신 비용 모델(network bandwidth 한 항으로 뭉뚱그려진 T_comm 공식들)에 CXL 티어의 별도 대역폭/지연 항만 추가하면 되고, 샤딩 전략 자체는 그대로 재사용 가능하다. (2) 비직교 가설 — capacity가 사실상 무제한(pooled CXL)이 되면 애초에 '칩당 KV cache 메모리비용을 n_chips배로 나누는' 동기 자체가 약해진다(Table 1의 컨텍스트 길이 제약이 사라지므로), 대신 문제가 대역폭/latency 쪽으로 완전히 옮겨간다. 이 논문은 이 축을 전혀 다루지 않는다.</div></div>
 </div>
 <div class="ng-node" id="node-node_023" style="--color:#E5A835;border-radius:22px;left:950px;top:480px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
-    <span class="ng-title">이 통신비용 모델은 TPU v4 3D torus를 벗어나도 성립하는가?</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">이 통신비용 모델은 TPU v4 3D torus를 벗어나도 성립하는가?</span>
   </div>
   <div class="ng-body"><div class="ng-content">Appendix A.1의 all-gather/reduce-scatter 비용 공식은 논문이 '대부분의 실제 네트워크 토폴로지에 대해 성립하는 일반적 모델'이라고 주장하지만, 최적 X/Y/Z 분할(예: 2D weight-stationary의 X=0.5√n, YZ=2√n)은 명시적으로 TPU v4의 3D torus 축 구조를 전제로 유도됐다. NVLink 스위치 패브릭(모든 GPU 쌍이 균일 대역폭)이나 CXL 스위치 토폴로지처럼 '축'이라는 개념 자체가 없는 인터커넥트에서는 이 X/Y/Z 인수분해가 어떻게 재정의돼야 하는지 논문은 다루지 않는다.</div></div>
 </div>
 <div class="ng-node" id="node-node_024" style="--color:#95A5A6;border-radius:22px;left:950px;top:1980px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
-    <span class="ng-title">핵심 비교/인용 대상: Megatron-LM · GSPMD · Alpa · FasterTransformer · DeepSpeed Inference</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 비교/인용 대상: Megatron-LM · GSPMD · Alpa · FasterTransformer · DeepSpeed Inference</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문이 직접 비교하거나 대비하는 파티셔닝 프레임워크들: Megatron-LM(Shoeybi et al. 2019, tensor parallelism의 원조), GSPMD(Xu et al. 2021), Alpa(Zheng et al. 2022, 정수계획법으로 파티셔닝 탐색을 자동화 — 이 논문은 대신 손으로 유도한 해석적 트레이드오프를 쓴다는 점에서 대비됨), DeepSpeed Inference(Aminabadi et al. 2022, ZeRO offload로 CPU/NVMe 메모리까지 활용), FasterTransformer(NVIDIA, §5의 직접 벤치마크 대상). multiquery attention의 원 출처는 Shazeer(2019), PaLM 아키텍처는 Chowdhery et al.(2022).</div><div class="ng-links"><a class="ng-link" href="https://arxiv.org/abs/2204.02311" target="_blank">🔗 PaLM arXiv</a><a class="ng-link" href="https://arxiv.org/abs/1909.08053" target="_blank">🔗 Megatron-LM arXiv</a><a class="ng-link" href="https://arxiv.org/abs/2105.04663" target="_blank">🔗 GSPMD arXiv</a><a class="ng-link" href="https://arxiv.org/abs/2201.12023" target="_blank">🔗 Alpa arXiv</a><a class="ng-link" href="https://arxiv.org/abs/2207.00032" target="_blank">🔗 DeepSpeed Inference arXiv</a></div></div>
 </div>
 <div class="ng-node" id="node-node_025" style="--color:#BDC3C7;border-radius:22px;left:950px;top:1430px">
-  <div class="ng-header" onclick="onHeaderClick(this)" onmousedown="onNodeHeaderMousedown(event,this.parentNode)" title="Click to select node">
-    <span class="ng-tag" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
-    <span class="ng-title">내 연구방향과의 연결: 이 논문의 병목은 '메모리 대역폭', 내 질문은 '메모리 계층'</span>
-    <span class="ng-chevron" onclick="toggleFold(event,this.closest('.ng-header'))" title="Fold / unfold this node">▲</span>
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향과의 연결: 이 논문의 병목은 '메모리 대역폭', 내 질문은 '메모리 계층'</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문 전체의 출발점은 decode 단계가 본질적으로 memory-bandwidth-bound라는 것(§2, KV cache가 파라미터의 3배까지 커짐)이고, 해법은 그 바이트들을 더 많은 칩의 HBM에 나눠 담아 칩당 대역폭 요구량을 낮추는 것(compute-side sharding)이다. 내가 보고 있는 CXL/disaggregation 방향은 반대편에서 같은 병목을 공격한다 — 칩 수를 늘리는 대신 메모리 자체를 계층화(capacity tier ↔ bandwidth tier)해서 문제를 푼다.<br><br>흥미로운 지점은 이 두 접근이 서로 배타적이지 않다는 것 — 이 논문의 샤딩 전략은 '한 노드 안에 몇 개의 동질적 HBM 칩이 있는가'를 전제로 하는데, 만약 그 노드 자체가 이미 CXL로 확장된 이종(heterogeneous) 메모리 풀을 갖고 있다면, 샤딩 축(X,Y,Z)에 '메모리 티어'라는 새 차원을 추가해야 할 수도 있다. 이건 이 논문이 전혀 다루지 않는, 내 박사 연구가 채울 수 있는 빈틈으로 보인다.</div></div>
 </div>
@@ -415,21 +395,23 @@ function onHeaderClick(hdr) {
   selectNode(selectedNodeId === nodeId ? null : nodeId);
 }
 
-// Chevron click = toggle this node only (no cascade, stopPropagation)
-function toggleFold(e, hdr) {
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
   e.stopPropagation();
-  var body = hdr.nextElementSibling;
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
   if (!body) return;
-  var chevron = hdr.querySelector('.ng-chevron');
   var expanding = body.style.display === 'none';
   body.style.display = expanding ? '' : 'none';
-  if (chevron) chevron.textContent = expanding ? '▲' : '▼';
-  var nodeEl = hdr.parentNode;
   var nodeId = nodeEl.id.replace('node-', '');
   for (var i = 0; i < NODES_DATA.length; i++) {
     if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
   }
   setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
 }
 
 // Get node datum by id
@@ -529,8 +511,8 @@ function doCollapse() {
   }
 }
 
-// Per-node drag with logical-position tracking
-function onNodeHeaderMousedown(e, nodeEl) {
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
   e.stopPropagation();
   lastWasDrag = false;
   var x0 = e.clientX, y0 = e.clientY;
@@ -560,110 +542,112 @@ function onNodeHeaderMousedown(e, nodeEl) {
   window.addEventListener('mouseup', onUp);
 }
 
-// Keep original node positions — collapse/expand does not push other nodes
-function getNodeRootId(nodeId) {
-  var childToParent = getChildToParentMap();
-  var cur = nodeId;
-  while (childToParent[cur]) cur = childToParent[cur];
-  return cur;
-}
-function getChildToParentMap() {
-  var map = {};
-  NODES_DATA.forEach(function(n) {
-    (n.children || []).forEach(function(childId) { map[childId] = n.id; });
-  });
-  return map;
-}
 function recomputePositions() {
-  var childToParent = getChildToParentMap();
-  function rootOf(id) {
+  var childToParent = {};
+  NODES_DATA.forEach(function(n) {
+    (n.children || []).forEach(function(childId) { childToParent[childId] = n.id; });
+  });
+  function getRootId(id) {
     var cur = id;
     while (childToParent[cur]) cur = childToParent[cur];
     return cur;
   }
   function isDescendantOf(descendant, ancestor) {
     var cur = descendant;
-    while (childToParent[cur]) {
-      cur = childToParent[cur];
-      if (cur === ancestor) return true;
-    }
+    while (childToParent[cur]) { cur = childToParent[cur]; if (cur === ancestor) return true; }
     return false;
   }
+  function isDirectedConnected(sourceId, targetId) {
+    return EDGES.some(function(e) { return e.source === sourceId && e.target === targetId; });
+  }
+
   var sorted = NODES_DATA.slice().sort(function(a, b) {
     if (a.ly !== b.ly) return a.ly - b.ly;
     return a.lx - b.lx;
   });
   var renderY = {};
-  sorted.forEach(function(n) {
-    var nIsMain = n.isMain;
-    var y = n.ly;
-    var nEl = document.getElementById('node-' + n.id);
-    var nW = nEl ? nEl.offsetWidth : 300;
-    sorted.forEach(function(other) {
-      if (other.id === n.id) return;
-      if (other.ly > n.ly) return;
-      if (other.ly === n.ly && other.lx >= n.lx) return;
-      var otherY = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
-      var otherEl = document.getElementById('node-' + other.id);
-      var h = otherEl ? otherEl.offsetHeight : HEADER_H;
-      var otherBottom = otherY + h;
-      if (otherBottom <= y) return;
-      if (nIsMain && other.isMain) {
-        // Main → main: always push regardless of X offset
-        var naturalBottom = other.ly + (other.nodeHeight || HEADER_H);
-        var delta = (otherY + h) - naturalBottom;
-        var nodeNaturalY = n.naturalY !== undefined ? n.naturalY : n.ly;
-        y = Math.max(y, nodeNaturalY + delta, otherBottom + 20);
-      } else {
-        // Rounded pushes: only if X ranges actually overlap (different columns don't push each other)
-        var oW = otherEl ? otherEl.offsetWidth : 300;
-        if (!(n.lx < other.lx + oW && other.lx < n.lx + nW)) return;
-        if (nIsMain) {
-          // Rounded → main: skip only if descendant AND doesn't reach this node's Y
-          if (isDescendantOf(other.id, n.id) && otherBottom <= n.ly) return;
-          var wasPushed = otherY > other.ly;
-          if (!other.contentExpanded && !wasPushed) return;
-          y = Math.max(y, otherBottom + 48);
+  var MAX_ITER = 8;
+
+  for (var iter = 0; iter < MAX_ITER; iter++) {
+    var prevSnapshot = {};
+    NODES_DATA.forEach(function(n) { prevSnapshot[n.id] = renderY[n.id] !== undefined ? renderY[n.id] : n.ly; });
+
+    // Pass 1: Y-overlap push-down
+    sorted.forEach(function(node) {
+      var nEl = document.getElementById('node-' + node.id);
+      var nodeW = nEl ? nEl.offsetWidth : (node.nodeWidth || 300);
+      var y = node.ly;
+
+      sorted.forEach(function(other) {
+        if (other.id === node.id) return;
+        if (other.ly > node.ly) return;
+        if (other.ly === node.ly && other.lx >= node.lx) return;
+
+        var otherEl = document.getElementById('node-' + other.id);
+        var otherW = otherEl ? otherEl.offsetWidth : (other.nodeWidth || 300);
+        var otherY = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        var otherH = otherEl ? otherEl.offsetHeight : HEADER_H;
+        var otherBottom = otherY + otherH;
+        if (otherBottom <= y) return;
+
+        if (node.isMain && other.isMain) {
+          // Main→Main: X 범위가 겹칠 때만 밀어냄 (다른 컬럼 cascade 방지)
+          if (!(node.lx < other.lx + otherW && other.lx < node.lx + nodeW)) return;
+          var naturalBottom = other.ly + (other.nodeHeight || HEADER_H);
+          var delta = (otherY + otherH) - naturalBottom;
+          var nodeNaturalY = node.naturalY !== undefined ? node.naturalY : node.ly;
+          y = Math.max(y, nodeNaturalY + delta, otherBottom + 20);
         } else {
-          // Sub → sub: always push when X ranges overlap, regardless of expand state
-          var gap = (rootOf(other.id) === rootOf(n.id)) ? 20 : 48;
-          y = Math.max(y, otherBottom + gap);
+          // 방향 엣지 연결이면 X overlap 없어도 밀어냄
+          var connected = isDirectedConnected(other.id, node.id);
+          if (!connected && !(node.lx < other.lx + otherW && other.lx < node.lx + nodeW)) return;
+          if (node.isMain) {
+            if (isDescendantOf(other.id, node.id) && otherBottom <= node.ly) return;
+            y = Math.max(y, otherBottom + 48);
+          } else {
+            var isSameRoot = getRootId(other.id) === getRootId(node.id);
+            y = Math.max(y, otherBottom + (isSameRoot ? 30 : 48));
+          }
+        }
+      });
+      renderY[node.id] = y;
+    });
+
+    // Pass 2: 서브노드가 부모 main의 push delta만큼 따라 내려감
+    NODES_DATA.forEach(function(node) {
+      if (node.isMain) return;
+      var parentMain = null;
+      var bestDist = Infinity;
+      NODES_DATA.forEach(function(m) {
+        if (!m.isMain) return;
+        var connected = (m.children && m.children.indexOf(node.id) !== -1) ||
+          EDGES.some(function(e) {
+            return (e.source === m.id && e.target === node.id) || (e.target === m.id && e.source === node.id);
+          });
+        if (connected) {
+          var dist = Math.abs(m.ly - node.ly);
+          if (dist < bestDist) { bestDist = dist; parentMain = m; }
+        }
+      });
+      if (parentMain) {
+        var parentPush = (renderY[parentMain.id] !== undefined ? renderY[parentMain.id] : parentMain.ly) - parentMain.ly;
+        if (parentPush > 0) {
+          var cur = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+          renderY[node.id] = Math.max(cur, node.ly + parentPush);
         }
       }
     });
-    renderY[n.id] = y;
-  });
 
-  // Pass 2: sub-nodes follow their parent main node's push delta
-  NODES_DATA.forEach(function(n) {
-    if (n.isMain) return;
-    var parentMain = null;
-    var bestDist = Infinity;
-    NODES_DATA.forEach(function(m) {
-      if (!m.isMain) return;
-      var connected = m.children && m.children.indexOf(n.id) !== -1;
-      if (!connected) {
-        EDGES.some(function(e) {
-          if ((e.source === m.id && e.target === n.id) || (e.target === m.id && e.source === n.id)) {
-            connected = true; return true;
-          }
-        });
-      }
-      if (connected) {
-        var dist = Math.abs(m.ly - n.ly);
-        if (dist < bestDist) { bestDist = dist; parentMain = m; }
-      }
+    // 수렴 확인
+    var converged = NODES_DATA.every(function(n) {
+      var cur = renderY[n.id] !== undefined ? renderY[n.id] : n.ly;
+      var prev = prevSnapshot[n.id] !== undefined ? prevSnapshot[n.id] : n.ly;
+      return cur === prev;
     });
-    if (parentMain) {
-      var parentPush = (renderY[parentMain.id] !== undefined ? renderY[parentMain.id] : parentMain.ly) - parentMain.ly;
-      if (parentPush > 0) {
-        var cur = renderY[n.id] !== undefined ? renderY[n.id] : n.ly;
-        renderY[n.id] = Math.max(cur, n.ly + parentPush);
-      }
-    }
-  });
+    if (converged) break;
+  }
 
-  // Pass 3: normalize Y spacing within each bus group (same source, same X column)
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px, 에디터와 동일)
   var lineBySource = {};
   EDGES.forEach(function(e) {
     if (e.type !== 'line') return;
@@ -675,7 +659,6 @@ function recomputePositions() {
   Object.keys(lineBySource).forEach(function(srcId) {
     var targetIds = lineBySource[srcId].filter(function(id) { return ndMap[id]; });
     if (targetIds.length < 2) return;
-    // Group targets by X column
     var xGroups = [];
     targetIds.forEach(function(id) {
       var el = document.getElementById('node-' + id);
@@ -689,18 +672,17 @@ function recomputePositions() {
       }
       if (!placed) xGroups.push([id]);
     });
-    // Sort and space within each X column group
     xGroups.forEach(function(grp) {
       if (grp.length < 2) return;
-      var sorted = grp.map(function(id) {
+      var grpSorted = grp.map(function(id) {
         var el = document.getElementById('node-' + id);
         return { id: id, y: renderY[id] !== undefined ? renderY[id] : ndMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
       }).sort(function(a, b) { return a.y - b.y; });
-      for (var i = 1; i < sorted.length; i++) {
-        var minY = sorted[i-1].y + sorted[i-1].h + 20;
-        var newY = Math.max(sorted[i].y, minY);
-        sorted[i].y = newY;
-        renderY[sorted[i].id] = newY;
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
       }
     });
   });
@@ -709,7 +691,7 @@ function recomputePositions() {
     var el = document.getElementById('node-' + n.id);
     if (!el) return;
     el.style.left = n.lx + 'px';
-    el.style.top  = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
   });
   drawEdges();
 }
@@ -824,67 +806,138 @@ function closeLightbox(){document.getElementById('lightbox').classList.remove('a
 document.addEventListener('keydown',function(e){
   if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
   if(e.key==='Escape'){
-    if(document.getElementById('search-bar').classList.contains('open')){closeSearch();return;}
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
     closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
   }
 });
 
 // Search
-var searchMatchIds=[];
-var searchActiveIdx=-1;
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
 function openSearch(){
-  var bar=document.getElementById('search-bar');
-  bar.classList.add('open');
-  document.getElementById('search-btn').style.display='none';
+  document.getElementById('search-wrap').classList.add('open');
   var inp=document.getElementById('search-input');
   inp.focus();inp.select();
+  kbIdx=-1;
   if(inp.value) doSearch(inp.value);
 }
 function closeSearch(){
   clearSearchHighlights();
-  searchMatchIds=[];searchActiveIdx=-1;
-  document.getElementById('search-bar').classList.remove('open');
-  document.getElementById('search-btn').style.display='';
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
   document.getElementById('search-input').value='';
   document.getElementById('search-count').textContent='';
+  closeDropdown();
 }
 function clearSearchHighlights(){
   document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
 }
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
 function doSearch(q){
   clearSearchHighlights();
-  searchMatchIds=[];searchActiveIdx=0;
+  searchSelectedId=null;kbIdx=-1;
   var query=q.trim().toLowerCase();
-  if(!query){document.getElementById('search-count').textContent='';return;}
-  NODES_DATA.forEach(function(n){if(n.searchText&&n.searchText.indexOf(query)!==-1) searchMatchIds.push(n.id);});
-  searchMatchIds.forEach(function(id){var el=document.getElementById('node-'+id);if(el) el.classList.add('ng-search-match');});
-  if(searchMatchIds.length>0){searchActiveIdx=0;activateSearchMatch(0);}
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
   updateSearchCount();
 }
-function activateSearchMatch(idx){
-  document.querySelectorAll('.ng-search-active').forEach(function(el){el.classList.remove('ng-search-active');});
-  if(!searchMatchIds.length) return;
-  var el=document.getElementById('node-'+searchMatchIds[idx]);
-  if(el){el.classList.add('ng-search-active');flyToNode(searchMatchIds[idx]);}
-}
-function searchNext(){
-  if(!searchMatchIds.length) return;
-  searchActiveIdx=(searchActiveIdx+1)%searchMatchIds.length;
-  activateSearchMatch(searchActiveIdx);updateSearchCount();
-}
-function searchPrev(){
-  if(!searchMatchIds.length) return;
-  searchActiveIdx=(searchActiveIdx-1+searchMatchIds.length)%searchMatchIds.length;
-  activateSearchMatch(searchActiveIdx);updateSearchCount();
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
 }
 function updateSearchCount(){
   var el=document.getElementById('search-count');
   if(!el) return;
   var q=document.getElementById('search-input').value.trim();
   if(!q){el.textContent='';return;}
-  if(!searchMatchIds.length){el.style.color='#ef4444';el.textContent='0 results';return;}
-  el.style.color='#6b7280';
-  el.textContent=(searchActiveIdx+1)+' / '+searchMatchIds.length;
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
 }
 function flyToNode(nodeId){
   var el=document.getElementById('node-'+nodeId);
@@ -898,8 +951,19 @@ function flyToNode(nodeId){
   applyTransform();
 }
 function onSearchKey(e){
-  if(e.key==='Enter'){e.shiftKey?searchPrev():searchNext();e.preventDefault();}
-  if(e.key==='Escape'){closeSearch();e.preventDefault();}
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
   e.stopPropagation();
 }
 
