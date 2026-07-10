@@ -1,0 +1,427 @@
+{
+  "version": "1.0.0",
+  "title": "ArtMem: Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory",
+  "created": "2026-07-09T00:00:00.000Z",
+  "modified": "2026-07-10T01:05:28.000Z",
+  "source": {
+    "pdf": "ArtMem - Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory.pdf",
+    "authors": "Xinyue Yi, Hongchao Du (co-first), Yu Wang, Jie Zhang, Qiao Li, Chun Jason Xue",
+    "venue": "ISCA 2025",
+    "doi": "10.1145/3695053.3731001",
+    "pages": 14
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic", "color": "#4B8BBE", "icon": "file-text",   "shape": "sharp" },
+    "method":     { "label": "Method",     "color": "#5C9E6E", "icon": "cpu",         "shape": "sharp" },
+    "result":     { "label": "Result",     "color": "#9B59B6", "icon": "bar-chart-2", "shape": "sharp" },
+    "claim":      { "label": "Claim",      "color": "#E74C3C", "icon": "alert-circle","shape": "sharp" },
+    "question":   { "label": "Question",   "color": "#E5A835", "icon": "help-circle", "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea", "color": "#1ABC9C", "icon": "lightbulb",   "shape": "rounded" },
+    "reference":  { "label": "Reference",  "color": "#95A5A6", "icon": "book-open",   "shape": "rounded" },
+    "memo":       { "label": "Memo",       "color": "#BDC3C7", "icon": "edit-3",      "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "ArtMem이 푸는 문제는 **tiered memory(계층형 메모리)**에서 어떤 page를 언제 fast tier(DRAM)로 옮길지 결정하는 **migration policy(마이그레이션 정책)** 그 자체다. 기존 시스템(AutoNUMA, MEMTIS, TPP 등)은 손으로 튜닝한 **정적 hotness threshold(고정 임계값)**나 휴리스틱에 의존하는데, ArtMem은 이를 **경량 Q-learning 기반 강화학습(reinforcement learning, RL) agent**로 대체해 workload가 바뀌어도 사람 개입 없이 실시간으로 migration scope(옮길 page 수 + hotness threshold)를 조정한다.\n\n**Killer application 1 — 휴리스틱 없는 online adaptive migration**: fast-tier access ratio($\\tau$) 하나만 관측해 migration 정책을 실시간으로 재학습하므로, workload별로 매번 새로 threshold를 튜닝할 필요가 없다.\n\n**Killer application 2 — 커널 안에서 실용적으로 도는 초경량 RL**: state/action을 system-level $12$개 상태 $\\times$ $9$개 action으로 극단적으로 압축해 두 Q-table을 합쳐 **10KB 미만**으로 유지하고, sampling overhead **3% CPU 이하**, Q-table 연산 **0.07% CPU 이하**로 Linux kernel v5.15.19에 실제로 박아 넣어 오픈소스로 공개했다(github.com/Yitrus/ArtMem).\n\n결과적으로 8개 workload, 7개 SOTA baseline 대비 평균 **114%** 성능 향상(범위 35%~172%)을 새로운 하드웨어 없이 정책 개선만으로 달성한다.",
+      "original": {
+        "text": "This paper proposes ArtMem, a reinforcement learning (RL)-driven framework that dynamically manages tiered memory systems and adapts to workload evolution to address these limitations.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": ["node_006"],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "메모리 집약적 애플리케이션(그래프 처리, ML, in-memory DB)이 늘면서 **DRAM만으로는 비용·용량 한계**에 부딪힌다 — 여러 기업 데이터에 따르면 memory가 서버 비용의 약 **40%**를 차지한다. Byte-addressable **PM(persistent memory)**과 **CXL(Compute Express Link)**-enabled tiered memory가 비용 효율적 대안으로 떠올랐지만, 느린 tier의 지연시간(latency)은 DRAM 대비 최대 $2\\times$에 달해 migration 정책의 정확도가 곧 성능을 좌우한다.\n\n그런데 AutoNUMA, AutoTiering, Nimble, HeMem, Thermostat, Kleio, MEMTIS, TPP, Multi-Clock 같은 기존 시스템은 세 가지 근본 한계를 갖는다: **(1) workload 의존성** — 정적 threshold/휴리스틱이 특정 workload에서만 잘 동작, **(2) access ratio 미활용** — fast tier access ratio가 낮아졌을 때(=migration이 비효과적일 때) 정책을 조정하지 못함, **(3) migration scope 고정** — 이동 page 수를 workload 패턴에 맞춰 동적으로 조정하지 못해 불필요한 migration 또는 fast tier 과소활용이 발생.\n\n저자들은 MASIM 시뮬레이터로 4개 합성 access pattern(S1-S4, 총 32GB, DRAM 16GB)을 만들어 7개 기존 시스템의 실패 양상을 분석하고 세 관찰(Observation)을 도출했다: 기존 방법은 workload마다 성능 편차가 크고(Obs.1), fast tier access ratio가 성능과 강한 상관관계(Pearson $0.81$~$0.89$)를 가지며(Obs.2), migration scope는 workload마다 동적으로 튜닝돼야 한다(Obs.3, 수동 튜닝으로 Liblinear/XSBench에서 각각 **47%**/**42%** 향상 확인).",
+      "original": {
+        "text": "This paper identifies three key limitations in existing tiered memory solutions. First, existing solutions often perform differently across different workloads, leading to suboptimal performance in some workloads. Second, they often fail to adjust migration strategies in response to low fast memory tier access rates, resulting in ineffective data placement. Third, they often miss the opportunity to dynamically tune the memory migration scope based on workload patterns, leading to unnecessary page migrations and under-utilization of tiered memory potential.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": ["node_007", "node_008", "node_009", "node_010"],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "ArtMem은 **Q-learning 기반 model-free RL**을 system-level(page 단위가 아닌) state/action으로 설계해 Q-table 폭발을 피한다. 아키텍처는 3계층(RL Framework - ArtMem 함수 계층 - Hardware)으로 구성된다(Fig.5, 우측 노드 참고).\n\n**State**: fast memory access ratio $\\tau$를 $k+1$개 구간으로 discretize.\n\n$$\\tau = \\left\\lfloor \\frac{DRAM_{access} \\times k}{DRAM_{access} + PM_{access}} \\right\\rfloor$$\n\n**Action**: migration scope = migration number(이동 page 수) + hotness threshold(hot/cold 판정 기준), 각각 독립 Q-table 2개로 협력 조정.\n\n**Reward**: 목표 access ratio 대비 편차와 직전 대비 개선분을 함께 고려.\n\n$$r = \\tau_i - \\beta + \\lambda(\\tau_i - \\tau_{i-1})$$\n\nmigration scope 결정에는 두 축이 더해진다 — **EMA(exponential moving average)**로 access frequency를 base-2 exponential bin으로 경량 추적하고 200만 sample마다 cooling하며, **LRU 기반 page sorting**으로 recency를 반영해 migration 후보를 고른다. 구현은 Linux kernel v5.15.19 프로토타입(오픈소스, github.com/Yitrus/ArtMem)으로, 2MB huge page를 migration 단위로 쓰고 코어당 sampling thread(ksampled)와 시스템 단위 migration thread(kmigrated)를 두어 RL 연산을 application critical path에서 분리한다.",
+      "original": {
+        "text": "ArtMem employs a Q-learning–based, model-free reinforcement learning (RL) approach with constrained state and action spaces to minimize computational overhead.",
+        "location": "§4.2, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": ["node_011", "node_012", "node_013", "node_014", "node_015", "node_016", "node_017", "node_018"],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "Intel Xeon Gold 6330(28 core/socket) 1소켓, DRAM 64GB(fast) + PM 512GB(slow, ndctl로 remote memory node 구성)에서 8개 workload(YCSB, CC, SSSP, PR, XSBench, DLRM, Btree, Liblinear)와 7개 baseline(AutoNUMA, Nimble, Multi-Clock, TPP, Tiering-0.8, AutoTiering, MEMTIS)을 memory ratio 2:1~1:16 범위에서 비교했다.\n\n| Baseline | 평균 향상 |\n|---|---|\n| AutoNUMA | **132%** |\n| Nimble | **124%** |\n| Multi-Clock | **104%** |\n| TPP | **91%** |\n| Tiering-0.8 | **72%** |\n| AutoTiering | **67%** |\n\n전체 평균 **114%** 향상(범위 35%~172%)을 달성했으며, best baseline 대비도 평균 **10.4%~43.65%** 향상. workload별로는 그래프(SSSP/PR/CC) **12%~509%**, XSBench **16%~311%**, DLRM **5%~110%**, In-memory DB(YCSB) 평균 **65%**, Btree(multiclock 제외) **4%~36%** 향상. Liblinear는 MEMTIS 대비 9% 낮지만 다른 baseline 대비 평균 **76%** 향상.\n\n**Ablation**에서는 RL이 가장 큰 성능 기여를 하며 DRAM 비율이 낮을수록 RL 이득이 커진다. **Overhead**는 sampling $\\leq 3\\%$ CPU, Q-table 연산 $\\leq 0.07\\%$ CPU, Q-table 메모리 $<10$KB로 매우 작다. migration volume은 MEMTIS 대비 CPU overhead 약 $10\\times$ 적고, DLRM에서는 CC 대비 $30{,}000\\times$ 적은 page를 옮긴다.",
+      "original": {
+        "text": "Under different memory configurations (DRAM:PM ratios), ArtMem achieves an average performance improvement of 132%, 124%, 104%, 91%, 72%, and 67% compared to the seven baseline systems, respectively.",
+        "location": "§6.2, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": ["node_019", "node_020", "node_021", "node_022"],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "ArtMem은 RL 기반 적응형 tiered memory 관리 프레임워크로, 실시간 fast memory 사용량에 맞춰 동적으로 조정함으로써 fast memory 활용도를 높이고 불필요한 migration을 줄인다. 평가 결과 SOTA 시스템 대비 평균 **114%** 성능 향상을 **최소한의 overhead**로 달성한다.\n\n**프레임워크의 일반성**: reward를 latency 기반으로 바꿔도 access-ratio reward 대비 평균 **3.4%**만 낮고, Q-learning을 SARSA로 바꿔도 성능이 유사해 RL 알고리즘·reward 선택에 강건하다. Robustness 실험($5\\times5=25$개 workload 조합)에서는 7개 조합만 10% 초과 성능 저하를 보였고, 잘못된 Q-table로 시작해도 평균 3 iteration(1~6) 만에 목표 성능의 95%에 도달한다.\n\n**한계**: (1) per-page가 아닌 system-level 결정이라 세밀한 hot/cold 구분은 page sorting에 의존한다. (2) Liblinear처럼 초기 access가 균일한 workload에서는 access ratio가 0%까지 급락 후 회복하는 데 시간이 걸린다(ramp-up 속도가 sampling 정확도에 좌우됨). (3) 평가는 Optane PM 기반 단일 소켓 시스템으로, 실제 CXL 하드웨어 실측은 없다(latency emulation으로 CXL 가능성만 논의). 논문은 3-tier 이상 확장이나 multi-host 공유 시나리오는 다루지 않는다.",
+      "original": {
+        "text": "This paper introduces ArtMem, a tiered memory system leveraging reinforcement learning for adaptive memory management. By dynamically adjusting based on real-time fast memory usage, ArtMem optimizes fast memory utilization while reducing unnecessary migrations. The evaluation shows ArtMem outperforms state-of-the-art systems, achieving an average performance improvement of 114% with minimal overhead.",
+        "location": "§7, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": ["node_023"],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "claim",
+      "title": "DRAM이 서버 비용의 ~40% 차지 → tiering의 경제적 동기",
+      "content": "이 논문의 동기는 순수 성능 문제가 아니라 **비용 문제**에서 출발한다. Memory-intensive application이 늘면서 DRAM 기반 시스템은 고비용·저용량 한계에 부딪히고, 여러 산업 데이터에 따르면 DRAM이 서버 비용의 약 **40%**를 차지한다. Byte-addressable PM과 CXL-enabled tiered memory가 비용 효율적 대안이지만, 느린 tier의 latency는 DRAM 대비 최대 $2\\times$다.",
+      "original": {
+        "text": "Data from several companies [30, 36, 64] indicate that memory accounts for approximately 40% of server costs.",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": -150 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "method",
+      "title": "Table 1: 7개 기존 tiered memory 설계 비교",
+      "content": "기존 7개 tiered memory 시스템은 각기 다른 **key design**과 강/약점 패턴을 가진다 — 이것이 Observation 1(workload 의존성)의 근거다.\n\n| Strategy | Key Design | Advantage Pattern | Disadvantage Pattern |\n|---|---|---|---|\n| MEMTIS | EMA of access frequency | High spatial locality | Random access |\n| AutoTiering | Opportunistic promotion/migration | Easily distinguished hot/cold | Warm data |\n| TPP | Lightweight demotion, decoupled paths | Stable pattern | Burst of hot pages |\n| AutoNUMA | Mostly frequently accessed | Stable pattern | Burst of hot pages |\n| Multi-clock | Candidate LRU lists | Easily distinguished hot/cold | Warm data |\n| Nimble | Batch migration | High spatial locality | Random access |\n| Tiering-0.8 | Reset threshold on workload change | High spatial locality | Random access |",
+      "original": {
+        "text": "we summarize the advantage and disadvantage patterns of the seven tiered memory systems in Table 1 and make the first observation.",
+        "location": "§3.1, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 120 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "method",
+      "title": "Observation 1&2 근거: Pattern S1 오분류 + access ratio-성능 상관 0.81~0.89",
+      "content": "Pattern S1(고 locality, 두 500MB hot region)에서 MEMTIS는 hotness threshold를 DRAM 용량 기준으로 잡아 사실상 모든 page를 hot으로 분류, **15GB**를 옮기지만 실제로 필요한 건 최대 **1GB**뿐이다. 한편 MEMTIS/AutoTiering/Nimble 세 시스템 각각에 대해 정규화 성능과 DRAM access ratio 사이 Pearson 상관계수가 $0.89$/$0.81$/$0.87$로 강하게 나타난다(Fig.3) — access ratio가 migration 효과성의 실시간 대리 지표로 쓰일 수 있다는 근거다.",
+      "original": {
+        "text": "For example, in Pattern S1, MEMTIS identifies all pages as hot pages and migrates 15GB of data, while in reality, only up to 1GB migration is needed. Using frequency alone as the migration metric has limitations.",
+        "location": "§3.3, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 270 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "method",
+      "title": "Observation 3 근거: 수동 threshold 튜닝으로 47%/42% 향상",
+      "content": "정적 hotness threshold는 workload가 바뀌어도 고정돼 있어 최적이 아니다. Liblinear와 XSBench에서 MEMTIS의 hotness bin을 수동으로 줄여(warm bin으로 재분류) migration volume을 낮추자 성능이 각각 **47%**, **42%** 개선됐다(Fig.4). 이는 migration scope(몇 개 page를 옮길지)가 workload 패턴에 맞춰 동적으로 조정돼야 한다는 것을 직접 뒷받침하며, ArtMem이 RL로 이 scope를 자동 학습하게 만드는 근거가 된다.",
+      "original": {
+        "text": "Observation 3: The memory migration scope should be tuned dynamically for different workload patterns to fully exploit the tiered memory's potential.",
+        "location": "§3.3, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 420 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "reference",
+      "title": "핵심 비교 baseline: MEMTIS / TPP / Multi-Clock / AutoNUMA 외",
+      "content": "ArtMem이 직접 비교하는 7개 baseline과 배경 인용 중 핵심: **MEMTIS**(SOSP'23, EMA 기반 hotness + dynamic page classification, ArtMem의 EMA 기법 출발점이자 주 비교 대상), **TPP**(ASPLOS'23, CXL tiered memory용 lightweight demotion), **Multi-Clock**(HPCA'24, 3단 candidate LRU list), AutoNUMA/AutoTiering/Nimble/Tiering-0.8, 그리고 RL+tiering 선행 연구인 **Kleio**(HPDC'19)와 page sorting 근거로 인용된 **FlexMem**(Dong Xu et al., USENIX ATC'24, NUMA fault 기반 hot page profiling).",
+      "original": {
+        "text": "AutoNUMA [58] and AutoTiering [27] track memory accesses using page faults and promote pages based on access frequency. Nimble [65] scans page tables to identify hot pages and migrates them to the fast memory tier.",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 570 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "ArtMem 아키텍처(Fig.5): RL Framework - ArtMem 함수 - Hardware 3계층",
+      "content": "ArtMem 아키텍처는 3계층으로 구성된다. 상단 **RL Framework**(Q-Table, Adaptive Action, Performance-driven Reward, Low-overhead State), 중단 **ArtMem 함수 계층**(Accesses distribution, Thresholds adaptation, Page sorting, Migration volume adaptation, Page migration in background), 하단 **Hardware**(Fast Tier Memory, Capacity Tier Memory, PMU). 짙은 녹색 화살표가 각 모듈 간 데이터 흐름을 나타낸다.\n\n[[IMG:fig5_architecture.png:530x357]]",
+      "original": {
+        "text": "Figure 5 illustrates the overall architecture of the proposed system, which is composed of three main components. At the top layer lies ArtMem's reinforcement learning (RL) framework, responsible for training and decision-making.",
+        "location": "§4.1, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 750 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "State: fast memory access ratio τ (Eq.1)",
+      "content": "State는 $DRAM_{access}$와 $PM_{access}$ 샘플 수로부터 계산한 fast tier access ratio를 $k+1$개 구간으로 discretize한 값이다.\n\n$$\\tau = \\left\\lfloor \\frac{DRAM_{access} \\times k}{DRAM_{access} + PM_{access}} \\right\\rfloor$$\n\n$\\tau = k$는 모든 샘플이 DRAM에서 발생했음을 뜻한다. $DRAM_{access} = PM_{access} = 0$(샘플이 아예 없는 경우, 예: CPU 캐시 히트로 메모리 이벤트 자체가 안 잡힌 경우)은 access ratio 0과 의미가 다르므로 별도 state($k+1$)를 부여해, $k=10$일 때 총 12개 state를 쓴다.",
+      "original": {
+        "text": "where τ = k means all sampled accesses happen in the DRAM with PM_access = 0. It is important to note that a state value of 0 might indicate all accesses occur in the slow memory tier or no events were sampled (DRAM_access = PM_access = 0, e.g., most of the accesses hit in the CPU cache or the event of concern did not occur), we set a separate state (k + 1) for the latter.",
+        "location": "§4.2, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "Action: migration number + hotness threshold (독립 Q-table 2개)",
+      "content": "Action은 migration scope를 구성하는 두 파라미터 — 옮길 page 수(**migration number**)와 hot/cold 판정 기준(**hotness threshold**) — 로 정의되며, 각각 별도 Q-table과 독립 action set을 갖고 협력적으로 조정된다. 구현에서는 threshold action이 $\\pm8$/$\\pm4$/$0$(최소 16 accesses 유지), migration size가 16MB부터 2배씩 최대 2048MB + 0MB(no migration) 옵션까지 총 9개다. per-page가 아닌 system-level scope로 정의해 Q-table 크기를 억제한다.",
+      "original": {
+        "text": "Based on observation 3, ArtMem adopts migration scope as the action, which depends on two key parameters: the migration number and the hotness threshold. Two separate Q-tables and independent action sets are designed to adjust these parameters dynamically and collaboratively.",
+        "location": "§4.2, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1050 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "method",
+      "title": "Reward: τᵢ − β + λ(τᵢ − τᵢ₋₁) (Eq.2)",
+      "content": "Reward는 세 항으로 구성된다.\n\n$$r = \\tau_i - \\beta + \\lambda(\\tau_i - \\tau_{i-1})$$\n\n$\\tau_i$(현재 access ratio, 높을수록 좋음), $-\\beta$(목표 access ratio 대비 편차 penalty — 이게 없으면 agent가 access ratio를 인위적으로 진동시켜 reward를 착취해 시스템을 불안정하게 만들 수 있음), $\\lambda(\\tau_i-\\tau_{i-1})$(직전 대비 개선/악화에 대한 보상이되, 직전 period에 migration이 없었으면 $\\lambda=0$으로 꺼서 workload 자체의 변화에 잘못 책임을 묻지 않음).",
+      "original": {
+        "text": "If the reward were defined solely as the increase in the fast memory tier access ratio between consecutive phases (i.e., τ_i − τ_{i−1}), the agent might exploit this by inducing large access ratio fluctuations to gain more rewards, potentially destabilizing system performance.",
+        "location": "§4.2, p.5-6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1200 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "method",
+      "title": "EMA: base-2 exponential bin + 2백만 sample cooling",
+      "content": "memory access frequency는 흔히 **Zipfian/Pareto 분포**를 따른다는 전제 하에, ArtMem은 각 page의 access count를 base-2 exponential bin에 그룹화해 access 분포를 경량으로 추적한다. sampling마다 해당 page의 bin을 갱신하고, **2백만 sample**마다 모든 bin count와 per-page access record를 절반으로 감쇠(**cooling**)시켜 오래된 정보를 할인한다. hot page threshold는 초기엔 DRAM 용량 기준으로 설정되고 cooling마다 reset된 뒤, cooling 사이 구간에서는 RL이 학습한 정책으로 refine된다.",
+      "original": {
+        "text": "ArtMem records the number of memory accesses each page receives, grouping them into exponential bins with base 2 to compactly represent the access distribution. Upon each access sampling, the corresponding page is checked for bin reassignment, and the bin counters are updated accordingly. Additionally, a cooling operation is triggered every two million samples, during which all bin counts and per-page access records are halved to gradually discount stale information.",
+        "location": "§4.3, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1350 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "method",
+      "title": "Page Sorting: aggressive active-list 재삽입",
+      "content": "recency 정보는 **LRU 기반 page sorting**으로 반영한다. fast tier와 capacity tier 모두 active/inactive list를 유지하며, demotion 후보는 fast tier의 inactive list tail에서, promotion 후보는 capacity tier의 active list head에서 우선 고른다. 기존 설계(MEMTIS, AutoNUMA 등)는 migration된 page가 원래 tier에서의 activity status를 그대로 유지하는 보수적 정책을 쓰는데, 이는 premature demotion으로 인한 성능 jitter를 유발한다. ArtMem은 대신 migration된 page를 무조건 fast tier active list의 head에 삽입하는 **aggressive 정책**을 써서 최근 접근된 page를 즉시 우선시한다.",
+      "original": {
+        "text": "Existing inter-layer page migration strategies [30, 58] adopt a conservative strategy: when a page is migrated, it retains its activity status from the source memory tier. This approach can cause premature demotion, leading to performance jitter.",
+        "location": "§4.3, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1500 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "method",
+      "title": "Kernel 구현: 2MB huge page + ksampled/kmigrated + heuristic min threshold=16",
+      "content": "page migration 단위는 **2MB huge page**로, 주소 변환 오버헤드를 줄이고 compound_page의 미사용 struct page를 재사용해 access data를 추가 메모리 소모 없이 저장한다. 코어당 sampling thread(**ksampled**)가 PEBS로 memory load event를 수집해 ring buffer에 쌓고, 시스템 단위 migration thread(**kmigrated**)가 이를 소비해 실제 migration을 수행한다. memory cgroup 아래 mount point(memory.hit_ratio_show, memory.action_show, memory.threshold_show)로 user-space RL agent와 통신한다.\n\nRL exploration 중 threshold가 지나치게 낮아져 thrashing이 나는 것을 막기 위해 **최소 hotness threshold(16 accesses)**를 heuristic으로 고정한다. Q-table은 $12$ state $\\times$ $9$ migration size(threshold $\\pm8$/$\\pm4$/$0$ 포함)로, 두 Q-table 합계가 **10KB 미만**이다.\n\n| Memory Tier | Latency | Bandwidth |\n|---|---|---|\n| Fast Memory | 92ns | 81 GB/s |\n| Slow Memory | 323ns | 26 GB/s |",
+      "original": {
+        "text": "We implemented a prototype of ArtMem in the Linux kernel v5.15.19, which is open-sourced at https://github.com/Yitrus/ArtMem.",
+        "location": "§5, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1650 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "question",
+      "title": "3+ tier(CXL Type-3 포함)로 확장 시 state/action space는?",
+      "content": "ArtMem은 2-tier(DRAM+PM)를 전제로 state를 access ratio 하나, action을 migration number+threshold 두 Q-table로 압축했다. tier가 3개 이상(예: DRAM - CXL Type-3 - PM/NVM)으로 늘면 pairwise access ratio를 어떻게 하나의 state로 합칠지, migration 방향(어느 tier에서 어느 tier로)까지 action에 포함시켜야 하는지가 자명하지 않다. 논문은 이 확장을 미해결로 남긴다.",
+      "original": {
+        "text": "Byte-addressable persistent memory (PM) and Compute Express Link (CXL)-enabled tiered memory systems present new opportunities for designing cost-effective, large-capacity [63, 66] architectures.",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1800 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "method",
+      "title": "Table 3: 평가 workload 8종",
+      "content": "평가에 사용된 8개 memory-intensive workload:\n\n| Workload | Memory footprint | Description |\n|---|---|---|\n| YCSB | 32G | In-Memory Database |\n| CC | 69G | Connected Components |\n| SSSP | 64G | Single Source Shortest Path |\n| PR | 25G | PageRank |\n| XSBench | 69G | HPC Workloads |\n| DLRM | 72G | Deep Learning Recommendation Model |\n| Btree | 24G | In-Memory Index Lookup |\n| Liblinear | 68G | Machine Learning |",
+      "original": {
+        "text": "We selected 8 representative memory-intensive applications. The details are shown in Table 3.",
+        "location": "§6.1, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1950 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "result",
+      "title": "Ablation: RL 기여 최대, overhead sampling≤3%/Q-table≤0.07%/메모리<10KB",
+      "content": "EMA < EMA+PageSort < EMA+PageSort+RL 순으로 성능이 개선되며, **RL이 가장 큰 기여**를 하고 DRAM 비율이 낮을수록(느린 tier 의존도가 높을수록) RL의 이득이 커진다. Page sorting은 평균 기여는 작지만 PR/XSBench 등 특정 workload에서 10% 이상 기여한다. Overhead 측면에서는 sampling이 CPU 최대 **3%**, Q-table 연산이 CPU 최대 **0.07%**, 두 Q-table 합쳐 메모리 **10KB 미만**이다. migration volume 측면에서 MEMTIS 대비 CPU overhead 약 $10\\times$ 적고, DLRM에서는 CC 대비 $30{,}000\\times$ 적은 page를 옮긴다.",
+      "original": {
+        "text": "The RL algorithm delivers the most significant improvements. As the proportion of DRAM allocation decreases, the performance gains from RL become more significant.",
+        "location": "§6.3.1, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 2100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "result",
+      "title": "Robustness & 일반화: Q-learning≈SARSA, latency reward -3.4%, 재학습 평균 3 iteration",
+      "content": "reward를 latency 기반으로 바꿔도 access-ratio reward 대비 평균 **3.4%**만 낮다(대신 추가 데이터 수집 overhead 발생, XSBench에서 조정이 지연되는 경향 관찰). Q-learning을 SARSA로 바꿔도 성능이 유사해 framework 자체의 적응성을 보여준다. Robustness 실험($5\\times5=25$개 workload 조합)에서 7개 조합만 10% 초과 성능 저하를 보였고, 잘못된 초기 Q-table로 시작해도 평균 **3 iteration**(1~6 범위) 만에 목표 성능의 95%에 도달한다. CC의 memory footprint를 69GB에서 290GB로 늘려도 6% 이상 향상을 유지하고, tier 간 latency gap이 커질수록 baseline 대비 우위가 오히려 커진다. Hyperparameter는 $\\alpha=e^{-2}$, $\\gamma=e^{-1}$, $\\epsilon=0.3$, $\\beta=8$~$10$, migration interval 10초가 최적이다.",
+      "original": {
+        "text": "Experimental results show that this latency-based strategy yields, on average, 3.4% lower performance compared to the DRAM access ratio-based reward.",
+        "location": "§6.3.4, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 2250 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "gap",
+      "title": "단일 소켓·단일 노드 실험 — multi-node CXL 공유는 다루지 않음",
+      "content": "평가는 Intel Xeon 1개 소켓 안에서 DRAM을 fast tier로, Optane PM을 ndctl로 구성한 'remote memory node'를 slow tier로 써서 진행됐다(§6.1). CXL은 Introduction에서 PM과 같은 급의 latency를 갖는 slow tier 후보로만 언급될 뿐, **CXL fabric을 통한 여러 host/socket 간 memory pool 공유**나 **multi-node coherence**는 논문 어디에서도 다뤄지지 않는다. RL state(fast tier access ratio $\\tau$)와 Q-table도 단일 cgroup·단일 노드 기준으로 정의돼 있어, 여러 노드가 같은 CXL-attached capacity tier를 공유하는 상황에서 이 state 정의가 그대로 성립하는지는 논문이 침묵하는 지점이다.",
+      "original": {
+        "text": "We used one socket during the evaluation, with 64GB DRAM as the fast memory tier and 512GB PM as the slow memory tier. PM are configured as remote memory nodes with the ndctl [2] tool.",
+        "location": "§6.1, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 2400 },
+      "children": ["node_024"],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "memo",
+      "title": "Feasibility-by-building 관점: kernel-level RL을 10KB Q-table로",
+      "content": "이 논문이 흥미로운 지점은 RL을 이론적으로만 제안하지 않고 실제 Linux kernel v5.15.19에 background thread(ksampled/kmigrated)와 cgroup 인터페이스로 박아 넣어 오픈소스로 공개했다는 것이다(github.com/Yitrus/ArtMem). state/action space를 극도로 압축($12$ state $\\times$ $9$ action)해서 Q-table을 10KB 미만으로 만들고, 이를 통해 'RL이 커널 안에서 실용적으로 돌아간다'는 것을 실측 overhead(sampling $\\leq3\\%$, Q-table 연산 $\\leq0.07\\%$)로 증명한다. correct-by-construction까지는 아니지만, **feasibility-by-building** 스타일로 큰 아이디어를 최소한의 실제 구현으로 검증한 사례라 참고할 만하다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 2550 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "memo",
+      "title": "내 연구방향과의 연결: multi-node CXL coherence 관점에서 본 ArtMem",
+      "content": "내가 보는 CXL multi-node coherence 문제는 '여러 host가 같은 CXL-attached memory pool을 공유할 때 coherence/migration을 어떻게 조정할 것인가'인데, ArtMem은 이 축을 아예 전제하지 않은 **single-node NUMA-style 설계**다. RL state가 ($DRAM_{access}$, $PM_{access}$) 두 카운터만으로 정의되는데, 만약 여러 노드가 하나의 CXL capacity tier를 나눠 쓴다면 (a) 노드별 access ratio를 어떻게 집계할지, (b) 한 노드의 migration decision이 다른 노드가 보는 access ratio(따라서 reward)에 간섭을 일으킬지, (c) Q-table을 노드별로 독립시킬지 공유할지가 새로 풀어야 할 문제로 남는다. 즉 ArtMem의 '기법'(EMA+page sorting+RL)은 재사용 가능하지만 '문제 정의'(single-node state/reward) 자체를 multi-node coherence 상황에 맞게 다시 세워야 한다 — 이게 내 연구가 채워야 할 gap과 정확히 맞닿아 있다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 2400 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+    { "id": "edge_005", "source": "node_001", "target": "node_006", "type": "line", "label": "" },
+    { "id": "edge_006", "source": "node_002", "target": "node_007", "type": "line", "label": "" },
+    { "id": "edge_007", "source": "node_002", "target": "node_008", "type": "line", "label": "" },
+    { "id": "edge_008", "source": "node_002", "target": "node_009", "type": "line", "label": "" },
+    { "id": "edge_009", "source": "node_002", "target": "node_010", "type": "line", "label": "참고" },
+    { "id": "edge_010", "source": "node_003", "target": "node_011", "type": "line", "label": "" },
+    { "id": "edge_011", "source": "node_003", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_003", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_003", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_003", "target": "node_015", "type": "line", "label": "" },
+    { "id": "edge_015", "source": "node_003", "target": "node_016", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_003", "target": "node_017", "type": "line", "label": "" },
+    { "id": "edge_017", "source": "node_003", "target": "node_018", "type": "line", "label": "" },
+    { "id": "edge_018", "source": "node_004", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_019", "source": "node_004", "target": "node_020", "type": "line", "label": "" },
+    { "id": "edge_020", "source": "node_004", "target": "node_021", "type": "line", "label": "" },
+    { "id": "edge_021", "source": "node_004", "target": "node_022", "type": "line", "label": "gap" },
+    { "id": "edge_022", "source": "node_005", "target": "node_023", "type": "line", "label": "내 연구" },
+    { "id": "edge_023", "source": "node_022", "target": "node_024", "type": "line", "label": "내 연구" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

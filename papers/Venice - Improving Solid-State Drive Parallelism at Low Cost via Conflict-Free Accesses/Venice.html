@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Venice: Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">Venice: Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses</span>
+    <span id="tb-source">Rakesh Nadig, Mohammad Sadrosadati (co-primary), Haiyu Mao, Nika Mansouri Ghiasi, Arash Tavakkol, Jisung Park, Hamid Sarbazi-Azad, Juan Gómez-Luna, Onur Mutlu (ETH Zürich, POSTECH, Sharif University of Technology, IPM) · ISCA 2023</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_006,node_007,node_008" style="--color:#4B8BBE;border-radius:2px;left:100px;top:200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Venice는 SSD 컨트롤러와 flash chip 사이의 <strong style="font-size:1.1em">path conflict</strong>(경로 충돌) 문제를 flash chip을 전혀 수정하지 않고 해결한다. 상용 SSD는 채널(channel)당 여러 flash chip이 컨트롤러로 가는 단 하나의 경로(path)를 공유하는 <strong style="font-size:1.1em">multi-channel shared bus</strong> 구조라서, 같은 채널을 향하는 I/O 요청들이 몰리면 경로를 두고 직렬화(serialize)되어 병렬성(parallelism)이 크게 제한된다.<br><br>각 flash chip이 컨트롤러와 독립 채널을 갖는다고 가정한 이상적인 <strong style="font-size:1.1em">path-conflict-free SSD</strong>는 baseline 대비 평균 $4\times$(최대 $11.74\times$) 빠르다 — 이 격차가 path conflict 하나가 만드는 순수한 성능 손실이다. Venice는 flash chip 옆에 저비용 <strong style="font-size:1.1em">router chip</strong>을 붙여 2D mesh 네트워크를 구성하고, 데이터 전송 전에 경로를 미리 예약(<strong style="font-size:1.1em">path reservation</strong>)하는 방식으로 이 격차의 대부분을 좁힌다 — 그것도 flash chip 설계는 그대로 둔 채로, 낮은 면적·전력 오버헤드로.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
+<div class="ng-orig-text">SSDs use a multi-channel shared bus architecture where multiple memory chips connected to the same channel communicate to the SSD controller with only one path. As a result, path conflicts often occur during the servicing of multiple I/O requests, which significantly limits SSD parallelism.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" data-children="node_009,node_010,node_011" style="--color:#4B8BBE;border-radius:2px;left:100px;top:500px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">채널 수를 늘리는 단순한 해법은 컨트롤러의 I/O pin과 복잡도를 늘려 확장성(scalability)이 없다. 선행 연구들도 근본 해결에는 못 미친다.<br><br><strong style="font-size:1.1em">pSSD</strong>(Kim et al.)는 flash chip의 control/data pin을 모두 써서 채널 대역폭을 2배로 늘리지만, die당 <strong style="font-size:1.1em">20%</strong>라는 큰 면적 오버헤드가 들고 path conflict 자체는 없애지 못한다(baseline 대비 성능 향상 평균 <strong style="font-size:1.1em">27%</strong>에 그침). <strong style="font-size:1.1em">pnSSD</strong>는 chip마다 수평/수직 두 채널을 둬 path diversity를 일부 확보하지만 개선폭은 평균 <strong style="font-size:1.1em">30%</strong>뿐이다.<br><br>interconnection network를 쓰는 최선의 선행 연구 <strong style="font-size:1.1em">NoSSD</strong>(Tavakkol et al.)조차 두 가지 근본 약점을 갖는다: (1) router마다 <strong style="font-size:1.1em">16KB buffer</strong>를 flash chip 내부에 통합해야 해서 면적과 I/O pin 수($4\times$)가 크게 늘고, (2) <strong style="font-size:1.1em">deterministic dimension-order routing</strong>이라 여러 자유 경로(path diversity)가 있어도 활용하지 못한다. 그 결과 NoSSD는 baseline 대비 평균 <strong style="font-size:1.1em">35%</strong> 개선에 그쳐, ideal $4\times$ 상한과 큰 격차가 남는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1</span></summary>
+<div class="ng-orig-text">prior SSD interconnection network designs have two main weaknesses which prevent them from effectively addressing the path conflict problem. First, prior works impose significant area (i.e., cost) overhead as they integrate a buffered router (e.g., 16KB buffer per router port) inside each flash chip. ... Second, prior works do not resolve path conflicts effectively because they employ a simple deterministic routing algorithm, which cannot utilize the interconnection network's rich path diversity.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_012,node_013,node_014,node_015" style="--color:#4B8BBE;border-radius:2px;left:100px;top:800px;min-width:632px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Venice의 해결책은 세 가지 핵심 기술로 구성된다.<br><br><strong style="font-size:1.1em">(1) 저비용 인터커넥트</strong>: flash chip 옆에 별도의 <strong style="font-size:1.1em">router chip</strong>을 붙인 <strong style="font-size:1.1em">flash node</strong>(flash chip + router chip)를 새 빌딩 블록으로 도입한다. router는 flash chip이 원래 shared channel에 연결할 때 쓰던 I/O data pin(injection/ejection port)을 그대로 재사용해 통신하므로 flash chip 자체는 전혀 수정하지 않는다. flash node들을 <strong style="font-size:1.1em">2D mesh topology</strong>로 연결해 router끼리 양방향(bidirectional) link로 이웃과 연결한다.<br><br><strong style="font-size:1.1em">(2) Path Reservation</strong>: I/O 요청마다 데이터 전송 전에 <strong style="font-size:1.1em">scout packet</strong>을 먼저 보내 컨트롤러↔목적 flash chip 사이의 충돌 없는 경로를 예약해둔다. 예약된 link는 양방향이라 forward(write)/backward(read) 모두에 쓰인다 — 이 덕분에 NoSSD처럼 충돌 시 데이터를 담아둘 대형 router buffer가 필요 없다.<br><br><strong style="font-size:1.1em">(3) Non-Minimal Fully-Adaptive Routing</strong>: scout packet 라우팅 시 최단 경로(minimal path)가 막혀 있으면 유휴 링크(idle link)를 우회하는 경로를 찾아 path diversity를 실제로 활용한다. deadlock은 backtracking으로, livelock은 같은 router 재방문 횟수 제한으로 회피한다.<br><br><span class="ng-img-missing">fig5_interconnection_network.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.5</span></summary>
+<div class="ng-orig-text">We introduce a new building block, called flash node, which consists of a flash chip and a separate router chip. ... a flash chip communicates with a router chip using its I/O data pins (i.e., injection/ejection pins) that are otherwise used for connecting the flash chip to the shared channel.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_004" data-children="node_016,node_017,node_018" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg"><strong style="font-size:1.1em">MQSim</strong> 시뮬레이터로 performance-optimized(Z-NAND 기반)·cost-optimized(PM9A3 기반) 두 SSD 구성, 19개 real-world data-intensive workload + 6개 mixed workload에서 Baseline/pSSD/pnSSD/NoSSD/path-conflict-free(ideal) SSD와 비교했다. 모든 workload·두 구성 모두에서 Venice가 모든 선행 접근을 일관되게 능가한다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>구성</th><th>vs Baseline</th><th>vs pSSD</th><th>vs pnSSD</th><th>vs NoSSD</th><th>vs Ideal(path-conflict-free) 격차</th></tr></thead><tbody><tr><td>Performance-optimized</td><td>$2.65\times$ (최대 $7.10\times$)</td><td>$2.10\times$</td><td>$2.00\times$</td><td>$1.92\times$</td><td>45% 이내</td></tr><tr><td>Cost-optimized</td><td>$1.67\times$ (최대 $3.68\times$)</td><td>$1.52\times$</td><td>$1.55\times$</td><td>$1.47\times$</td><td>25% 이내</td></tr></tbody></table></div><div class="ng-seg"><br>Venice는 I/O 요청의 <strong style="font-size:1.1em">99.98%</strong>가 첫 시도에 충돌 없는 경로를 확보한다(Baseline <strong style="font-size:1.1em">76.40%</strong>, NoSSD <strong style="font-size:1.1em">80.65%</strong>). 에너지 소비는 Baseline 대비 평균 <strong style="font-size:1.1em">61%</strong> 감소한다. 면적 오버헤드는 flash chip 자체는 <strong style="font-size:1.1em">0</strong>이고, router가 PCB 실장 기준 flash chip 면적의 <strong style="font-size:1.1em">8%</strong>, 전체 interconnect link 면적은 baseline 대비 <strong style="font-size:1.1em">44%</strong> 낮다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1, p.9</span></summary>
+<div class="ng-orig-text">In the performance-optimized SSD configuration, Venice outperforms Baseline SSD/pSSD/pnSSD/NoSSD by an average of 2.65$\times$/2.10$\times$/2.00$\times$/1.92$\times$ across all workloads. In the cost-optimized SSD configuration, Venice shows an average performance speedup of 1.67$\times$/1.52$\times$/1.55$\times$/1.47$\times$ over Baseline SSD/pSSD/pnSSD/NoSSD.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_019,node_020,node_021,node_022" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Venice는 flash chip을 건드리지 않고도 path conflict를 근본적으로 줄여, ideal <strong style="font-size:1.1em">path-conflict-free SSD</strong>의 성능에 상당히 근접하는 저비용 경로를 제시했다. 늘어난 path diversity는 SSD 내부 <strong style="font-size:1.1em">near-data processing(NDP)</strong> 시 여러 flash chip에 흩어진 operand를 효율적으로 모으거나, <strong style="font-size:1.1em">garbage collection(GC)</strong>의 valid page 이동이 host I/O와 겹칠 때 생기는 path conflict를 줄이는 데도 쓰일 수 있다고 저자들은 제안한다.<br><br>다만 한계도 있다: 논문은 I/O 요청의 <strong style="font-size:1.1em">0.02%</strong>가 첫 시도에 실패했을 때의 추가 지연을 정량화하지 않았고, scout packet 재전송 최적화는 extended version으로 미뤘다. 또한 평가는 $8\times8$(flash chip 64개) 규모에 한정되어, 훨씬 큰 네트워크로의 확장성은 향후 과제로 남는다. FLIN/PAQ/PIQ 같은 I/O 스케줄링 기법들과는 orthogonal한 방향이라고 저자들은 밝힌다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7-8, p.13</span></summary>
+<div class="ng-orig-text">We believe Venice is orthogonal to these works and I/O scheduling for the Venice architecture is an interesting research direction.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#9B59B6;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Figure 3 예시: path conflict로 평균 I/O latency +57%</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">같은 channel에 붙은 두 flash chip을 향하는 read 요청 2개가 겹치면 <strong style="font-size:1.1em">CMD</strong>(10ns) + <strong style="font-size:1.1em">RD Operation</strong>(3$\mu$s) + <strong style="font-size:1.1em">Transfer</strong>(4$\mu$s)가 순차 처리되어 총 service time이 11.01$\mu$s가 되지만, 서로 다른 channel이면 병렬 처리되어 7.01$\mu$s면 끝난다. 이 단순 예시만으로도 평균 I/O access latency가 <strong style="font-size:1.1em">57%</strong> 증가한다. 요청이 더 많거나 transfer size가 클수록(예: multi-plane operation) 오버헤드는 더 커진다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.4</span></summary>
+<div class="ng-orig-text">Thus, in this simple example, the path conflict problem increases the average I/O access latency by 57%, which in turn results in lower SSD throughput.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#9B59B6;border-radius:2px;left:620px;top:200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Ideal path-conflict-free SSD가 baseline 대비 평균 4배(최대 11.74배)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">각 flash chip이 컨트롤러와 direct separate channel을 갖는다고 가정한 이상적 SSD(<strong style="font-size:1.1em">path-conflict-free SSD</strong>)는 19개 real-world 워크로드에서 baseline 대비 평균 $4\times$, 최대 $11.74\times$ 빠르다. 이 수치가 Venice가 좁혀야 할 상한이자, path conflict 문제 하나의 순수 임팩트를 정량화한 값이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1</span></summary>
+<div class="ng-orig-text">We observe that the ideal SSD outperforms the baseline SSD by 4$\times$ on average across nineteen data-intensive real-world workloads.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_008" style="--color:#E74C3C;border-radius:2px;left:620px;top:300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Path conflict는 write보다 read에 더 치명적</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">read는 data transfer time이 flash read latency와 비슷하거나 더 길어서 path 직렬화의 영향을 고스란히 받는다. 반면 write는 flash write latency(예: performance-optimized 구성에서 100$\mu$s)가 service time 전체를 지배하므로, path가 잠깐 막혀도 상대적 영향이 작다. 그래서 read-intensive 워크로드일수록 Venice의 이득이 크다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.4</span></summary>
+<div class="ng-orig-text">The path conflict problem affects the performance of read requests more than that of write requests. This is because data transfer time for a read request is comparable to or longer than the flash read latency, while the flash write latency ... dominates the total service time of a write request.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#9B59B6;border-radius:2px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">pSSD/pnSSD: 대역폭·path diversity는 늘지만 근본 해결 못함</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">pSSD</strong>는 flash chip의 control/data pin을 모두 써서 channel 대역폭을 2배로 늘리고 packetization용 on-die controller를 추가한다. transfer latency를 줄여 path conflict의 성능 영향은 줄이지만, path conflict 자체를 근본적으로 없애지는 못한다(baseline 대비 평균 <strong style="font-size:1.1em">27%</strong> 개선). 게다가 flash die 내부를 수정해야 해서 die당 <strong style="font-size:1.1em">20%</strong>라는 상당한 면적 오버헤드가 든다. <strong style="font-size:1.1em">pnSSD</strong>는 chip마다 수평/수직 두 channel을 둬 path diversity를 일부 확보하지만 개선폭은 평균 <strong style="font-size:1.1em">30%</strong>에 그친다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.4</span></summary>
+<div class="ng-orig-text">While pSSD can reduce the performance overhead of path conflicts by reducing the I/O transfer latency, pSSD imposes significant area overhead (i.e., 20% [15]) in each flash die.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#9B59B6;border-radius:2px;left:620px;top:500px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">NoSSD의 두 약점 → baseline 대비 겨우 35% 개선</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">NoSSD(최선의 선행 interconnection network)는 (1) router당 <strong style="font-size:1.1em">16KB buffer</strong> 통합 + chip당 <strong style="font-size:1.1em">$4\times$</strong> I/O pin이라는 큰 면적·비용 오버헤드, (2) <strong style="font-size:1.1em">deterministic dimension-order routing</strong>이라 여러 free path가 있어도 활용 못한다는 두 약점을 가진다. 그 결과 baseline 대비 평균 <strong style="font-size:1.1em">35%</strong> 개선에 그쳐, ideal $4\times$ 상한과 큰 격차가 남는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.4-5</span></summary>
+<div class="ng-orig-text">NoSSD has two main weaknesses that limit its effectiveness at mitigating the path conflict problem. First, NoSSD imposes significant area and cost overhead due to 1) the integration of a buffered router (e.g., with a 16KB buffer per router port) inside each flash chip and 2) 4$\times$ increase in the number of I/O pins compared to a commodity flash chip. Second, NoSSD does not utilize the path diversity effectively as NoSSD employs simple deterministic routing.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#95A5A6;border-radius:22px;left:620px;top:600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">비교 대상: pSSD/pnSSD[15], NoSSD[7,38], MQSim[57,58]</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Venice가 직접 정량 비교하는 선행 interconnection 방식: <strong style="font-size:1.1em">pSSD/pnSSD</strong>(Kim et al. [15], packetization 기반 채널 대역폭·path diversity 증가), <strong style="font-size:1.1em">NoSSD/Network-on-SSD</strong>(Tavakkol et al. [7,38], 2D mesh + deterministic routing, Venice가 넘어야 할 최강 baseline). 평가에는 open-source multi-queue SSD simulator <strong style="font-size:1.1em">MQSim</strong>[57,58]을 사용했다.</div><div class="ng-links"><a class="ng-link" href="https://arxiv.org/abs/2305.07768" target="_blank">🔗 Venice arXiv</a></div></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:650px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">8×8 2D mesh: router는 flash chip 옆 별도 chip, I/O pin 재사용</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">구현 파라미터: <strong style="font-size:1.1em">$8\times8$ 2D mesh</strong> topology, flash node(=flash chip+router) 하나당 router 1개, 포트당 8-bit buffer 2개, 1GHz 링크, <strong style="font-size:1.1em">circuit switching</strong>. router는 이웃 router와 양방향(bidirectional) link로 연결되어 flash controller와 target flash chip 사이에 여러 경로(<strong style="font-size:1.1em">path diversity</strong>)가 생긴다. router가 chip 내부가 아니라 별도 chip이므로 flash chip 자체의 면적 오버헤드는 0이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.5</span></summary>
+<div class="ng-orig-text">Figure 5(b) shows an example interconnection network of flash nodes using the 2D mesh topology. The router chip in each flash node is connected to the router chips in the neighboring flash nodes using bidirectional links.</div></details><details class="ng-toggle"><summary>Table 1: Venice 설계 파라미터</summary>
+<div class="ng-toggle-body">Topology: **$8\times8$ 2D mesh**, flash chip마다 router 1개<br>Router Architecture: 포트당 8-bit buffer 2개, 1GHz 링크<br>Routing Algorithm: **Non-minimal fully-adaptive**<br>Switching: **Circuit switching**</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:750px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Path Reservation: scout packet + router reservation table</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Venice는 데이터 전송을 시작하기 전에 <strong style="font-size:1.1em">scout packet</strong>을 먼저 보내 conflict-free path를 예약한다. scout packet은 <strong style="font-size:1.1em">header flit</strong>과 <strong style="font-size:1.1em">tail flit</strong> 두 개의 8-bit flit으로 구성되며, header flit에는 destination flash chip ID(6-bit, 64 chip까지), tail flit에는 source flash controller ID(3-bit, 8 controller까지)가 담긴다. 각 router는 <strong style="font-size:1.1em">router reservation table</strong>을 두어 packet ID(=source flash controller ID), entry/exit port(각 2-bit), valid bit을 기록한다. scout가 destination에 도착하면 이미 예약된 forward(write)/backward(read) path를 이용해 즉시 되돌아가고, source controller가 그 경로로 실제 I/O 전송을 스케줄한다. 이 덕분에 NoSSD처럼 충돌 시 데이터를 담아둘 대용량 router buffer가 필요 없다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.6</span></summary>
+<div class="ng-orig-text">The scout packet consists of two 8-bit scout flits, a header flit, and a tail flit. ... The router reservation table keeps track of 1) the packet ID, which is the same as the source flash controller ID from which the packet was sent, and 2) which two ports (i.e., entry and exit ports) are connected bidirectionally (based on reservations that were made).</div></details><details class="ng-toggle"><summary>scout packet flit 구조</summary>
+<div class="ng-toggle-body">Header flit: **2-bit type** + destination flash chip ID(6-bit)<br>Tail flit: **2-bit type** + source flash controller ID(3-bit) + unused(3-bit)<br>Type info 2번째 bit: 0=cancel mode, 1=reserve mode</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:620px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Non-Minimal Fully-Adaptive Routing + deadlock/livelock 회피</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">현재 router와 destination router의 X/Y 좌표 차이를 비교해 9가지 case로 분기하고, 각 case에서 free output port를 후보 목록에 추가한다. 후보가 2개면 <strong style="font-size:1.1em">2-bit LFSR</strong> pseudo-random으로 선택, 1개면 그대로 선택한다. 후보가 0개(모든 minimal 방향이 막힘)면 free한 ejection 이외의 포트로 <strong style="font-size:1.1em">misroute</strong>해 non-minimal path를 시도한다.<br><br><strong style="font-size:1.1em">deadlock</strong>은 scout packet이 충돌을 만나면 upstream router로 backtracking해 다른 경로를 시도하므로 자원 미가용 때문에 영구히 막히는 일이 없다. <strong style="font-size:1.1em">livelock</strong>은 scout가 같은 router를 최대 3번(2D mesh에서 $4-1$)까지만 방문하도록 제한해 막고, 초과하면 최악의 경우 source controller로 복귀해 새 scout packet으로 재시도한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.7-8</span></summary>
+<div class="ng-orig-text">However, if the output list is empty, the algorithm has failed to find any free output port that leads to a minimal path. In this case, the algorithm misroutes the scout packet via a free output port that leads to a non-minimal path.</div></details><details class="ng-toggle"><summary>Deadlock/livelock 처리 원문 요지</summary>
+<div class="ng-toggle-body">**Deadlock**: backtracking to the upstream router — resource unavailability로 인한 영구 대기가 없음.<br>**Livelock**: 같은 router 재방문 횟수 제한(최대 3회)으로 무한 순환 방지.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#BDC3C7;border-radius:22px;left:620px;top:950px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">설계 결정: non-minimal path의 성능 오버헤드는 무시할 만한 수준</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">우회 경로는 hop이 늘어 command/data transfer latency가 증가한다. 하지만 I/O data transfer 크기(예: 16KB)와 flash operation latency(read/program/erase)가 총 service time을 지배하기 때문에, 늘어난 command transfer 시간이 전체에 미치는 영향은 <strong style="font-size:1.1em">negligible</strong>하다 — 그래서 Venice는 hop 수를 최소화하는 대신 <strong style="font-size:1.1em">conflict-free를 보장하는 것</strong>을 최우선으로 삼는 설계를 택했다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.7</span></summary>
+<div class="ng-orig-text">the longer command transfer time due to a non-minimal path has a negligible effect on the total service time of the I/O request.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:620px;top:1025px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">성능 벤치마크: perf-opt/cost-opt 두 구성 모두 전 선행연구 압도</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">performance-optimized 구성에서 Baseline/pSSD/pnSSD/NoSSD 대비 평균 $2.65\times$/$2.10\times$/$2.00\times$/$1.92\times$(최대 $7.10\times$), path-conflict-free 대비 45% 이내. cost-optimized 구성에서는 $1.67\times$/$1.52\times$/$1.55\times$/$1.47\times$(최대 $3.68\times$), path-conflict-free 대비 25% 이내. performance-optimized에서 개선이 더 큰 이유는 flash가 빨라 transfer time이 상대적으로 service time을 더 지배하기 때문이다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>구성</th><th>vs Baseline</th><th>vs pSSD</th><th>vs pnSSD</th><th>vs NoSSD</th></tr></thead><tbody><tr><td>Performance-optimized</td><td>$2.65\times$</td><td>$2.10\times$</td><td>$2.00\times$</td><td>$1.92\times$</td></tr><tr><td>Cost-optimized</td><td>$1.67\times$</td><td>$1.52\times$</td><td>$1.55\times$</td><td>$1.47\times$</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
+<div class="ng-orig-text">For the cost-optimized configuration, Venice improves performance by an average of 1.67$\times$ (up to 3.68$\times$) and 1.47$\times$ (up to 2.90$\times$) compared to the baseline SSD design and best-performing prior work [38], respectively.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#9B59B6;border-radius:2px;left:620px;top:1100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">99.98% conflict-free 첫 시도 성공, 에너지 -61%</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Venice는 I/O 요청의 <strong style="font-size:1.1em">99.98%</strong>가 첫 시도에 conflict-free path를 확보한다(Baseline/pSSD/pnSSD/NoSSD는 <strong style="font-size:1.1em">76.40%</strong>/<strong style="font-size:1.1em">78.47%</strong>/<strong style="font-size:1.1em">77.88%</strong>/<strong style="font-size:1.1em">80.65%</strong>에 그침). SSD throughput은 perf-opt에서 176%/120%/113%/102%, cost-opt에서 76%/58%/61%/51% 향상. 99th percentile tail latency도 workload별로 최대 32% 감소. 에너지 소비는 Baseline/pSSD/pnSSD/NoSSD 대비 평균 <strong style="font-size:1.1em">61%</strong>/54%/53%/46% 감소하며, 평균 전력도 baseline 대비 4% 낮다(link가 shared channel보다 전력을 적게 씀).</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.3, p.11</span></summary>
+<div class="ng-orig-text">Venice provides conflict-free paths (on the first try) for 99.98% of I/O requests, on average, across all workloads, while Baseline SSD/pSSD/pnSSD/NoSSD provides conflict-free paths for 76.40%/78.47%/77.88%/80.65% of I/O requests.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#9B59B6;border-radius:2px;left:620px;top:1200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 4: router 8mm²(PCB 면적 8%), link -44% 면적/-90% 전력</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">router는 HDL 합성 기준 $614\mu m^2$, I/O pad 포함 PCB 실장 시 약 $8mm^2$로 $100mm^2$ flash chip 면적의 <strong style="font-size:1.1em">8%</strong>. link는 shared channel 대비 0.04배 면적(더 얇고 짧은 wire). $8\times8$ mesh(flash chip 64개, link 112개) 전체로 보면 Venice의 interconnect link 면적이 baseline multi-channel shared bus 대비 <strong style="font-size:1.1em">44%</strong> 낮다. router 0.241mW, link 1.08mW(4KB page transfer 기준, shared bus 대비 90% 적음).</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.6, p.12</span></summary>
+<div class="ng-orig-text">We estimate the area overhead of Venice's routers using the HDL model of the router. Each router in Venice has an area of 614 $\mu m^2$. However, each router occupies a higher area on the PCB due to its I/O pad overheads. Each router has 40 I/O pins. Considering I/O pad sizes (about 0.2 mm) and the safety distance between two I/O pads (about 0.2 mm), we expect that each router occupies about 8 $mm^2$, which is 8% of a typical 100 $mm^2$ NAND flash chip.</div></details><details class="ng-toggle"><summary>컴포넌트별 전력·면적 오버헤드</summary>
+<div class="ng-toggle-body">**Router**: flash node당 1개, 평균 전력 0.241mW(4KB transfer), flash chip 면적의 **8%**<br>**Link**: flash node당 최대 4개, 평균 전력 1.08mW(4KB transfer), flash channel 면적의 $0.04\times$</div></details></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#95A5A6;border-radius:22px;left:620px;top:1250px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">확장 적용성(NDP·GC)과 Related Work</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Venice가 늘린 path diversity는 <strong style="font-size:1.1em">NDP</strong>(near-data processing) 시 여러 flash chip에서 operand를 효율적으로 모으는 데, 그리고 <strong style="font-size:1.1em">garbage collection</strong>(GC) 시 valid page 이동이 host I/O와 겹치며 생기는 path conflict를 줄이는 데도 활용될 수 있다. Related work로는 flash array parallelism을 늘리는 <strong style="font-size:1.1em">HLNAND·Decoupled SSD</strong>(둘 다 path diversity 부족)가 있고, <strong style="font-size:1.1em">FLIN/PAQ/PIQ</strong> 같은 I/O scheduling 기법들은 Venice의 interconnection network 설계와 orthogonal한 방향이라고 저자들은 밝힌다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7-8, p.13</span></summary>
+<div class="ng-orig-text">Venice's improved parallelism can facilitate NDP inside the SSD by efficiently co-locating different operands required by the NDP operations. ... We believe Venice is orthogonal to these works and I/O scheduling for the Venice architecture is an interesting research direction.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_020" style="--color:#E5A835;border-radius:22px;left:620px;top:1350px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">실패한 0.02%는 어떻게 되며, 네트워크가 커지면 scout packet 오버헤드는?</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Venice는 I/O의 <strong style="font-size:1.1em">99.98%</strong>가 첫 시도에 conflict-free path를 잡지만, 나머지 <strong style="font-size:1.1em">0.02%</strong>는 모든 flash controller가 바쁘거나 scout가 free link를 못 찾아 대기해야 한다. 논문은 이 케이스의 추가 latency를 정량화하지 않았고, scout packet 재전송 최적화는 extended version[103]에 위임했다. $8\times8$(64 chip)보다 훨씬 큰 네트워크로 확장하면 scout packet 트래픽 자체가 오버헤드가 되지 않을지, backtracking 재시도 비용이 커지지 않을지가 궁금하다.</div></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">path reservation + non-minimal adaptive routing = 일반적 NoC 배경지식</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">scout packet으로 데이터 전송 전에 경로를 예약해두는 방식과, minimal path가 막히면 idle link로 우회하는 <strong style="font-size:1.1em">non-minimal fully-adaptive routing</strong>은 SSD에 국한된 기법이 아니라 interconnection network / <strong style="font-size:1.1em">NoC</strong>(network-on-chip) 설계 전반에 쓰이는 일반적 아이디어다(Dally &amp; Towles의 라우팅·deadlock 이론과 동일 계보). congestion을 라우팅 시점에 피하려는 이 두 기법은, <strong style="font-size:1.1em">CXL switch/fabric</strong>에서 여러 host-device 트래픽이 겹칠 때 경로를 어떻게 잡을지 고민할 때 참고할 만한 배경지식이 될 수 있다.</div></div>
+</div>
+<div class="ng-node" id="node-node_022" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향과의 연결: 스케일이 다른 문제 — 과대평가하지 말 것</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Venice는 SSD 컨트롤러-flash chip 사이, 즉 보드 레벨의 작고 로컬한 mesh($8\times8$, flash chip 64개) 안에서 conflict-free routing을 푸는 문제다. 내가 보는 <strong style="font-size:1.1em">CXL disaggregation/multi-node coherence</strong>는 host-to-device, 혹은 여러 노드 사이의 memory fabric 문제로 스케일도, <strong style="font-size:1.1em">coherence protocol</strong>이 얽힌다는 점도 다르다. Venice에는 coherence 개념 자체가 없다 — 순수하게 경로 배정(routing) 문제다.<br><br>그래서 Venice를 CXL 연구에 직접 갖다 쓸 수는 없다 — 다만 scout packet 같은 저비용 경로 예약, non-minimal adaptive routing 같은 congestion-aware routing 아이디어는 CXL switch fabric의 라우팅/혼잡 문제를 생각할 때 참고할 배경(background) 정도로 남겨둔다. 이건 on-topic이 아니라 인접 분야(adjacent) 독서로 분류.</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":200,"children":["node_006","node_007","node_008"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":200,"searchText":"killer application venice는 ssd 컨트롤러와 flash chip 사이의 **path conflict**(경로 충돌) 문제를 flash chip을 전혀 수정하지 않고 해결한다. 상용 ssd는 채널(channel)당 여러 flash chip이 컨트롤러로 가는 단 하나의 경로(path)를 공유하는 **multi-channel shared bus** 구조라서, 같은 채널을 향하는 i/o 요청들이 몰리면 경로를 두고 직렬화(serialize)되어 병렬성(parallelism)이 크게 제한된다.\n\n각 flash chip이 컨트롤러와 독립 채널을 갖는다고 가정한 이상적인 **path-conflict-free ssd**는 baseline 대비 평균 $4\\times$(최대 $11.74\\times$) 빠르다 — 이 격차가 path conflict 하나가 만드는 순수한 성능 손실이다. venice는 flash chip 옆에 저비용 **router chip**을 붙여 2d mesh 네트워크를 구성하고, 데이터 전송 전에 경로를 미리 예약(**path reservation**)하는 방식으로 이 격차의 대부분을 좁힌다 — 그것도 flash chip 설계는 그대로 둔 채로, 낮은 면적·전력 오버헤드로. ssds use a multi-channel shared bus architecture where multiple memory chips connected to the same channel communicate to the ssd controller with only one path. as a result, path conflicts often occur during the servicing of multiple i/o requests, which significantly limits ssd parallelism."},{"id":"node_002","lx":100,"ly":500,"children":["node_009","node_010","node_011"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":500,"searchText":"필요한 이유 (why it's needed) 채널 수를 늘리는 단순한 해법은 컨트롤러의 i/o pin과 복잡도를 늘려 확장성(scalability)이 없다. 선행 연구들도 근본 해결에는 못 미친다.\n\n**pssd**(kim et al.)는 flash chip의 control/data pin을 모두 써서 채널 대역폭을 2배로 늘리지만, die당 **20%**라는 큰 면적 오버헤드가 들고 path conflict 자체는 없애지 못한다(baseline 대비 성능 향상 평균 **27%**에 그침). **pnssd**는 chip마다 수평/수직 두 채널을 둬 path diversity를 일부 확보하지만 개선폭은 평균 **30%**뿐이다.\n\ninterconnection network를 쓰는 최선의 선행 연구 **nossd**(tavakkol et al.)조차 두 가지 근본 약점을 갖는다: (1) router마다 **16kb buffer**를 flash chip 내부에 통합해야 해서 면적과 i/o pin 수($4\\times$)가 크게 늘고, (2) **deterministic dimension-order routing**이라 여러 자유 경로(path diversity)가 있어도 활용하지 못한다. 그 결과 nossd는 baseline 대비 평균 **35%** 개선에 그쳐, ideal $4\\times$ 상한과 큰 격차가 남는다. prior ssd interconnection network designs have two main weaknesses which prevent them from effectively addressing the path conflict problem. first, prior works impose significant area (i.e., cost) overhead as they integrate a buffered router (e.g., 16kb buffer per router port) inside each flash chip. ... second, prior works do not resolve path conflicts effectively because they employ a simple deterministic routing algorithm, which cannot utilize the interconnection network's rich path diversity."},{"id":"node_003","lx":100,"ly":800,"children":["node_012","node_013","node_014","node_015"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":800,"searchText":"해결책 (solution) venice의 해결책은 세 가지 핵심 기술로 구성된다.\n\n**(1) 저비용 인터커넥트**: flash chip 옆에 별도의 **router chip**을 붙인 **flash node**(flash chip + router chip)를 새 빌딩 블록으로 도입한다. router는 flash chip이 원래 shared channel에 연결할 때 쓰던 i/o data pin(injection/ejection port)을 그대로 재사용해 통신하므로 flash chip 자체는 전혀 수정하지 않는다. flash node들을 **2d mesh topology**로 연결해 router끼리 양방향(bidirectional) link로 이웃과 연결한다.\n\n**(2) path reservation**: i/o 요청마다 데이터 전송 전에 **scout packet**을 먼저 보내 컨트롤러↔목적 flash chip 사이의 충돌 없는 경로를 예약해둔다. 예약된 link는 양방향이라 forward(write)/backward(read) 모두에 쓰인다 — 이 덕분에 nossd처럼 충돌 시 데이터를 담아둘 대형 router buffer가 필요 없다.\n\n**(3) non-minimal fully-adaptive routing**: scout packet 라우팅 시 최단 경로(minimal path)가 막혀 있으면 유휴 링크(idle link)를 우회하는 경로를 찾아 path diversity를 실제로 활용한다. deadlock은 backtracking으로, livelock은 같은 router 재방문 횟수 제한으로 회피한다.\n\n[[img:fig5_interconnection_network.png:600x330]] we introduce a new building block, called flash node, which consists of a flash chip and a separate router chip. ... a flash chip communicates with a router chip using its i/o data pins (i.e., injection/ejection pins) that are otherwise used for connecting the flash chip to the shared channel."},{"id":"node_004","lx":100,"ly":1100,"children":["node_016","node_017","node_018"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1100,"searchText":"결과 (results) **mqsim** 시뮬레이터로 performance-optimized(z-nand 기반)·cost-optimized(pm9a3 기반) 두 ssd 구성, 19개 real-world data-intensive workload + 6개 mixed workload에서 baseline/pssd/pnssd/nossd/path-conflict-free(ideal) ssd와 비교했다. 모든 workload·두 구성 모두에서 venice가 모든 선행 접근을 일관되게 능가한다.\n\n| 구성 | vs baseline | vs pssd | vs pnssd | vs nossd | vs ideal(path-conflict-free) 격차 |\n|---|---|---|---|---|---|\n| performance-optimized | $2.65\\times$ (최대 $7.10\\times$) | $2.10\\times$ | $2.00\\times$ | $1.92\\times$ | 45% 이내 |\n| cost-optimized | $1.67\\times$ (최대 $3.68\\times$) | $1.52\\times$ | $1.55\\times$ | $1.47\\times$ | 25% 이내 |\n\nvenice는 i/o 요청의 **99.98%**가 첫 시도에 충돌 없는 경로를 확보한다(baseline **76.40%**, nossd **80.65%**). 에너지 소비는 baseline 대비 평균 **61%** 감소한다. 면적 오버헤드는 flash chip 자체는 **0**이고, router가 pcb 실장 기준 flash chip 면적의 **8%**, 전체 interconnect link 면적은 baseline 대비 **44%** 낮다. in the performance-optimized ssd configuration, venice outperforms baseline ssd/pssd/pnssd/nossd by an average of 2.65$\\times$/2.10$\\times$/2.00$\\times$/1.92$\\times$ across all workloads. in the cost-optimized ssd configuration, venice shows an average performance speedup of 1.67$\\times$/1.52$\\times$/1.55$\\times$/1.47$\\times$ over baseline ssd/pssd/pnssd/nossd."},{"id":"node_005","lx":100,"ly":1400,"children":["node_019","node_020","node_021","node_022"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1400,"searchText":"결론 (conclusion) venice는 flash chip을 건드리지 않고도 path conflict를 근본적으로 줄여, ideal **path-conflict-free ssd**의 성능에 상당히 근접하는 저비용 경로를 제시했다. 늘어난 path diversity는 ssd 내부 **near-data processing(ndp)** 시 여러 flash chip에 흩어진 operand를 효율적으로 모으거나, **garbage collection(gc)**의 valid page 이동이 host i/o와 겹칠 때 생기는 path conflict를 줄이는 데도 쓰일 수 있다고 저자들은 제안한다.\n\n다만 한계도 있다: 논문은 i/o 요청의 **0.02%**가 첫 시도에 실패했을 때의 추가 지연을 정량화하지 않았고, scout packet 재전송 최적화는 extended version으로 미뤘다. 또한 평가는 $8\\times8$(flash chip 64개) 규모에 한정되어, 훨씬 큰 네트워크로의 확장성은 향후 과제로 남는다. flin/paq/piq 같은 i/o 스케줄링 기법들과는 orthogonal한 방향이라고 저자들은 밝힌다. we believe venice is orthogonal to these works and i/o scheduling for the venice architecture is an interesting research direction."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"figure 3 예시: path conflict로 평균 i/o latency +57% 같은 channel에 붙은 두 flash chip을 향하는 read 요청 2개가 겹치면 **cmd**(10ns) + **rd operation**(3$\\mu$s) + **transfer**(4$\\mu$s)가 순차 처리되어 총 service time이 11.01$\\mu$s가 되지만, 서로 다른 channel이면 병렬 처리되어 7.01$\\mu$s면 끝난다. 이 단순 예시만으로도 평균 i/o access latency가 **57%** 증가한다. 요청이 더 많거나 transfer size가 클수록(예: multi-plane operation) 오버헤드는 더 커진다. thus, in this simple example, the path conflict problem increases the average i/o access latency by 57%, which in turn results in lower ssd throughput."},{"id":"node_007","lx":620,"ly":200,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":200,"searchText":"ideal path-conflict-free ssd가 baseline 대비 평균 4배(최대 11.74배) 각 flash chip이 컨트롤러와 direct separate channel을 갖는다고 가정한 이상적 ssd(**path-conflict-free ssd**)는 19개 real-world 워크로드에서 baseline 대비 평균 $4\\times$, 최대 $11.74\\times$ 빠르다. 이 수치가 venice가 좁혀야 할 상한이자, path conflict 문제 하나의 순수 임팩트를 정량화한 값이다. we observe that the ideal ssd outperforms the baseline ssd by 4$\\times$ on average across nineteen data-intensive real-world workloads."},{"id":"node_008","lx":620,"ly":300,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":300,"searchText":"path conflict는 write보다 read에 더 치명적 read는 data transfer time이 flash read latency와 비슷하거나 더 길어서 path 직렬화의 영향을 고스란히 받는다. 반면 write는 flash write latency(예: performance-optimized 구성에서 100$\\mu$s)가 service time 전체를 지배하므로, path가 잠깐 막혀도 상대적 영향이 작다. 그래서 read-intensive 워크로드일수록 venice의 이득이 크다. the path conflict problem affects the performance of read requests more than that of write requests. this is because data transfer time for a read request is comparable to or longer than the flash read latency, while the flash write latency ... dominates the total service time of a write request."},{"id":"node_009","lx":620,"ly":400,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"pssd/pnssd: 대역폭·path diversity는 늘지만 근본 해결 못함 **pssd**는 flash chip의 control/data pin을 모두 써서 channel 대역폭을 2배로 늘리고 packetization용 on-die controller를 추가한다. transfer latency를 줄여 path conflict의 성능 영향은 줄이지만, path conflict 자체를 근본적으로 없애지는 못한다(baseline 대비 평균 **27%** 개선). 게다가 flash die 내부를 수정해야 해서 die당 **20%**라는 상당한 면적 오버헤드가 든다. **pnssd**는 chip마다 수평/수직 두 channel을 둬 path diversity를 일부 확보하지만 개선폭은 평균 **30%**에 그친다. while pssd can reduce the performance overhead of path conflicts by reducing the i/o transfer latency, pssd imposes significant area overhead (i.e., 20% [15]) in each flash die."},{"id":"node_010","lx":620,"ly":500,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":500,"searchText":"nossd의 두 약점 → baseline 대비 겨우 35% 개선 nossd(최선의 선행 interconnection network)는 (1) router당 **16kb buffer** 통합 + chip당 **$4\\times$** i/o pin이라는 큰 면적·비용 오버헤드, (2) **deterministic dimension-order routing**이라 여러 free path가 있어도 활용 못한다는 두 약점을 가진다. 그 결과 baseline 대비 평균 **35%** 개선에 그쳐, ideal $4\\times$ 상한과 큰 격차가 남는다. nossd has two main weaknesses that limit its effectiveness at mitigating the path conflict problem. first, nossd imposes significant area and cost overhead due to 1) the integration of a buffered router (e.g., with a 16kb buffer per router port) inside each flash chip and 2) 4$\\times$ increase in the number of i/o pins compared to a commodity flash chip. second, nossd does not utilize the path diversity effectively as nossd employs simple deterministic routing."},{"id":"node_011","lx":620,"ly":600,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":600,"searchText":"비교 대상: pssd/pnssd[15], nossd[7,38], mqsim[57,58] venice가 직접 정량 비교하는 선행 interconnection 방식: **pssd/pnssd**(kim et al. [15], packetization 기반 채널 대역폭·path diversity 증가), **nossd/network-on-ssd**(tavakkol et al. [7,38], 2d mesh + deterministic routing, venice가 넘어야 할 최강 baseline). 평가에는 open-source multi-queue ssd simulator **mqsim**[57,58]을 사용했다. "},{"id":"node_012","lx":620,"ly":650,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":650,"searchText":"8×8 2d mesh: router는 flash chip 옆 별도 chip, i/o pin 재사용 구현 파라미터: **$8\\times8$ 2d mesh** topology, flash node(=flash chip+router) 하나당 router 1개, 포트당 8-bit buffer 2개, 1ghz 링크, **circuit switching**. router는 이웃 router와 양방향(bidirectional) link로 연결되어 flash controller와 target flash chip 사이에 여러 경로(**path diversity**)가 생긴다. router가 chip 내부가 아니라 별도 chip이므로 flash chip 자체의 면적 오버헤드는 0이다. figure 5(b) shows an example interconnection network of flash nodes using the 2d mesh topology. the router chip in each flash node is connected to the router chips in the neighboring flash nodes using bidirectional links."},{"id":"node_013","lx":620,"ly":750,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":750,"searchText":"path reservation: scout packet + router reservation table venice는 데이터 전송을 시작하기 전에 **scout packet**을 먼저 보내 conflict-free path를 예약한다. scout packet은 **header flit**과 **tail flit** 두 개의 8-bit flit으로 구성되며, header flit에는 destination flash chip id(6-bit, 64 chip까지), tail flit에는 source flash controller id(3-bit, 8 controller까지)가 담긴다. 각 router는 **router reservation table**을 두어 packet id(=source flash controller id), entry/exit port(각 2-bit), valid bit을 기록한다. scout가 destination에 도착하면 이미 예약된 forward(write)/backward(read) path를 이용해 즉시 되돌아가고, source controller가 그 경로로 실제 i/o 전송을 스케줄한다. 이 덕분에 nossd처럼 충돌 시 데이터를 담아둘 대용량 router buffer가 필요 없다. the scout packet consists of two 8-bit scout flits, a header flit, and a tail flit. ... the router reservation table keeps track of 1) the packet id, which is the same as the source flash controller id from which the packet was sent, and 2) which two ports (i.e., entry and exit ports) are connected bidirectionally (based on reservations that were made)."},{"id":"node_014","lx":620,"ly":850,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":850,"searchText":"non-minimal fully-adaptive routing + deadlock/livelock 회피 현재 router와 destination router의 x/y 좌표 차이를 비교해 9가지 case로 분기하고, 각 case에서 free output port를 후보 목록에 추가한다. 후보가 2개면 **2-bit lfsr** pseudo-random으로 선택, 1개면 그대로 선택한다. 후보가 0개(모든 minimal 방향이 막힘)면 free한 ejection 이외의 포트로 **misroute**해 non-minimal path를 시도한다.\n\n**deadlock**은 scout packet이 충돌을 만나면 upstream router로 backtracking해 다른 경로를 시도하므로 자원 미가용 때문에 영구히 막히는 일이 없다. **livelock**은 scout가 같은 router를 최대 3번(2d mesh에서 $4-1$)까지만 방문하도록 제한해 막고, 초과하면 최악의 경우 source controller로 복귀해 새 scout packet으로 재시도한다. however, if the output list is empty, the algorithm has failed to find any free output port that leads to a minimal path. in this case, the algorithm misroutes the scout packet via a free output port that leads to a non-minimal path."},{"id":"node_015","lx":620,"ly":950,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":950,"searchText":"설계 결정: non-minimal path의 성능 오버헤드는 무시할 만한 수준 우회 경로는 hop이 늘어 command/data transfer latency가 증가한다. 하지만 i/o data transfer 크기(예: 16kb)와 flash operation latency(read/program/erase)가 총 service time을 지배하기 때문에, 늘어난 command transfer 시간이 전체에 미치는 영향은 **negligible**하다 — 그래서 venice는 hop 수를 최소화하는 대신 **conflict-free를 보장하는 것**을 최우선으로 삼는 설계를 택했다. the longer command transfer time due to a non-minimal path has a negligible effect on the total service time of the i/o request."},{"id":"node_016","lx":620,"ly":1025,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1025,"searchText":"성능 벤치마크: perf-opt/cost-opt 두 구성 모두 전 선행연구 압도 performance-optimized 구성에서 baseline/pssd/pnssd/nossd 대비 평균 $2.65\\times$/$2.10\\times$/$2.00\\times$/$1.92\\times$(최대 $7.10\\times$), path-conflict-free 대비 45% 이내. cost-optimized 구성에서는 $1.67\\times$/$1.52\\times$/$1.55\\times$/$1.47\\times$(최대 $3.68\\times$), path-conflict-free 대비 25% 이내. performance-optimized에서 개선이 더 큰 이유는 flash가 빨라 transfer time이 상대적으로 service time을 더 지배하기 때문이다.\n\n| 구성 | vs baseline | vs pssd | vs pnssd | vs nossd |\n|---|---|---|---|---|\n| performance-optimized | $2.65\\times$ | $2.10\\times$ | $2.00\\times$ | $1.92\\times$ |\n| cost-optimized | $1.67\\times$ | $1.52\\times$ | $1.55\\times$ | $1.47\\times$ | for the cost-optimized configuration, venice improves performance by an average of 1.67$\\times$ (up to 3.68$\\times$) and 1.47$\\times$ (up to 2.90$\\times$) compared to the baseline ssd design and best-performing prior work [38], respectively."},{"id":"node_017","lx":620,"ly":1100,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1100,"searchText":"99.98% conflict-free 첫 시도 성공, 에너지 -61% venice는 i/o 요청의 **99.98%**가 첫 시도에 conflict-free path를 확보한다(baseline/pssd/pnssd/nossd는 **76.40%**/**78.47%**/**77.88%**/**80.65%**에 그침). ssd throughput은 perf-opt에서 176%/120%/113%/102%, cost-opt에서 76%/58%/61%/51% 향상. 99th percentile tail latency도 workload별로 최대 32% 감소. 에너지 소비는 baseline/pssd/pnssd/nossd 대비 평균 **61%**/54%/53%/46% 감소하며, 평균 전력도 baseline 대비 4% 낮다(link가 shared channel보다 전력을 적게 씀). venice provides conflict-free paths (on the first try) for 99.98% of i/o requests, on average, across all workloads, while baseline ssd/pssd/pnssd/nossd provides conflict-free paths for 76.40%/78.47%/77.88%/80.65% of i/o requests."},{"id":"node_018","lx":620,"ly":1200,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1200,"searchText":"table 4: router 8mm²(pcb 면적 8%), link -44% 면적/-90% 전력 router는 hdl 합성 기준 $614\\mu m^2$, i/o pad 포함 pcb 실장 시 약 $8mm^2$로 $100mm^2$ flash chip 면적의 **8%**. link는 shared channel 대비 0.04배 면적(더 얇고 짧은 wire). $8\\times8$ mesh(flash chip 64개, link 112개) 전체로 보면 venice의 interconnect link 면적이 baseline multi-channel shared bus 대비 **44%** 낮다. router 0.241mw, link 1.08mw(4kb page transfer 기준, shared bus 대비 90% 적음). we estimate the area overhead of venice's routers using the hdl model of the router. each router in venice has an area of 614 $\\mu m^2$. however, each router occupies a higher area on the pcb due to its i/o pad overheads. each router has 40 i/o pins. considering i/o pad sizes (about 0.2 mm) and the safety distance between two i/o pads (about 0.2 mm), we expect that each router occupies about 8 $mm^2$, which is 8% of a typical 100 $mm^2$ nand flash chip."},{"id":"node_019","lx":620,"ly":1250,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1250,"searchText":"확장 적용성(ndp·gc)과 related work venice가 늘린 path diversity는 **ndp**(near-data processing) 시 여러 flash chip에서 operand를 효율적으로 모으는 데, 그리고 **garbage collection**(gc) 시 valid page 이동이 host i/o와 겹치며 생기는 path conflict를 줄이는 데도 활용될 수 있다. related work로는 flash array parallelism을 늘리는 **hlnand·decoupled ssd**(둘 다 path diversity 부족)가 있고, **flin/paq/piq** 같은 i/o scheduling 기법들은 venice의 interconnection network 설계와 orthogonal한 방향이라고 저자들은 밝힌다. venice's improved parallelism can facilitate ndp inside the ssd by efficiently co-locating different operands required by the ndp operations. ... we believe venice is orthogonal to these works and i/o scheduling for the venice architecture is an interesting research direction."},{"id":"node_020","lx":620,"ly":1350,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1350,"searchText":"실패한 0.02%는 어떻게 되며, 네트워크가 커지면 scout packet 오버헤드는? venice는 i/o의 **99.98%**가 첫 시도에 conflict-free path를 잡지만, 나머지 **0.02%**는 모든 flash controller가 바쁘거나 scout가 free link를 못 찾아 대기해야 한다. 논문은 이 케이스의 추가 latency를 정량화하지 않았고, scout packet 재전송 최적화는 extended version[103]에 위임했다. $8\\times8$(64 chip)보다 훨씬 큰 네트워크로 확장하면 scout packet 트래픽 자체가 오버헤드가 되지 않을지, backtracking 재시도 비용이 커지지 않을지가 궁금하다. "},{"id":"node_021","lx":620,"ly":1450,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1450,"searchText":"path reservation + non-minimal adaptive routing = 일반적 noc 배경지식 scout packet으로 데이터 전송 전에 경로를 예약해두는 방식과, minimal path가 막히면 idle link로 우회하는 **non-minimal fully-adaptive routing**은 ssd에 국한된 기법이 아니라 interconnection network / **noc**(network-on-chip) 설계 전반에 쓰이는 일반적 아이디어다(dally & towles의 라우팅·deadlock 이론과 동일 계보). congestion을 라우팅 시점에 피하려는 이 두 기법은, **cxl switch/fabric**에서 여러 host-device 트래픽이 겹칠 때 경로를 어떻게 잡을지 고민할 때 참고할 만한 배경지식이 될 수 있다. "},{"id":"node_022","lx":620,"ly":1550,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1550,"searchText":"내 연구방향과의 연결: 스케일이 다른 문제 — 과대평가하지 말 것 venice는 ssd 컨트롤러-flash chip 사이, 즉 보드 레벨의 작고 로컬한 mesh($8\\times8$, flash chip 64개) 안에서 conflict-free routing을 푸는 문제다. 내가 보는 **cxl disaggregation/multi-node coherence**는 host-to-device, 혹은 여러 노드 사이의 memory fabric 문제로 스케일도, **coherence protocol**이 얽힌다는 점도 다르다. venice에는 coherence 개념 자체가 없다 — 순수하게 경로 배정(routing) 문제다.\n\n그래서 venice를 cxl 연구에 직접 갖다 쓸 수는 없다 — 다만 scout packet 같은 저비용 경로 예약, non-minimal adaptive routing 같은 congestion-aware routing 아이디어는 cxl switch fabric의 라우팅/혼잡 문제를 생각할 때 참고할 배경(background) 정도로 남겨둔다. 이건 on-topic이 아니라 인접 분야(adjacent) 독서로 분류. "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":""},{"source":"node_001","target":"node_007","type":"line","label":""},{"source":"node_001","target":"node_008","type":"line","label":""},{"source":"node_002","target":"node_009","type":"line","label":""},{"source":"node_002","target":"node_010","type":"line","label":""},{"source":"node_002","target":"node_011","type":"line","label":"참고"},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_003","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_016","type":"line","label":""},{"source":"node_004","target":"node_017","type":"line","label":""},{"source":"node_004","target":"node_018","type":"line","label":""},{"source":"node_005","target":"node_019","type":"line","label":""},{"source":"node_005","target":"node_020","type":"line","label":"질문"},{"source":"node_005","target":"node_021","type":"line","label":"gap"},{"source":"node_005","target":"node_022","type":"line","label":"내 연구"}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

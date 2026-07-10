@@ -1,0 +1,419 @@
+{
+  "version": "1.0.0",
+  "title": "Venice: Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses",
+  "created": "2026-07-09T00:00:00.000Z",
+  "modified": "2026-07-10T01:05:28.000Z",
+  "source": {
+    "pdf": "Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses.pdf",
+    "authors": "Rakesh Nadig, Mohammad Sadrosadati (co-primary), Haiyu Mao, Nika Mansouri Ghiasi, Arash Tavakkol, Jisung Park, Hamid Sarbazi-Azad, Juan Gómez-Luna, Onur Mutlu (ETH Zürich, POSTECH, Sharif University of Technology, IPM)",
+    "venue": "ISCA 2023",
+    "doi": "arXiv:2305.07768",
+    "pages": 16
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic", "color": "#4B8BBE", "icon": "file-text",   "shape": "sharp" },
+    "method":     { "label": "Method",     "color": "#5C9E6E", "icon": "cpu",         "shape": "sharp" },
+    "result":     { "label": "Result",     "color": "#9B59B6", "icon": "bar-chart-2", "shape": "sharp" },
+    "claim":      { "label": "Claim",      "color": "#E74C3C", "icon": "alert-circle","shape": "sharp" },
+    "question":   { "label": "Question",   "color": "#E5A835", "icon": "help-circle", "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea", "color": "#1ABC9C", "icon": "lightbulb",   "shape": "rounded" },
+    "reference":  { "label": "Reference",  "color": "#95A5A6", "icon": "book-open",   "shape": "rounded" },
+    "memo":       { "label": "Memo",       "color": "#BDC3C7", "icon": "edit-3",      "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "Venice는 SSD 컨트롤러와 flash chip 사이의 **path conflict**(경로 충돌) 문제를 flash chip을 전혀 수정하지 않고 해결한다. 상용 SSD는 채널(channel)당 여러 flash chip이 컨트롤러로 가는 단 하나의 경로(path)를 공유하는 **multi-channel shared bus** 구조라서, 같은 채널을 향하는 I/O 요청들이 몰리면 경로를 두고 직렬화(serialize)되어 병렬성(parallelism)이 크게 제한된다.\n\n각 flash chip이 컨트롤러와 독립 채널을 갖는다고 가정한 이상적인 **path-conflict-free SSD**는 baseline 대비 평균 $4\\times$(최대 $11.74\\times$) 빠르다 — 이 격차가 path conflict 하나가 만드는 순수한 성능 손실이다. Venice는 flash chip 옆에 저비용 **router chip**을 붙여 2D mesh 네트워크를 구성하고, 데이터 전송 전에 경로를 미리 예약(**path reservation**)하는 방식으로 이 격차의 대부분을 좁힌다 — 그것도 flash chip 설계는 그대로 둔 채로, 낮은 면적·전력 오버헤드로.",
+      "original": {
+        "text": "SSDs use a multi-channel shared bus architecture where multiple memory chips connected to the same channel communicate to the SSD controller with only one path. As a result, path conflicts often occur during the servicing of multiple I/O requests, which significantly limits SSD parallelism.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": ["node_006", "node_007", "node_008"],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "채널 수를 늘리는 단순한 해법은 컨트롤러의 I/O pin과 복잡도를 늘려 확장성(scalability)이 없다. 선행 연구들도 근본 해결에는 못 미친다.\n\n**pSSD**(Kim et al.)는 flash chip의 control/data pin을 모두 써서 채널 대역폭을 2배로 늘리지만, die당 **20%**라는 큰 면적 오버헤드가 들고 path conflict 자체는 없애지 못한다(baseline 대비 성능 향상 평균 **27%**에 그침). **pnSSD**는 chip마다 수평/수직 두 채널을 둬 path diversity를 일부 확보하지만 개선폭은 평균 **30%**뿐이다.\n\ninterconnection network를 쓰는 최선의 선행 연구 **NoSSD**(Tavakkol et al.)조차 두 가지 근본 약점을 갖는다: (1) router마다 **16KB buffer**를 flash chip 내부에 통합해야 해서 면적과 I/O pin 수($4\\times$)가 크게 늘고, (2) **deterministic dimension-order routing**이라 여러 자유 경로(path diversity)가 있어도 활용하지 못한다. 그 결과 NoSSD는 baseline 대비 평균 **35%** 개선에 그쳐, ideal $4\\times$ 상한과 큰 격차가 남는다.",
+      "original": {
+        "text": "prior SSD interconnection network designs have two main weaknesses which prevent them from effectively addressing the path conflict problem. First, prior works impose significant area (i.e., cost) overhead as they integrate a buffered router (e.g., 16KB buffer per router port) inside each flash chip. ... Second, prior works do not resolve path conflicts effectively because they employ a simple deterministic routing algorithm, which cannot utilize the interconnection network's rich path diversity.",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": ["node_009", "node_010", "node_011"],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "Venice의 해결책은 세 가지 핵심 기술로 구성된다.\n\n**(1) 저비용 인터커넥트**: flash chip 옆에 별도의 **router chip**을 붙인 **flash node**(flash chip + router chip)를 새 빌딩 블록으로 도입한다. router는 flash chip이 원래 shared channel에 연결할 때 쓰던 I/O data pin(injection/ejection port)을 그대로 재사용해 통신하므로 flash chip 자체는 전혀 수정하지 않는다. flash node들을 **2D mesh topology**로 연결해 router끼리 양방향(bidirectional) link로 이웃과 연결한다.\n\n**(2) Path Reservation**: I/O 요청마다 데이터 전송 전에 **scout packet**을 먼저 보내 컨트롤러↔목적 flash chip 사이의 충돌 없는 경로를 예약해둔다. 예약된 link는 양방향이라 forward(write)/backward(read) 모두에 쓰인다 — 이 덕분에 NoSSD처럼 충돌 시 데이터를 담아둘 대형 router buffer가 필요 없다.\n\n**(3) Non-Minimal Fully-Adaptive Routing**: scout packet 라우팅 시 최단 경로(minimal path)가 막혀 있으면 유휴 링크(idle link)를 우회하는 경로를 찾아 path diversity를 실제로 활용한다. deadlock은 backtracking으로, livelock은 같은 router 재방문 횟수 제한으로 회피한다.\n\n[[IMG:fig5_interconnection_network.png:600x330]]",
+      "original": {
+        "text": "We introduce a new building block, called flash node, which consists of a flash chip and a separate router chip. ... a flash chip communicates with a router chip using its I/O data pins (i.e., injection/ejection pins) that are otherwise used for connecting the flash chip to the shared channel.",
+        "location": "§4.1, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": ["node_012", "node_013", "node_014", "node_015"],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "**MQSim** 시뮬레이터로 performance-optimized(Z-NAND 기반)·cost-optimized(PM9A3 기반) 두 SSD 구성, 19개 real-world data-intensive workload + 6개 mixed workload에서 Baseline/pSSD/pnSSD/NoSSD/path-conflict-free(ideal) SSD와 비교했다. 모든 workload·두 구성 모두에서 Venice가 모든 선행 접근을 일관되게 능가한다.\n\n| 구성 | vs Baseline | vs pSSD | vs pnSSD | vs NoSSD | vs Ideal(path-conflict-free) 격차 |\n|---|---|---|---|---|---|\n| Performance-optimized | $2.65\\times$ (최대 $7.10\\times$) | $2.10\\times$ | $2.00\\times$ | $1.92\\times$ | 45% 이내 |\n| Cost-optimized | $1.67\\times$ (최대 $3.68\\times$) | $1.52\\times$ | $1.55\\times$ | $1.47\\times$ | 25% 이내 |\n\nVenice는 I/O 요청의 **99.98%**가 첫 시도에 충돌 없는 경로를 확보한다(Baseline **76.40%**, NoSSD **80.65%**). 에너지 소비는 Baseline 대비 평균 **61%** 감소한다. 면적 오버헤드는 flash chip 자체는 **0**이고, router가 PCB 실장 기준 flash chip 면적의 **8%**, 전체 interconnect link 면적은 baseline 대비 **44%** 낮다.",
+      "original": {
+        "text": "In the performance-optimized SSD configuration, Venice outperforms Baseline SSD/pSSD/pnSSD/NoSSD by an average of 2.65$\\times$/2.10$\\times$/2.00$\\times$/1.92$\\times$ across all workloads. In the cost-optimized SSD configuration, Venice shows an average performance speedup of 1.67$\\times$/1.52$\\times$/1.55$\\times$/1.47$\\times$ over Baseline SSD/pSSD/pnSSD/NoSSD.",
+        "location": "§6.1, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": ["node_016", "node_017", "node_018"],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "Venice는 flash chip을 건드리지 않고도 path conflict를 근본적으로 줄여, ideal **path-conflict-free SSD**의 성능에 상당히 근접하는 저비용 경로를 제시했다. 늘어난 path diversity는 SSD 내부 **near-data processing(NDP)** 시 여러 flash chip에 흩어진 operand를 효율적으로 모으거나, **garbage collection(GC)**의 valid page 이동이 host I/O와 겹칠 때 생기는 path conflict를 줄이는 데도 쓰일 수 있다고 저자들은 제안한다.\n\n다만 한계도 있다: 논문은 I/O 요청의 **0.02%**가 첫 시도에 실패했을 때의 추가 지연을 정량화하지 않았고, scout packet 재전송 최적화는 extended version으로 미뤘다. 또한 평가는 $8\\times8$(flash chip 64개) 규모에 한정되어, 훨씬 큰 네트워크로의 확장성은 향후 과제로 남는다. FLIN/PAQ/PIQ 같은 I/O 스케줄링 기법들과는 orthogonal한 방향이라고 저자들은 밝힌다.",
+      "original": {
+        "text": "We believe Venice is orthogonal to these works and I/O scheduling for the Venice architecture is an interesting research direction.",
+        "location": "§7-8, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": ["node_019", "node_020", "node_021", "node_022"],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "result",
+      "title": "Figure 3 예시: path conflict로 평균 I/O latency +57%",
+      "content": "같은 channel에 붙은 두 flash chip을 향하는 read 요청 2개가 겹치면 **CMD**(10ns) + **RD Operation**(3$\\mu$s) + **Transfer**(4$\\mu$s)가 순차 처리되어 총 service time이 11.01$\\mu$s가 되지만, 서로 다른 channel이면 병렬 처리되어 7.01$\\mu$s면 끝난다. 이 단순 예시만으로도 평균 I/O access latency가 **57%** 증가한다. 요청이 더 많거나 transfer size가 클수록(예: multi-plane operation) 오버헤드는 더 커진다.",
+      "original": {
+        "text": "Thus, in this simple example, the path conflict problem increases the average I/O access latency by 57%, which in turn results in lower SSD throughput.",
+        "location": "§3.1, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": -100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "result",
+      "title": "Ideal path-conflict-free SSD가 baseline 대비 평균 4배(최대 11.74배)",
+      "content": "각 flash chip이 컨트롤러와 direct separate channel을 갖는다고 가정한 이상적 SSD(**path-conflict-free SSD**)는 19개 real-world 워크로드에서 baseline 대비 평균 $4\\times$, 최대 $11.74\\times$ 빠르다. 이 수치가 Venice가 좁혀야 할 상한이자, path conflict 문제 하나의 순수 임팩트를 정량화한 값이다.",
+      "original": {
+        "text": "We observe that the ideal SSD outperforms the baseline SSD by 4$\\times$ on average across nineteen data-intensive real-world workloads.",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 0 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "claim",
+      "title": "Path conflict는 write보다 read에 더 치명적",
+      "content": "read는 data transfer time이 flash read latency와 비슷하거나 더 길어서 path 직렬화의 영향을 고스란히 받는다. 반면 write는 flash write latency(예: performance-optimized 구성에서 100$\\mu$s)가 service time 전체를 지배하므로, path가 잠깐 막혀도 상대적 영향이 작다. 그래서 read-intensive 워크로드일수록 Venice의 이득이 크다.",
+      "original": {
+        "text": "The path conflict problem affects the performance of read requests more than that of write requests. This is because data transfer time for a read request is comparable to or longer than the flash read latency, while the flash write latency ... dominates the total service time of a write request.",
+        "location": "§3.1, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "result",
+      "title": "pSSD/pnSSD: 대역폭·path diversity는 늘지만 근본 해결 못함",
+      "content": "**pSSD**는 flash chip의 control/data pin을 모두 써서 channel 대역폭을 2배로 늘리고 packetization용 on-die controller를 추가한다. transfer latency를 줄여 path conflict의 성능 영향은 줄이지만, path conflict 자체를 근본적으로 없애지는 못한다(baseline 대비 평균 **27%** 개선). 게다가 flash die 내부를 수정해야 해서 die당 **20%**라는 상당한 면적 오버헤드가 든다. **pnSSD**는 chip마다 수평/수직 두 channel을 둬 path diversity를 일부 확보하지만 개선폭은 평균 **30%**에 그친다.",
+      "original": {
+        "text": "While pSSD can reduce the performance overhead of path conflicts by reducing the I/O transfer latency, pSSD imposes significant area overhead (i.e., 20% [15]) in each flash die.",
+        "location": "§3.2, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 200 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "result",
+      "title": "NoSSD의 두 약점 → baseline 대비 겨우 35% 개선",
+      "content": "NoSSD(최선의 선행 interconnection network)는 (1) router당 **16KB buffer** 통합 + chip당 **$4\\times$** I/O pin이라는 큰 면적·비용 오버헤드, (2) **deterministic dimension-order routing**이라 여러 free path가 있어도 활용 못한다는 두 약점을 가진다. 그 결과 baseline 대비 평균 **35%** 개선에 그쳐, ideal $4\\times$ 상한과 큰 격차가 남는다.",
+      "original": {
+        "text": "NoSSD has two main weaknesses that limit its effectiveness at mitigating the path conflict problem. First, NoSSD imposes significant area and cost overhead due to 1) the integration of a buffered router (e.g., with a 16KB buffer per router port) inside each flash chip and 2) 4$\\times$ increase in the number of I/O pins compared to a commodity flash chip. Second, NoSSD does not utilize the path diversity effectively as NoSSD employs simple deterministic routing.",
+        "location": "§3.3, p.4-5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "reference",
+      "title": "비교 대상: pSSD/pnSSD[15], NoSSD[7,38], MQSim[57,58]",
+      "content": "Venice가 직접 정량 비교하는 선행 interconnection 방식: **pSSD/pnSSD**(Kim et al. [15], packetization 기반 채널 대역폭·path diversity 증가), **NoSSD/Network-on-SSD**(Tavakkol et al. [7,38], 2D mesh + deterministic routing, Venice가 넘어야 할 최강 baseline). 평가에는 open-source multi-queue SSD simulator **MQSim**[57,58]을 사용했다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 400 },
+      "children": [],
+      "links": [
+        { "type": "url", "target": "https://arxiv.org/abs/2305.07768", "label": "Venice arXiv" }
+      ]
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "8×8 2D mesh: router는 flash chip 옆 별도 chip, I/O pin 재사용",
+      "content": "구현 파라미터: **$8\\times8$ 2D mesh** topology, flash node(=flash chip+router) 하나당 router 1개, 포트당 8-bit buffer 2개, 1GHz 링크, **circuit switching**. router는 이웃 router와 양방향(bidirectional) link로 연결되어 flash controller와 target flash chip 사이에 여러 경로(**path diversity**)가 생긴다. router가 chip 내부가 아니라 별도 chip이므로 flash chip 자체의 면적 오버헤드는 0이다.",
+      "original": {
+        "text": "Figure 5(b) shows an example interconnection network of flash nodes using the 2D mesh topology. The router chip in each flash node is connected to the router chips in the neighboring flash nodes using bidirectional links.",
+        "location": "§4.1, p.5"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_001",
+          "title": "Table 1: Venice 설계 파라미터",
+          "content": "Topology: **$8\\times8$ 2D mesh**, flash chip마다 router 1개\nRouter Architecture: 포트당 8-bit buffer 2개, 1GHz 링크\nRouting Algorithm: **Non-minimal fully-adaptive**\nSwitching: **Circuit switching**",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 450 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "Path Reservation: scout packet + router reservation table",
+      "content": "Venice는 데이터 전송을 시작하기 전에 **scout packet**을 먼저 보내 conflict-free path를 예약한다. scout packet은 **header flit**과 **tail flit** 두 개의 8-bit flit으로 구성되며, header flit에는 destination flash chip ID(6-bit, 64 chip까지), tail flit에는 source flash controller ID(3-bit, 8 controller까지)가 담긴다. 각 router는 **router reservation table**을 두어 packet ID(=source flash controller ID), entry/exit port(각 2-bit), valid bit을 기록한다. scout가 destination에 도착하면 이미 예약된 forward(write)/backward(read) path를 이용해 즉시 되돌아가고, source controller가 그 경로로 실제 I/O 전송을 스케줄한다. 이 덕분에 NoSSD처럼 충돌 시 데이터를 담아둘 대용량 router buffer가 필요 없다.",
+      "original": {
+        "text": "The scout packet consists of two 8-bit scout flits, a header flit, and a tail flit. ... The router reservation table keeps track of 1) the packet ID, which is the same as the source flash controller ID from which the packet was sent, and 2) which two ports (i.e., entry and exit ports) are connected bidirectionally (based on reservations that were made).",
+        "location": "§4.2, p.6"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_002",
+          "title": "scout packet flit 구조",
+          "content": "Header flit: **2-bit type** + destination flash chip ID(6-bit)\nTail flit: **2-bit type** + source flash controller ID(3-bit) + unused(3-bit)\nType info 2번째 bit: 0=cancel mode, 1=reserve mode",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 550 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "method",
+      "title": "Non-Minimal Fully-Adaptive Routing + deadlock/livelock 회피",
+      "content": "현재 router와 destination router의 X/Y 좌표 차이를 비교해 9가지 case로 분기하고, 각 case에서 free output port를 후보 목록에 추가한다. 후보가 2개면 **2-bit LFSR** pseudo-random으로 선택, 1개면 그대로 선택한다. 후보가 0개(모든 minimal 방향이 막힘)면 free한 ejection 이외의 포트로 **misroute**해 non-minimal path를 시도한다.\n\n**deadlock**은 scout packet이 충돌을 만나면 upstream router로 backtracking해 다른 경로를 시도하므로 자원 미가용 때문에 영구히 막히는 일이 없다. **livelock**은 scout가 같은 router를 최대 3번(2D mesh에서 $4-1$)까지만 방문하도록 제한해 막고, 초과하면 최악의 경우 source controller로 복귀해 새 scout packet으로 재시도한다.",
+      "original": {
+        "text": "However, if the output list is empty, the algorithm has failed to find any free output port that leads to a minimal path. In this case, the algorithm misroutes the scout packet via a free output port that leads to a non-minimal path.",
+        "location": "§4.3, p.7-8"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_003",
+          "title": "Deadlock/livelock 처리 원문 요지",
+          "content": "**Deadlock**: backtracking to the upstream router — resource unavailability로 인한 영구 대기가 없음.\n**Livelock**: 같은 router 재방문 횟수 제한(최대 3회)으로 무한 순환 방지.",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 650 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "memo",
+      "title": "설계 결정: non-minimal path의 성능 오버헤드는 무시할 만한 수준",
+      "content": "우회 경로는 hop이 늘어 command/data transfer latency가 증가한다. 하지만 I/O data transfer 크기(예: 16KB)와 flash operation latency(read/program/erase)가 총 service time을 지배하기 때문에, 늘어난 command transfer 시간이 전체에 미치는 영향은 **negligible**하다 — 그래서 Venice는 hop 수를 최소화하는 대신 **conflict-free를 보장하는 것**을 최우선으로 삼는 설계를 택했다.",
+      "original": {
+        "text": "the longer command transfer time due to a non-minimal path has a negligible effect on the total service time of the I/O request.",
+        "location": "§4.3, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 750 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "result",
+      "title": "성능 벤치마크: perf-opt/cost-opt 두 구성 모두 전 선행연구 압도",
+      "content": "performance-optimized 구성에서 Baseline/pSSD/pnSSD/NoSSD 대비 평균 $2.65\\times$/$2.10\\times$/$2.00\\times$/$1.92\\times$(최대 $7.10\\times$), path-conflict-free 대비 45% 이내. cost-optimized 구성에서는 $1.67\\times$/$1.52\\times$/$1.55\\times$/$1.47\\times$(최대 $3.68\\times$), path-conflict-free 대비 25% 이내. performance-optimized에서 개선이 더 큰 이유는 flash가 빨라 transfer time이 상대적으로 service time을 더 지배하기 때문이다.\n\n| 구성 | vs Baseline | vs pSSD | vs pnSSD | vs NoSSD |\n|---|---|---|---|---|\n| Performance-optimized | $2.65\\times$ | $2.10\\times$ | $2.00\\times$ | $1.92\\times$ |\n| Cost-optimized | $1.67\\times$ | $1.52\\times$ | $1.55\\times$ | $1.47\\times$ |",
+      "original": {
+        "text": "For the cost-optimized configuration, Venice improves performance by an average of 1.67$\\times$ (up to 3.68$\\times$) and 1.47$\\times$ (up to 2.90$\\times$) compared to the baseline SSD design and best-performing prior work [38], respectively.",
+        "location": "§1, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 825 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "result",
+      "title": "99.98% conflict-free 첫 시도 성공, 에너지 -61%",
+      "content": "Venice는 I/O 요청의 **99.98%**가 첫 시도에 conflict-free path를 확보한다(Baseline/pSSD/pnSSD/NoSSD는 **76.40%**/**78.47%**/**77.88%**/**80.65%**에 그침). SSD throughput은 perf-opt에서 176%/120%/113%/102%, cost-opt에서 76%/58%/61%/51% 향상. 99th percentile tail latency도 workload별로 최대 32% 감소. 에너지 소비는 Baseline/pSSD/pnSSD/NoSSD 대비 평균 **61%**/54%/53%/46% 감소하며, 평균 전력도 baseline 대비 4% 낮다(link가 shared channel보다 전력을 적게 씀).",
+      "original": {
+        "text": "Venice provides conflict-free paths (on the first try) for 99.98% of I/O requests, on average, across all workloads, while Baseline SSD/pSSD/pnSSD/NoSSD provides conflict-free paths for 76.40%/78.47%/77.88%/80.65% of I/O requests.",
+        "location": "§6.3, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "result",
+      "title": "Table 4: router 8mm²(PCB 면적 8%), link -44% 면적/-90% 전력",
+      "content": "router는 HDL 합성 기준 $614\\mu m^2$, I/O pad 포함 PCB 실장 시 약 $8mm^2$로 $100mm^2$ flash chip 면적의 **8%**. link는 shared channel 대비 0.04배 면적(더 얇고 짧은 wire). $8\\times8$ mesh(flash chip 64개, link 112개) 전체로 보면 Venice의 interconnect link 면적이 baseline multi-channel shared bus 대비 **44%** 낮다. router 0.241mW, link 1.08mW(4KB page transfer 기준, shared bus 대비 90% 적음).",
+      "original": {
+        "text": "We estimate the area overhead of Venice's routers using the HDL model of the router. Each router in Venice has an area of 614 $\\mu m^2$. However, each router occupies a higher area on the PCB due to its I/O pad overheads. Each router has 40 I/O pins. Considering I/O pad sizes (about 0.2 mm) and the safety distance between two I/O pads (about 0.2 mm), we expect that each router occupies about 8 $mm^2$, which is 8% of a typical 100 $mm^2$ NAND flash chip.",
+        "location": "§6.6, p.12"
+      },
+      "toggleItems": [
+        {
+          "id": "toggle_004",
+          "title": "컴포넌트별 전력·면적 오버헤드",
+          "content": "**Router**: flash node당 1개, 평균 전력 0.241mW(4KB transfer), flash chip 면적의 **8%**\n**Link**: flash node당 최대 4개, 평균 전력 1.08mW(4KB transfer), flash channel 면적의 $0.04\\times$",
+          "expanded": false
+        }
+      ],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1000 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "reference",
+      "title": "확장 적용성(NDP·GC)과 Related Work",
+      "content": "Venice가 늘린 path diversity는 **NDP**(near-data processing) 시 여러 flash chip에서 operand를 효율적으로 모으는 데, 그리고 **garbage collection**(GC) 시 valid page 이동이 host I/O와 겹치며 생기는 path conflict를 줄이는 데도 활용될 수 있다. Related work로는 flash array parallelism을 늘리는 **HLNAND·Decoupled SSD**(둘 다 path diversity 부족)가 있고, **FLIN/PAQ/PIQ** 같은 I/O scheduling 기법들은 Venice의 interconnection network 설계와 orthogonal한 방향이라고 저자들은 밝힌다.",
+      "original": {
+        "text": "Venice's improved parallelism can facilitate NDP inside the SSD by efficiently co-locating different operands required by the NDP operations. ... We believe Venice is orthogonal to these works and I/O scheduling for the Venice architecture is an interesting research direction.",
+        "location": "§7-8, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1050 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "question",
+      "title": "실패한 0.02%는 어떻게 되며, 네트워크가 커지면 scout packet 오버헤드는?",
+      "content": "Venice는 I/O의 **99.98%**가 첫 시도에 conflict-free path를 잡지만, 나머지 **0.02%**는 모든 flash controller가 바쁘거나 scout가 free link를 못 찾아 대기해야 한다. 논문은 이 케이스의 추가 latency를 정량화하지 않았고, scout packet 재전송 최적화는 extended version[103]에 위임했다. $8\\times8$(64 chip)보다 훨씬 큰 네트워크로 확장하면 scout packet 트래픽 자체가 오버헤드가 되지 않을지, backtracking 재시도 비용이 커지지 않을지가 궁금하다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1150 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "gap",
+      "title": "path reservation + non-minimal adaptive routing = 일반적 NoC 배경지식",
+      "content": "scout packet으로 데이터 전송 전에 경로를 예약해두는 방식과, minimal path가 막히면 idle link로 우회하는 **non-minimal fully-adaptive routing**은 SSD에 국한된 기법이 아니라 interconnection network / **NoC**(network-on-chip) 설계 전반에 쓰이는 일반적 아이디어다(Dally & Towles의 라우팅·deadlock 이론과 동일 계보). congestion을 라우팅 시점에 피하려는 이 두 기법은, **CXL switch/fabric**에서 여러 host-device 트래픽이 겹칠 때 경로를 어떻게 잡을지 고민할 때 참고할 만한 배경지식이 될 수 있다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1250 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "memo",
+      "title": "내 연구방향과의 연결: 스케일이 다른 문제 — 과대평가하지 말 것",
+      "content": "Venice는 SSD 컨트롤러-flash chip 사이, 즉 보드 레벨의 작고 로컬한 mesh($8\\times8$, flash chip 64개) 안에서 conflict-free routing을 푸는 문제다. 내가 보는 **CXL disaggregation/multi-node coherence**는 host-to-device, 혹은 여러 노드 사이의 memory fabric 문제로 스케일도, **coherence protocol**이 얽힌다는 점도 다르다. Venice에는 coherence 개념 자체가 없다 — 순수하게 경로 배정(routing) 문제다.\n\n그래서 Venice를 CXL 연구에 직접 갖다 쓸 수는 없다 — 다만 scout packet 같은 저비용 경로 예약, non-minimal adaptive routing 같은 congestion-aware routing 아이디어는 CXL switch fabric의 라우팅/혼잡 문제를 생각할 때 참고할 배경(background) 정도로 남겨둔다. 이건 on-topic이 아니라 인접 분야(adjacent) 독서로 분류.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1350 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+    { "id": "edge_005", "source": "node_001", "target": "node_006", "type": "line", "label": "" },
+    { "id": "edge_006", "source": "node_001", "target": "node_007", "type": "line", "label": "" },
+    { "id": "edge_007", "source": "node_001", "target": "node_008", "type": "line", "label": "" },
+    { "id": "edge_008", "source": "node_002", "target": "node_009", "type": "line", "label": "" },
+    { "id": "edge_009", "source": "node_002", "target": "node_010", "type": "line", "label": "" },
+    { "id": "edge_010", "source": "node_002", "target": "node_011", "type": "line", "label": "참고" },
+    { "id": "edge_011", "source": "node_003", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_003", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_003", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_003", "target": "node_015", "type": "line", "label": "" },
+    { "id": "edge_015", "source": "node_004", "target": "node_016", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_004", "target": "node_017", "type": "line", "label": "" },
+    { "id": "edge_017", "source": "node_004", "target": "node_018", "type": "line", "label": "" },
+    { "id": "edge_018", "source": "node_005", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_019", "source": "node_005", "target": "node_020", "type": "line", "label": "질문" },
+    { "id": "edge_020", "source": "node_005", "target": "node_021", "type": "line", "label": "gap" },
+    { "id": "edge_021", "source": "node_005", "target": "node_022", "type": "line", "label": "내 연구" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

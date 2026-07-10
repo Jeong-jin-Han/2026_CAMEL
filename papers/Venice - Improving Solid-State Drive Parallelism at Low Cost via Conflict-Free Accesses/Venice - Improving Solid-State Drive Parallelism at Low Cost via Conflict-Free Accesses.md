@@ -13,6 +13,7 @@ tags: [paper, cluster/reliability, topic/ssd-parallelism, topic/ftl, topic/ssd-a
 # Venice: Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses
 
 > **ISCA 2023** · cluster/reliability · Source: [Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses.pdf](<Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses.pdf>)
+> 🕸️ NodeGraph: [Venice.html (새 탭에서 렌더링)](https://raw.githack.com/Jeong-jin-Han/2026_CAMEL/main/papers/Venice%20-%20Improving%20Solid-State%20Drive%20Parallelism%20at%20Low%20Cost%20via%20Conflict-Free%20Accesses/Venice.html)
 
 **저자:** Rakesh Nadig, Mohammad Sadrosadati (co-primary), Haiyu Mao, Nika Mansouri Ghiasi, Arash Tavakkol, Jisung Park, Hamid Sarbazi-Azad, Juan Gómez-Luna, Onur Mutlu — ETH Zürich, POSTECH, Sharif University of Technology, IPM
 

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "papers/OmniCache - Collaborative Caching for Near-storage Accelerators/OmniCache - Collaborative Caching for Near-storage Accelerators.md",
+                "file": "papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "OmniCache - Collaborative Caching for Near-storage Accelerators"
+              "title": "Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System"
             }
           }
         ]
@@ -196,20 +196,24 @@
   },
   "active": "cb557382138c9a7f",
   "lastOpenFiles": [
+    "papers/Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses/Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses.md.tmp.262621.c6b573eb7a97",
+    "papers/ArtMem - Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory/ArtMem - Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory.md.tmp.262621.bc1e7b39c004",
+    "papers/ArtMem - Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory/ArtMem.html",
+    "papers/Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses/Venice.html",
+    "papers/ArtMem - Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory/ArtMem.nodegraph.json.tmp.262621.2c8257363702",
+    "papers/Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses/Venice.nodegraph.json.tmp.262621.5bcaa31b2e34",
+    "papers/ArtMem - Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory/ArtMem.nodegraph.json.tmp.262621.eed51ec61af5",
+    "papers/Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses/Venice.nodegraph.json.tmp.262621.02627764b4a0",
+    "papers/Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses/Venice.nodegraph.json.tmp.262621.290a23c843e2",
+    "papers/Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses/Venice.nodegraph.json.tmp.262621.057a10a1eb6a",
+    "papers/ArtMem - Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory/ArtMem.nodegraph.json.tmp.262621.1ba22a332900",
+    "papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/발표-슬라이드-내용.md",
+    "papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/논문-그림표-분석.md",
+    "papers/OmniCache - Collaborative Caching for Near-storage Accelerators/OmniCache - Collaborative Caching for Near-storage Accelerators.md",
     "concepts/CXL/CXL SOTA & Roadmap.md",
-    "index.md.tmp.3450007.ac7de6e1e2cf",
     "insights/LightPC/LightPC.md",
-    "insights/LightPC/LightPC.md.tmp.3450007.ae2c5ee2e89d",
     "insights/자기소개_v3.md",
     "insights/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL.md",
-    "insights/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL.md.tmp.3450007.fb9b725cf4ae",
-    "insights/LightPC/LightPC.pdf",
-    "insights/LightPC",
-    "insights/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL.pdf",
-    "insights/Failure Tolerant Training With Persistent Memory Disaggregation Over CXL",
-    "index.md.tmp.12933.165dd67f2177",
-    "index.md.tmp.58717.c50d03a788e8",
-    "workflow/paper_wiki.md.tmp.12933.4167ffbd9273",
     "papers/Sparse Checkpointing for Fast and Reliable MoE Training/Sparse Checkpointing for Fast and Reliable MoE Training.md",
     "hubs/venues/SOSP.md",
     "hubs/venues/OSDI.md",
@@ -223,14 +227,10 @@
     "papers/Midas Touch - Invalid-Data Assisted Reliability and Performance Boost for 3d High-Density Flash/Midas Touch - Invalid-Data Assisted Reliability and Performance Boost for 3d High-Density Flash.md",
     "papers/LightPool - A NVMe-oF-based High-performance and Lightweight Storage Pool Architecture for Cloud-Native Distributed Database/LightPool - A NVMe-oF-based High-performance and Lightweight Storage Pool Architecture for Cloud-Native Distributed Database.md",
     "papers/ELECT - Enabling Erasure Coding Tiering for LSM-tree-based Storage/ELECT - Enabling Erasure Coding Tiering for LSM-tree-based Storage.md",
-    "papers/OmniCache - Collaborative Caching for Near-storage Accelerators/OmniCache - Collaborative Caching for Near-storage Accelerators.md",
     "papers/We Ain't Afraid of No File Fragmentation - Causes and Prevention of Its Performance Impact on Modern Flash SSDs/We Ain't Afraid of No File Fragmentation - Causes and Prevention of Its Performance Impact on Modern Flash SSDs.md",
     "papers/Ethane - An Asymmetric File System for Disaggregated Persistent Memory/Ethane - An Asymmetric File System for Disaggregated Persistent Memory.md",
     "papers/FastCommit - resource-efficient, performant and cost-effective file system journaling/FastCommit - resource-efficient, performant and cost-effective file system journaling.md",
     "papers/ScalaAFA - Constructing User-Space All-Flash Array Engine with Holistic Designs/ScalaAFA - Constructing User-Space All-Flash Array Engine with Holistic Designs.md",
-    "papers/AttAcc! Unleashing the Power of PIM for Batched Transformer-based Generative Model Inference/AttAcc! Unleashing the Power of PIM for Batched Transformer-based Generative Model Inference.md",
-    "papers/BIZA - Design of Self-Governing Block-Interface ZNS AFA for Endurance and Performance/BIZA - Design of Self-Governing Block-Interface ZNS AFA for Endurance and Performance.md",
-    "papers/BABOL - A Software-Defined NAND Flash Controller/BABOL - A Software-Defined NAND Flash Controller.md",
-    "papers/Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory/Ares-Flash - Efficient Parallel Integer Arithmetic Operations Using NAND Flash Memory.md"
+    "papers/AttAcc! Unleashing the Power of PIM for Batched Transformer-based Generative Model Inference/AttAcc! Unleashing the Power of PIM for Batched Transformer-based Generative Model Inference.md"
   ]
 }

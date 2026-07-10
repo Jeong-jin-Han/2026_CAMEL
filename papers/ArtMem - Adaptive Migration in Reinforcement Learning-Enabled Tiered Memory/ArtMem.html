@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ArtMem: Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">ArtMem: Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory</span>
+    <span id="tb-source">Xinyue Yi, Hongchao Du (co-first), Yu Wang, Jie Zhang, Qiao Li, Chun Jason Xue · ISCA 2025</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_006" style="--color:#4B8BBE;border-radius:2px;left:100px;top:250px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">ArtMem이 푸는 문제는 <strong style="font-size:1.1em">tiered memory(계층형 메모리)</strong>에서 어떤 page를 언제 fast tier(DRAM)로 옮길지 결정하는 <strong style="font-size:1.1em">migration policy(마이그레이션 정책)</strong> 그 자체다. 기존 시스템(AutoNUMA, MEMTIS, TPP 등)은 손으로 튜닝한 <strong style="font-size:1.1em">정적 hotness threshold(고정 임계값)</strong>나 휴리스틱에 의존하는데, ArtMem은 이를 <strong style="font-size:1.1em">경량 Q-learning 기반 강화학습(reinforcement learning, RL) agent</strong>로 대체해 workload가 바뀌어도 사람 개입 없이 실시간으로 migration scope(옮길 page 수 + hotness threshold)를 조정한다.<br><br><strong style="font-size:1.1em">Killer application 1 — 휴리스틱 없는 online adaptive migration</strong>: fast-tier access ratio($\tau$) 하나만 관측해 migration 정책을 실시간으로 재학습하므로, workload별로 매번 새로 threshold를 튜닝할 필요가 없다.<br><br><strong style="font-size:1.1em">Killer application 2 — 커널 안에서 실용적으로 도는 초경량 RL</strong>: state/action을 system-level $12$개 상태 $\times$ $9$개 action으로 극단적으로 압축해 두 Q-table을 합쳐 <strong style="font-size:1.1em">10KB 미만</strong>으로 유지하고, sampling overhead <strong style="font-size:1.1em">3% CPU 이하</strong>, Q-table 연산 <strong style="font-size:1.1em">0.07% CPU 이하</strong>로 Linux kernel v5.15.19에 실제로 박아 넣어 오픈소스로 공개했다(github.com/Yitrus/ArtMem).<br><br>결과적으로 8개 workload, 7개 SOTA baseline 대비 평균 <strong style="font-size:1.1em">114%</strong> 성능 향상(범위 35%~172%)을 새로운 하드웨어 없이 정책 개선만으로 달성한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
+<div class="ng-orig-text">This paper proposes ArtMem, a reinforcement learning (RL)-driven framework that dynamically manages tiered memory systems and adapts to workload evolution to address these limitations.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" data-children="node_007,node_008,node_009,node_010" style="--color:#4B8BBE;border-radius:2px;left:100px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">메모리 집약적 애플리케이션(그래프 처리, ML, in-memory DB)이 늘면서 <strong style="font-size:1.1em">DRAM만으로는 비용·용량 한계</strong>에 부딪힌다 — 여러 기업 데이터에 따르면 memory가 서버 비용의 약 <strong style="font-size:1.1em">40%</strong>를 차지한다. Byte-addressable <strong style="font-size:1.1em">PM(persistent memory)</strong>과 <strong style="font-size:1.1em">CXL(Compute Express Link)</strong>-enabled tiered memory가 비용 효율적 대안으로 떠올랐지만, 느린 tier의 지연시간(latency)은 DRAM 대비 최대 $2\times$에 달해 migration 정책의 정확도가 곧 성능을 좌우한다.<br><br>그런데 AutoNUMA, AutoTiering, Nimble, HeMem, Thermostat, Kleio, MEMTIS, TPP, Multi-Clock 같은 기존 시스템은 세 가지 근본 한계를 갖는다: <strong style="font-size:1.1em">(1) workload 의존성</strong> — 정적 threshold/휴리스틱이 특정 workload에서만 잘 동작, <strong style="font-size:1.1em">(2) access ratio 미활용</strong> — fast tier access ratio가 낮아졌을 때(=migration이 비효과적일 때) 정책을 조정하지 못함, <strong style="font-size:1.1em">(3) migration scope 고정</strong> — 이동 page 수를 workload 패턴에 맞춰 동적으로 조정하지 못해 불필요한 migration 또는 fast tier 과소활용이 발생.<br><br>저자들은 MASIM 시뮬레이터로 4개 합성 access pattern(S1-S4, 총 32GB, DRAM 16GB)을 만들어 7개 기존 시스템의 실패 양상을 분석하고 세 관찰(Observation)을 도출했다: 기존 방법은 workload마다 성능 편차가 크고(Obs.1), fast tier access ratio가 성능과 강한 상관관계(Pearson $0.81$~$0.89$)를 가지며(Obs.2), migration scope는 workload마다 동적으로 튜닝돼야 한다(Obs.3, 수동 튜닝으로 Liblinear/XSBench에서 각각 <strong style="font-size:1.1em">47%</strong>/<strong style="font-size:1.1em">42%</strong> 향상 확인).</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
+<div class="ng-orig-text">This paper identifies three key limitations in existing tiered memory solutions. First, existing solutions often perform differently across different workloads, leading to suboptimal performance in some workloads. Second, they often fail to adjust migration strategies in response to low fast memory tier access rates, resulting in ineffective data placement. Third, they often miss the opportunity to dynamically tune the memory migration scope based on workload patterns, leading to unnecessary page migrations and under-utilization of tiered memory potential.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_011,node_012,node_013,node_014,node_015,node_016,node_017,node_018" style="--color:#4B8BBE;border-radius:2px;left:100px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">ArtMem은 <strong style="font-size:1.1em">Q-learning 기반 model-free RL</strong>을 system-level(page 단위가 아닌) state/action으로 설계해 Q-table 폭발을 피한다. 아키텍처는 3계층(RL Framework - ArtMem 함수 계층 - Hardware)으로 구성된다(Fig.5, 우측 노드 참고).<br><br><strong style="font-size:1.1em">State</strong>: fast memory access ratio $\tau$를 $k+1$개 구간으로 discretize.<br><br>$$\tau = \left\lfloor \frac{DRAM_{access} \times k}{DRAM_{access} + PM_{access}} \right\rfloor$$<br><br><strong style="font-size:1.1em">Action</strong>: migration scope = migration number(이동 page 수) + hotness threshold(hot/cold 판정 기준), 각각 독립 Q-table 2개로 협력 조정.<br><br><strong style="font-size:1.1em">Reward</strong>: 목표 access ratio 대비 편차와 직전 대비 개선분을 함께 고려.<br><br>$$r = \tau_i - \beta + \lambda(\tau_i - \tau_{i-1})$$<br><br>migration scope 결정에는 두 축이 더해진다 — <strong style="font-size:1.1em">EMA(exponential moving average)</strong>로 access frequency를 base-2 exponential bin으로 경량 추적하고 200만 sample마다 cooling하며, <strong style="font-size:1.1em">LRU 기반 page sorting</strong>으로 recency를 반영해 migration 후보를 고른다. 구현은 Linux kernel v5.15.19 프로토타입(오픈소스, github.com/Yitrus/ArtMem)으로, 2MB huge page를 migration 단위로 쓰고 코어당 sampling thread(ksampled)와 시스템 단위 migration thread(kmigrated)를 두어 RL 연산을 application critical path에서 분리한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.5</span></summary>
+<div class="ng-orig-text">ArtMem employs a Q-learning–based, model-free reinforcement learning (RL) approach with constrained state and action spaces to minimize computational overhead.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_004" data-children="node_019,node_020,node_021,node_022" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1150px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">Intel Xeon Gold 6330(28 core/socket) 1소켓, DRAM 64GB(fast) + PM 512GB(slow, ndctl로 remote memory node 구성)에서 8개 workload(YCSB, CC, SSSP, PR, XSBench, DLRM, Btree, Liblinear)와 7개 baseline(AutoNUMA, Nimble, Multi-Clock, TPP, Tiering-0.8, AutoTiering, MEMTIS)을 memory ratio 2:1~1:16 범위에서 비교했다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Baseline</th><th>평균 향상</th></tr></thead><tbody><tr><td>AutoNUMA</td><td><strong style="font-size:1.1em">132%</strong></td></tr><tr><td>Nimble</td><td><strong style="font-size:1.1em">124%</strong></td></tr><tr><td>Multi-Clock</td><td><strong style="font-size:1.1em">104%</strong></td></tr><tr><td>TPP</td><td><strong style="font-size:1.1em">91%</strong></td></tr><tr><td>Tiering-0.8</td><td><strong style="font-size:1.1em">72%</strong></td></tr><tr><td>AutoTiering</td><td><strong style="font-size:1.1em">67%</strong></td></tr></tbody></table></div><div class="ng-seg"><br>전체 평균 <strong style="font-size:1.1em">114%</strong> 향상(범위 35%~172%)을 달성했으며, best baseline 대비도 평균 <strong style="font-size:1.1em">10.4%~43.65%</strong> 향상. workload별로는 그래프(SSSP/PR/CC) <strong style="font-size:1.1em">12%~509%</strong>, XSBench <strong style="font-size:1.1em">16%~311%</strong>, DLRM <strong style="font-size:1.1em">5%~110%</strong>, In-memory DB(YCSB) 평균 <strong style="font-size:1.1em">65%</strong>, Btree(multiclock 제외) <strong style="font-size:1.1em">4%~36%</strong> 향상. Liblinear는 MEMTIS 대비 9% 낮지만 다른 baseline 대비 평균 <strong style="font-size:1.1em">76%</strong> 향상.<br><br><strong style="font-size:1.1em">Ablation</strong>에서는 RL이 가장 큰 성능 기여를 하며 DRAM 비율이 낮을수록 RL 이득이 커진다. <strong style="font-size:1.1em">Overhead</strong>는 sampling $\leq 3\%$ CPU, Q-table 연산 $\leq 0.07\%$ CPU, Q-table 메모리 $&lt;10$KB로 매우 작다. migration volume은 MEMTIS 대비 CPU overhead 약 $10\times$ 적고, DLRM에서는 CC 대비 $30{,}000\times$ 적은 page를 옮긴다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§6.2, p.9</span></summary>
+<div class="ng-orig-text">Under different memory configurations (DRAM:PM ratios), ArtMem achieves an average performance improvement of 132%, 124%, 104%, 91%, 72%, and 67% compared to the seven baseline systems, respectively.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_023" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">ArtMem은 RL 기반 적응형 tiered memory 관리 프레임워크로, 실시간 fast memory 사용량에 맞춰 동적으로 조정함으로써 fast memory 활용도를 높이고 불필요한 migration을 줄인다. 평가 결과 SOTA 시스템 대비 평균 <strong style="font-size:1.1em">114%</strong> 성능 향상을 <strong style="font-size:1.1em">최소한의 overhead</strong>로 달성한다.<br><br><strong style="font-size:1.1em">프레임워크의 일반성</strong>: reward를 latency 기반으로 바꿔도 access-ratio reward 대비 평균 <strong style="font-size:1.1em">3.4%</strong>만 낮고, Q-learning을 SARSA로 바꿔도 성능이 유사해 RL 알고리즘·reward 선택에 강건하다. Robustness 실험($5\times5=25$개 workload 조합)에서는 7개 조합만 10% 초과 성능 저하를 보였고, 잘못된 Q-table로 시작해도 평균 3 iteration(1~6) 만에 목표 성능의 95%에 도달한다.<br><br><strong style="font-size:1.1em">한계</strong>: (1) per-page가 아닌 system-level 결정이라 세밀한 hot/cold 구분은 page sorting에 의존한다. (2) Liblinear처럼 초기 access가 균일한 workload에서는 access ratio가 0%까지 급락 후 회복하는 데 시간이 걸린다(ramp-up 속도가 sampling 정확도에 좌우됨). (3) 평가는 Optane PM 기반 단일 소켓 시스템으로, 실제 CXL 하드웨어 실측은 없다(latency emulation으로 CXL 가능성만 논의). 논문은 3-tier 이상 확장이나 multi-host 공유 시나리오는 다루지 않는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7, p.13</span></summary>
+<div class="ng-orig-text">This paper introduces ArtMem, a tiered memory system leveraging reinforcement learning for adaptive memory management. By dynamically adjusting based on real-time fast memory usage, ArtMem optimizes fast memory utilization while reducing unnecessary migrations. The evaluation shows ArtMem outperforms state-of-the-art systems, achieving an average performance improvement of 114% with minimal overhead.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#E74C3C;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">DRAM이 서버 비용의 ~40% 차지 → tiering의 경제적 동기</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문의 동기는 순수 성능 문제가 아니라 <strong style="font-size:1.1em">비용 문제</strong>에서 출발한다. Memory-intensive application이 늘면서 DRAM 기반 시스템은 고비용·저용량 한계에 부딪히고, 여러 산업 데이터에 따르면 DRAM이 서버 비용의 약 <strong style="font-size:1.1em">40%</strong>를 차지한다. Byte-addressable PM과 CXL-enabled tiered memory가 비용 효율적 대안이지만, 느린 tier의 latency는 DRAM 대비 최대 $2\times$다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1</span></summary>
+<div class="ng-orig-text">Data from several companies [30, 36, 64] indicate that memory accounts for approximately 40% of server costs.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_007" style="--color:#5C9E6E;border-radius:2px;left:620px;top:370px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 1: 7개 기존 tiered memory 설계 비교</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">기존 7개 tiered memory 시스템은 각기 다른 <strong style="font-size:1.1em">key design</strong>과 강/약점 패턴을 가진다 — 이것이 Observation 1(workload 의존성)의 근거다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Strategy</th><th>Key Design</th><th>Advantage Pattern</th><th>Disadvantage Pattern</th></tr></thead><tbody><tr><td>MEMTIS</td><td>EMA of access frequency</td><td>High spatial locality</td><td>Random access</td></tr><tr><td>AutoTiering</td><td>Opportunistic promotion/migration</td><td>Easily distinguished hot/cold</td><td>Warm data</td></tr><tr><td>TPP</td><td>Lightweight demotion, decoupled paths</td><td>Stable pattern</td><td>Burst of hot pages</td></tr><tr><td>AutoNUMA</td><td>Mostly frequently accessed</td><td>Stable pattern</td><td>Burst of hot pages</td></tr><tr><td>Multi-clock</td><td>Candidate LRU lists</td><td>Easily distinguished hot/cold</td><td>Warm data</td></tr><tr><td>Nimble</td><td>Batch migration</td><td>High spatial locality</td><td>Random access</td></tr><tr><td>Tiering-0.8</td><td>Reset threshold on workload change</td><td>High spatial locality</td><td>Random access</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.3</span></summary>
+<div class="ng-orig-text">we summarize the advantage and disadvantage patterns of the seven tiered memory systems in Table 1 and make the first observation.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_008" style="--color:#5C9E6E;border-radius:2px;left:620px;top:520px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Observation 1&amp;2 근거: Pattern S1 오분류 + access ratio-성능 상관 0.81~0.89</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Pattern S1(고 locality, 두 500MB hot region)에서 MEMTIS는 hotness threshold를 DRAM 용량 기준으로 잡아 사실상 모든 page를 hot으로 분류, <strong style="font-size:1.1em">15GB</strong>를 옮기지만 실제로 필요한 건 최대 <strong style="font-size:1.1em">1GB</strong>뿐이다. 한편 MEMTIS/AutoTiering/Nimble 세 시스템 각각에 대해 정규화 성능과 DRAM access ratio 사이 Pearson 상관계수가 $0.89$/$0.81$/$0.87$로 강하게 나타난다(Fig.3) — access ratio가 migration 효과성의 실시간 대리 지표로 쓰일 수 있다는 근거다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.4</span></summary>
+<div class="ng-orig-text">For example, in Pattern S1, MEMTIS identifies all pages as hot pages and migrates 15GB of data, while in reality, only up to 1GB migration is needed. Using frequency alone as the migration metric has limitations.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#5C9E6E;border-radius:2px;left:620px;top:670px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Observation 3 근거: 수동 threshold 튜닝으로 47%/42% 향상</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">정적 hotness threshold는 workload가 바뀌어도 고정돼 있어 최적이 아니다. Liblinear와 XSBench에서 MEMTIS의 hotness bin을 수동으로 줄여(warm bin으로 재분류) migration volume을 낮추자 성능이 각각 <strong style="font-size:1.1em">47%</strong>, <strong style="font-size:1.1em">42%</strong> 개선됐다(Fig.4). 이는 migration scope(몇 개 page를 옮길지)가 workload 패턴에 맞춰 동적으로 조정돼야 한다는 것을 직접 뒷받침하며, ArtMem이 RL로 이 scope를 자동 학습하게 만드는 근거가 된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.4</span></summary>
+<div class="ng-orig-text">Observation 3: The memory migration scope should be tuned dynamically for different workload patterns to fully exploit the tiered memory's potential.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#95A5A6;border-radius:22px;left:620px;top:820px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 비교 baseline: MEMTIS / TPP / Multi-Clock / AutoNUMA 외</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">ArtMem이 직접 비교하는 7개 baseline과 배경 인용 중 핵심: <strong style="font-size:1.1em">MEMTIS</strong>(SOSP'23, EMA 기반 hotness + dynamic page classification, ArtMem의 EMA 기법 출발점이자 주 비교 대상), <strong style="font-size:1.1em">TPP</strong>(ASPLOS'23, CXL tiered memory용 lightweight demotion), <strong style="font-size:1.1em">Multi-Clock</strong>(HPCA'24, 3단 candidate LRU list), AutoNUMA/AutoTiering/Nimble/Tiering-0.8, 그리고 RL+tiering 선행 연구인 <strong style="font-size:1.1em">Kleio</strong>(HPDC'19)와 page sorting 근거로 인용된 <strong style="font-size:1.1em">FlexMem</strong>(Dong Xu et al., USENIX ATC'24, NUMA fault 기반 hot page profiling).</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1</span></summary>
+<div class="ng-orig-text">AutoNUMA [58] and AutoTiering [27] track memory accesses using page faults and promote pages based on access frequency. Nimble [65] scans page tables to identify hot pages and migrates them to the fast memory tier.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1000px;min-width:562px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">ArtMem 아키텍처(Fig.5): RL Framework - ArtMem 함수 - Hardware 3계층</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">ArtMem 아키텍처는 3계층으로 구성된다. 상단 <strong style="font-size:1.1em">RL Framework</strong>(Q-Table, Adaptive Action, Performance-driven Reward, Low-overhead State), 중단 <strong style="font-size:1.1em">ArtMem 함수 계층</strong>(Accesses distribution, Thresholds adaptation, Page sorting, Migration volume adaptation, Page migration in background), 하단 <strong style="font-size:1.1em">Hardware</strong>(Fast Tier Memory, Capacity Tier Memory, PMU). 짙은 녹색 화살표가 각 모듈 간 데이터 흐름을 나타낸다.<br><br><span class="ng-img-missing">fig5_architecture.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.5</span></summary>
+<div class="ng-orig-text">Figure 5 illustrates the overall architecture of the proposed system, which is composed of three main components. At the top layer lies ArtMem's reinforcement learning (RL) framework, responsible for training and decision-making.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1150px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">State: fast memory access ratio τ (Eq.1)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">State는 $DRAM_{access}$와 $PM_{access}$ 샘플 수로부터 계산한 fast tier access ratio를 $k+1$개 구간으로 discretize한 값이다.<br><br>$$\tau = \left\lfloor \frac{DRAM_{access} \times k}{DRAM_{access} + PM_{access}} \right\rfloor$$<br><br>$\tau = k$는 모든 샘플이 DRAM에서 발생했음을 뜻한다. $DRAM_{access} = PM_{access} = 0$(샘플이 아예 없는 경우, 예: CPU 캐시 히트로 메모리 이벤트 자체가 안 잡힌 경우)은 access ratio 0과 의미가 다르므로 별도 state($k+1$)를 부여해, $k=10$일 때 총 12개 state를 쓴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.5</span></summary>
+<div class="ng-orig-text">where τ = k means all sampled accesses happen in the DRAM with PM_access = 0. It is important to note that a state value of 0 might indicate all accesses occur in the slow memory tier or no events were sampled (DRAM_access = PM_access = 0, e.g., most of the accesses hit in the CPU cache or the event of concern did not occur), we set a separate state (k + 1) for the latter.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Action: migration number + hotness threshold (독립 Q-table 2개)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Action은 migration scope를 구성하는 두 파라미터 — 옮길 page 수(<strong style="font-size:1.1em">migration number</strong>)와 hot/cold 판정 기준(<strong style="font-size:1.1em">hotness threshold</strong>) — 로 정의되며, 각각 별도 Q-table과 독립 action set을 갖고 협력적으로 조정된다. 구현에서는 threshold action이 $\pm8$/$\pm4$/$0$(최소 16 accesses 유지), migration size가 16MB부터 2배씩 최대 2048MB + 0MB(no migration) 옵션까지 총 9개다. per-page가 아닌 system-level scope로 정의해 Q-table 크기를 억제한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.5</span></summary>
+<div class="ng-orig-text">Based on observation 3, ArtMem adopts migration scope as the action, which depends on two key parameters: the migration number and the hotness threshold. Two separate Q-tables and independent action sets are designed to adjust these parameters dynamically and collaboratively.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Reward: τᵢ − β + λ(τᵢ − τᵢ₋₁) (Eq.2)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Reward는 세 항으로 구성된다.<br><br>$$r = \tau_i - \beta + \lambda(\tau_i - \tau_{i-1})$$<br><br>$\tau_i$(현재 access ratio, 높을수록 좋음), $-\beta$(목표 access ratio 대비 편차 penalty — 이게 없으면 agent가 access ratio를 인위적으로 진동시켜 reward를 착취해 시스템을 불안정하게 만들 수 있음), $\lambda(\tau_i-\tau_{i-1})$(직전 대비 개선/악화에 대한 보상이되, 직전 period에 migration이 없었으면 $\lambda=0$으로 꺼서 workload 자체의 변화에 잘못 책임을 묻지 않음).</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.5-6</span></summary>
+<div class="ng-orig-text">If the reward were defined solely as the increase in the fast memory tier access ratio between consecutive phases (i.e., τ_i − τ_{i−1}), the agent might exploit this by inducing large access ratio fluctuations to gain more rewards, potentially destabilizing system performance.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">EMA: base-2 exponential bin + 2백만 sample cooling</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">memory access frequency는 흔히 <strong style="font-size:1.1em">Zipfian/Pareto 분포</strong>를 따른다는 전제 하에, ArtMem은 각 page의 access count를 base-2 exponential bin에 그룹화해 access 분포를 경량으로 추적한다. sampling마다 해당 page의 bin을 갱신하고, <strong style="font-size:1.1em">2백만 sample</strong>마다 모든 bin count와 per-page access record를 절반으로 감쇠(<strong style="font-size:1.1em">cooling</strong>)시켜 오래된 정보를 할인한다. hot page threshold는 초기엔 DRAM 용량 기준으로 설정되고 cooling마다 reset된 뒤, cooling 사이 구간에서는 RL이 학습한 정책으로 refine된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.6</span></summary>
+<div class="ng-orig-text">ArtMem records the number of memory accesses each page receives, grouping them into exponential bins with base 2 to compactly represent the access distribution. Upon each access sampling, the corresponding page is checked for bin reassignment, and the bin counters are updated accordingly. Additionally, a cooling operation is triggered every two million samples, during which all bin counts and per-page access records are halved to gradually discount stale information.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1750px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Page Sorting: aggressive active-list 재삽입</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">recency 정보는 <strong style="font-size:1.1em">LRU 기반 page sorting</strong>으로 반영한다. fast tier와 capacity tier 모두 active/inactive list를 유지하며, demotion 후보는 fast tier의 inactive list tail에서, promotion 후보는 capacity tier의 active list head에서 우선 고른다. 기존 설계(MEMTIS, AutoNUMA 등)는 migration된 page가 원래 tier에서의 activity status를 그대로 유지하는 보수적 정책을 쓰는데, 이는 premature demotion으로 인한 성능 jitter를 유발한다. ArtMem은 대신 migration된 page를 무조건 fast tier active list의 head에 삽입하는 <strong style="font-size:1.1em">aggressive 정책</strong>을 써서 최근 접근된 page를 즉시 우선시한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.6</span></summary>
+<div class="ng-orig-text">Existing inter-layer page migration strategies [30, 58] adopt a conservative strategy: when a page is migrated, it retains its activity status from the source memory tier. This approach can cause premature demotion, leading to performance jitter.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_017" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1900px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Kernel 구현: 2MB huge page + ksampled/kmigrated + heuristic min threshold=16</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">page migration 단위는 <strong style="font-size:1.1em">2MB huge page</strong>로, 주소 변환 오버헤드를 줄이고 compound_page의 미사용 struct page를 재사용해 access data를 추가 메모리 소모 없이 저장한다. 코어당 sampling thread(<strong style="font-size:1.1em">ksampled</strong>)가 PEBS로 memory load event를 수집해 ring buffer에 쌓고, 시스템 단위 migration thread(<strong style="font-size:1.1em">kmigrated</strong>)가 이를 소비해 실제 migration을 수행한다. memory cgroup 아래 mount point(memory.hit_ratio_show, memory.action_show, memory.threshold_show)로 user-space RL agent와 통신한다.<br><br>RL exploration 중 threshold가 지나치게 낮아져 thrashing이 나는 것을 막기 위해 <strong style="font-size:1.1em">최소 hotness threshold(16 accesses)</strong>를 heuristic으로 고정한다. Q-table은 $12$ state $\times$ $9$ migration size(threshold $\pm8$/$\pm4$/$0$ 포함)로, 두 Q-table 합계가 <strong style="font-size:1.1em">10KB 미만</strong>이다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Memory Tier</th><th>Latency</th><th>Bandwidth</th></tr></thead><tbody><tr><td>Fast Memory</td><td>92ns</td><td>81 GB/s</td></tr><tr><td>Slow Memory</td><td>323ns</td><td>26 GB/s</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.7</span></summary>
+<div class="ng-orig-text">We implemented a prototype of ArtMem in the Linux kernel v5.15.19, which is open-sourced at https://github.com/Yitrus/ArtMem.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#E5A835;border-radius:22px;left:620px;top:2050px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">3+ tier(CXL Type-3 포함)로 확장 시 state/action space는?</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">ArtMem은 2-tier(DRAM+PM)를 전제로 state를 access ratio 하나, action을 migration number+threshold 두 Q-table로 압축했다. tier가 3개 이상(예: DRAM - CXL Type-3 - PM/NVM)으로 늘면 pairwise access ratio를 어떻게 하나의 state로 합칠지, migration 방향(어느 tier에서 어느 tier로)까지 action에 포함시켜야 하는지가 자명하지 않다. 논문은 이 확장을 미해결로 남긴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1</span></summary>
+<div class="ng-orig-text">Byte-addressable persistent memory (PM) and Compute Express Link (CXL)-enabled tiered memory systems present new opportunities for designing cost-effective, large-capacity [63, 66] architectures.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_019" style="--color:#5C9E6E;border-radius:2px;left:620px;top:2200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 3: 평가 workload 8종</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">평가에 사용된 8개 memory-intensive workload:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Workload</th><th>Memory footprint</th><th>Description</th></tr></thead><tbody><tr><td>YCSB</td><td>32G</td><td>In-Memory Database</td></tr><tr><td>CC</td><td>69G</td><td>Connected Components</td></tr><tr><td>SSSP</td><td>64G</td><td>Single Source Shortest Path</td></tr><tr><td>PR</td><td>25G</td><td>PageRank</td></tr><tr><td>XSBench</td><td>69G</td><td>HPC Workloads</td></tr><tr><td>DLRM</td><td>72G</td><td>Deep Learning Recommendation Model</td></tr><tr><td>Btree</td><td>24G</td><td>In-Memory Index Lookup</td></tr><tr><td>Liblinear</td><td>68G</td><td>Machine Learning</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1, p.8</span></summary>
+<div class="ng-orig-text">We selected 8 representative memory-intensive applications. The details are shown in Table 3.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_020" style="--color:#9B59B6;border-radius:2px;left:620px;top:2350px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Ablation: RL 기여 최대, overhead sampling≤3%/Q-table≤0.07%/메모리&lt;10KB</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">EMA &lt; EMA+PageSort &lt; EMA+PageSort+RL 순으로 성능이 개선되며, <strong style="font-size:1.1em">RL이 가장 큰 기여</strong>를 하고 DRAM 비율이 낮을수록(느린 tier 의존도가 높을수록) RL의 이득이 커진다. Page sorting은 평균 기여는 작지만 PR/XSBench 등 특정 workload에서 10% 이상 기여한다. Overhead 측면에서는 sampling이 CPU 최대 <strong style="font-size:1.1em">3%</strong>, Q-table 연산이 CPU 최대 <strong style="font-size:1.1em">0.07%</strong>, 두 Q-table 합쳐 메모리 <strong style="font-size:1.1em">10KB 미만</strong>이다. migration volume 측면에서 MEMTIS 대비 CPU overhead 약 $10\times$ 적고, DLRM에서는 CC 대비 $30{,}000\times$ 적은 page를 옮긴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.3.1, p.9</span></summary>
+<div class="ng-orig-text">The RL algorithm delivers the most significant improvements. As the proportion of DRAM allocation decreases, the performance gains from RL become more significant.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#9B59B6;border-radius:2px;left:620px;top:2500px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Robustness &amp; 일반화: Q-learning≈SARSA, latency reward -3.4%, 재학습 평균 3 iteration</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">reward를 latency 기반으로 바꿔도 access-ratio reward 대비 평균 <strong style="font-size:1.1em">3.4%</strong>만 낮다(대신 추가 데이터 수집 overhead 발생, XSBench에서 조정이 지연되는 경향 관찰). Q-learning을 SARSA로 바꿔도 성능이 유사해 framework 자체의 적응성을 보여준다. Robustness 실험($5\times5=25$개 workload 조합)에서 7개 조합만 10% 초과 성능 저하를 보였고, 잘못된 초기 Q-table로 시작해도 평균 <strong style="font-size:1.1em">3 iteration</strong>(1~6 범위) 만에 목표 성능의 95%에 도달한다. CC의 memory footprint를 69GB에서 290GB로 늘려도 6% 이상 향상을 유지하고, tier 간 latency gap이 커질수록 baseline 대비 우위가 오히려 커진다. Hyperparameter는 $\alpha=e^{-2}$, $\gamma=e^{-1}$, $\epsilon=0.3$, $\beta=8$~$10$, migration interval 10초가 최적이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.3.4, p.10</span></summary>
+<div class="ng-orig-text">Experimental results show that this latency-based strategy yields, on average, 3.4% lower performance compared to the DRAM access ratio-based reward.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_022" data-children="node_024" style="--color:#1ABC9C;border-radius:22px;left:620px;top:2650px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">단일 소켓·단일 노드 실험 — multi-node CXL 공유는 다루지 않음</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">평가는 Intel Xeon 1개 소켓 안에서 DRAM을 fast tier로, Optane PM을 ndctl로 구성한 'remote memory node'를 slow tier로 써서 진행됐다(§6.1). CXL은 Introduction에서 PM과 같은 급의 latency를 갖는 slow tier 후보로만 언급될 뿐, <strong style="font-size:1.1em">CXL fabric을 통한 여러 host/socket 간 memory pool 공유</strong>나 <strong style="font-size:1.1em">multi-node coherence</strong>는 논문 어디에서도 다뤄지지 않는다. RL state(fast tier access ratio $\tau$)와 Q-table도 단일 cgroup·단일 노드 기준으로 정의돼 있어, 여러 노드가 같은 CXL-attached capacity tier를 공유하는 상황에서 이 state 정의가 그대로 성립하는지는 논문이 침묵하는 지점이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1, p.8</span></summary>
+<div class="ng-orig-text">We used one socket during the evaluation, with 64GB DRAM as the fast memory tier and 512GB PM as the slow memory tier. PM are configured as remote memory nodes with the ndctl [2] tool.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_023" style="--color:#BDC3C7;border-radius:22px;left:620px;top:2800px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Feasibility-by-building 관점: kernel-level RL을 10KB Q-table로</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문이 흥미로운 지점은 RL을 이론적으로만 제안하지 않고 실제 Linux kernel v5.15.19에 background thread(ksampled/kmigrated)와 cgroup 인터페이스로 박아 넣어 오픈소스로 공개했다는 것이다(github.com/Yitrus/ArtMem). state/action space를 극도로 압축($12$ state $\times$ $9$ action)해서 Q-table을 10KB 미만으로 만들고, 이를 통해 'RL이 커널 안에서 실용적으로 돌아간다'는 것을 실측 overhead(sampling $\leq3\%$, Q-table 연산 $\leq0.07\%$)로 증명한다. correct-by-construction까지는 아니지만, <strong style="font-size:1.1em">feasibility-by-building</strong> 스타일로 큰 아이디어를 최소한의 실제 구현으로 검증한 사례라 참고할 만하다.</div></div>
+</div>
+<div class="ng-node" id="node-node_024" style="--color:#BDC3C7;border-radius:22px;left:1150px;top:2650px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향과의 연결: multi-node CXL coherence 관점에서 본 ArtMem</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">내가 보는 CXL multi-node coherence 문제는 '여러 host가 같은 CXL-attached memory pool을 공유할 때 coherence/migration을 어떻게 조정할 것인가'인데, ArtMem은 이 축을 아예 전제하지 않은 <strong style="font-size:1.1em">single-node NUMA-style 설계</strong>다. RL state가 ($DRAM_{access}$, $PM_{access}$) 두 카운터만으로 정의되는데, 만약 여러 노드가 하나의 CXL capacity tier를 나눠 쓴다면 (a) 노드별 access ratio를 어떻게 집계할지, (b) 한 노드의 migration decision이 다른 노드가 보는 access ratio(따라서 reward)에 간섭을 일으킬지, (c) Q-table을 노드별로 독립시킬지 공유할지가 새로 풀어야 할 문제로 남는다. 즉 ArtMem의 '기법'(EMA+page sorting+RL)은 재사용 가능하지만 '문제 정의'(single-node state/reward) 자체를 multi-node coherence 상황에 맞게 다시 세워야 한다 — 이게 내 연구가 채워야 할 gap과 정확히 맞닿아 있다.</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":250,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":250,"searchText":"killer application artmem이 푸는 문제는 **tiered memory(계층형 메모리)**에서 어떤 page를 언제 fast tier(dram)로 옮길지 결정하는 **migration policy(마이그레이션 정책)** 그 자체다. 기존 시스템(autonuma, memtis, tpp 등)은 손으로 튜닝한 **정적 hotness threshold(고정 임계값)**나 휴리스틱에 의존하는데, artmem은 이를 **경량 q-learning 기반 강화학습(reinforcement learning, rl) agent**로 대체해 workload가 바뀌어도 사람 개입 없이 실시간으로 migration scope(옮길 page 수 + hotness threshold)를 조정한다.\n\n**killer application 1 — 휴리스틱 없는 online adaptive migration**: fast-tier access ratio($\\tau$) 하나만 관측해 migration 정책을 실시간으로 재학습하므로, workload별로 매번 새로 threshold를 튜닝할 필요가 없다.\n\n**killer application 2 — 커널 안에서 실용적으로 도는 초경량 rl**: state/action을 system-level $12$개 상태 $\\times$ $9$개 action으로 극단적으로 압축해 두 q-table을 합쳐 **10kb 미만**으로 유지하고, sampling overhead **3% cpu 이하**, q-table 연산 **0.07% cpu 이하**로 linux kernel v5.15.19에 실제로 박아 넣어 오픈소스로 공개했다(github.com/yitrus/artmem).\n\n결과적으로 8개 workload, 7개 sota baseline 대비 평균 **114%** 성능 향상(범위 35%~172%)을 새로운 하드웨어 없이 정책 개선만으로 달성한다. this paper proposes artmem, a reinforcement learning (rl)-driven framework that dynamically manages tiered memory systems and adapts to workload evolution to address these limitations."},{"id":"node_002","lx":100,"ly":550,"children":["node_007","node_008","node_009","node_010"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":550,"searchText":"필요한 이유 (why it's needed) 메모리 집약적 애플리케이션(그래프 처리, ml, in-memory db)이 늘면서 **dram만으로는 비용·용량 한계**에 부딪힌다 — 여러 기업 데이터에 따르면 memory가 서버 비용의 약 **40%**를 차지한다. byte-addressable **pm(persistent memory)**과 **cxl(compute express link)**-enabled tiered memory가 비용 효율적 대안으로 떠올랐지만, 느린 tier의 지연시간(latency)은 dram 대비 최대 $2\\times$에 달해 migration 정책의 정확도가 곧 성능을 좌우한다.\n\n그런데 autonuma, autotiering, nimble, hemem, thermostat, kleio, memtis, tpp, multi-clock 같은 기존 시스템은 세 가지 근본 한계를 갖는다: **(1) workload 의존성** — 정적 threshold/휴리스틱이 특정 workload에서만 잘 동작, **(2) access ratio 미활용** — fast tier access ratio가 낮아졌을 때(=migration이 비효과적일 때) 정책을 조정하지 못함, **(3) migration scope 고정** — 이동 page 수를 workload 패턴에 맞춰 동적으로 조정하지 못해 불필요한 migration 또는 fast tier 과소활용이 발생.\n\n저자들은 masim 시뮬레이터로 4개 합성 access pattern(s1-s4, 총 32gb, dram 16gb)을 만들어 7개 기존 시스템의 실패 양상을 분석하고 세 관찰(observation)을 도출했다: 기존 방법은 workload마다 성능 편차가 크고(obs.1), fast tier access ratio가 성능과 강한 상관관계(pearson $0.81$~$0.89$)를 가지며(obs.2), migration scope는 workload마다 동적으로 튜닝돼야 한다(obs.3, 수동 튜닝으로 liblinear/xsbench에서 각각 **47%**/**42%** 향상 확인). this paper identifies three key limitations in existing tiered memory solutions. first, existing solutions often perform differently across different workloads, leading to suboptimal performance in some workloads. second, they often fail to adjust migration strategies in response to low fast memory tier access rates, resulting in ineffective data placement. third, they often miss the opportunity to dynamically tune the memory migration scope based on workload patterns, leading to unnecessary page migrations and under-utilization of tiered memory potential."},{"id":"node_003","lx":100,"ly":850,"children":["node_011","node_012","node_013","node_014","node_015","node_016","node_017","node_018"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":850,"searchText":"해결책 (solution) artmem은 **q-learning 기반 model-free rl**을 system-level(page 단위가 아닌) state/action으로 설계해 q-table 폭발을 피한다. 아키텍처는 3계층(rl framework - artmem 함수 계층 - hardware)으로 구성된다(fig.5, 우측 노드 참고).\n\n**state**: fast memory access ratio $\\tau$를 $k+1$개 구간으로 discretize.\n\n$$\\tau = \\left\\lfloor \\frac{dram_{access} \\times k}{dram_{access} + pm_{access}} \\right\\rfloor$$\n\n**action**: migration scope = migration number(이동 page 수) + hotness threshold(hot/cold 판정 기준), 각각 독립 q-table 2개로 협력 조정.\n\n**reward**: 목표 access ratio 대비 편차와 직전 대비 개선분을 함께 고려.\n\n$$r = \\tau_i - \\beta + \\lambda(\\tau_i - \\tau_{i-1})$$\n\nmigration scope 결정에는 두 축이 더해진다 — **ema(exponential moving average)**로 access frequency를 base-2 exponential bin으로 경량 추적하고 200만 sample마다 cooling하며, **lru 기반 page sorting**으로 recency를 반영해 migration 후보를 고른다. 구현은 linux kernel v5.15.19 프로토타입(오픈소스, github.com/yitrus/artmem)으로, 2mb huge page를 migration 단위로 쓰고 코어당 sampling thread(ksampled)와 시스템 단위 migration thread(kmigrated)를 두어 rl 연산을 application critical path에서 분리한다. artmem employs a q-learning–based, model-free reinforcement learning (rl) approach with constrained state and action spaces to minimize computational overhead."},{"id":"node_004","lx":100,"ly":1150,"children":["node_019","node_020","node_021","node_022"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1150,"searchText":"결과 (results) intel xeon gold 6330(28 core/socket) 1소켓, dram 64gb(fast) + pm 512gb(slow, ndctl로 remote memory node 구성)에서 8개 workload(ycsb, cc, sssp, pr, xsbench, dlrm, btree, liblinear)와 7개 baseline(autonuma, nimble, multi-clock, tpp, tiering-0.8, autotiering, memtis)을 memory ratio 2:1~1:16 범위에서 비교했다.\n\n| baseline | 평균 향상 |\n|---|---|\n| autonuma | **132%** |\n| nimble | **124%** |\n| multi-clock | **104%** |\n| tpp | **91%** |\n| tiering-0.8 | **72%** |\n| autotiering | **67%** |\n\n전체 평균 **114%** 향상(범위 35%~172%)을 달성했으며, best baseline 대비도 평균 **10.4%~43.65%** 향상. workload별로는 그래프(sssp/pr/cc) **12%~509%**, xsbench **16%~311%**, dlrm **5%~110%**, in-memory db(ycsb) 평균 **65%**, btree(multiclock 제외) **4%~36%** 향상. liblinear는 memtis 대비 9% 낮지만 다른 baseline 대비 평균 **76%** 향상.\n\n**ablation**에서는 rl이 가장 큰 성능 기여를 하며 dram 비율이 낮을수록 rl 이득이 커진다. **overhead**는 sampling $\\leq 3\\%$ cpu, q-table 연산 $\\leq 0.07\\%$ cpu, q-table 메모리 $<10$kb로 매우 작다. migration volume은 memtis 대비 cpu overhead 약 $10\\times$ 적고, dlrm에서는 cc 대비 $30{,}000\\times$ 적은 page를 옮긴다. under different memory configurations (dram:pm ratios), artmem achieves an average performance improvement of 132%, 124%, 104%, 91%, 72%, and 67% compared to the seven baseline systems, respectively."},{"id":"node_005","lx":100,"ly":1450,"children":["node_023"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1450,"searchText":"결론 (conclusion) artmem은 rl 기반 적응형 tiered memory 관리 프레임워크로, 실시간 fast memory 사용량에 맞춰 동적으로 조정함으로써 fast memory 활용도를 높이고 불필요한 migration을 줄인다. 평가 결과 sota 시스템 대비 평균 **114%** 성능 향상을 **최소한의 overhead**로 달성한다.\n\n**프레임워크의 일반성**: reward를 latency 기반으로 바꿔도 access-ratio reward 대비 평균 **3.4%**만 낮고, q-learning을 sarsa로 바꿔도 성능이 유사해 rl 알고리즘·reward 선택에 강건하다. robustness 실험($5\\times5=25$개 workload 조합)에서는 7개 조합만 10% 초과 성능 저하를 보였고, 잘못된 q-table로 시작해도 평균 3 iteration(1~6) 만에 목표 성능의 95%에 도달한다.\n\n**한계**: (1) per-page가 아닌 system-level 결정이라 세밀한 hot/cold 구분은 page sorting에 의존한다. (2) liblinear처럼 초기 access가 균일한 workload에서는 access ratio가 0%까지 급락 후 회복하는 데 시간이 걸린다(ramp-up 속도가 sampling 정확도에 좌우됨). (3) 평가는 optane pm 기반 단일 소켓 시스템으로, 실제 cxl 하드웨어 실측은 없다(latency emulation으로 cxl 가능성만 논의). 논문은 3-tier 이상 확장이나 multi-host 공유 시나리오는 다루지 않는다. this paper introduces artmem, a tiered memory system leveraging reinforcement learning for adaptive memory management. by dynamically adjusting based on real-time fast memory usage, artmem optimizes fast memory utilization while reducing unnecessary migrations. the evaluation shows artmem outperforms state-of-the-art systems, achieving an average performance improvement of 114% with minimal overhead."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"dram이 서버 비용의 ~40% 차지 → tiering의 경제적 동기 이 논문의 동기는 순수 성능 문제가 아니라 **비용 문제**에서 출발한다. memory-intensive application이 늘면서 dram 기반 시스템은 고비용·저용량 한계에 부딪히고, 여러 산업 데이터에 따르면 dram이 서버 비용의 약 **40%**를 차지한다. byte-addressable pm과 cxl-enabled tiered memory가 비용 효율적 대안이지만, 느린 tier의 latency는 dram 대비 최대 $2\\times$다. data from several companies [30, 36, 64] indicate that memory accounts for approximately 40% of server costs."},{"id":"node_007","lx":620,"ly":370,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":370,"searchText":"table 1: 7개 기존 tiered memory 설계 비교 기존 7개 tiered memory 시스템은 각기 다른 **key design**과 강/약점 패턴을 가진다 — 이것이 observation 1(workload 의존성)의 근거다.\n\n| strategy | key design | advantage pattern | disadvantage pattern |\n|---|---|---|---|\n| memtis | ema of access frequency | high spatial locality | random access |\n| autotiering | opportunistic promotion/migration | easily distinguished hot/cold | warm data |\n| tpp | lightweight demotion, decoupled paths | stable pattern | burst of hot pages |\n| autonuma | mostly frequently accessed | stable pattern | burst of hot pages |\n| multi-clock | candidate lru lists | easily distinguished hot/cold | warm data |\n| nimble | batch migration | high spatial locality | random access |\n| tiering-0.8 | reset threshold on workload change | high spatial locality | random access | we summarize the advantage and disadvantage patterns of the seven tiered memory systems in table 1 and make the first observation."},{"id":"node_008","lx":620,"ly":520,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":520,"searchText":"observation 1&2 근거: pattern s1 오분류 + access ratio-성능 상관 0.81~0.89 pattern s1(고 locality, 두 500mb hot region)에서 memtis는 hotness threshold를 dram 용량 기준으로 잡아 사실상 모든 page를 hot으로 분류, **15gb**를 옮기지만 실제로 필요한 건 최대 **1gb**뿐이다. 한편 memtis/autotiering/nimble 세 시스템 각각에 대해 정규화 성능과 dram access ratio 사이 pearson 상관계수가 $0.89$/$0.81$/$0.87$로 강하게 나타난다(fig.3) — access ratio가 migration 효과성의 실시간 대리 지표로 쓰일 수 있다는 근거다. for example, in pattern s1, memtis identifies all pages as hot pages and migrates 15gb of data, while in reality, only up to 1gb migration is needed. using frequency alone as the migration metric has limitations."},{"id":"node_009","lx":620,"ly":670,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":670,"searchText":"observation 3 근거: 수동 threshold 튜닝으로 47%/42% 향상 정적 hotness threshold는 workload가 바뀌어도 고정돼 있어 최적이 아니다. liblinear와 xsbench에서 memtis의 hotness bin을 수동으로 줄여(warm bin으로 재분류) migration volume을 낮추자 성능이 각각 **47%**, **42%** 개선됐다(fig.4). 이는 migration scope(몇 개 page를 옮길지)가 workload 패턴에 맞춰 동적으로 조정돼야 한다는 것을 직접 뒷받침하며, artmem이 rl로 이 scope를 자동 학습하게 만드는 근거가 된다. observation 3: the memory migration scope should be tuned dynamically for different workload patterns to fully exploit the tiered memory's potential."},{"id":"node_010","lx":620,"ly":820,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":820,"searchText":"핵심 비교 baseline: memtis / tpp / multi-clock / autonuma 외 artmem이 직접 비교하는 7개 baseline과 배경 인용 중 핵심: **memtis**(sosp'23, ema 기반 hotness + dynamic page classification, artmem의 ema 기법 출발점이자 주 비교 대상), **tpp**(asplos'23, cxl tiered memory용 lightweight demotion), **multi-clock**(hpca'24, 3단 candidate lru list), autonuma/autotiering/nimble/tiering-0.8, 그리고 rl+tiering 선행 연구인 **kleio**(hpdc'19)와 page sorting 근거로 인용된 **flexmem**(dong xu et al., usenix atc'24, numa fault 기반 hot page profiling). autonuma [58] and autotiering [27] track memory accesses using page faults and promote pages based on access frequency. nimble [65] scans page tables to identify hot pages and migrates them to the fast memory tier."},{"id":"node_011","lx":620,"ly":1000,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1000,"searchText":"artmem 아키텍처(fig.5): rl framework - artmem 함수 - hardware 3계층 artmem 아키텍처는 3계층으로 구성된다. 상단 **rl framework**(q-table, adaptive action, performance-driven reward, low-overhead state), 중단 **artmem 함수 계층**(accesses distribution, thresholds adaptation, page sorting, migration volume adaptation, page migration in background), 하단 **hardware**(fast tier memory, capacity tier memory, pmu). 짙은 녹색 화살표가 각 모듈 간 데이터 흐름을 나타낸다.\n\n[[img:fig5_architecture.png:530x357]] figure 5 illustrates the overall architecture of the proposed system, which is composed of three main components. at the top layer lies artmem's reinforcement learning (rl) framework, responsible for training and decision-making."},{"id":"node_012","lx":620,"ly":1150,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1150,"searchText":"state: fast memory access ratio τ (eq.1) state는 $dram_{access}$와 $pm_{access}$ 샘플 수로부터 계산한 fast tier access ratio를 $k+1$개 구간으로 discretize한 값이다.\n\n$$\\tau = \\left\\lfloor \\frac{dram_{access} \\times k}{dram_{access} + pm_{access}} \\right\\rfloor$$\n\n$\\tau = k$는 모든 샘플이 dram에서 발생했음을 뜻한다. $dram_{access} = pm_{access} = 0$(샘플이 아예 없는 경우, 예: cpu 캐시 히트로 메모리 이벤트 자체가 안 잡힌 경우)은 access ratio 0과 의미가 다르므로 별도 state($k+1$)를 부여해, $k=10$일 때 총 12개 state를 쓴다. where τ = k means all sampled accesses happen in the dram with pm_access = 0. it is important to note that a state value of 0 might indicate all accesses occur in the slow memory tier or no events were sampled (dram_access = pm_access = 0, e.g., most of the accesses hit in the cpu cache or the event of concern did not occur), we set a separate state (k + 1) for the latter."},{"id":"node_013","lx":620,"ly":1300,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1300,"searchText":"action: migration number + hotness threshold (독립 q-table 2개) action은 migration scope를 구성하는 두 파라미터 — 옮길 page 수(**migration number**)와 hot/cold 판정 기준(**hotness threshold**) — 로 정의되며, 각각 별도 q-table과 독립 action set을 갖고 협력적으로 조정된다. 구현에서는 threshold action이 $\\pm8$/$\\pm4$/$0$(최소 16 accesses 유지), migration size가 16mb부터 2배씩 최대 2048mb + 0mb(no migration) 옵션까지 총 9개다. per-page가 아닌 system-level scope로 정의해 q-table 크기를 억제한다. based on observation 3, artmem adopts migration scope as the action, which depends on two key parameters: the migration number and the hotness threshold. two separate q-tables and independent action sets are designed to adjust these parameters dynamically and collaboratively."},{"id":"node_014","lx":620,"ly":1450,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1450,"searchText":"reward: τᵢ − β + λ(τᵢ − τᵢ₋₁) (eq.2) reward는 세 항으로 구성된다.\n\n$$r = \\tau_i - \\beta + \\lambda(\\tau_i - \\tau_{i-1})$$\n\n$\\tau_i$(현재 access ratio, 높을수록 좋음), $-\\beta$(목표 access ratio 대비 편차 penalty — 이게 없으면 agent가 access ratio를 인위적으로 진동시켜 reward를 착취해 시스템을 불안정하게 만들 수 있음), $\\lambda(\\tau_i-\\tau_{i-1})$(직전 대비 개선/악화에 대한 보상이되, 직전 period에 migration이 없었으면 $\\lambda=0$으로 꺼서 workload 자체의 변화에 잘못 책임을 묻지 않음). if the reward were defined solely as the increase in the fast memory tier access ratio between consecutive phases (i.e., τ_i − τ_{i−1}), the agent might exploit this by inducing large access ratio fluctuations to gain more rewards, potentially destabilizing system performance."},{"id":"node_015","lx":620,"ly":1600,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1600,"searchText":"ema: base-2 exponential bin + 2백만 sample cooling memory access frequency는 흔히 **zipfian/pareto 분포**를 따른다는 전제 하에, artmem은 각 page의 access count를 base-2 exponential bin에 그룹화해 access 분포를 경량으로 추적한다. sampling마다 해당 page의 bin을 갱신하고, **2백만 sample**마다 모든 bin count와 per-page access record를 절반으로 감쇠(**cooling**)시켜 오래된 정보를 할인한다. hot page threshold는 초기엔 dram 용량 기준으로 설정되고 cooling마다 reset된 뒤, cooling 사이 구간에서는 rl이 학습한 정책으로 refine된다. artmem records the number of memory accesses each page receives, grouping them into exponential bins with base 2 to compactly represent the access distribution. upon each access sampling, the corresponding page is checked for bin reassignment, and the bin counters are updated accordingly. additionally, a cooling operation is triggered every two million samples, during which all bin counts and per-page access records are halved to gradually discount stale information."},{"id":"node_016","lx":620,"ly":1750,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1750,"searchText":"page sorting: aggressive active-list 재삽입 recency 정보는 **lru 기반 page sorting**으로 반영한다. fast tier와 capacity tier 모두 active/inactive list를 유지하며, demotion 후보는 fast tier의 inactive list tail에서, promotion 후보는 capacity tier의 active list head에서 우선 고른다. 기존 설계(memtis, autonuma 등)는 migration된 page가 원래 tier에서의 activity status를 그대로 유지하는 보수적 정책을 쓰는데, 이는 premature demotion으로 인한 성능 jitter를 유발한다. artmem은 대신 migration된 page를 무조건 fast tier active list의 head에 삽입하는 **aggressive 정책**을 써서 최근 접근된 page를 즉시 우선시한다. existing inter-layer page migration strategies [30, 58] adopt a conservative strategy: when a page is migrated, it retains its activity status from the source memory tier. this approach can cause premature demotion, leading to performance jitter."},{"id":"node_017","lx":620,"ly":1900,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1900,"searchText":"kernel 구현: 2mb huge page + ksampled/kmigrated + heuristic min threshold=16 page migration 단위는 **2mb huge page**로, 주소 변환 오버헤드를 줄이고 compound_page의 미사용 struct page를 재사용해 access data를 추가 메모리 소모 없이 저장한다. 코어당 sampling thread(**ksampled**)가 pebs로 memory load event를 수집해 ring buffer에 쌓고, 시스템 단위 migration thread(**kmigrated**)가 이를 소비해 실제 migration을 수행한다. memory cgroup 아래 mount point(memory.hit_ratio_show, memory.action_show, memory.threshold_show)로 user-space rl agent와 통신한다.\n\nrl exploration 중 threshold가 지나치게 낮아져 thrashing이 나는 것을 막기 위해 **최소 hotness threshold(16 accesses)**를 heuristic으로 고정한다. q-table은 $12$ state $\\times$ $9$ migration size(threshold $\\pm8$/$\\pm4$/$0$ 포함)로, 두 q-table 합계가 **10kb 미만**이다.\n\n| memory tier | latency | bandwidth |\n|---|---|---|\n| fast memory | 92ns | 81 gb/s |\n| slow memory | 323ns | 26 gb/s | we implemented a prototype of artmem in the linux kernel v5.15.19, which is open-sourced at https://github.com/yitrus/artmem."},{"id":"node_018","lx":620,"ly":2050,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2050,"searchText":"3+ tier(cxl type-3 포함)로 확장 시 state/action space는? artmem은 2-tier(dram+pm)를 전제로 state를 access ratio 하나, action을 migration number+threshold 두 q-table로 압축했다. tier가 3개 이상(예: dram - cxl type-3 - pm/nvm)으로 늘면 pairwise access ratio를 어떻게 하나의 state로 합칠지, migration 방향(어느 tier에서 어느 tier로)까지 action에 포함시켜야 하는지가 자명하지 않다. 논문은 이 확장을 미해결로 남긴다. byte-addressable persistent memory (pm) and compute express link (cxl)-enabled tiered memory systems present new opportunities for designing cost-effective, large-capacity [63, 66] architectures."},{"id":"node_019","lx":620,"ly":2200,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2200,"searchText":"table 3: 평가 workload 8종 평가에 사용된 8개 memory-intensive workload:\n\n| workload | memory footprint | description |\n|---|---|---|\n| ycsb | 32g | in-memory database |\n| cc | 69g | connected components |\n| sssp | 64g | single source shortest path |\n| pr | 25g | pagerank |\n| xsbench | 69g | hpc workloads |\n| dlrm | 72g | deep learning recommendation model |\n| btree | 24g | in-memory index lookup |\n| liblinear | 68g | machine learning | we selected 8 representative memory-intensive applications. the details are shown in table 3."},{"id":"node_020","lx":620,"ly":2350,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2350,"searchText":"ablation: rl 기여 최대, overhead sampling≤3%/q-table≤0.07%/메모리<10kb ema < ema+pagesort < ema+pagesort+rl 순으로 성능이 개선되며, **rl이 가장 큰 기여**를 하고 dram 비율이 낮을수록(느린 tier 의존도가 높을수록) rl의 이득이 커진다. page sorting은 평균 기여는 작지만 pr/xsbench 등 특정 workload에서 10% 이상 기여한다. overhead 측면에서는 sampling이 cpu 최대 **3%**, q-table 연산이 cpu 최대 **0.07%**, 두 q-table 합쳐 메모리 **10kb 미만**이다. migration volume 측면에서 memtis 대비 cpu overhead 약 $10\\times$ 적고, dlrm에서는 cc 대비 $30{,}000\\times$ 적은 page를 옮긴다. the rl algorithm delivers the most significant improvements. as the proportion of dram allocation decreases, the performance gains from rl become more significant."},{"id":"node_021","lx":620,"ly":2500,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2500,"searchText":"robustness & 일반화: q-learning≈sarsa, latency reward -3.4%, 재학습 평균 3 iteration reward를 latency 기반으로 바꿔도 access-ratio reward 대비 평균 **3.4%**만 낮다(대신 추가 데이터 수집 overhead 발생, xsbench에서 조정이 지연되는 경향 관찰). q-learning을 sarsa로 바꿔도 성능이 유사해 framework 자체의 적응성을 보여준다. robustness 실험($5\\times5=25$개 workload 조합)에서 7개 조합만 10% 초과 성능 저하를 보였고, 잘못된 초기 q-table로 시작해도 평균 **3 iteration**(1~6 범위) 만에 목표 성능의 95%에 도달한다. cc의 memory footprint를 69gb에서 290gb로 늘려도 6% 이상 향상을 유지하고, tier 간 latency gap이 커질수록 baseline 대비 우위가 오히려 커진다. hyperparameter는 $\\alpha=e^{-2}$, $\\gamma=e^{-1}$, $\\epsilon=0.3$, $\\beta=8$~$10$, migration interval 10초가 최적이다. experimental results show that this latency-based strategy yields, on average, 3.4% lower performance compared to the dram access ratio-based reward."},{"id":"node_022","lx":620,"ly":2650,"children":["node_024"],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2650,"searchText":"단일 소켓·단일 노드 실험 — multi-node cxl 공유는 다루지 않음 평가는 intel xeon 1개 소켓 안에서 dram을 fast tier로, optane pm을 ndctl로 구성한 'remote memory node'를 slow tier로 써서 진행됐다(§6.1). cxl은 introduction에서 pm과 같은 급의 latency를 갖는 slow tier 후보로만 언급될 뿐, **cxl fabric을 통한 여러 host/socket 간 memory pool 공유**나 **multi-node coherence**는 논문 어디에서도 다뤄지지 않는다. rl state(fast tier access ratio $\\tau$)와 q-table도 단일 cgroup·단일 노드 기준으로 정의돼 있어, 여러 노드가 같은 cxl-attached capacity tier를 공유하는 상황에서 이 state 정의가 그대로 성립하는지는 논문이 침묵하는 지점이다. we used one socket during the evaluation, with 64gb dram as the fast memory tier and 512gb pm as the slow memory tier. pm are configured as remote memory nodes with the ndctl [2] tool."},{"id":"node_023","lx":620,"ly":2800,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2800,"searchText":"feasibility-by-building 관점: kernel-level rl을 10kb q-table로 이 논문이 흥미로운 지점은 rl을 이론적으로만 제안하지 않고 실제 linux kernel v5.15.19에 background thread(ksampled/kmigrated)와 cgroup 인터페이스로 박아 넣어 오픈소스로 공개했다는 것이다(github.com/yitrus/artmem). state/action space를 극도로 압축($12$ state $\\times$ $9$ action)해서 q-table을 10kb 미만으로 만들고, 이를 통해 'rl이 커널 안에서 실용적으로 돌아간다'는 것을 실측 overhead(sampling $\\leq3\\%$, q-table 연산 $\\leq0.07\\%$)로 증명한다. correct-by-construction까지는 아니지만, **feasibility-by-building** 스타일로 큰 아이디어를 최소한의 실제 구현으로 검증한 사례라 참고할 만하다. "},{"id":"node_024","lx":1150,"ly":2650,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2650,"searchText":"내 연구방향과의 연결: multi-node cxl coherence 관점에서 본 artmem 내가 보는 cxl multi-node coherence 문제는 '여러 host가 같은 cxl-attached memory pool을 공유할 때 coherence/migration을 어떻게 조정할 것인가'인데, artmem은 이 축을 아예 전제하지 않은 **single-node numa-style 설계**다. rl state가 ($dram_{access}$, $pm_{access}$) 두 카운터만으로 정의되는데, 만약 여러 노드가 하나의 cxl capacity tier를 나눠 쓴다면 (a) 노드별 access ratio를 어떻게 집계할지, (b) 한 노드의 migration decision이 다른 노드가 보는 access ratio(따라서 reward)에 간섭을 일으킬지, (c) q-table을 노드별로 독립시킬지 공유할지가 새로 풀어야 할 문제로 남는다. 즉 artmem의 '기법'(ema+page sorting+rl)은 재사용 가능하지만 '문제 정의'(single-node state/reward) 자체를 multi-node coherence 상황에 맞게 다시 세워야 한다 — 이게 내 연구가 채워야 할 gap과 정확히 맞닿아 있다. "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":""},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":""},{"source":"node_002","target":"node_009","type":"line","label":""},{"source":"node_002","target":"node_010","type":"line","label":"참고"},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_003","target":"node_015","type":"line","label":""},{"source":"node_003","target":"node_016","type":"line","label":""},{"source":"node_003","target":"node_017","type":"line","label":""},{"source":"node_003","target":"node_018","type":"line","label":""},{"source":"node_004","target":"node_019","type":"line","label":""},{"source":"node_004","target":"node_020","type":"line","label":""},{"source":"node_004","target":"node_021","type":"line","label":""},{"source":"node_004","target":"node_022","type":"line","label":"gap"},{"source":"node_005","target":"node_023","type":"line","label":"내 연구"},{"source":"node_022","target":"node_024","type":"line","label":"내 연구"}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>
