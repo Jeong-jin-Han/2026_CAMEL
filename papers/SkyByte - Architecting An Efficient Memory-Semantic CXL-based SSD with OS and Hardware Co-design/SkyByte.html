@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyByte: Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">SkyByte: Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design</span>
+    <span id="tb-source">Haoyang Zhang*, Yuqi Xue*, Yirui Eric Zhou, Shaobo Li, Jian Huang (UIUC; *co-primary) · HPCA 2025</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_006" style="--color:#4B8BBE;border-radius:2px;left:100px;top:250px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SkyByte가 푸는 문제는 <strong style="font-size:1.1em">CXL 기반 SSD(CXL-SSD, memory-semantic SSD)</strong>를 진짜 메모리처럼 쓰려 할 때 터지는 두 가지 근본 병목을, <strong style="font-size:1.1em">host OS와 SSD controller의 co-design</strong>만으로 동시에 없애는 것이다. CXL-SSD는 `load`/`store`로 byte 단위 접근이 되지만, 그냥 host memory 확장으로 취급하면 (1) 긴 flash 지연이 CPU pipeline을 통째로 stall시키고, (2) byte-granular CXL과 page-granular flash 사이의 <strong style="font-size:1.1em">granularity mismatch(입출력 단위 불일치)</strong>가 심한 I/O amplification을 낳는다.<br><br><strong style="font-size:1.1em">Killer application 1 — 사라진 context switch 기회를 되살리기</strong>: DRAM에서는 thread가 막히면 OS가 context switch로 CPU를 다른 일에 쓴다. 그런데 CXL-SSD의 `load`/`store`는 CPU에서 SSD로 직접 나가 OS가 가로챌 수 없어 이 기회가 사라진다. SkyByte는 SSD가 긴 지연을 감지해 host에 알리는 <strong style="font-size:1.1em">coordinated context switch(협력형 문맥 전환)</strong>로 이 기회를 복원한다.<br><br><strong style="font-size:1.1em">Killer application 2 — cacheline 단위로 SSD DRAM 재설계</strong>: 대부분 워크로드가 한 page의 40% 미만 cacheline만 건드린다는 관찰에서 출발해, SSD DRAM을 <strong style="font-size:1.1em">cacheline 단위 write log + page 단위 read-write cache</strong>로 쪼개 flash write traffic을 극적으로 줄인다.<br><br><strong style="font-size:1.1em">Killer application 3 — hot page를 host로 끌어올리는 adaptive migration</strong>: 자주 쓰는 page를 host DRAM으로 승격(promote)해 작은 SSD DRAM을 사실상 확장한다.<br><br>결과적으로 SOTA CXL-SSD 대비 평균 <strong style="font-size:1.1em">6.11배</strong> 성능 향상, flash write traffic <strong style="font-size:1.1em">23.08배</strong> 감소, 무한 host DRAM을 가정한 ideal 대비 <strong style="font-size:1.1em">75%</strong> 성능에 도달한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
+<div class="ng-orig-text">Our experiments show that SkyByte outperforms current CXL-based SSD by 6.11×, and reduces the I/O traffic to flash chips by 23.08× on average. SkyByte also reaches 75% of the performance of the ideal case that assumes unlimited DRAM capacity in the host.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" data-children="node_007,node_008,node_009" style="--color:#4B8BBE;border-radius:2px;left:100px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">CXL-SSD를 그냥 host memory의 확장으로 취급하면 극심한 성능 저하와 CPU stall이 발생한다. 저자들이 짚는 원인은 세 가지다.<br><br><strong style="font-size:1.1em">(1) 긴 tail latency</strong>: flash 접근 지연이 host DRAM보다 수 자릿수 크고, SSD 내부 DRAM cache는 수 GB로 작아 miss가 나면 그 긴 지연을 그대로 맞는다.<br><br><strong style="font-size:1.1em">(2) pipeline stall</strong>: out-of-place update와 <strong style="font-size:1.1em">garbage collection(GC, 가비지 컬렉션)</strong>이 read/write를 지연시켜 긴 CPU pipeline stall을 유발한다.<br><br><strong style="font-size:1.1em">(3) granularity mismatch(입출력 단위 불일치)</strong>: CXL은 byte 단위 접근을 열어주지만 flash는 page 단위만 지원해 심한 I/O amplification이 생긴다.<br><br>측정으로 뒷받침된다 — 워크로드가 DRAM 대비 CXL-SSD에서 <strong style="font-size:1.1em">1.5~31.4배</strong> 느려지고(Fig.2), memory-bounded cycle 비율이 DRAM의 62.9~98.7%에서 CXL-SSD에서는 <strong style="font-size:1.1em">77~99.8%</strong>로 치솟는다(Fig.4). 즉 CPU가 대부분의 시간을 메모리 대기에 쓴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§I, p.1</span></summary>
+<div class="ng-orig-text">simply treating SSDs as an extension of host memory via CXL causes dramatic performance degradation and excessive CPU stalls.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_010,node_011,node_012,node_013,node_014,node_015,node_016,node_017" style="--color:#4B8BBE;border-radius:2px;left:100px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SkyByte는 세 컴포넌트를 host OS와 SSD controller의 <strong style="font-size:1.1em">co-design(공동 설계)</strong>으로 묶는다. 핵심 통찰은 <strong style="font-size:1.1em">CPU도 SSD도 단독으로는</strong> 어떤 명령이 긴 지연에 막혔는지 알 수 없다는 것 — 그래서 양쪽 coordination이 필수다.<br><br><strong style="font-size:1.1em">1. Coordinated context switch</strong>: SSD가 DRAM cache miss로 긴 지연을 예측하면 CXL.mem <strong style="font-size:1.1em">NDR(No Data Response)</strong> 메시지에 새 opcode `SkyByte-Delay`를 실어 host에 알린다. host CXL controller가 MSHR·상위 cache를 뒤져 해당 명령을 찾고, 그 명령이 <strong style="font-size:1.1em">retire될 때</strong> *SkyByte Long Delay Exception*을 띄워 CXL-aware scheduler로 문맥을 전환한다.<br><br><strong style="font-size:1.1em">2. CXL-aware SSD DRAM 재설계</strong>: SSD DRAM을 cacheline(64B) 단위 <strong style="font-size:1.1em">double-buffered write log</strong>와 page(4KB) 단위 <strong style="font-size:1.1em">read-write data cache</strong>로 나눈다. 모든 write는 원본 page fetch 없이 log tail에 append되어 critical path에서 flash 접근을 없앤다. log가 차면 background <strong style="font-size:1.1em">compaction(압축)</strong>이 같은 page의 write를 coalesce해 flash write traffic을 줄인다.<br><br><strong style="font-size:1.1em">3. Adaptive page migration</strong>: SSD가 page별 access count를 추적해 hot page를 PCIe MSI-X interrupt로 host DRAM에 promote하고, <strong style="font-size:1.1em">PLB(Promotion Look-aside Buffer)</strong>로 진행 중 migration의 일관성을 보장한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III, p.4</span></summary>
+<div class="ng-orig-text">Neither CPU nor SSD can by itself decide whether to trigger a context switch. Therefore, to enable context switch on long CXL-SSD memory stalls, we coordinate between host OS and SSD controller.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_004" data-children="node_018,node_019,node_020,node_021,node_022" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1150px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">MacSim + SimpleSSD 기반 CXL-SSD 시뮬레이터로 8개 멀티스레드 데이터 집약 워크로드(Rodinia, GAP, Splash3, WHISPER, DLRM 등)를 평가하고, FPGA SoC(Xilinx Zynq UltraScale+ ZU3EG) prototype으로 write log/cache 성능 모델을 실측 검증했다.<br><br><strong style="font-size:1.1em">Base-CSSD</strong>(SOTA 기법을 다 적용한 CXL-SSD) 대비:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>지표</th><th>수치</th></tr></thead><tbody><tr><td>SkyByte-Full 성능 향상</td><td>평균 <strong style="font-size:1.1em">6.11배</strong> (최대 16.35배)</td></tr><tr><td>Average memory access time</td><td><strong style="font-size:1.1em">14.19배</strong> 개선</td></tr><tr><td>Flash write traffic</td><td><strong style="font-size:1.1em">23.08배</strong> 감소</td></tr><tr><td>Ideal(무한 host DRAM) 대비</td><td><strong style="font-size:1.1em">75%</strong> 도달 (저하 1.33배)</td></tr><tr><td>DRAM-only 대비 비용</td><td><strong style="font-size:1.1em">15.9배</strong> 저렴, cost-effectiveness <strong style="font-size:1.1em">11.8배</strong></td></tr></tbody></table></div><div class="ng-seg"><br>Ablation로 세 컴포넌트가 <strong style="font-size:1.1em">직교적(orthogonal)</strong>임을 보인다 — page migration만(P) 1.84배, write log만(W) 2.16배, +compaction(CP) 2.79배, write log+migration(WP) 2.95배. context switch의 이득(평균 1.49배)이 나머지와 독립적으로 곱해진다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§VI, p.9</span></summary>
+<div class="ng-orig-text">(3) SkyByte reduces the average memory access time by 14.19× and the flash write traffic by 23.08× over the state-of-the-art CXL-SSD design.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_023,node_024" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SkyByte는 CXL-SSD의 두 근본 문제(긴 flash 지연으로 인한 pipeline stall + byte/page granularity mismatch)를 <strong style="font-size:1.1em">OS-하드웨어 co-design</strong>으로 정면 돌파해, 새 메모리 매체 없이 정책·구조 개선만으로 DRAM-only ideal의 75%에 도달하면서 <strong style="font-size:1.1em">15.9배 저렴</strong>하다. 값싼 대용량 flash를 byte-addressable memory로 실용화하는 길을 보인 셈이다.<br><br><strong style="font-size:1.1em">의의</strong>: SSD를 black box·page 단위로만 다루던 기존 접근(AstriFlash 등)과 달리, CXL.mem 프로토콜 계층까지 내려가 SSD 내부 상태(cache hit/miss, flash queue)를 host 스케줄링과 엮은 <strong style="font-size:1.1em">transparent co-design(투명한 공동 설계)</strong>의 모범 사례다.<br><br><strong style="font-size:1.1em">한계 / 열린 질문</strong>: (1) 평가가 trace replay 기반 시뮬레이션 중심이라 full-system OS 상호작용은 부분 검증에 그친다. (2) `SkyByte-Delay` opcode와 Long Delay Exception은 CPU·CXL controller의 <strong style="font-size:1.1em">ISA/하드웨어 변경</strong>을 요구해 실배포 장벽이 있다. (3) data persistence를 기본 가정하지 않으며 `clwb`+page pin으로만 보장한다(pin된 page는 promote 불가 → trade-off). (4) 전 과정이 <strong style="font-size:1.1em">single-host</strong> 전제 — 여러 host가 한 CXL-SSD를 공유하는 multi-node coherence는 다루지 않는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VI, p.10</span></summary>
+<div class="ng-orig-text">SkyByte-Full costs 15.9× less than the DRAM-only setup and improves cost-effectiveness by 11.8×.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#E74C3C;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">OS가 CXL load/store를 가로챌 수 없다 → co-design이 유일한 길</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문 전체를 관통하는 통찰. 현대 OS는 host DRAM에서 thread가 막히면 context switch로 다른 thread를 돌려 CPU를 활용한다. 그런데 CXL-SSD에서는 `load`/`store` 명령이 host CPU에서 CXL 프로토콜을 통해 <strong style="font-size:1.1em">SSD로 직접 발행</strong>되므로, OS가 이를 <strong style="font-size:1.1em">intercept(가로채기)</strong>할 수 없다. 따라서 OS는 어느 명령이 긴 SSD 지연에 막혔는지조차 모른다.<br><br>CPU는 flash cache hit/miss 여부를 모르고, SSD는 그 명령이 speculative인지(나중에 squash될지) 모른다. <strong style="font-size:1.1em">어느 쪽도 혼자서는 context switch를 결정할 수 없다</strong> — 그래서 host OS와 SSD controller의 co-design이 선택이 아니라 필수가 된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§I, p.1</span></summary>
+<div class="ng-orig-text">this context switch opportunity is missing for CXL-SSDs, because the OS cannot intercept the load/store memory instructions issued directly from the host CPU to the SSD device via the CXL protocol.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#E74C3C;border-radius:2px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">측정 근거: CXL-SSD가 DRAM 대비 1.5~31.4배 느림, memory-bounded cycle 77~99.8%</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">세 문제(long tail latency / pipeline stall / granularity mismatch)를 저자들은 측정으로 입증한다. 동일 워크로드가 host DRAM 대비 CXL-SSD에서 <strong style="font-size:1.1em">1.5~31.4배</strong> 느려진다(Fig.2). 원인을 cycle 분해로 보면, memory-bounded cycle 비율이 DRAM에서 62.9~98.7%였다가 CXL-SSD에서 <strong style="font-size:1.1em">77~99.8%</strong>로 올라간다(Fig.4) — CPU가 거의 항상 메모리 대기 상태다.<br><br>flash page read 지연은 약 $3\,\mu s$로, 일반적인 context switch overhead($\approx 2\,\mu s$)보다 길다. 이 부등식이 성립하기 때문에 '막힌 thread를 재우고 다른 thread를 돌리는' 전략이 순이득을 낸다 — SkyByte의 switch threshold를 $2\,\mu s$로 잡는 근거다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§II, p.3</span></summary>
+<div class="ng-orig-text">The tail latency of CXL-SSD causes severe processor pipeline stalls, leading to both performance degradation and underutilization of CPU and SSD bandwidth.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_008" style="--color:#E74C3C;border-radius:2px;left:620px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">granularity mismatch 근거: page의 75% 이상에서 cacheline 40% 미만만 접근</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SSD DRAM을 왜 cacheline 단위로 재설계해야 하는지의 실측 근거. 대부분 워크로드가 <strong style="font-size:1.1em">page의 75% 이상</strong>에서 그 page 안 <strong style="font-size:1.1em">cacheline의 40% 미만</strong>만 접근한다(Fig.5/Fig.6). 즉 4KB page를 통째로 SSD DRAM에 caching하면 대부분의 공간이 안 쓰이는 cacheline으로 낭비되고, 그 page를 flush할 때 건드리지도 않은 부분까지 flash로 나가 <strong style="font-size:1.1em">write amplification(쓰기 증폭)</strong>을 키운다.<br><br>이 관찰이 곧 write log를 <strong style="font-size:1.1em">cacheline(64B) 단위</strong>로 두는 설계 결정으로 직결된다 — finer granularity로 (1) SSD DRAM 공간을 아끼고 (2) 더 큰 write coalescing window를 확보해 flash write를 줄인다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§II, p.2</span></summary>
+<div class="ng-orig-text">our study in §II finds that most workloads access less than 40% of cachelines in more than 75% of pages. Caching the entire page in the SSD DRAM significantly wastes precious SSD DRAM space.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_009" style="--color:#95A5A6;border-radius:22px;left:620px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 선행/비교 연구: CXL-SSD, ByteFS, AstriFlash, FlatFlash, TPP</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">SkyByte가 서 있는 좌표를 정하는 핵심 인용:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>연구</th><th>관계</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">Overcoming the Memory Wall with CXL-Enabled SSDs</strong> (Yang et al., ATC'23)</td><td>SkyByte가 출발점으로 삼는 대표 CXL-SSD 아키텍처</td></tr><tr><td><strong style="font-size:1.1em">ByteFS</strong> (S. Li et al., ASPLOS'25)</td><td>SSD byte-accessibility를 OS·storage 계층에서 지원, 직접 비교되는 동시기 연구</td></tr><tr><td><strong style="font-size:1.1em">AstriFlash</strong> (Gupta et al., HPCA'23)</td><td>host DRAM을 SSD의 set-associative cache로, user-level thread switch로 I/O 은닉. <strong style="font-size:1.1em">차별점</strong>: SSD를 black box·page 단위로 취급 vs SkyByte의 프로토콜 계층 co-design</td></tr><tr><td><strong style="font-size:1.1em">FlatFlash</strong> (Abulila et al., ASPLOS'19)</td><td>byte-accessible SSD + host-bridge promotion buffer, SkyByte migration 일관성 설계의 기반</td></tr><tr><td><strong style="font-size:1.1em">TPP</strong> (Maruf et al., ASPLOS'23)</td><td>Linux NUMA balancing 기반 page placement, SkyByte-CT 비교 baseline</td></tr><tr><td><strong style="font-size:1.1em">Informing Memory Operations</strong> (Horowitz et al., ISCA'96)</td><td>cache miss를 software에 알리는 primitive, SSD→CPU 알림 설계의 영감</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§VII, p.12</span></summary>
+<div class="ng-orig-text">Unlike prior work such as AstriFlash that treats the SSD as a black box at page granularity, SkyByte co-designs the host OS and SSD controller.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:620px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Coordinated context switch 흐름 (C1~C4)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SSD DRAM cache miss로 긴 지연이 예상되면 SSD가 host OS에 문맥 전환을 요청한다. 4단계로 흐른다.<br><br><strong style="font-size:1.1em">(C1)</strong> host CPU가 tracking 정보와 함께 CXL.mem `MemRd` 요청을 보낸다. shared LLC의 <strong style="font-size:1.1em">MSHR(Miss Status Holding Register)</strong>이 어느 `load`/`store`가 응답을 기다리는지 추적하고 memory access coalescing도 한다.<br><br><strong style="font-size:1.1em">(C2)</strong> SSD가 cache miss를 감지하면 estimated latency로 switch 여부를 판단하고, <strong style="font-size:1.1em">NDR(No Data Response)</strong> 메시지의 새 opcode `SkyByte-Delay`로 '이 요청은 오래 걸린다'고 표시해 회신한다.<br><br><strong style="font-size:1.1em">(C3)</strong> host CXL controller가 NDR을 받아 LLC MSHR과 L1/L2를 탐색, 이 응답을 기다리는 uncommitted 명령을 찾고 그 명령이 <strong style="font-size:1.1em">retire stage</strong>에 진입할 때 *SkyByte Long Delay Exception*을 트리거한다(Page Fault와 유사).<br><br><strong style="font-size:1.1em">(C4)</strong> exception handler가 x86 <strong style="font-size:1.1em">IDT(Interrupt Descriptor Table)</strong>에 설치된 CXL-aware 스케줄링 정책을 호출해 다음 thread를 고르고 전환한다. 원래 thread가 다시 스케줄되면 막혔던 명령부터 재개한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III-A, p.5</span></summary>
+<div class="ng-orig-text">When the SSD detects a cache miss that will incur a long delay, it notifies the host via the NDR message so that the host OS can switch to another thread.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1000px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">SkyByte-Delay opcode + Long Delay Exception (retire-time로 false-positive 제거)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">두 개의 새 프리미티브가 핵심이다.<br><br><strong style="font-size:1.1em">`SkyByte-Delay` opcode</strong>: CXL.mem의 NDR(No Data Response, slave→master) 메시지 사양을 확장해 <strong style="font-size:1.1em">reserved opcode</strong>를 하나 활용한다(Fig.8). 해당 `MemRd`가 긴 지연(예: SSD DRAM cache miss)을 겪을 것임을 host에 알리는 신호다. 표준 프로토콜의 여유 공간을 재활용하므로 wire format 변경이 최소다.<br><br><strong style="font-size:1.1em">SkyByte Long Delay Exception</strong>: NDR 수신 후 곧바로 전환하지 않고, 대응 명령이 <strong style="font-size:1.1em">retire될 때</strong>만 exception을 띄운다. 이유는 speculative `load`/`store`나 하드웨어 prefetch가 결국 <strong style="font-size:1.1em">squash(무효화)</strong>될 수 있기 때문 — retire 시점까지 미루면 '전환했는데 알고 보니 취소될 명령이었던' <strong style="font-size:1.1em">false-positive context switch를 추가 하드웨어 비용 없이</strong> 제거한다. 이 깔끔함이 이 설계의 백미다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III-A, p.5</span></summary>
+<div class="ng-orig-text">SkyByte extends the NDR message specification by introducing a new opcode called SkyByte-Delay. This opcode indicates that the corresponding MemRd request will suffer from a long access delay (e.g., an SSD DRAM cache miss).</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1150px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">언제 전환할까: threshold-based policy (Algorithm 1)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SSD는 FTL mapping table로 <strong style="font-size:1.1em">PPA(Physical Page Address)</strong>를 구해 해당 flash channel queue 상태(대기 요청 수)를 조회하고, 예상 지연을 계산한다.<br><br>$$L_{est} = t_{read}\,(n_{read}+1) + t_{write}\,n_{write} + t_{erase}\,n_{erase}$$<br><br>이 $L_{est}$가 threshold보다 크면 문맥을 전환한다. 기본 threshold는 $2\,\mu s$ — flash page read 지연($\approx 3\,\mu s$)이 일반 context switch overhead($\approx 2\,\mu s$)보다 길다는 관찰에서 나온 값이다. <strong style="font-size:1.1em">GC로 막힌 요청</strong>은 보통 milliseconds 지속되므로 계산 없이 즉시 전환한다.<br><br>다음 thread 선택 정책은 Round-Robin / Random / <strong style="font-size:1.1em">CFS(Completely Fair Scheduler)</strong> 중 Linux 표준인 CFS를 기본으로 쓴다(Fig.10).</div><details class="ng-original"><summary>Original <span class="ng-loc">§III-A, p.6</span></summary>
+<div class="ng-orig-text">The estimated latency is computed based on the number of pending requests in the flash channel queue, and a context switch is triggered if it exceeds a threshold.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">CXL-aware SSD DRAM: cacheline write log + page data cache</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SSD DRAM을 두 구조로 재구성한다(Fig.11) — cacheline(64B) 단위 <strong style="font-size:1.1em">double-buffered write log</strong>와 page(4KB) 단위 read-write <strong style="font-size:1.1em">data cache</strong>.<br><br><strong style="font-size:1.1em">Write path</strong>: 모든 cacheline write는 원본 page를 먼저 fetch하지 않고 write log의 tail에 <strong style="font-size:1.1em">append</strong>된다(W1) → critical path에서 flash 접근이 사라진다. data cache에 그 page가 있으면 병렬로 갱신하고(W2), log index도 갱신한다(W3). 실제 flash flush는 나중에 몰아서 한다.<br><br><strong style="font-size:1.1em">Read path</strong>: data cache와 write log를 <strong style="font-size:1.1em">병렬 lookup</strong>한다. 둘 다 miss면 flash에서 page를 읽어온 뒤 write log의 최신 cacheline을 그 위에 <strong style="font-size:1.1em">merge</strong>한다(R1~R3). 즉 log가 항상 최신 진실을 갖고, cache는 spatial locality를 위한 read 가속용이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III-B, p.6</span></summary>
+<div class="ng-orig-text">All cacheline writes are directly appended to the log without flash access along the critical path. They are flushed to the flash memory later.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Write log를 빠르게 뒤지기: two-level hash table</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">write log lookup은 hash table로 <strong style="font-size:1.1em">amortized $O(1)$</strong>을 노린다. 다만 평범한 단일 hash table은 '같은 page의 모든 cacheline'을 찾으려면 여러 번 lookup해야 한다 — compaction에 불리하다.<br><br>SkyByte는 인덱스를 <strong style="font-size:1.1em">2단</strong>으로 쪼갠다(Fig.12). <strong style="font-size:1.1em">1단</strong>은 <strong style="font-size:1.1em">LPA(Logical Page Address)</strong>로 색인하고, 각 valid entry가 <strong style="font-size:1.1em">2단</strong> hash table을 가리킨다. 2단은 그 logical flash page 안의 로그된 cacheline을 <strong style="font-size:1.1em">page 내 offset별</strong>로 추적한다. 덕분에 같은 page의 모든 cacheline을 한 번에 모아 compaction에서 통째로 merge할 수 있다. log index의 memory footprint는 평균 <strong style="font-size:1.1em">5.6MB</strong>로 가볍다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III-B, p.7</span></summary>
+<div class="ng-orig-text">SkyByte breaks the indexing structure into two levels. At the first level, we employ a hash table indexed by the logical page address (LPA). Each valid entry points to a second level hash table that tracks all logged cache lines in this logical flash page with their offset within the page.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Write log compaction: double-buffered, 평균 146μs</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">log가 가득 차면 background <strong style="font-size:1.1em">compaction(압축)</strong>이 같은 page로의 write를 coalesce해 flash write traffic을 크게 줄인다(Fig.13). indexing table은 <strong style="font-size:1.1em">최신 갱신만</strong> 추적하므로 오래된 갱신은 자동으로 drop된다. dirty cacheline을 가진 page가 이미 cache에 있으면 바로 flush하고, 없으면 coalescing buffer로 load해 merge한 뒤 flash로 <strong style="font-size:1.1em">batch write</strong>한다.<br><br><strong style="font-size:1.1em">double-buffered log</strong>가 핵심 — compaction이 도는 동안 들어오는 새 write는 두 번째 log가 받아내므로 incoming write가 <strong style="font-size:1.1em">blocking되지 않는다</strong>. 한 번 compaction은 평균 <strong style="font-size:1.1em">$146\,\mu s$</strong>가 걸리며, 이 비용을 background로 숨겨 critical path 밖에 둔다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III-B, p.7-8</span></summary>
+<div class="ng-orig-text">The double-buffered design allows incoming writes to be served by the new log while the old log is being compacted, avoiding blocking.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1750px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Adaptive page migration + PLB로 일관성 보장</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SSD가 flash page별 access count를 추적해 threshold를 넘는 <strong style="font-size:1.1em">hot page</strong>를 host DRAM으로 promote한다(SSD DRAM cache에 올라와 있는 page만 대상). 알림은 <strong style="font-size:1.1em">PCIe MSI-X interrupt</strong>로 host에 올린다.<br><br>일관성이 관건이다 — migration 도중 그 page에 접근이 오면 어디가 최신인지 모호해진다. 이를 위해 root complex에 <strong style="font-size:1.1em">PLB(Promotion Look-aside Buffer, 64 entry)</strong>를 두어 진행 중인 migration을 추적하고, 완료 후 OS가 <strong style="font-size:1.1em">PTE와 TLB</strong>를 갱신한다. host 공간이 부족하면 Linux page reclamation으로 cold page를 SSD로 evict한다. <strong style="font-size:1.1em">NUMA</strong>와 <strong style="font-size:1.1em">huge page(2MB)</strong>도 지원한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§III-C, p.8</span></summary>
+<div class="ng-orig-text">To ensure data consistency during migration, we introduce a Promotion Look-aside Buffer (PLB) in the root complex that tracks in-flight page migrations.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#E5A835;border-radius:22px;left:620px;top:1900px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">ISA/하드웨어 변경(opcode+exception)이 실배포를 막지 않나?</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SkyByte의 우아함은 곧 배포 장벽이기도 하다. `SkyByte-Delay` opcode는 CXL.mem NDR 사양 확장을, SkyByte Long Delay Exception은 CPU retire logic + x86 IDT handler 설치를, PLB는 root complex 하드웨어 추가를 요구한다. 즉 <strong style="font-size:1.1em">CPU 벤더·CXL 표준·SSD 컨트롤러 세 주체의 동시 협조</strong>가 필요하다.<br><br>논문은 reserved opcode 재활용으로 wire 변경을 최소화했다고 하지만, retire-time exception과 MSHR 탐색은 마이크로아키텍처 수정이라 FPGA/시뮬레이터를 넘어 상용 실리콘에 언제 실릴지는 불투명하다. <strong style="font-size:1.1em">'표준에 얹을 수 있는 최소 변경'과 '벤더가 실제로 넣어줄 변경'의 간극</strong>이 이 설계가 답하지 않은 지점이다.</div></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_018" style="--color:#5C9E6E;border-radius:2px;left:620px;top:2100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">평가 셋업: MacSim+SimpleSSD 시뮬레이터 + FPGA prototype</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">구현은 <strong style="font-size:1.1em">MacSim</strong>(CPU/스케줄링 확장)과 <strong style="font-size:1.1em">SimpleSSD</strong>를 결합한 CXL-SSD 시뮬레이터다. context switch 스케줄링, PLB를 여기에 얹었다. write log/data cache의 실제 지연·처리량은 <strong style="font-size:1.1em">FPGA SoC(Xilinx Zynq UltraScale+ ZU3EG)</strong> prototype으로 실측 검증했다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>구조</th><th>Lookup 지연</th><th>처리량</th></tr></thead><tbody><tr><td>Write log (64MB)</td><td>72 ns</td><td>cacheline read 11.93 GB/s</td></tr><tr><td>Data cache (512MB)</td><td>49 ns</td><td>cacheline write 9.37 GB/s</td></tr></tbody></table></div><div class="ng-seg"><br>워크로드는 Rodinia, GAP, Splash3, WHISPER, DLRM 등 <strong style="font-size:1.1em">8개 멀티스레드 데이터 집약</strong> 애플리케이션(Table I).</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§V, p.9</span></summary>
+<div class="ng-orig-text">We implement SkyByte based on MacSim and SimpleSSD, and validate the performance model of the write log and data cache using an FPGA SoC prototype.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#9B59B6;border-radius:2px;left:620px;top:2250px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 수치: 6.11배↑ · write 23.08배↓ · ideal의 75%</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Base-CSSD</strong>(SOTA 기법을 다 적용한 CXL-SSD)를 기준으로:<br><br>- SkyByte-Full 성능 <strong style="font-size:1.1em">평균 6.11배</strong> 향상, 최대 <strong style="font-size:1.1em">16.35배</strong>(Fig.14).<br>- <strong style="font-size:1.1em">average memory access time 14.19배</strong> 개선, <strong style="font-size:1.1em">flash write traffic 23.08배</strong> 감소.<br>- 무한 host DRAM을 가정한 <strong style="font-size:1.1em">DRAM-Only(ideal) 성능의 75%</strong>에 도달 — end-to-end 저하가 평균 <strong style="font-size:1.1em">1.33배</strong>에 불과.<br><br>즉 값싼 flash 기반 CXL-SSD로도 이상적 DRAM의 3/4 성능을 뽑아낸다는 것이 이 논문의 핵심 메시지다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract / §VI, p.1, p.10</span></summary>
+<div class="ng-orig-text">SkyByte also reaches 75% of the performance of the ideal case that assumes unlimited DRAM capacity in the host.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_020" style="--color:#9B59B6;border-radius:2px;left:620px;top:2400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Ablation: 세 컴포넌트가 직교(orthogonal), context switch 이득 ×1.49</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">각 컴포넌트를 하나씩 켜며 기여를 분리한다(Fig.14, Base-CSSD 대비).<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>구성</th><th>향상</th></tr></thead><tbody><tr><td>SkyByte-P (page migration only)</td><td>1.84배</td></tr><tr><td>SkyByte-W (write log only)</td><td>2.16배</td></tr><tr><td>SkyByte-CP</td><td>2.79배</td></tr><tr><td>SkyByte-WP (write log + migration)</td><td>2.95배</td></tr><tr><td>SkyByte-Full</td><td><strong style="font-size:1.1em">6.11배</strong></td></tr></tbody></table></div><div class="ng-seg"><br><strong style="font-size:1.1em">직교성(orthogonality)</strong>의 증거: SkyByte-C의 Base-CSSD 대비 향상과, SkyByte-Full의 SkyByte-WP 대비 향상이 <strong style="font-size:1.1em">둘 다 평균 1.49배</strong>다. 즉 context switch의 이득이 write log·migration 이득과 <strong style="font-size:1.1em">독립적으로 곱해진다</strong>(단, tpcc는 예외로 page migration이 지배).</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§VI, p.10</span></summary>
+<div class="ng-orig-text">The improvement of SkyByte-C over Base-CSSD and that of SkyByte-Full over SkyByte-WP are both 1.49× on average, showing that the context switch benefit is orthogonal to the write log and migration.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#9B59B6;border-radius:2px;left:620px;top:2550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">비용·민감도: DRAM-only 대비 15.9배 저렴, 11.8배 cost-effective</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">2024년 여름 기준 DDR5 DRAM <strong style="font-size:1.1em">\$4.28/GB</strong>, ULL(Ultra-Low-Latency) SSD <strong style="font-size:1.1em">\$0.27/GB</strong>로 계산하면 SkyByte-Full은 DRAM-only 구성 대비 <strong style="font-size:1.1em">15.9배 저렴</strong>하고 cost-effectiveness를 <strong style="font-size:1.1em">11.8배</strong> 개선한다.<br><br><strong style="font-size:1.1em">민감도 분석</strong>: context switch의 이득은 thread 수와 memory bandwidth utilization에 비례해 커지지만, context switch overhead가 flash read latency를 넘어서면 이득이 줄어든다(Fig.15). alternative migration과 비교해도 SkyByte-CP가 TPP 기반 SkyByte-CT나 AstriFlash-CXL보다 우수하다(최대 1.21배, 평균 1.09배; Fig.23). ULL/SLC/MLC flash 지연까지 sweep해도 이점이 유지된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§VI, p.10</span></summary>
+<div class="ng-orig-text">SkyByte-Full costs 15.9× less than the DRAM-only setup and improves cost-effectiveness by 11.8×.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_022" style="--color:#1ABC9C;border-radius:22px;left:620px;top:2700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">평가가 trace-replay 시뮬레이션 중심 — full-system OS 상호작용은 부분 검증</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">성능 수치는 대부분 <strong style="font-size:1.1em">PIN trace replay 기반 시뮬레이션</strong>(MacSim+SimpleSSD)에서 나온다. FPGA prototype은 write log/data cache의 <strong style="font-size:1.1em">성능 모델(지연·대역폭)</strong>을 검증할 뿐, 실제 Linux 스케줄러·인터럽트 처리·멀티코어 캐시 일관성이 얽히는 <strong style="font-size:1.1em">full-system 상호작용</strong>을 끝까지 돌린 것은 아니다.<br><br>특히 coordinated context switch는 OS 스케줄러 내부(CFS runqueue, IDT handler)와 깊게 엮이는데, 이 부분이 실제 커널에서 얼마나 매끄럽게·안전하게 도는지(예: switch storm, priority inversion, TLB shootdown 비용)는 시뮬레이션이 완전히 대변하지 못한다. adaptive migration의 access-count threshold와 PLB 용량(64 entry)이 워크로드별로 얼마나 robust한지도 추가 분석 여지가 있다.</div></div>
+</div>
+<div class="ng-node" id="node-node_023" style="--color:#BDC3C7;border-radius:22px;left:620px;top:2900px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">발표 축과의 정합: SSD 이중역할 × transparent co-design</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문은 내 세미나 축 — <strong style="font-size:1.1em">SSD의 이중역할(byte-addressable memory $\leftrightarrow$ block storage) $\times$ transparent co-design</strong> — 의 거의 교과서적 사례다.<br><br>- <strong style="font-size:1.1em">이중역할</strong>: 같은 flash를 CXL.mem으로 노출하면 memory, 내부적으로는 여전히 page/GC를 가진 storage다. SkyByte의 세 메커니즘은 전부 '메모리처럼 보이되 storage의 물성(page, GC, 긴 지연)을 host와 협력해 흡수'하는 장치다.<br>- <strong style="font-size:1.1em">transparent co-design</strong>: 애플리케이션은 그냥 `load`/`store`를 쓰고(투명), 그 밑에서 OS와 SSD 컨트롤러가 프로토콜(NDR opcode)·마이크로아키텍처(retire exception)·스케줄러(CFS)까지 함께 뜯어고친다.<br><br>2회차 발표로 SkyByte를 고른 이유가 여기 있다 — Smart-Infinity(near-storage compute)와 달리 SkyByte는 <strong style="font-size:1.1em">SSD를 메모리 계층으로 끌어올리는</strong> 쪽이라, 축의 반대편 극을 보여준다. 「결론(Conclusion)」 노드의 co-design 서사와 이어 발표하면 대비가 선명하다.</div></div>
+</div>
+<div class="ng-node" id="node-node_024" data-children="node_025,node_026,node_027,node_028,node_029" style="--color:#BDC3C7;border-radius:22px;left:620px;top:3050px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향과의 연결: SkyByte는 single-host, 나는 multi-node CXL coherence</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">내 박사 방향은 <strong style="font-size:1.1em">메모리 시스템 아키텍처</strong>, 그중에서도 <strong style="font-size:1.1em">여러 host가 CXL로 공유하는 메모리의 coherence/consistency 원리</strong>다. 그 렌즈로 보면 SkyByte는 강력하지만 <strong style="font-size:1.1em">철저히 single-host 설계</strong>다 — CXL-SSD를 하나의 host physical memory에 통째로 매핑한 <strong style="font-size:1.1em">Type-3 HDM</strong> device로 노출하고, context switch도 migration도 그 한 host 안에서만 조율된다.<br><br>즉 SkyByte의 '기법'(coordinated notification, cacheline write log, hot-page promotion)은 재사용 가능하지만, '문제 정의'(single-host state/일관성)는 multi-node 공유 상황에서 다시 세워야 한다. 오른쪽 노드들에서 이 gap을 구체화한다 — write log의 최신성, promotion 일관성, NDR coordination이 여러 host가 한 CXL-SSD를 공유할 때 어떻게 깨지고 무엇을 새로 풀어야 하는지가 정확히 내 연구가 채울 자리다.</div></div>
+</div>
+<div class="ng-node" id="node-node_025" style="--color:#1ABC9C;border-radius:22px;left:1150px;top:2900px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">전제 노출: 전 과정이 Type-3 HDM single-host를 가정</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SkyByte의 모든 메커니즘은 <strong style="font-size:1.1em">CXL-SSD를 한 host의 physical memory에 통째로 매핑하는 Type-3 HDM(Host-managed Device Memory)</strong> 위에 서 있다. 그래서:<br><br>- context switch는 <strong style="font-size:1.1em">그 host의 OS 스케줄러(CFS/IDT)</strong> 안에서만 조율된다 — 다른 host의 thread는 시야 밖이다.<br>- page migration은 <strong style="font-size:1.1em">그 host의 PTE/TLB</strong>를 갱신하며, PLB도 단일 root complex에 붙는다.<br>- write log의 '최신 cacheline'은 <strong style="font-size:1.1em">한 writer 세계</strong>를 전제한다.<br><br>여러 host가 같은 CXL-SSD를 <strong style="font-size:1.1em">공유 메모리 풀</strong>로 나눠 쓰는 순간, 이 전제들이 전부 재검토 대상이 된다. 논문은 이 축을 아예 열지 않는다(§Discussion의 persistence·NUMA·huge page는 전부 single-host 내부 이야기).</div></div>
+</div>
+<div class="ng-node" id="node-node_026" style="--color:#1ABC9C;border-radius:22px;left:1150px;top:3050px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">깨지는 지점: 공유 시 write log 최신성 · promotion 일관성</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">multi-host 공유에서 SkyByte의 두 핵심 구조가 직접 흔들린다.<br><br><strong style="font-size:1.1em">(1) Write log의 최신성</strong>: 지금은 read가 flash page 위에 log의 최신 cacheline을 merge해 '항상 최신'을 보장한다. 그런데 host A와 host B가 같은 LPA에 각자 write를 append하면, log는 더 이상 단일 total order가 아니다 — 어느 write가 최신인지 정하려면 host 간 <strong style="font-size:1.1em">write serialization / coherence protocol</strong>이 필요하다. two-level hash index도 host-oblivious라 충돌을 구분하지 못한다.<br><br><strong style="font-size:1.1em">(2) Promotion 일관성</strong>: hot page를 host A의 DRAM으로 promote하면, 그 순간 그 page의 '진짜 위치'는 SSD가 아니라 A의 로컬 DRAM이다. host B가 CXL.mem으로 같은 page를 읽으면 <strong style="font-size:1.1em">stale copy</strong>를 볼 수 있다. PLB는 in-flight migration만 추적할 뿐, promote된 뒤의 <strong style="font-size:1.1em">cross-host 무효화(invalidation)</strong>는 설계에 없다.</div></div>
+</div>
+<div class="ng-node" id="node-node_027" style="--color:#E5A835;border-radius:22px;left:1150px;top:3200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">NDR coordination을 multi-node로 일반화할 수 있나?</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">SkyByte의 가장 이식성 높은 아이디어는 <strong style="font-size:1.1em">SSD→host 알림(informing)</strong>이다 — SSD가 내부 상태(cache miss, flash queue)를 host 스케줄링에 노출한다. 이걸 multi-node로 밀면 자연스러운 질문이 생긴다.<br><br>한 host의 `MemRd`가 긴 지연에 막혔을 때, 그 지연의 원인이 <strong style="font-size:1.1em">다른 host가 같은 page를 promote/lock했기 때문</strong>이라면, `SkyByte-Delay` 같은 신호에 <strong style="font-size:1.1em">coherence 상태(누가 소유 중인지)</strong>를 실어야 하지 않을까? 즉 NDR opcode를 'delay 있음'을 넘어 'shared/exclusive/owned' 같은 <strong style="font-size:1.1em">directory 상태 힌트</strong>로 확장하는 것이다.<br><br>이는 CXL 3.x의 <strong style="font-size:1.1em">back-invalidation / hardware coherence</strong> 방향과 맞닿는다. SkyByte가 single-host에서 보인 'retire-time에 정확히 트리거' 트릭이 multi-host directory update에서도 false-positive를 줄이는 데 쓰일 수 있는지가 파볼 지점이다.</div></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_028" style="--color:#95A5A6;border-radius:22px;left:1150px;top:3350px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">이 gap을 여는 선행/이웃 연구</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">multi-node CXL coherence 방향으로 SkyByte를 확장할 때 붙잡을 좌표:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>축</th><th>연구</th></tr></thead><tbody><tr><td>CXL coherence를 형식적으로 규정</td><td><strong style="font-size:1.1em">Formalising CXL Cache Coherence</strong> (vault 내 노트 존재)</td></tr><tr><td>CXL로 SSD 자원을 여러 host가 harvest</td><td><strong style="font-size:1.1em">XHarvest</strong> (CXL-Driven Harvesting SSD, vault 내 노트)</td></tr><tr><td>SSD byte-accessibility의 OS 계층 지원</td><td><strong style="font-size:1.1em">ByteFS</strong> (ASPLOS'25)</td></tr><tr><td>CXL-SSD 아키텍처 원형</td><td><strong style="font-size:1.1em">Overcoming the Memory Wall with CXL-Enabled SSDs</strong> (ATC'23)</td></tr><tr><td>byte-accessible SSD + promotion buffer</td><td><strong style="font-size:1.1em">FlatFlash</strong> (ASPLOS'19)</td></tr></tbody></table></div><div class="ng-seg"><br>개별 조각(informing memory op, write log, hot-page promotion, CXL coherence 형식화)은 이미 있다. 하지만 '<strong style="font-size:1.1em">여러 host가 공유하는 memory-semantic SSD 위에서 write log 최신성과 promotion 일관성을 coherence 프로토콜로 함께 푸는</strong>' 조합은 아직 한 편으로 묶여 나오지 않았다 — 여기가 빈칸이다.</div></div></div>
+</div>
+<div class="ng-node" id="node-node_029" style="--color:#E5A835;border-radius:22px;left:1150px;top:3500px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">구별 실험(discriminating experiment): 무엇을 보이면 gap이 실재하나?</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 gap이 '말뿐'이 아님을 보이려면, SkyByte를 그대로 두 host가 공유하는 구성으로 확장한 뒤 <strong style="font-size:1.1em">cross-host 공유 페이지 비율</strong>을 축으로 스윕하는 실험이 필요하다.<br><br>측정 대상: (a) 두 host가 같은 page 집합을 read/write 공유할 때, promotion 후 발생하는 <strong style="font-size:1.1em">stale-read 빈도</strong>와 이를 막기 위한 <strong style="font-size:1.1em">invalidation traffic</strong>; (b) write log를 host별로 분리할지 공유할지에 따른 <strong style="font-size:1.1em">write serialization 오버헤드</strong>; (c) NDR에 coherence 상태를 실었을 때 절감되는 불필요한 stall.<br><br>baseline은 'SkyByte 그대로(coherence 무지)' vs '제안(coherence-aware NDR + cross-host PLB)'. 이득이 커지는 조건은 <strong style="font-size:1.1em">공유도(sharing degree)가 높고 write 충돌이 잦을수록</strong>. 남는 위험: coherence 힌트가 부정확하면 back-invalidation storm이 나므로, confidence/hysteresis 안전장치가 novelty를 얼마나 깎는지가 다음 확인 포인트다.</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":250,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":250,"searchText":"killer application skybyte가 푸는 문제는 **cxl 기반 ssd(cxl-ssd, memory-semantic ssd)**를 진짜 메모리처럼 쓰려 할 때 터지는 두 가지 근본 병목을, **host os와 ssd controller의 co-design**만으로 동시에 없애는 것이다. cxl-ssd는 `load`/`store`로 byte 단위 접근이 되지만, 그냥 host memory 확장으로 취급하면 (1) 긴 flash 지연이 cpu pipeline을 통째로 stall시키고, (2) byte-granular cxl과 page-granular flash 사이의 **granularity mismatch(입출력 단위 불일치)**가 심한 i/o amplification을 낳는다.\n\n**killer application 1 — 사라진 context switch 기회를 되살리기**: dram에서는 thread가 막히면 os가 context switch로 cpu를 다른 일에 쓴다. 그런데 cxl-ssd의 `load`/`store`는 cpu에서 ssd로 직접 나가 os가 가로챌 수 없어 이 기회가 사라진다. skybyte는 ssd가 긴 지연을 감지해 host에 알리는 **coordinated context switch(협력형 문맥 전환)**로 이 기회를 복원한다.\n\n**killer application 2 — cacheline 단위로 ssd dram 재설계**: 대부분 워크로드가 한 page의 40% 미만 cacheline만 건드린다는 관찰에서 출발해, ssd dram을 **cacheline 단위 write log + page 단위 read-write cache**로 쪼개 flash write traffic을 극적으로 줄인다.\n\n**killer application 3 — hot page를 host로 끌어올리는 adaptive migration**: 자주 쓰는 page를 host dram으로 승격(promote)해 작은 ssd dram을 사실상 확장한다.\n\n결과적으로 sota cxl-ssd 대비 평균 **6.11배** 성능 향상, flash write traffic **23.08배** 감소, 무한 host dram을 가정한 ideal 대비 **75%** 성능에 도달한다. our experiments show that skybyte outperforms current cxl-based ssd by 6.11×, and reduces the i/o traffic to flash chips by 23.08× on average. skybyte also reaches 75% of the performance of the ideal case that assumes unlimited dram capacity in the host."},{"id":"node_002","lx":100,"ly":550,"children":["node_007","node_008","node_009"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":550,"searchText":"필요한 이유 (why it's needed) cxl-ssd를 그냥 host memory의 확장으로 취급하면 극심한 성능 저하와 cpu stall이 발생한다. 저자들이 짚는 원인은 세 가지다.\n\n**(1) 긴 tail latency**: flash 접근 지연이 host dram보다 수 자릿수 크고, ssd 내부 dram cache는 수 gb로 작아 miss가 나면 그 긴 지연을 그대로 맞는다.\n\n**(2) pipeline stall**: out-of-place update와 **garbage collection(gc, 가비지 컬렉션)**이 read/write를 지연시켜 긴 cpu pipeline stall을 유발한다.\n\n**(3) granularity mismatch(입출력 단위 불일치)**: cxl은 byte 단위 접근을 열어주지만 flash는 page 단위만 지원해 심한 i/o amplification이 생긴다.\n\n측정으로 뒷받침된다 — 워크로드가 dram 대비 cxl-ssd에서 **1.5~31.4배** 느려지고(fig.2), memory-bounded cycle 비율이 dram의 62.9~98.7%에서 cxl-ssd에서는 **77~99.8%**로 치솟는다(fig.4). 즉 cpu가 대부분의 시간을 메모리 대기에 쓴다. simply treating ssds as an extension of host memory via cxl causes dramatic performance degradation and excessive cpu stalls."},{"id":"node_003","lx":100,"ly":850,"children":["node_010","node_011","node_012","node_013","node_014","node_015","node_016","node_017"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":850,"searchText":"해결책 (solution) skybyte는 세 컴포넌트를 host os와 ssd controller의 **co-design(공동 설계)**으로 묶는다. 핵심 통찰은 **cpu도 ssd도 단독으로는** 어떤 명령이 긴 지연에 막혔는지 알 수 없다는 것 — 그래서 양쪽 coordination이 필수다.\n\n**1. coordinated context switch**: ssd가 dram cache miss로 긴 지연을 예측하면 cxl.mem **ndr(no data response)** 메시지에 새 opcode `skybyte-delay`를 실어 host에 알린다. host cxl controller가 mshr·상위 cache를 뒤져 해당 명령을 찾고, 그 명령이 **retire될 때** *skybyte long delay exception*을 띄워 cxl-aware scheduler로 문맥을 전환한다.\n\n**2. cxl-aware ssd dram 재설계**: ssd dram을 cacheline(64b) 단위 **double-buffered write log**와 page(4kb) 단위 **read-write data cache**로 나눈다. 모든 write는 원본 page fetch 없이 log tail에 append되어 critical path에서 flash 접근을 없앤다. log가 차면 background **compaction(압축)**이 같은 page의 write를 coalesce해 flash write traffic을 줄인다.\n\n**3. adaptive page migration**: ssd가 page별 access count를 추적해 hot page를 pcie msi-x interrupt로 host dram에 promote하고, **plb(promotion look-aside buffer)**로 진행 중 migration의 일관성을 보장한다. neither cpu nor ssd can by itself decide whether to trigger a context switch. therefore, to enable context switch on long cxl-ssd memory stalls, we coordinate between host os and ssd controller."},{"id":"node_004","lx":100,"ly":1150,"children":["node_018","node_019","node_020","node_021","node_022"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1150,"searchText":"결과 (results) macsim + simplessd 기반 cxl-ssd 시뮬레이터로 8개 멀티스레드 데이터 집약 워크로드(rodinia, gap, splash3, whisper, dlrm 등)를 평가하고, fpga soc(xilinx zynq ultrascale+ zu3eg) prototype으로 write log/cache 성능 모델을 실측 검증했다.\n\n**base-cssd**(sota 기법을 다 적용한 cxl-ssd) 대비:\n\n| 지표 | 수치 |\n|---|---|\n| skybyte-full 성능 향상 | 평균 **6.11배** (최대 16.35배) |\n| average memory access time | **14.19배** 개선 |\n| flash write traffic | **23.08배** 감소 |\n| ideal(무한 host dram) 대비 | **75%** 도달 (저하 1.33배) |\n| dram-only 대비 비용 | **15.9배** 저렴, cost-effectiveness **11.8배** |\n\nablation로 세 컴포넌트가 **직교적(orthogonal)**임을 보인다 — page migration만(p) 1.84배, write log만(w) 2.16배, +compaction(cp) 2.79배, write log+migration(wp) 2.95배. context switch의 이득(평균 1.49배)이 나머지와 독립적으로 곱해진다. (3) skybyte reduces the average memory access time by 14.19× and the flash write traffic by 23.08× over the state-of-the-art cxl-ssd design."},{"id":"node_005","lx":100,"ly":1450,"children":["node_023","node_024"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1450,"searchText":"결론 (conclusion) skybyte는 cxl-ssd의 두 근본 문제(긴 flash 지연으로 인한 pipeline stall + byte/page granularity mismatch)를 **os-하드웨어 co-design**으로 정면 돌파해, 새 메모리 매체 없이 정책·구조 개선만으로 dram-only ideal의 75%에 도달하면서 **15.9배 저렴**하다. 값싼 대용량 flash를 byte-addressable memory로 실용화하는 길을 보인 셈이다.\n\n**의의**: ssd를 black box·page 단위로만 다루던 기존 접근(astriflash 등)과 달리, cxl.mem 프로토콜 계층까지 내려가 ssd 내부 상태(cache hit/miss, flash queue)를 host 스케줄링과 엮은 **transparent co-design(투명한 공동 설계)**의 모범 사례다.\n\n**한계 / 열린 질문**: (1) 평가가 trace replay 기반 시뮬레이션 중심이라 full-system os 상호작용은 부분 검증에 그친다. (2) `skybyte-delay` opcode와 long delay exception은 cpu·cxl controller의 **isa/하드웨어 변경**을 요구해 실배포 장벽이 있다. (3) data persistence를 기본 가정하지 않으며 `clwb`+page pin으로만 보장한다(pin된 page는 promote 불가 → trade-off). (4) 전 과정이 **single-host** 전제 — 여러 host가 한 cxl-ssd를 공유하는 multi-node coherence는 다루지 않는다. skybyte-full costs 15.9× less than the dram-only setup and improves cost-effectiveness by 11.8×."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"os가 cxl load/store를 가로챌 수 없다 → co-design이 유일한 길 이 논문 전체를 관통하는 통찰. 현대 os는 host dram에서 thread가 막히면 context switch로 다른 thread를 돌려 cpu를 활용한다. 그런데 cxl-ssd에서는 `load`/`store` 명령이 host cpu에서 cxl 프로토콜을 통해 **ssd로 직접 발행**되므로, os가 이를 **intercept(가로채기)**할 수 없다. 따라서 os는 어느 명령이 긴 ssd 지연에 막혔는지조차 모른다.\n\ncpu는 flash cache hit/miss 여부를 모르고, ssd는 그 명령이 speculative인지(나중에 squash될지) 모른다. **어느 쪽도 혼자서는 context switch를 결정할 수 없다** — 그래서 host os와 ssd controller의 co-design이 선택이 아니라 필수가 된다. this context switch opportunity is missing for cxl-ssds, because the os cannot intercept the load/store memory instructions issued directly from the host cpu to the ssd device via the cxl protocol."},{"id":"node_007","lx":620,"ly":400,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"측정 근거: cxl-ssd가 dram 대비 1.5~31.4배 느림, memory-bounded cycle 77~99.8% 세 문제(long tail latency / pipeline stall / granularity mismatch)를 저자들은 측정으로 입증한다. 동일 워크로드가 host dram 대비 cxl-ssd에서 **1.5~31.4배** 느려진다(fig.2). 원인을 cycle 분해로 보면, memory-bounded cycle 비율이 dram에서 62.9~98.7%였다가 cxl-ssd에서 **77~99.8%**로 올라간다(fig.4) — cpu가 거의 항상 메모리 대기 상태다.\n\nflash page read 지연은 약 $3\\,\\mu s$로, 일반적인 context switch overhead($\\approx 2\\,\\mu s$)보다 길다. 이 부등식이 성립하기 때문에 '막힌 thread를 재우고 다른 thread를 돌리는' 전략이 순이득을 낸다 — skybyte의 switch threshold를 $2\\,\\mu s$로 잡는 근거다. the tail latency of cxl-ssd causes severe processor pipeline stalls, leading to both performance degradation and underutilization of cpu and ssd bandwidth."},{"id":"node_008","lx":620,"ly":550,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":550,"searchText":"granularity mismatch 근거: page의 75% 이상에서 cacheline 40% 미만만 접근 ssd dram을 왜 cacheline 단위로 재설계해야 하는지의 실측 근거. 대부분 워크로드가 **page의 75% 이상**에서 그 page 안 **cacheline의 40% 미만**만 접근한다(fig.5/fig.6). 즉 4kb page를 통째로 ssd dram에 caching하면 대부분의 공간이 안 쓰이는 cacheline으로 낭비되고, 그 page를 flush할 때 건드리지도 않은 부분까지 flash로 나가 **write amplification(쓰기 증폭)**을 키운다.\n\n이 관찰이 곧 write log를 **cacheline(64b) 단위**로 두는 설계 결정으로 직결된다 — finer granularity로 (1) ssd dram 공간을 아끼고 (2) 더 큰 write coalescing window를 확보해 flash write를 줄인다. our study in §ii finds that most workloads access less than 40% of cachelines in more than 75% of pages. caching the entire page in the ssd dram significantly wastes precious ssd dram space."},{"id":"node_009","lx":620,"ly":700,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":700,"searchText":"핵심 선행/비교 연구: cxl-ssd, bytefs, astriflash, flatflash, tpp skybyte가 서 있는 좌표를 정하는 핵심 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **overcoming the memory wall with cxl-enabled ssds** (yang et al., atc'23) | skybyte가 출발점으로 삼는 대표 cxl-ssd 아키텍처 |\n| **bytefs** (s. li et al., asplos'25) | ssd byte-accessibility를 os·storage 계층에서 지원, 직접 비교되는 동시기 연구 |\n| **astriflash** (gupta et al., hpca'23) | host dram을 ssd의 set-associative cache로, user-level thread switch로 i/o 은닉. **차별점**: ssd를 black box·page 단위로 취급 vs skybyte의 프로토콜 계층 co-design |\n| **flatflash** (abulila et al., asplos'19) | byte-accessible ssd + host-bridge promotion buffer, skybyte migration 일관성 설계의 기반 |\n| **tpp** (maruf et al., asplos'23) | linux numa balancing 기반 page placement, skybyte-ct 비교 baseline |\n| **informing memory operations** (horowitz et al., isca'96) | cache miss를 software에 알리는 primitive, ssd→cpu 알림 설계의 영감 | unlike prior work such as astriflash that treats the ssd as a black box at page granularity, skybyte co-designs the host os and ssd controller."},{"id":"node_010","lx":620,"ly":850,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":850,"searchText":"coordinated context switch 흐름 (c1~c4) ssd dram cache miss로 긴 지연이 예상되면 ssd가 host os에 문맥 전환을 요청한다. 4단계로 흐른다.\n\n**(c1)** host cpu가 tracking 정보와 함께 cxl.mem `memrd` 요청을 보낸다. shared llc의 **mshr(miss status holding register)**이 어느 `load`/`store`가 응답을 기다리는지 추적하고 memory access coalescing도 한다.\n\n**(c2)** ssd가 cache miss를 감지하면 estimated latency로 switch 여부를 판단하고, **ndr(no data response)** 메시지의 새 opcode `skybyte-delay`로 '이 요청은 오래 걸린다'고 표시해 회신한다.\n\n**(c3)** host cxl controller가 ndr을 받아 llc mshr과 l1/l2를 탐색, 이 응답을 기다리는 uncommitted 명령을 찾고 그 명령이 **retire stage**에 진입할 때 *skybyte long delay exception*을 트리거한다(page fault와 유사).\n\n**(c4)** exception handler가 x86 **idt(interrupt descriptor table)**에 설치된 cxl-aware 스케줄링 정책을 호출해 다음 thread를 고르고 전환한다. 원래 thread가 다시 스케줄되면 막혔던 명령부터 재개한다. when the ssd detects a cache miss that will incur a long delay, it notifies the host via the ndr message so that the host os can switch to another thread."},{"id":"node_011","lx":620,"ly":1000,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1000,"searchText":"skybyte-delay opcode + long delay exception (retire-time로 false-positive 제거) 두 개의 새 프리미티브가 핵심이다.\n\n**`skybyte-delay` opcode**: cxl.mem의 ndr(no data response, slave→master) 메시지 사양을 확장해 **reserved opcode**를 하나 활용한다(fig.8). 해당 `memrd`가 긴 지연(예: ssd dram cache miss)을 겪을 것임을 host에 알리는 신호다. 표준 프로토콜의 여유 공간을 재활용하므로 wire format 변경이 최소다.\n\n**skybyte long delay exception**: ndr 수신 후 곧바로 전환하지 않고, 대응 명령이 **retire될 때**만 exception을 띄운다. 이유는 speculative `load`/`store`나 하드웨어 prefetch가 결국 **squash(무효화)**될 수 있기 때문 — retire 시점까지 미루면 '전환했는데 알고 보니 취소될 명령이었던' **false-positive context switch를 추가 하드웨어 비용 없이** 제거한다. 이 깔끔함이 이 설계의 백미다. skybyte extends the ndr message specification by introducing a new opcode called skybyte-delay. this opcode indicates that the corresponding memrd request will suffer from a long access delay (e.g., an ssd dram cache miss)."},{"id":"node_012","lx":620,"ly":1150,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1150,"searchText":"언제 전환할까: threshold-based policy (algorithm 1) ssd는 ftl mapping table로 **ppa(physical page address)**를 구해 해당 flash channel queue 상태(대기 요청 수)를 조회하고, 예상 지연을 계산한다.\n\n$$l_{est} = t_{read}\\,(n_{read}+1) + t_{write}\\,n_{write} + t_{erase}\\,n_{erase}$$\n\n이 $l_{est}$가 threshold보다 크면 문맥을 전환한다. 기본 threshold는 $2\\,\\mu s$ — flash page read 지연($\\approx 3\\,\\mu s$)이 일반 context switch overhead($\\approx 2\\,\\mu s$)보다 길다는 관찰에서 나온 값이다. **gc로 막힌 요청**은 보통 milliseconds 지속되므로 계산 없이 즉시 전환한다.\n\n다음 thread 선택 정책은 round-robin / random / **cfs(completely fair scheduler)** 중 linux 표준인 cfs를 기본으로 쓴다(fig.10). the estimated latency is computed based on the number of pending requests in the flash channel queue, and a context switch is triggered if it exceeds a threshold."},{"id":"node_013","lx":620,"ly":1300,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1300,"searchText":"cxl-aware ssd dram: cacheline write log + page data cache ssd dram을 두 구조로 재구성한다(fig.11) — cacheline(64b) 단위 **double-buffered write log**와 page(4kb) 단위 read-write **data cache**.\n\n**write path**: 모든 cacheline write는 원본 page를 먼저 fetch하지 않고 write log의 tail에 **append**된다(w1) → critical path에서 flash 접근이 사라진다. data cache에 그 page가 있으면 병렬로 갱신하고(w2), log index도 갱신한다(w3). 실제 flash flush는 나중에 몰아서 한다.\n\n**read path**: data cache와 write log를 **병렬 lookup**한다. 둘 다 miss면 flash에서 page를 읽어온 뒤 write log의 최신 cacheline을 그 위에 **merge**한다(r1~r3). 즉 log가 항상 최신 진실을 갖고, cache는 spatial locality를 위한 read 가속용이다. all cacheline writes are directly appended to the log without flash access along the critical path. they are flushed to the flash memory later."},{"id":"node_014","lx":620,"ly":1450,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1450,"searchText":"write log를 빠르게 뒤지기: two-level hash table write log lookup은 hash table로 **amortized $o(1)$**을 노린다. 다만 평범한 단일 hash table은 '같은 page의 모든 cacheline'을 찾으려면 여러 번 lookup해야 한다 — compaction에 불리하다.\n\nskybyte는 인덱스를 **2단**으로 쪼갠다(fig.12). **1단**은 **lpa(logical page address)**로 색인하고, 각 valid entry가 **2단** hash table을 가리킨다. 2단은 그 logical flash page 안의 로그된 cacheline을 **page 내 offset별**로 추적한다. 덕분에 같은 page의 모든 cacheline을 한 번에 모아 compaction에서 통째로 merge할 수 있다. log index의 memory footprint는 평균 **5.6mb**로 가볍다. skybyte breaks the indexing structure into two levels. at the first level, we employ a hash table indexed by the logical page address (lpa). each valid entry points to a second level hash table that tracks all logged cache lines in this logical flash page with their offset within the page."},{"id":"node_015","lx":620,"ly":1600,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1600,"searchText":"write log compaction: double-buffered, 평균 146μs log가 가득 차면 background **compaction(압축)**이 같은 page로의 write를 coalesce해 flash write traffic을 크게 줄인다(fig.13). indexing table은 **최신 갱신만** 추적하므로 오래된 갱신은 자동으로 drop된다. dirty cacheline을 가진 page가 이미 cache에 있으면 바로 flush하고, 없으면 coalescing buffer로 load해 merge한 뒤 flash로 **batch write**한다.\n\n**double-buffered log**가 핵심 — compaction이 도는 동안 들어오는 새 write는 두 번째 log가 받아내므로 incoming write가 **blocking되지 않는다**. 한 번 compaction은 평균 **$146\\,\\mu s$**가 걸리며, 이 비용을 background로 숨겨 critical path 밖에 둔다. the double-buffered design allows incoming writes to be served by the new log while the old log is being compacted, avoiding blocking."},{"id":"node_016","lx":620,"ly":1750,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1750,"searchText":"adaptive page migration + plb로 일관성 보장 ssd가 flash page별 access count를 추적해 threshold를 넘는 **hot page**를 host dram으로 promote한다(ssd dram cache에 올라와 있는 page만 대상). 알림은 **pcie msi-x interrupt**로 host에 올린다.\n\n일관성이 관건이다 — migration 도중 그 page에 접근이 오면 어디가 최신인지 모호해진다. 이를 위해 root complex에 **plb(promotion look-aside buffer, 64 entry)**를 두어 진행 중인 migration을 추적하고, 완료 후 os가 **pte와 tlb**를 갱신한다. host 공간이 부족하면 linux page reclamation으로 cold page를 ssd로 evict한다. **numa**와 **huge page(2mb)**도 지원한다. to ensure data consistency during migration, we introduce a promotion look-aside buffer (plb) in the root complex that tracks in-flight page migrations."},{"id":"node_017","lx":620,"ly":1900,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1900,"searchText":"isa/하드웨어 변경(opcode+exception)이 실배포를 막지 않나? skybyte의 우아함은 곧 배포 장벽이기도 하다. `skybyte-delay` opcode는 cxl.mem ndr 사양 확장을, skybyte long delay exception은 cpu retire logic + x86 idt handler 설치를, plb는 root complex 하드웨어 추가를 요구한다. 즉 **cpu 벤더·cxl 표준·ssd 컨트롤러 세 주체의 동시 협조**가 필요하다.\n\n논문은 reserved opcode 재활용으로 wire 변경을 최소화했다고 하지만, retire-time exception과 mshr 탐색은 마이크로아키텍처 수정이라 fpga/시뮬레이터를 넘어 상용 실리콘에 언제 실릴지는 불투명하다. **'표준에 얹을 수 있는 최소 변경'과 '벤더가 실제로 넣어줄 변경'의 간극**이 이 설계가 답하지 않은 지점이다. "},{"id":"node_018","lx":620,"ly":2100,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2100,"searchText":"평가 셋업: macsim+simplessd 시뮬레이터 + fpga prototype 구현은 **macsim**(cpu/스케줄링 확장)과 **simplessd**를 결합한 cxl-ssd 시뮬레이터다. context switch 스케줄링, plb를 여기에 얹었다. write log/data cache의 실제 지연·처리량은 **fpga soc(xilinx zynq ultrascale+ zu3eg)** prototype으로 실측 검증했다.\n\n| 구조 | lookup 지연 | 처리량 |\n|---|---|---|\n| write log (64mb) | 72 ns | cacheline read 11.93 gb/s |\n| data cache (512mb) | 49 ns | cacheline write 9.37 gb/s |\n\n워크로드는 rodinia, gap, splash3, whisper, dlrm 등 **8개 멀티스레드 데이터 집약** 애플리케이션(table i). we implement skybyte based on macsim and simplessd, and validate the performance model of the write log and data cache using an fpga soc prototype."},{"id":"node_019","lx":620,"ly":2250,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2250,"searchText":"핵심 수치: 6.11배↑ · write 23.08배↓ · ideal의 75% **base-cssd**(sota 기법을 다 적용한 cxl-ssd)를 기준으로:\n\n- skybyte-full 성능 **평균 6.11배** 향상, 최대 **16.35배**(fig.14).\n- **average memory access time 14.19배** 개선, **flash write traffic 23.08배** 감소.\n- 무한 host dram을 가정한 **dram-only(ideal) 성능의 75%**에 도달 — end-to-end 저하가 평균 **1.33배**에 불과.\n\n즉 값싼 flash 기반 cxl-ssd로도 이상적 dram의 3/4 성능을 뽑아낸다는 것이 이 논문의 핵심 메시지다. skybyte also reaches 75% of the performance of the ideal case that assumes unlimited dram capacity in the host."},{"id":"node_020","lx":620,"ly":2400,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2400,"searchText":"ablation: 세 컴포넌트가 직교(orthogonal), context switch 이득 ×1.49 각 컴포넌트를 하나씩 켜며 기여를 분리한다(fig.14, base-cssd 대비).\n\n| 구성 | 향상 |\n|---|---|\n| skybyte-p (page migration only) | 1.84배 |\n| skybyte-w (write log only) | 2.16배 |\n| skybyte-cp | 2.79배 |\n| skybyte-wp (write log + migration) | 2.95배 |\n| skybyte-full | **6.11배** |\n\n**직교성(orthogonality)**의 증거: skybyte-c의 base-cssd 대비 향상과, skybyte-full의 skybyte-wp 대비 향상이 **둘 다 평균 1.49배**다. 즉 context switch의 이득이 write log·migration 이득과 **독립적으로 곱해진다**(단, tpcc는 예외로 page migration이 지배). the improvement of skybyte-c over base-cssd and that of skybyte-full over skybyte-wp are both 1.49× on average, showing that the context switch benefit is orthogonal to the write log and migration."},{"id":"node_021","lx":620,"ly":2550,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2550,"searchText":"비용·민감도: dram-only 대비 15.9배 저렴, 11.8배 cost-effective 2024년 여름 기준 ddr5 dram **\\$4.28/gb**, ull(ultra-low-latency) ssd **\\$0.27/gb**로 계산하면 skybyte-full은 dram-only 구성 대비 **15.9배 저렴**하고 cost-effectiveness를 **11.8배** 개선한다.\n\n**민감도 분석**: context switch의 이득은 thread 수와 memory bandwidth utilization에 비례해 커지지만, context switch overhead가 flash read latency를 넘어서면 이득이 줄어든다(fig.15). alternative migration과 비교해도 skybyte-cp가 tpp 기반 skybyte-ct나 astriflash-cxl보다 우수하다(최대 1.21배, 평균 1.09배; fig.23). ull/slc/mlc flash 지연까지 sweep해도 이점이 유지된다. skybyte-full costs 15.9× less than the dram-only setup and improves cost-effectiveness by 11.8×."},{"id":"node_022","lx":620,"ly":2700,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2700,"searchText":"평가가 trace-replay 시뮬레이션 중심 — full-system os 상호작용은 부분 검증 성능 수치는 대부분 **pin trace replay 기반 시뮬레이션**(macsim+simplessd)에서 나온다. fpga prototype은 write log/data cache의 **성능 모델(지연·대역폭)**을 검증할 뿐, 실제 linux 스케줄러·인터럽트 처리·멀티코어 캐시 일관성이 얽히는 **full-system 상호작용**을 끝까지 돌린 것은 아니다.\n\n특히 coordinated context switch는 os 스케줄러 내부(cfs runqueue, idt handler)와 깊게 엮이는데, 이 부분이 실제 커널에서 얼마나 매끄럽게·안전하게 도는지(예: switch storm, priority inversion, tlb shootdown 비용)는 시뮬레이션이 완전히 대변하지 못한다. adaptive migration의 access-count threshold와 plb 용량(64 entry)이 워크로드별로 얼마나 robust한지도 추가 분석 여지가 있다. "},{"id":"node_023","lx":620,"ly":2900,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2900,"searchText":"발표 축과의 정합: ssd 이중역할 × transparent co-design 이 논문은 내 세미나 축 — **ssd의 이중역할(byte-addressable memory $\\leftrightarrow$ block storage) $\\times$ transparent co-design** — 의 거의 교과서적 사례다.\n\n- **이중역할**: 같은 flash를 cxl.mem으로 노출하면 memory, 내부적으로는 여전히 page/gc를 가진 storage다. skybyte의 세 메커니즘은 전부 '메모리처럼 보이되 storage의 물성(page, gc, 긴 지연)을 host와 협력해 흡수'하는 장치다.\n- **transparent co-design**: 애플리케이션은 그냥 `load`/`store`를 쓰고(투명), 그 밑에서 os와 ssd 컨트롤러가 프로토콜(ndr opcode)·마이크로아키텍처(retire exception)·스케줄러(cfs)까지 함께 뜯어고친다.\n\n2회차 발표로 skybyte를 고른 이유가 여기 있다 — smart-infinity(near-storage compute)와 달리 skybyte는 **ssd를 메모리 계층으로 끌어올리는** 쪽이라, 축의 반대편 극을 보여준다. 「결론(conclusion)」 노드의 co-design 서사와 이어 발표하면 대비가 선명하다. "},{"id":"node_024","lx":620,"ly":3050,"children":["node_025","node_026","node_027","node_028","node_029"],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":3050,"searchText":"내 연구방향과의 연결: skybyte는 single-host, 나는 multi-node cxl coherence 내 박사 방향은 **메모리 시스템 아키텍처**, 그중에서도 **여러 host가 cxl로 공유하는 메모리의 coherence/consistency 원리**다. 그 렌즈로 보면 skybyte는 강력하지만 **철저히 single-host 설계**다 — cxl-ssd를 하나의 host physical memory에 통째로 매핑한 **type-3 hdm** device로 노출하고, context switch도 migration도 그 한 host 안에서만 조율된다.\n\n즉 skybyte의 '기법'(coordinated notification, cacheline write log, hot-page promotion)은 재사용 가능하지만, '문제 정의'(single-host state/일관성)는 multi-node 공유 상황에서 다시 세워야 한다. 오른쪽 노드들에서 이 gap을 구체화한다 — write log의 최신성, promotion 일관성, ndr coordination이 여러 host가 한 cxl-ssd를 공유할 때 어떻게 깨지고 무엇을 새로 풀어야 하는지가 정확히 내 연구가 채울 자리다. "},{"id":"node_025","lx":1150,"ly":2900,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2900,"searchText":"전제 노출: 전 과정이 type-3 hdm single-host를 가정 skybyte의 모든 메커니즘은 **cxl-ssd를 한 host의 physical memory에 통째로 매핑하는 type-3 hdm(host-managed device memory)** 위에 서 있다. 그래서:\n\n- context switch는 **그 host의 os 스케줄러(cfs/idt)** 안에서만 조율된다 — 다른 host의 thread는 시야 밖이다.\n- page migration은 **그 host의 pte/tlb**를 갱신하며, plb도 단일 root complex에 붙는다.\n- write log의 '최신 cacheline'은 **한 writer 세계**를 전제한다.\n\n여러 host가 같은 cxl-ssd를 **공유 메모리 풀**로 나눠 쓰는 순간, 이 전제들이 전부 재검토 대상이 된다. 논문은 이 축을 아예 열지 않는다(§discussion의 persistence·numa·huge page는 전부 single-host 내부 이야기). "},{"id":"node_026","lx":1150,"ly":3050,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":3050,"searchText":"깨지는 지점: 공유 시 write log 최신성 · promotion 일관성 multi-host 공유에서 skybyte의 두 핵심 구조가 직접 흔들린다.\n\n**(1) write log의 최신성**: 지금은 read가 flash page 위에 log의 최신 cacheline을 merge해 '항상 최신'을 보장한다. 그런데 host a와 host b가 같은 lpa에 각자 write를 append하면, log는 더 이상 단일 total order가 아니다 — 어느 write가 최신인지 정하려면 host 간 **write serialization / coherence protocol**이 필요하다. two-level hash index도 host-oblivious라 충돌을 구분하지 못한다.\n\n**(2) promotion 일관성**: hot page를 host a의 dram으로 promote하면, 그 순간 그 page의 '진짜 위치'는 ssd가 아니라 a의 로컬 dram이다. host b가 cxl.mem으로 같은 page를 읽으면 **stale copy**를 볼 수 있다. plb는 in-flight migration만 추적할 뿐, promote된 뒤의 **cross-host 무효화(invalidation)**는 설계에 없다. "},{"id":"node_027","lx":1150,"ly":3200,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":3200,"searchText":"ndr coordination을 multi-node로 일반화할 수 있나? skybyte의 가장 이식성 높은 아이디어는 **ssd→host 알림(informing)**이다 — ssd가 내부 상태(cache miss, flash queue)를 host 스케줄링에 노출한다. 이걸 multi-node로 밀면 자연스러운 질문이 생긴다.\n\n한 host의 `memrd`가 긴 지연에 막혔을 때, 그 지연의 원인이 **다른 host가 같은 page를 promote/lock했기 때문**이라면, `skybyte-delay` 같은 신호에 **coherence 상태(누가 소유 중인지)**를 실어야 하지 않을까? 즉 ndr opcode를 'delay 있음'을 넘어 'shared/exclusive/owned' 같은 **directory 상태 힌트**로 확장하는 것이다.\n\n이는 cxl 3.x의 **back-invalidation / hardware coherence** 방향과 맞닿는다. skybyte가 single-host에서 보인 'retire-time에 정확히 트리거' 트릭이 multi-host directory update에서도 false-positive를 줄이는 데 쓰일 수 있는지가 파볼 지점이다. "},{"id":"node_028","lx":1150,"ly":3350,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":3350,"searchText":"이 gap을 여는 선행/이웃 연구 multi-node cxl coherence 방향으로 skybyte를 확장할 때 붙잡을 좌표:\n\n| 축 | 연구 |\n|---|---|\n| cxl coherence를 형식적으로 규정 | **formalising cxl cache coherence** (vault 내 노트 존재) |\n| cxl로 ssd 자원을 여러 host가 harvest | **xharvest** (cxl-driven harvesting ssd, vault 내 노트) |\n| ssd byte-accessibility의 os 계층 지원 | **bytefs** (asplos'25) |\n| cxl-ssd 아키텍처 원형 | **overcoming the memory wall with cxl-enabled ssds** (atc'23) |\n| byte-accessible ssd + promotion buffer | **flatflash** (asplos'19) |\n\n개별 조각(informing memory op, write log, hot-page promotion, cxl coherence 형식화)은 이미 있다. 하지만 '**여러 host가 공유하는 memory-semantic ssd 위에서 write log 최신성과 promotion 일관성을 coherence 프로토콜로 함께 푸는**' 조합은 아직 한 편으로 묶여 나오지 않았다 — 여기가 빈칸이다. "},{"id":"node_029","lx":1150,"ly":3500,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":3500,"searchText":"구별 실험(discriminating experiment): 무엇을 보이면 gap이 실재하나? 이 gap이 '말뿐'이 아님을 보이려면, skybyte를 그대로 두 host가 공유하는 구성으로 확장한 뒤 **cross-host 공유 페이지 비율**을 축으로 스윕하는 실험이 필요하다.\n\n측정 대상: (a) 두 host가 같은 page 집합을 read/write 공유할 때, promotion 후 발생하는 **stale-read 빈도**와 이를 막기 위한 **invalidation traffic**; (b) write log를 host별로 분리할지 공유할지에 따른 **write serialization 오버헤드**; (c) ndr에 coherence 상태를 실었을 때 절감되는 불필요한 stall.\n\nbaseline은 'skybyte 그대로(coherence 무지)' vs '제안(coherence-aware ndr + cross-host plb)'. 이득이 커지는 조건은 **공유도(sharing degree)가 높고 write 충돌이 잦을수록**. 남는 위험: coherence 힌트가 부정확하면 back-invalidation storm이 나므로, confidence/hysteresis 안전장치가 novelty를 얼마나 깎는지가 다음 확인 포인트다. "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":"핵심 통찰"},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":""},{"source":"node_002","target":"node_009","type":"line","label":"참고"},{"source":"node_003","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_003","target":"node_015","type":"line","label":""},{"source":"node_003","target":"node_016","type":"line","label":""},{"source":"node_003","target":"node_017","type":"line","label":"질문"},{"source":"node_004","target":"node_018","type":"line","label":""},{"source":"node_004","target":"node_019","type":"line","label":""},{"source":"node_004","target":"node_020","type":"line","label":""},{"source":"node_004","target":"node_021","type":"line","label":""},{"source":"node_004","target":"node_022","type":"line","label":"gap"},{"source":"node_005","target":"node_023","type":"line","label":"발표"},{"source":"node_005","target":"node_024","type":"line","label":"내 연구"},{"source":"node_024","target":"node_025","type":"line","label":""},{"source":"node_024","target":"node_026","type":"line","label":""},{"source":"node_024","target":"node_027","type":"line","label":""},{"source":"node_024","target":"node_028","type":"line","label":"참고"},{"source":"node_024","target":"node_029","type":"line","label":"실험"},{"source":"node_025","target":"node_026","type":"line","label":"연결"},{"source":"node_026","target":"node_027","type":"line","label":"연결"}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

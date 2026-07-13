@@ -22,6 +22,7 @@ tags:
 
 # SkyByte: Architecting An Efficient Memory-Semantic CXL-based SSD
 > **HPCA 2025** · `cluster/cxl` · Source: [SkyByte - Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design.pdf](<SkyByte - Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design.pdf>)
+> 🕸️ NodeGraph: [SkyByte.html (새 탭에서 렌더링, push 후 유효)](https://raw.githack.com/Jeong-jin-Han/2026_CAMEL/main/papers/SkyByte%20-%20Architecting%20An%20Efficient%20Memory-Semantic%20CXL-based%20SSD%20with%20OS%20and%20Hardware%20Co-design/SkyByte.html)
 저자: Haoyang Zhang*, Yuqi Xue*, Yirui Eric Zhou, Shaobo Li, Jian Huang (University of Illinois Urbana Champaign) (*: co-primary authors)
 
 ## TL;DR
