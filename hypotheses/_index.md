@@ -11,6 +11,7 @@ tags: [meta/hub]
 ## 목록
 - [[H1 — 워크로드 특화로 multi-node coherence 줄이기]] — *왜* 특화: multi-node coherence/sync 비용을 거대 모델 워크로드 특화로 줄이기 · *status: 검증 전*
 - [[H2 — CXL 위에서 PGAS 재해석]] — *어떻게*(H1의 다음): 특화 실현의 두 갈래가 **PGAS**로 수렴 → CXL cache-coherent 위 재해석 · *status: 검증 전*
+- [[H3 — DockerGPU, in-GPU control plane]] — DockerSSD의 GPU 이식: GPU 패키지 안 FPGA 제어 평면 + VRAM 공유로 host 왕복 제거. 핵심 질문 = "왜 FPGA인가"(H1의 특화 논리와 수렴) · *status: 검증 전·상상 단계*
 
 ---
 > 새 가설은 이 폴더에 추가하고 위에 한 줄 등록. 관련 객관 개념은 [[CXL Multi-node Coherence]]·[[CXL Coherence]] 등 `concepts/`로 링크.

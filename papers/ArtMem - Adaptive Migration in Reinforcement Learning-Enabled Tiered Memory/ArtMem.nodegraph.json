@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "ArtMem: Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory",
   "created": "2026-07-09T00:00:00.000Z",
-  "modified": "2026-07-10T01:05:28.000Z",
+  "modified": "2026-07-13T00:55:04.000Z",
   "source": {
     "pdf": "ArtMem - Adaptive Migration in Reinforcement Learning-Enabled Tiered Memory.pdf",
     "authors": "Xinyue Yi, Hongchao Du (co-first), Yu Wang, Jie Zhang, Qiao Li, Chun Jason Xue",
@@ -66,7 +66,7 @@
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": { "x": 0, "y": 600 },
-      "children": ["node_011", "node_012", "node_013", "node_014", "node_015", "node_016", "node_017", "node_018"],
+      "children": ["node_011", "node_012", "node_013", "node_014", "node_015", "node_016", "node_017", "node_018", "node_025", "node_026"],
       "links": []
     },
     {
@@ -82,7 +82,7 @@
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": { "x": 0, "y": 900 },
-      "children": ["node_019", "node_020", "node_021", "node_022"],
+      "children": ["node_019", "node_020", "node_021", "node_022", "node_027", "node_028"],
       "links": []
     },
     {
@@ -98,7 +98,7 @@
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": { "x": 0, "y": 1200 },
-      "children": ["node_023"],
+      "children": ["node_023", "node_029", "node_030"],
       "links": []
     },
     {
@@ -396,6 +396,82 @@
       "position": { "x": 1050, "y": 2400 },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "memo",
+      "title": "Tabular이기 때문에 workload별 policy library가 거의 공짜",
+      "content": "ArtMem이 tabular Q-learning을 쓴다는 설계 선택 하나가, 이후의 확장 가능성까지 결정한다. Q-table 두 개를 합쳐도 **10KB 미만**이라, workload별로 **별도 Q-table을 저장해뒀다가 필요할 때 스왑**하는 게 사실상 공짜다 — 교체 비용은 10KB memcpy 수준으로 $\\sim\\!1\\mu s$, 반면 처음부터 재학습하려면 여러 migration과 reward 관측이 필요해 **밀리초(ms) 단위**가 걸린다. 이 부등식이 압도적으로 성립하기 때문에 '교체 속도'는 최적화 대상이 아니다.\n\n만약 ArtMem이 **DQN**(신경망 기반)이었다면 이 아이디어는 훨씬 비쌌을 것이다 — workload마다 신경망 가중치를 통째로 저장하거나, catastrophic forgetting을 막기 위해 EWC·progressive network 같은 무거운 기법이 필요했을 것이다. **tabular라는 설계 선택이 '정책 library' 확장 아이디어의 실현성 자체를 결정한다.**",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "gap",
+      "title": "진짜 병목은 저장·교체가 아니라 phase detection",
+      "content": "persist는 싸다(tabular, 10KB 미만). swap도 싸다(memcpy, $\\sim\\!1\\mu s$). 학습조차 state/action을 제약하면 싸다(밀리초 단위). 이 셋을 다 확인하고 나면 남는 병목은 **딱 하나** — **지금 도는 워크로드가 무엇인지, 언제 바뀌는지를 아는 것(phase detection)**이다.\n\nmemory-tiering 레이어에는 애플리케이션 라벨이 올라오지 않으므로, 결국 **access pattern만으로 phase를 판별**해야 한다. 이건 완전히 새로운 문제가 아니라 컴퓨터 아키텍처의 오래된 계열 — **SimPoint**(BBV clustering), **DAMON**, **MTM**, **Memtis**(SOSP'23)류의 phase detection/tracking 연구와 정확히 맞닿아 있다. ArtMem 자체는 이 detection 문제를 다루지 않고, access ratio 하나로 뭉뚱그려 '지금 상태'만 본다 — '다음에 뭐가 올지'는 전혀 예측하지 않는다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 760 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "gap",
+      "title": "핵심 evaluation gap: ArtMem의 dynamic은 concurrency이지 recurrence가 아니다",
+      "content": "ArtMem이 'dynamic and complex access pattern'이라 부르며 테스트한 실험은 실제로는 서로 다른 도메인의 워크로드 여러 개를 **동시에(concurrent)** 돌린 것이다 — 시간에 따라 워크로드가 바뀌었다가 되돌아오는 **A, B, A, B 같은 순차적 recurrence**는 어디에도 없다.\n\n세 regime을 구분할 필요가 있다: **Mixed(공간적, concurrent)** — ArtMem이 실제로 테스트한 것. **Switching(시간적, sequential)** — 워크로드가 시간에 따라 바뀜. **Recurring(A,B,A,B)** — 이전 워크로드가 되돌아옴, 저장된 policy를 재사용하는 것이 이득을 보는 유일한 지점.\n\nconcurrent mixing은 결국 하나의 (준)정상적인 blend 분포로 수렴하므로, 단일 지속 적응 agent가 그 blend에 수렴하고 나면 끝이다 — **recurrence 축을 전혀 자극하지 않는다.** ArtMem 초록은 'workload evolution(시간적 변화)에 적응한다'고 주장하지만, 실제 증거는 concurrency(공간적 혼합)다. **주장은 시간, 증거는 공간** — 이 간극이 ArtMem 실험 설계의 evaluation gap이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "memo",
+      "title": "오픈소스 하네스로 확증: 순차 phase-switching 장치가 코드에 없다",
+      "content": "ArtMem은 소스 전체를 공개했다(github.com/Yitrus/ArtMem). setup 문서의 `artm_ctrl_start` 하네스를 보면 두 모드뿐이다: (1) 벤치마크 스크립트 하나를 인자로 받아 그 프로세스 하나만 시작부터 끝까지 모니터링, (2) `-` 인자로 system-wide 모니터링. **A가 수렴할 때까지 돌고, B로 전환하고, 다시 A로 복귀하는 세션 내 순차 recurrence를 만드는 장치는 둘 중 어디에도 없다.**\n\n커널 파라미터(`artmem_adaptation_period`, `artmem_cooling_period`, `artmem_thres_cooling_alloc`, `artmem_promotion_period_in_ms` 등)도 전부 **전역 RW 노브로 한 번 수동 세팅**되는 값이지, workload별 학습값이 아니다 — 'adaptive'라는 이름이 무색하게 그 적응 범위가 수동으로 고정된 scaffold 위에서만 움직인다.\n\n정확한 문장으로 정리하면: **ArtMem의 'dynamic'은 concurrency이지 sequential recurrence가 아니며, recurrence는 이 논문의 실험에서 격리되지 않았다.** (단, 하네스가 recurrence 스크립트를 금지하는 것은 아니다 — 단지 논문도 setup 문서도 제공·사용하지 않았을 뿐이다.)",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1060 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "reference",
+      "title": "발견한 선행연구: phase detection, policy reuse",
+      "content": "이 gap을 파고들며 찾은 선행연구:\n\n| 아이디어 | 선행연구 |\n|---|---|\n| Phase를 감지한다 | MTM(arXiv 2302.09468), DAMON, Memtis(SOSP'23) |\n| 다음 phase를 예측해 preload | US Patent 10448126(disaggregated memory tier 할당) |\n| Workload별 최적 policy 선택 | Heo et al. 2020(via survey arXiv 2504.18714) |\n| 상위 RL이 저장된 policy 중 선택·전환 학습 | Context-Aware Policy Reuse, CAPS(AAMAS 2019, arXiv 1806.03793) |\n\n개별 mechanism은 대부분 이미 존재한다. 하지만 'CXL/tiered-memory migration을 위해, phase 감지 위에, phase별로 persist된 학습 RL policy library를, tabular라서 싸다는 점을 지렛대로, HW 보조로 스왑'하는 이 특정 조합은 하나의 논문으로 묶여 나온 적이 없다. ArtMem 자신의 반론은 'agent 하나가 계속 적응해서 다양한 워크로드를 포착한다'는 것 — library+swap이 아니라 단일 지속 적응이 답이라는 입장이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1220 },
+      "children": [],
+      "links": [
+        { "type": "url", "target": "https://arxiv.org/abs/2302.09468", "label": "MTM arXiv" },
+        { "type": "url", "target": "https://arxiv.org/abs/1806.03793", "label": "CAPS arXiv" },
+        { "type": "url", "target": "https://arxiv.org/abs/2504.18714", "label": "Heo et al. survey arXiv" }
+      ]
+    },
+    {
+      "id": "node_030",
+      "template": "question",
+      "title": "Discriminating experiment: concurrency vs recurrence를 분리하려면?",
+      "content": "ArtMem 자체의 오픈소스 하네스(`artm_start(-1)`, system-wide 모드) 위에 $A \\rightarrow B \\rightarrow A \\rightarrow B$ 순차 시퀀싱 드라이버를 얹으면, '상대 코드를 그대로 testbed로 썼다'는 반박을 원천 차단하면서 이 gap을 직접 검증할 수 있다.\n\n측정 대상: **A로 복귀할 때마다 단일 적응 agent가 다시 수렴하는 데 드는 비용(A 실행시간 대비 %)**. baseline 비교는 '저장된 A-policy를 재로드'(제안) vs '매번 재학습'(ArtMem 기본). 이득이 커지는 조건은 A와 B의 optimal policy가 서로 충돌할수록.\n\n남은 질문: phase 판별이 부정확할 때(엉뚱한 policy를 로드했을 때) 비용이 misprefetch보다 훨씬 크다는 점을 어떻게 견딜 것인가 — confidence threshold·hysteresis·최소 dwell time 같은 안전장치가 필요해 보이는데, 이게 이 아이디어의 novelty를 얼마나 깎아먹는지가 다음 확인 포인트다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1400 },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -421,7 +497,14 @@
     { "id": "edge_020", "source": "node_004", "target": "node_021", "type": "line", "label": "" },
     { "id": "edge_021", "source": "node_004", "target": "node_022", "type": "line", "label": "gap" },
     { "id": "edge_022", "source": "node_005", "target": "node_023", "type": "line", "label": "내 연구" },
-    { "id": "edge_023", "source": "node_022", "target": "node_024", "type": "line", "label": "내 연구" }
+    { "id": "edge_023", "source": "node_022", "target": "node_024", "type": "line", "label": "내 연구" },
+    { "id": "edge_024", "source": "node_003", "target": "node_025", "type": "line", "label": "" },
+    { "id": "edge_025", "source": "node_003", "target": "node_026", "type": "line", "label": "" },
+    { "id": "edge_026", "source": "node_004", "target": "node_027", "type": "line", "label": "gap" },
+    { "id": "edge_027", "source": "node_004", "target": "node_028", "type": "line", "label": "" },
+    { "id": "edge_028", "source": "node_005", "target": "node_029", "type": "line", "label": "참고" },
+    { "id": "edge_029", "source": "node_005", "target": "node_030", "type": "line", "label": "질문" },
+    { "id": "edge_030", "source": "node_026", "target": "node_027", "type": "line", "label": "연결" }
   ],
   "viewport": { "x": 0, "y": 0, "zoom": 1 }
 }

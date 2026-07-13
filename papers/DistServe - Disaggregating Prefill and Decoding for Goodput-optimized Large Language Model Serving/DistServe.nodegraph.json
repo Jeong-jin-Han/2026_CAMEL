@@ -1,0 +1,360 @@
+{
+  "version": "1.0.0",
+  "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+  "created": "2026-07-13T00:37:43.000Z",
+  "modified": "2026-07-13T00:37:43.000Z",
+  "source": {
+    "pdf": "DistServe - Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving.pdf",
+    "authors": "Yinmin Zhong, Shengyu Liu, Jianbo Hu, Xuanzhe Liu, Xin Jin (Peking University), Junda Chen, Hao Zhang (UC San Diego), Yibo Zhu (StepFun)",
+    "venue": "OSDI 2024",
+    "doi": "arXiv:2401.09670",
+    "pages": 19
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic", "color": "#4B8BBE", "icon": "file-text",    "shape": "sharp" },
+    "method":     { "label": "Method",     "color": "#5C9E6E", "icon": "cpu",           "shape": "sharp" },
+    "result":     { "label": "Result",     "color": "#9B59B6", "icon": "bar-chart-2",   "shape": "sharp" },
+    "claim":      { "label": "Claim",      "color": "#E74C3C", "icon": "alert-circle",  "shape": "sharp" },
+    "question":   { "label": "Question",   "color": "#E5A835", "icon": "help-circle",   "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea", "color": "#1ABC9C", "icon": "lightbulb",     "shape": "rounded" },
+    "reference":  { "label": "Reference",  "color": "#95A5A6", "icon": "book-open",     "shape": "rounded" },
+    "memo":       { "label": "Memo",       "color": "#BDC3C7", "icon": "edit-3",        "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "LLM 서빙에서 **prefill**(prompt 전체를 병렬 처리해 첫 토큰 생성)과 **decode**(토큰을 하나씩 순차 생성)를 같은 GPU에 섞어 배치(colocate)하면, 서로가 서로를 지연시키는 **간섭(interference)**이 생겨 TTFT(첫 토큰까지 시간)와 TPOT(토큰당 시간) SLO를 동시에 만족시키기 매우 어렵다.\n\nDistServe는 이 둘을 **물리적으로 다른 GPU(instance)로 분리(disaggregate)**해서 간섭을 완전히 제거하고, 각 단계에 맞는 자원 배분·병렬화를 독립적으로 최적화한다. 그 결과 기존 시스템(vLLM) 대비 **$7.4\\times$ 더 많은 요청** 또는 **$12.6\\times$ 더 엄격한 SLO**를 90% 이상 요청에서 만족시키며 서빙한다.",
+      "original": {
+        "text": "We overcome these challenges to disaggregate the prefill and decoding phases of LLM inference, assigning them to separate GPUs. Our approach has two benefits. First, operating each phase independently on different GPUs eliminates prefill-decoding interference. Second, it allows to scale each phase independently with tailored resource allocation and model parallelism strategies to meet their specific latency requirements.",
+        "location": "§1, p.194"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": ["node_006", "node_007"],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "기존 서빙 시스템(vLLM 등)은 **continuous batching**으로 prefill과 decode 요청을 같은 배치에 섞어서 GPU 활용률과 전체 throughput을 극대화한다. 하지만 이 방식은 두 가지 문제를 낳는다.\n\n1. **Prefill-decoding interference**: prefill 스텝 하나가 decode보다 훨씬 오래 걸리는데, 같은 배치에 섞이면 decode 요청들이 prefill이 끝날 때까지 기다려야 해 TPOT가 크게 늘어난다.\n2. **자원·병렬화 결합(coupling)**: 두 단계가 같은 GPU 자원과 병렬화 설정을 공유해야 해서, 한쪽의 SLO에 맞추면 다른 쪽은 자원을 과잉 프로비저닝(over-provision)해야 한다.\n\nChunked-prefill(piggyback) 같은 완화책도 있지만 근본 해결은 아니다.",
+      "original": {
+        "text": "One attempt to mitigate this interference is chunked-prefill with piggyback. It proposes to split the long prefill into chunks and batch a prefill chunk with a few decoding jobs (a.k.a. piggybacking). This technique alleviates the slowdown of the decoding job caused by the long prefill job, but it does not eliminate it.",
+        "location": "§2.3, p.195"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": ["node_008", "node_009", "node_010"],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "Disaggregation 이후, prefill instance와 decode instance를 **독립적으로** 분석·최적화할 수 있다. Prefill instance는 M/D/1 큐 모델로 TTFT를 정량화해 batching·parallelism 전략을 고른다. Decode instance는 memory-bandwidth-bound이므로 배치 크기를 키우는 게 핵심이다.\n\n두 종류의 placement 알고리즘을 제공한다: 노드 간 대역폭이 충분한 클러스터용 **High Node-Affinity**(Algorithm 1)와, NVLink 내부 대역폭만 믿을 수 있는 일반적 클러스터용 **Low Node-Affinity**(Algorithm 2). 후자는 KV cache 전송이 항상 NVLink를 타도록 prefill/decode의 대응 stage를 같은 노드에 강제로 배치한다.",
+      "original": {
+        "text": "The key insight is that KV cache transfer occurs exclusively between corresponding layers of prefill and decoding instances. Leveraging inter-op parallelism, we group layers into stages and divide each instance into segments, termed instance segments, with each segment maintaining one specific inter-op stage. By colocating prefill and decoding segments of the same stage within a single node, we force the transfer of intermediate states to occur only via NVLINK.",
+        "location": "§4.2, p.199"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": ["node_011", "node_012", "node_013", "node_014", "node_015"],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "Chatbot(OPT-13B/66B/175B, ShareGPT), code completion(OPT-66B, HumanEval), summarization(OPT-66B, LongBench) 세 워크로드에서 vLLM·DeepSpeed-MII와 비교했다. ShareGPT에서 vLLM 대비 **$2.0\\times$-$4.6\\times$** 높은 요청률을 유지하며 SLO를 만족한다.\n\nLatency breakdown 분석에서 KV cache 전송 비용은 OPT-175B 기준 전체 latency의 **$0.1\\%$ 미만**으로, \"통신 오버헤드는 인터커넥트를 인식한 배치로 관리하면 무시할 수준\"이라는 §3.3의 주장을 실측으로 검증한다.",
+      "original": {
+        "text": "On the ShareGPT dataset, DistServe can sustain 2.0x-4.6x higher rate compared to vLLM. This is because DistLLM eliminates the prefill-decoding interference through disaggregation.",
+        "location": "§6.2, p.202"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": ["node_016", "node_017", "node_018"],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "저자들은 지연시간이 LLM 서빙에서 점점 더 중요한 지표가 되면서, prefill/decoding disaggregation이 성능과 서비스 품질 보장을 동시에 개선하는 유망한 전략이라고 결론짓는다. 다만 이 전략이 모든 시나리오에 최적은 아니라는 것도 §7에서 스스로 인정한다 — throughput-optimized(offline, latency 안 민감), resource-constrained(GPU 한두 개), 그리고 preemption/fault tolerance는 각각 한계 또는 future work로 남는다.",
+      "original": {
+        "text": "We present DistServe, a new LLM serving architecture that disaggregates the prefill and decoding computation. DistServe maximizes the per-gpu goodput [...] Our findings affirm that as latency becomes an increasingly important metric for LLM services, prefill and decoding disaggregation is a vital strategy in promising improved performance and service quality guarantees.",
+        "location": "§9, p.205"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": ["node_019", "node_020", "node_021"],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "claim",
+      "title": "Figure 1: Colocation이 goodput을 짓누른다",
+      "content": "13B 모델을 A100 GPU 하나에서 기존 시스템으로 서빙할 때, prefill만 따로 서빙하면 TTFT SLO를 만족하는 rate가 **$5.6$ rps**, decode만 따로 서빙하면 TPOT SLO를 만족하는 rate가 **$10$ rps**까지 나온다. 그런데 둘을 같이 배치(colocate)하는 순간 goodput은 **$1.6$ rps**로 급락한다 — 분리해서 조합하면 사실상 $2.1\\times$ 개선.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": -100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "result",
+      "title": "Headline 수치",
+      "content": "vLLM 대비 최대 **$7.4\\times$** 더 많은 요청, 또는 **$12.6\\times$** 더 엄격한 SLO를 90% 이상의 요청에서 만족하며 서빙 가능.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "method",
+      "title": "Prefill vs Decode의 근본적으로 다른 연산 특성",
+      "content": "**Prefill**: prompt 전체 토큰을 한 스텝에 병렬 처리 — 긴 prompt일수록 **compute-bound**(연산량 병목) 경향.\n**Decode**: 매 스텝 새 토큰 1개씩 생성, 이전 모든 토큰의 KV cache를 다시 읽어야 함 — **memory-bandwidth-bound**(GPU 메모리 대역폭 병목).\n\n이 둘을 같은 배치·같은 GPU 설정으로 처리하는 것 자체가 근본적인 부조화(mismatch)다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 220 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "result",
+      "title": "Figure 2: Prefill 하나가 Decode 배치 전체를 지연",
+      "content": "Decoding-only 배치에 prefill job **하나**만 추가해도 TPOT가 눈에 띄게 늘어나고, prefill이 길수록 slowdown이 심해진다. 반대로 decode job이 섞이면 prefill 완료 시간도 늘어난다 — 양방향 간섭.",
+      "original": {
+        "text": "As Figure 2 shows, adding a single prefill job to a batch of decoding requests significantly slows down both processes, leading to a marked increase in TTFT and TPOT.",
+        "location": "§2.3, p.195"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 380 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "gap",
+      "title": "Chunked-prefill로는 왜 부족한가",
+      "content": "긴 prefill을 chunk로 쪼개 decode와 함께 배치하는 완화책(piggyback)이 있지만, chunk 크기를 GPU가 포화되지 않게 작게 잡으면 prefill 실행시간이 늘고, 크게 잡으면 decode가 piggyback할 슬롯이 줄어든다. 게다가 chunk가 늘수록 KV cache를 반복해서 HBM에서 SRAM으로 다시 로드해야 해서(O(N^2) 메모리 접근) 근본 해결이 아니다.",
+      "original": {
+        "text": "However, due to the reasons discussed in §2.3, chunked prefill is slower than full prefill, so it struggles to meet the TTFT SLO as a sacrifice for better TPOT.",
+        "location": "§6.2, p.203"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 520 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "M/D/1 큐 모델로 TTFT 정량화",
+      "content": "Disaggregation 덕분에 prefill instance를 단일 서버 M/D/1 큐로 모델링할 수 있다. 도착률 $R$, 실행시간 $D$, 이용률 조건 $RD<1$일 때 평균 TTFT는:\n\n$$Avg\\_TTFT = D + \\frac{RD^2}{2(1-RD)}$$\n\n첫 항은 실행시간, 둘째 항은 큐잉 지연이다. 2-way inter-op parallelism을 넣으면 비슷한 형태의 닫힌 식을 유도할 수 있고, 이 식으로 낮은 요청률에선 intra-op parallelism이, 높은 요청률에선 inter-op parallelism이 유리하다는 걸 정량적으로 보인다.",
+      "original": {
+        "text": "where the first term represents the execution time and the second corresponds to the queuing delay.",
+        "location": "§3.1, p.197"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 640 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "Algorithm 1: High Node-Affinity Placement",
+      "content": "노드 간 대역폭이 충분한(Infiniband 등) 클러스터용. Prefill/decode instance의 병렬화(intra-op $\\times$ inter-op)를 각각 독립적으로 최적화해 phase-level optimal per-GPU goodput을 찾고, 목표 traffic rate를 만족할 때까지 replication한다.\n\n시뮬레이터(simu_prefill/simu_decode)로 SLO attainment를 추정하며, 복잡도는 $O(NM^2)$(N=인스턴스당 노드 수 제한, M=노드당 GPU 수), 32 GPU 설정에서도 실행시간 1.3분 이내.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 780 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "Algorithm 2: Low Node-Affinity Placement",
+      "content": "NVLink 내부 대역폭만 믿을 수 있는 일반적 클러스터용(이 논문의 실제 테스트베드가 이 경우 — cross-node 25Gbps). Inter-op stage 단위로 나눈 prefill/decode의 **대응 segment를 같은 노드에 강제로 colocate**시켜, KV cache 전송이 항상 NVLink(600GB/s)만 타도록 만든다.\n\n노드 내에서는 모든 segment 조합을 열거해 시뮬레이션으로 최적을 찾고, 그 뒤 replication으로 목표 rate를 맞춘다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 920 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "method",
+      "title": "온라인 스케줄링: Pull 방식 KV 전송 + Replanning",
+      "content": "**Pull 방식**: decode instance가 필요할 때 prefill instance에서 KV cache를 능동적으로 가져온다(push가 아님) — prefill instance의 GPU 메모리를 큐잉 버퍼로 써서, burst 상황에서 decode instance 메모리가 넘치는 걸 방지한다.\n\n**Periodic replanning**: 워크로드 프로파일러가 도착률·입출력 길이 등 패턴 변화를 감지하면 placement 알고리즘을 재실행 — 수 초~수 분이면 끝나 실용적.",
+      "original": {
+        "text": "To circumvent this, DistServe employs a \"pull\" method for KV cache transmission rather than a \"push\" approach - decoding instances fetch KV cache from prefill instances as needed, using the GPU memory of prefill instances as a queuing buffer.",
+        "location": "§4.3, p.200"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1060 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "result",
+      "title": "KV Cache 전송량은 실제로 얼마나 되나",
+      "content": "OPT-66B, 512토큰 요청 하나의 KV cache 크기는 약 **$1.13$GB**. 평균 도착률 10 rps라면 초당 **$11.3$GB**(약 90Gbps 상당)를 전송해야 한다. NVLink(600GB/s)에서는 무시할 수준이지만, cross-node 대역폭이 제한적인 클러스터에서는 이게 그대로 병목이 될 수 있다 — 이 계산이 Algorithm 2(node-affinity 배치)를 정당화하는 근거다.",
+      "original": {
+        "text": "For example, the KV cache size of a single 512-token request on OPT-66B is approximately 1.13GB. Assuming an average arrival rate of 10 rps, we need to transfer 11.3GB data per second—or equivalently 90Gbps bandwidth to render the overhead invisible.",
+        "location": "§3.3, p.198"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1200 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "result",
+      "title": "End-to-end 벤치마크 결과",
+      "content": "세 애플리케이션(chatbot/code completion/summarization) 모두에서 DistServe가 vLLM·DeepSpeed-MII를 앞선다.\n\n| Task | vs vLLM (rate) | vs vLLM (SLO) | vs DeepSpeed-MII (rate) |\n|---|---|---|---|\n| Chatbot (ShareGPT) | $2.0\\times$-$4.6\\times$ | $1.8\\times$-$3.2\\times$ | $1.6\\times$-$7.4\\times$ |\n| Code Completion | $5.7\\times$ | $1.4\\times$ | $1.6\\times$ |\n| Summarization | $4.3\\times$ | $12.6\\times$ | $1.8\\times$ |",
+      "original": {
+        "text": "Compared to state-of-the-art solutions, DistServe can serve up to 7.4x more requests or 12.6x tighter SLO under various latency constraints.",
+        "location": "§1, p.194"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 820 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "result",
+      "title": "Latency Breakdown: 통신 오버헤드는 무시할 수준",
+      "content": "OPT-175B를 ShareGPT로 서빙할 때, KV cache transmission은 전체 execution time의 **$0.1\\%$ 미만**을 차지한다. 전송 시간의 CDF를 봐도 95% 이상의 요청이 **$30$ms 미만**의 전송 지연을 겪는다 — cross-node 대역폭이 제한적인 테스트베드임에도 그렇다. Algorithm 2가 KV cache 전송을 항상 NVLink로만 흐르게 강제한 덕분.",
+      "original": {
+        "text": "In fact, even for OPT-175B, the KV Cache transmission only accounts for less than 0.1% of the total latency. Even by examining the CDF of the absolute transmission time shown in Figure 10(b), we observe that over 95% of requests experience a delay of less than 30ms, despite our testbed having only limited cross-node bandwidth.",
+        "location": "§6.3, p.203"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1000 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "result",
+      "title": "Ablation: Disaggregation 자체의 기여 분리",
+      "content": "병렬화 설정만 최적화한 \"vLLM++\"는 원래 vLLM과 성능이 동일하다 — 즉 **병렬화 튜닝만으로는 부족하고, disaggregation 자체가 핵심**임을 보여준다. 또한 placement 탐색 제약이 적은 DistServe-High가 제약이 많은 DistServe-Low보다 더 나은 배치를 찾아, 알고리즘의 탐색 폭도 성능에 실질적으로 기여한다는 것을 확인.",
+      "original": {
+        "text": "\"vLLM++\" has the same performance as \"vLLM\" because we find that the default parallelism setting (intra-op=4) has the best per-GPU goodput. This further demonstrates the importance of disaggregation.",
+        "location": "§6.4, p.204"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1180 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "gap",
+      "title": "저자가 스스로 인정한 한계",
+      "content": "**Resource-constrained 시나리오**(GPU 한두 개): disaggregation할 여지 자체가 없어 non-disaggregated 시스템이 더 나을 수 있다고 인정.\n**Preemption/fault tolerance**: 구현하지 않음 — prefill instance 하나의 장애가 거기 연결된 여러 decode instance로 전파될 위험을 인정만 하고 future work로 남김.\n**워크로드 정상성 가정**: replanning이 패턴 변화를 전제로 하며, 초단기(수 분 이하) 변동엔 대응하지 못함.",
+      "original": {
+        "text": "While not a primary focus in the current DistServe, fault tolerance is a critical aspect for consideration. In traditional colocation- and replication-based systems, a fault in one instance typically does not disrupt other replica instances. However, in DistServe, the dependency between prefill and decoding instances introduces the risk of fault propagation.",
+        "location": "§4.3, p.200"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "reference",
+      "title": "Resource Disaggregation 계보와의 관계",
+      "content": "저자들이 §7에서 스스로 위치를 규정: DistServe는 LegoOS, Mira 같은 **자원 분리(compute/memory pooling) 시스템** 문헌과 개념을 공유하지만, 이들은 하드웨어 자원(메모리 등) 자체를 분리하는 반면 DistServe는 **GPU 인스턴스(연산 역할) 단위**를 분리한다는 점에서 스케일과 대상이 다르다.",
+      "original": {
+        "text": "Resource disaggregated systems decouple the hardware resources from the traditional monolithic server infrastructure and separate them into resource pools to manage independently. [...] DistServe shares the concept by disaggregating its system components, allowing for independent resource scaling and management.",
+        "location": "§7, p.205"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "memo",
+      "title": "내 연구방향과의 연결",
+      "content": "DistServe의 Algorithm 2(Low Node-Affinity)는 **\"인터커넥트 등급(NVLink vs cross-node)에 따라 배치 전략을 통째로 바꾼다\"**는 점에서, 내가 CXL multi-node coherence에서 고민하는 \"거리·인터커넥트 등급별로 동기화 전략을 특화한다\"는 가설(H1)과 구조적으로 같은 문제다.\n\n다만 결정적 차이: DistServe는 이걸 **오프라인 시뮬레이터 탐색 + 정적 배치**로 풀고(Algorithm 1/2는 배포 전에 한 번 돌리는 것), 런타임엔 그 결정을 그대로 쓴다. 워크로드가 바뀌면 replanning으로 몇 분 걸려 재탐색할 뿐이다. 내가 관심 있는 건 이걸 **런타임에, 그것도 HW/OS coherence 프로토콜 레벨에서 값싸게 반응**하도록 내리면 무엇이 달라지는가 — DistServe는 소프트웨어 스케줄러 레벨 해법의 상한선을 보여주는 좋은 참조점이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1200 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+    { "id": "edge_005", "source": "node_001", "target": "node_006", "type": "line", "label": "" },
+    { "id": "edge_006", "source": "node_001", "target": "node_007", "type": "line", "label": "" },
+    { "id": "edge_007", "source": "node_002", "target": "node_008", "type": "line", "label": "" },
+    { "id": "edge_008", "source": "node_002", "target": "node_009", "type": "line", "label": "" },
+    { "id": "edge_009", "source": "node_002", "target": "node_010", "type": "line", "label": "" },
+    { "id": "edge_010", "source": "node_003", "target": "node_011", "type": "line", "label": "" },
+    { "id": "edge_011", "source": "node_003", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_003", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_003", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_003", "target": "node_015", "type": "line", "label": "" },
+    { "id": "edge_015", "source": "node_004", "target": "node_016", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_004", "target": "node_017", "type": "line", "label": "" },
+    { "id": "edge_017", "source": "node_004", "target": "node_018", "type": "line", "label": "" },
+    { "id": "edge_018", "source": "node_005", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_019", "source": "node_005", "target": "node_020", "type": "line", "label": "" },
+    { "id": "edge_020", "source": "node_005", "target": "node_021", "type": "line", "label": "" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

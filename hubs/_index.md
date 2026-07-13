@@ -11,6 +11,8 @@ tags: [meta/hub]
 - [[CXL]] · [[In-Storage Computing]] · [[LLM Systems]] · [[KV-LSM]] · [[File System]] · [[Reliability]] · [[Infra]] · [[ZNS]] · [[Vector Search]]
 
 ## By Venue
+> 학회 tier·서열·target 판단은 [[Venue Tiers]] (아키텍처 4대장 vs 스토리지·시스템 vs OSDI/SOSP 위치).
+
 - [[HPCA]] · [[ISCA]] · [[NSDI]] · [[FAST]] · [[ASPLOS]] · [[ATC]] · [[EuroSys]] · [[OSDI]] · [[MICRO]] · [[SOSP]]
 
 ## By Year

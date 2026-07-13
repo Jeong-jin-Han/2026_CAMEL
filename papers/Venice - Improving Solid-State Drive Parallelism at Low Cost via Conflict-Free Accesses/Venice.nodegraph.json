@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "Venice: Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses",
   "created": "2026-07-09T00:00:00.000Z",
-  "modified": "2026-07-10T01:05:28.000Z",
+  "modified": "2026-07-13T01:08:36.000Z",
   "source": {
     "pdf": "Venice - Improving Solid-State Drive Parallelism at Low Cost via Conflict-Free Accesses.pdf",
     "authors": "Rakesh Nadig, Mohammad Sadrosadati (co-primary), Haiyu Mao, Nika Mansouri Ghiasi, Arash Tavakkol, Jisung Park, Hamid Sarbazi-Azad, Juan Gómez-Luna, Onur Mutlu (ETH Zürich, POSTECH, Sharif University of Technology, IPM)",
@@ -66,7 +66,7 @@
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": { "x": 0, "y": 600 },
-      "children": ["node_012", "node_013", "node_014", "node_015"],
+      "children": ["node_012", "node_013", "node_014", "node_015", "node_023", "node_024", "node_025"],
       "links": []
     },
     {
@@ -98,7 +98,7 @@
       "originalExpanded": false,
       "childrenExpanded": false,
       "position": { "x": 0, "y": 1200 },
-      "children": ["node_019", "node_020", "node_021", "node_022"],
+      "children": ["node_019", "node_020", "node_021", "node_022", "node_026", "node_027", "node_028"],
       "links": []
     },
     {
@@ -390,6 +390,114 @@
       "position": { "x": 520, "y": 1350 },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "memo",
+      "title": "Read/Write 비대칭의 latency 구조: tPROG가 write를 지배",
+      "content": "Venice가 read 중심으로 routing을 최적화하고 write-time placement로 풀지 않는 이유는 두 연산의 latency 구성이 다르기 때문이다.\n\n**Read**: CMD 전송 + flash read($t_R \\approx 3\\mu s$) + data 전송($\\approx 4\\mu s$, path를 사용) — data 전송 시간이 flash read latency와 맞먹어 **path conflict에 민감**하다.\n**Write**: CMD 전송 + data 전송 + **flash program**($t_{PROG} \\approx 100\\mu s$, cost-optimized 구성에서는 $650\\mu s$) — $t_{PROG}$가 전체 service time을 압도해서, path conflict로 인한 몇 $\\mu s$의 지연은 상대적으로 무시할 수준이다. write의 병목은 path가 아니라 NAND cell 자체다.\n\n'write-time에 관련 데이터를 인접 배치해서 read를 최적화하자'는 아이디어(FTL physical page allocation 계열)는 실제 연구 라인이지만, Venice는 이게 실전에서 잘 안 통한다고 지적한다 — 이유는 (1) random access pattern, (2) multi-app interference, (3) GC/wear leveling이 데이터를 계속 relocate하는 dynamic device condition 때문이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "gap",
+      "title": "Locality(hop 줄이기)와 Conflict 회피(striping)는 정반대 처방",
+      "content": "이 논문을 이해하는 데 가장 중요한 반직관적 통찰: **관련 데이터를 인접 배치해서 hop을 줄이는 것과, conflict를 줄이기 위해 데이터를 흩뿌리는(striping) 것은 서로 반대 방향이다.**\n\n관련 데이터를 인접 배치하면(hop 감소) 그 데이터를 **병렬로** 읽을 때 오히려 같은 link를 두고 경합해서 parallelism이 오히려 줄어든다. 병렬성을 얻으려면 동시에 접근되는 데이터를 독립된 경로로 빠지도록 **흩뿌려야** 한다 — 실제로 baseline SSD의 FTL도 일부러 striping해서 병렬성을 뽑아낸다.\n\nhop을 줄여서 얻는 이득도 미미하다: router의 hop당 latency는 나노초(ns) 단위, flash operation은 마이크로초($\\mu s$) 단위라 그 격차가 압도적이다. 진짜 손해는 거리가 아니라 conflict로 인한 **serialization**이고, 그건 '비어있는 경로 하나를 더 만드는 것'으로만 풀린다 — 그래서 Venice는 필요하면 non-minimal path(우회)를 감수하고서라도 conflict를 피하는 쪽을 택한다.\n\n**설계 철학은 decoupling**: FTL은 wear leveling·GC 효율 기준으로 자유롭게 배치하고, conflict 회피는 network가 access 시점에 동적으로 담당한다. placement에 read 성능까지 책임 지우면 multi-objective 충돌(배치 최적화 vs GC 효율)이 생기고, GC가 최적 배치를 계속 깨는 문제도 있다.\n\nlocality 직관(가까이 두면 좋다)은 latency·거리가 병목인 시스템(NoC, NUMA, cache line)에서는 정확한 처방이지만, SSD처럼 병목이 **shared-channel 경합**인 시스템에서는 반대 처방이 필요하다 — '어느 layer의 무엇이 병목인가'를 먼저 묻는 게 핵심이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 760 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "memo",
+      "title": "Reservation이 필요한 진짜 이유: 탐색이 아니라 buffer 회피",
+      "content": "'그냥 broadcast로 데이터 위치를 찾아서 보내면 안 되나'라는 질문에 대한 답: **controller는 FTL mapping table로 데이터 위치(channel/chip/block/page)를 이미 알고 있다.** network의 역할은 '탐색(search)'이 아니라 '운반(transport)'이다. broadcast는 오히려 모든 link를 점유해 path diversity를 무력화시킨다.\n\nreservation이 진짜 필요한 이유는 **read의 대용량 데이터 전송** 때문이다 — flash page 전송은 KB 단위의 길고 연속적인 burst로 link를 몇 $\\mu s$ 동안 통째로 점유한다. 이 구간이 conflict에 가장 취약하다.\n\nVenice는 **circuit switching + bufferless** 조합으로 이걸 해결한다: 작은 scout packet이 controller에서 target까지 경로 전체를 미리 예약하고, 성공하면 데이터가 중간에 멈추거나 버퍼에 저장되는 일 없이 그대로 흐른다. 만약 '예약 없이 그냥 흘려보내기'를 했다면 그건 packet-switched + router 버퍼 방식이 되는데, 그 버퍼 자체가 비용이다 — 논문 제목의 **'at low cost'**가 바로 이 버퍼를 피하는 데서 나온다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 940 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "gap",
+      "title": "보장의 사다리: Venice는 starvation-freedom을 보장하지 않는다",
+      "content": "Venice의 circuit switching 설계는 **deadlock-free**(경로 예약 실패 시 backtracking으로 hold-and-wait 회피)와 **livelock-free**(router 재방문 횟수 제한으로 무한 배회 차단, 즉 forward progress = 시스템에서 적어도 하나는 항상 진전)까지는 보장한다.\n\n하지만 **starvation-freedom**(모든 요청이 언젠가는 반드시 서비스된다는 보장)은 보장하지 않는다. 강도로 줄을 세우면:\n\n$$\\text{deadlock-free} < \\text{livelock-free}(\\exists) < \\text{starvation-free}(\\forall)$$\n\nVenice의 fairness 관점은 **egalitarian 'fair competition'**이다 — priority 구분 없이 모든 I/O가 동등한 자격으로 경쟁한다(scout의 reserve/cancel 모드가 progress에는 우호적이지만 '밀린 요청 우대'는 아니다). 이게 언뜻 공정해 보이지만, 실제로는 **aging·oldest-first·starvation counter 같은 고전 NoC arbitration 기법을 전혀 안 쓴다**는 뜻이기도 하다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1200 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "reference",
+      "title": "후속 연구가 공략한 지점: GC bypass",
+      "content": "Venice가 미보장하는 starvation-freedom($\\forall$) 축을, 후속 논문 **GC bypass**가 정확히 공략한다 — Venice는 user I/O와 garbage collection(GC) 사이에 우선순위 차등이 없어, GC가 몰리는 구간에서 자원 경합이 생기면 **GC-induced long-tail latency**를 잡지 못한다. GC bypass는 전용 GC controller, priority 구분, valid page write preemption을 추가해 이 빈틈을 메운다.\n\n이건 **'논문 A가 무엇을 fair하다고 가정했고, 그 가정이 어디서 깨지며, 논문 B가 어떻게 메웠는가'**라는 프레임의 실제 사례로 읽을 수 있다 — Venice가 보장하는 것(deadlock/livelock-free, egalitarian fairness)과 보장하지 않는 것(priority/QoS, starvation 방지)의 경계선이 정확히 다음 연구의 출발점이 됐다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1360 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "memo",
+      "title": "세미나 프레이밍: '어느 layer의 무엇이 병목인가'를 먼저 묻기",
+      "content": "이 논문을 관통하는 하나의 질문법: **직관을 적용하기 전에, 그 직관이 통했던 시스템과 지금 시스템의 병목이 같은 종류인지부터 확인한다.**\n\nlocality(가까이 두면 좋다)는 NoC·NUMA·cache line처럼 **latency/거리**가 병목인 시스템에서는 정확한 처방이다. 하지만 SSD처럼 병목이 **shared-channel 경합(contention)**인 시스템에서는 오히려 정반대(striping)가 답이다. hop을 줄이는 것과 conflict를 줄이는 것이 반대 방향이라는 이 논문의 핵심 통찰도 결국 이 질문법에서 나온다.\n\n세미나에서 이 논문을 소개할 때 쓸 수 있는 프레임: **'왜 SSD 문제인데 NoC(network-on-chip) 이론이 답이 되는가'** — path conflict를 interconnection network의 path diversity 문제로 재해석한 것이 Venice의 진짜 기여이고, 그 재해석이 통한 이유는 병목의 위치(shared bus)를 정확히 짚었기 때문이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1520 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "method",
+      "title": "Backtracking 상세: DFS 스타일 예약 취소 + 물러나기",
+      "content": "scout packet이 라우터를 하나씩 지나며 경로를 예약할 때, 매 라우터에서 '도착 port를 예약(hold)'하고 '다음 라우터로 넘어가려 시도'하는 과정을 반복한다. 특정 라우터에서 갈 수 있는 output port가 전부 막히면(minimal도 non-minimal misroute도 다 실패) **그 자리에서 계속 대기하지 않고**:\n\n1. 방금 그 라우터에서 만든 예약을 **취소(cancel)** — scout packet의 cancel 모드로 되돌아가는 방향에 예약 해제 메시지를 보냄\n2. **한 단계 이전(upstream) 라우터로 물러남**\n3. 그 upstream 라우터에서 **아직 안 시도해본 다른 output port**로 재시도\n\n미로 찾기(maze-solving)의 **DFS backtracking**과 구조가 같다 — 막다른 길이면 방금 걸어온 길의 예약을 지우고 한 걸음 물러나 다른 갈래를 시도한다. 한 라우터당 시도 가능한 output port는 최대 3개(2D mesh, 4포트 중 들어온 포트 제외)라서, 다 써봐도 안 되면 더 뒤로 backtrack한다. 최악의 경우 이를 반복하다 source controller까지 되돌아가고(사실상 NACK), controller가 새 scout로 재시도한다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1680 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "gap",
+      "title": "Livelock-freedom은 측정이 아니라 유한성에서 나오는 논리적 보장",
+      "content": "'적어도 하나는 결국 진전한다'(forward progress, livelock-freedom)는 latency를 재서 확인하는 통계적 사실이 아니라, **두 가지 유한성(finiteness)의 조합에서 논리적으로 유도되는 보장**이다.\n\n1. **scout의 탐색 자체가 유한하게 끝난다**: 재방문 횟수 제한(라우터당 최대 3번) + mesh 지름이 유한하니, 한 번의 scout 시도는 반드시 성공(예약 완료) 아니면 실패(source로 복귀)로 끝난다 — 무한히 헤매는 경우가 구조적으로 없다.\n2. **한 번 점유된 link도 유한 시간 안에 반드시 풀린다**: circuit switching으로 예약된 전송은 flash operation(수 $\\mu s$)만큼만 link를 잡다가 끝나면 반드시 놓아준다 — 영원히 안 풀리는 점유가 없다.\n\n이 둘을 합치면, 지금 당장 모든 scout가 실패하고 있어도 그건 **일시적 backpressure**일 뿐이다. 진행 중인 전송들이 유한 시간 안에 끝나며 link가 하나씩 풀리고, 그 순간 재시도하던 scout 중 하나는 반드시 그 빈 link를 잡는다. 논문의 '99.98% 첫 시도 성공' 같은 수치는 이 보장이 실제로도 잘 작동한다는 **실증 데이터**일 뿐이지, 보장 자체의 근거는 아니다 — 근거는 어디까지나 설계(bounded search + bounded holding time)에 있다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1840 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_031",
+      "template": "memo",
+      "title": "Hold-and-wait: lock 없는 하드웨어에도 적용되는 개념",
+      "content": "**Hold-and-wait**는 deadlock의 4대 필요조건(Coffman conditions: mutual exclusion, hold-and-wait, no preemption, circular wait) 중 하나로, '자원을 이미 쥔 채로(hold) 다른 자원을 얻으려 대기(wait)하는' 상태를 말한다. scout가 라우터 A의 port를 예약해 쥔 채로 라우터 B의 port가 비기를 그 자리에서 기다린다면 이게 hold-and-wait다 — 여러 scout가 서로의 자원을 쥐고 서로를 기다리면 **순환 대기(circular wait)**가 생겨 deadlock이 된다.\n\nVenice는 막히면 hold한 채 기다리는 대신 **hold를 놓고(cancel) 물러난다(backtrack)** — hold-and-wait 조건 자체가 애초에 성립하지 못하게 설계했다. Coffman 조건 4개 중 하나만 깨져도 deadlock은 원천적으로 불가능해지는데, Venice는 hold-and-wait를 깨는 쪽을 택한 것이다.\n\n**흥미로운 지점**: hold-and-wait/deadlock 이론은 보통 OS의 **software lock**(mutex, semaphore) 맥락에서 배우지만, 여기엔 lock이라는 소프트웨어 동기화 기제가 전혀 없다 — 그냥 하드웨어 라우터의 **reservation table 항목**을 쥐고 있느냐 아니냐의 문제다. 즉 hold-and-wait는 'lock을 잡는다'는 특정 구현(mutex API)에 종속된 개념이 아니라, **'자원을 배타적으로 점유한 채 다른 자원을 기다린다'는 더 일반적인 패턴** 자체를 가리킨다 — lock이 있든 없든, 배타적 자원 점유가 존재하는 모든 시스템(회로 스위칭 네트워크, lock-free 분산 트랜잭션 등)에 똑같이 적용되는 순수 리소스-그래프 이론이라는 뜻이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 2020 },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -413,7 +521,19 @@
     { "id": "edge_018", "source": "node_005", "target": "node_019", "type": "line", "label": "" },
     { "id": "edge_019", "source": "node_005", "target": "node_020", "type": "line", "label": "질문" },
     { "id": "edge_020", "source": "node_005", "target": "node_021", "type": "line", "label": "gap" },
-    { "id": "edge_021", "source": "node_005", "target": "node_022", "type": "line", "label": "내 연구" }
+    { "id": "edge_021", "source": "node_005", "target": "node_022", "type": "line", "label": "내 연구" },
+    { "id": "edge_022", "source": "node_003", "target": "node_023", "type": "line", "label": "" },
+    { "id": "edge_023", "source": "node_003", "target": "node_024", "type": "line", "label": "gap" },
+    { "id": "edge_024", "source": "node_003", "target": "node_025", "type": "line", "label": "" },
+    { "id": "edge_025", "source": "node_005", "target": "node_026", "type": "line", "label": "gap" },
+    { "id": "edge_026", "source": "node_005", "target": "node_027", "type": "line", "label": "참고" },
+    { "id": "edge_027", "source": "node_005", "target": "node_028", "type": "line", "label": "" },
+    { "id": "edge_028", "source": "node_026", "target": "node_027", "type": "line", "label": "후속연구" },
+    { "id": "edge_029", "source": "node_023", "target": "node_008", "type": "line", "label": "심화" },
+    { "id": "edge_030", "source": "node_025", "target": "node_013", "type": "line", "label": "심화" },
+    { "id": "edge_031", "source": "node_014", "target": "node_029", "type": "line", "label": "심화" },
+    { "id": "edge_032", "source": "node_026", "target": "node_030", "type": "line", "label": "심화" },
+    { "id": "edge_033", "source": "node_014", "target": "node_031", "type": "line", "label": "심화" }
   ],
   "viewport": { "x": 0, "y": 0, "zoom": 1 }
 }

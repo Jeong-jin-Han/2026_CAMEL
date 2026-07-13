@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving</span>
+    <span id="tb-source">Yinmin Zhong, Shengyu Liu, Jianbo Hu, Xuanzhe Liu, Xin Jin (Peking University), Junda Chen, Hao Zhang (UC San Diego), Yibo Zhu (StepFun) · OSDI 2024</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_006,node_007" style="--color:#4B8BBE;border-radius:2px;left:100px;top:200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">LLM 서빙에서 <strong style="font-size:1.1em">prefill</strong>(prompt 전체를 병렬 처리해 첫 토큰 생성)과 <strong style="font-size:1.1em">decode</strong>(토큰을 하나씩 순차 생성)를 같은 GPU에 섞어 배치(colocate)하면, 서로가 서로를 지연시키는 <strong style="font-size:1.1em">간섭(interference)</strong>이 생겨 TTFT(첫 토큰까지 시간)와 TPOT(토큰당 시간) SLO를 동시에 만족시키기 매우 어렵다.<br><br>DistServe는 이 둘을 <strong style="font-size:1.1em">물리적으로 다른 GPU(instance)로 분리(disaggregate)</strong>해서 간섭을 완전히 제거하고, 각 단계에 맞는 자원 배분·병렬화를 독립적으로 최적화한다. 그 결과 기존 시스템(vLLM) 대비 <strong style="font-size:1.1em">$7.4\times$ 더 많은 요청</strong> 또는 <strong style="font-size:1.1em">$12.6\times$ 더 엄격한 SLO</strong>를 90% 이상 요청에서 만족시키며 서빙한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.194</span></summary>
+<div class="ng-orig-text">We overcome these challenges to disaggregate the prefill and decoding phases of LLM inference, assigning them to separate GPUs. Our approach has two benefits. First, operating each phase independently on different GPUs eliminates prefill-decoding interference. Second, it allows to scale each phase independently with tailored resource allocation and model parallelism strategies to meet their specific latency requirements.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" data-children="node_008,node_009,node_010" style="--color:#4B8BBE;border-radius:2px;left:100px;top:500px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">기존 서빙 시스템(vLLM 등)은 <strong style="font-size:1.1em">continuous batching</strong>으로 prefill과 decode 요청을 같은 배치에 섞어서 GPU 활용률과 전체 throughput을 극대화한다. 하지만 이 방식은 두 가지 문제를 낳는다.<br><br>1. <strong style="font-size:1.1em">Prefill-decoding interference</strong>: prefill 스텝 하나가 decode보다 훨씬 오래 걸리는데, 같은 배치에 섞이면 decode 요청들이 prefill이 끝날 때까지 기다려야 해 TPOT가 크게 늘어난다.<br>2. <strong style="font-size:1.1em">자원·병렬화 결합(coupling)</strong>: 두 단계가 같은 GPU 자원과 병렬화 설정을 공유해야 해서, 한쪽의 SLO에 맞추면 다른 쪽은 자원을 과잉 프로비저닝(over-provision)해야 한다.<br><br>Chunked-prefill(piggyback) 같은 완화책도 있지만 근본 해결은 아니다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.3, p.195</span></summary>
+<div class="ng-orig-text">One attempt to mitigate this interference is chunked-prefill with piggyback. It proposes to split the long prefill into chunks and batch a prefill chunk with a few decoding jobs (a.k.a. piggybacking). This technique alleviates the slowdown of the decoding job caused by the long prefill job, but it does not eliminate it.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_011,node_012,node_013,node_014,node_015" style="--color:#4B8BBE;border-radius:2px;left:100px;top:800px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Disaggregation 이후, prefill instance와 decode instance를 <strong style="font-size:1.1em">독립적으로</strong> 분석·최적화할 수 있다. Prefill instance는 M/D/1 큐 모델로 TTFT를 정량화해 batching·parallelism 전략을 고른다. Decode instance는 memory-bandwidth-bound이므로 배치 크기를 키우는 게 핵심이다.<br><br>두 종류의 placement 알고리즘을 제공한다: 노드 간 대역폭이 충분한 클러스터용 <strong style="font-size:1.1em">High Node-Affinity</strong>(Algorithm 1)와, NVLink 내부 대역폭만 믿을 수 있는 일반적 클러스터용 <strong style="font-size:1.1em">Low Node-Affinity</strong>(Algorithm 2). 후자는 KV cache 전송이 항상 NVLink를 타도록 prefill/decode의 대응 stage를 같은 노드에 강제로 배치한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.199</span></summary>
+<div class="ng-orig-text">The key insight is that KV cache transfer occurs exclusively between corresponding layers of prefill and decoding instances. Leveraging inter-op parallelism, we group layers into stages and divide each instance into segments, termed instance segments, with each segment maintaining one specific inter-op stage. By colocating prefill and decoding segments of the same stage within a single node, we force the transfer of intermediate states to occur only via NVLINK.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_004" data-children="node_016,node_017,node_018" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Chatbot(OPT-13B/66B/175B, ShareGPT), code completion(OPT-66B, HumanEval), summarization(OPT-66B, LongBench) 세 워크로드에서 vLLM·DeepSpeed-MII와 비교했다. ShareGPT에서 vLLM 대비 <strong style="font-size:1.1em">$2.0\times$-$4.6\times$</strong> 높은 요청률을 유지하며 SLO를 만족한다.<br><br>Latency breakdown 분석에서 KV cache 전송 비용은 OPT-175B 기준 전체 latency의 <strong style="font-size:1.1em">$0.1\%$ 미만</strong>으로, &quot;통신 오버헤드는 인터커넥트를 인식한 배치로 관리하면 무시할 수준&quot;이라는 §3.3의 주장을 실측으로 검증한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.2, p.202</span></summary>
+<div class="ng-orig-text">On the ShareGPT dataset, DistServe can sustain 2.0x-4.6x higher rate compared to vLLM. This is because DistLLM eliminates the prefill-decoding interference through disaggregation.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_019,node_020,node_021" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">저자들은 지연시간이 LLM 서빙에서 점점 더 중요한 지표가 되면서, prefill/decoding disaggregation이 성능과 서비스 품질 보장을 동시에 개선하는 유망한 전략이라고 결론짓는다. 다만 이 전략이 모든 시나리오에 최적은 아니라는 것도 §7에서 스스로 인정한다 — throughput-optimized(offline, latency 안 민감), resource-constrained(GPU 한두 개), 그리고 preemption/fault tolerance는 각각 한계 또는 future work로 남는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§9, p.205</span></summary>
+<div class="ng-orig-text">We present DistServe, a new LLM serving architecture that disaggregates the prefill and decoding computation. DistServe maximizes the per-gpu goodput [...] Our findings affirm that as latency becomes an increasingly important metric for LLM services, prefill and decoding disaggregation is a vital strategy in promising improved performance and service quality guarantees.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#E74C3C;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Figure 1: Colocation이 goodput을 짓누른다</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">13B 모델을 A100 GPU 하나에서 기존 시스템으로 서빙할 때, prefill만 따로 서빙하면 TTFT SLO를 만족하는 rate가 <strong style="font-size:1.1em">$5.6$ rps</strong>, decode만 따로 서빙하면 TPOT SLO를 만족하는 rate가 <strong style="font-size:1.1em">$10$ rps</strong>까지 나온다. 그런데 둘을 같이 배치(colocate)하는 순간 goodput은 <strong style="font-size:1.1em">$1.6$ rps</strong>로 급락한다 — 분리해서 조합하면 사실상 $2.1\times$ 개선.</div></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#9B59B6;border-radius:2px;left:620px;top:300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Headline 수치</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">vLLM 대비 최대 <strong style="font-size:1.1em">$7.4\times$</strong> 더 많은 요청, 또는 <strong style="font-size:1.1em">$12.6\times$</strong> 더 엄격한 SLO를 90% 이상의 요청에서 만족하며 서빙 가능.</div></div>
+</div>
+<div class="ng-node" id="node-node_008" style="--color:#5C9E6E;border-radius:2px;left:620px;top:420px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Prefill vs Decode의 근본적으로 다른 연산 특성</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Prefill</strong>: prompt 전체 토큰을 한 스텝에 병렬 처리 — 긴 prompt일수록 <strong style="font-size:1.1em">compute-bound</strong>(연산량 병목) 경향.<br><strong style="font-size:1.1em">Decode</strong>: 매 스텝 새 토큰 1개씩 생성, 이전 모든 토큰의 KV cache를 다시 읽어야 함 — <strong style="font-size:1.1em">memory-bandwidth-bound</strong>(GPU 메모리 대역폭 병목).<br><br>이 둘을 같은 배치·같은 GPU 설정으로 처리하는 것 자체가 근본적인 부조화(mismatch)다.</div></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#9B59B6;border-radius:2px;left:620px;top:580px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Figure 2: Prefill 하나가 Decode 배치 전체를 지연</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Decoding-only 배치에 prefill job <strong style="font-size:1.1em">하나</strong>만 추가해도 TPOT가 눈에 띄게 늘어나고, prefill이 길수록 slowdown이 심해진다. 반대로 decode job이 섞이면 prefill 완료 시간도 늘어난다 — 양방향 간섭.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.3, p.195</span></summary>
+<div class="ng-orig-text">As Figure 2 shows, adding a single prefill job to a batch of decoding requests significantly slows down both processes, leading to a marked increase in TTFT and TPOT.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#1ABC9C;border-radius:22px;left:620px;top:720px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Chunked-prefill로는 왜 부족한가</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">긴 prefill을 chunk로 쪼개 decode와 함께 배치하는 완화책(piggyback)이 있지만, chunk 크기를 GPU가 포화되지 않게 작게 잡으면 prefill 실행시간이 늘고, 크게 잡으면 decode가 piggyback할 슬롯이 줄어든다. 게다가 chunk가 늘수록 KV cache를 반복해서 HBM에서 SRAM으로 다시 로드해야 해서(O(N^2) 메모리 접근) 근본 해결이 아니다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.2, p.203</span></summary>
+<div class="ng-orig-text">However, due to the reasons discussed in §2.3, chunked prefill is slower than full prefill, so it struggles to meet the TTFT SLO as a sacrifice for better TPOT.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:840px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">M/D/1 큐 모델로 TTFT 정량화</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Disaggregation 덕분에 prefill instance를 단일 서버 M/D/1 큐로 모델링할 수 있다. 도착률 $R$, 실행시간 $D$, 이용률 조건 $RD&lt;1$일 때 평균 TTFT는:<br><br>$$Avg\_TTFT = D + \frac{RD^2}{2(1-RD)}$$<br><br>첫 항은 실행시간, 둘째 항은 큐잉 지연이다. 2-way inter-op parallelism을 넣으면 비슷한 형태의 닫힌 식을 유도할 수 있고, 이 식으로 낮은 요청률에선 intra-op parallelism이, 높은 요청률에선 inter-op parallelism이 유리하다는 걸 정량적으로 보인다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.197</span></summary>
+<div class="ng-orig-text">where the first term represents the execution time and the second corresponds to the queuing delay.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:980px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Algorithm 1: High Node-Affinity Placement</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">노드 간 대역폭이 충분한(Infiniband 등) 클러스터용. Prefill/decode instance의 병렬화(intra-op $\times$ inter-op)를 각각 독립적으로 최적화해 phase-level optimal per-GPU goodput을 찾고, 목표 traffic rate를 만족할 때까지 replication한다.<br><br>시뮬레이터(simu_prefill/simu_decode)로 SLO attainment를 추정하며, 복잡도는 $O(NM^2)$(N=인스턴스당 노드 수 제한, M=노드당 GPU 수), 32 GPU 설정에서도 실행시간 1.3분 이내.</div></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1120px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Algorithm 2: Low Node-Affinity Placement</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">NVLink 내부 대역폭만 믿을 수 있는 일반적 클러스터용(이 논문의 실제 테스트베드가 이 경우 — cross-node 25Gbps). Inter-op stage 단위로 나눈 prefill/decode의 <strong style="font-size:1.1em">대응 segment를 같은 노드에 강제로 colocate</strong>시켜, KV cache 전송이 항상 NVLink(600GB/s)만 타도록 만든다.<br><br>노드 내에서는 모든 segment 조합을 열거해 시뮬레이션으로 최적을 찾고, 그 뒤 replication으로 목표 rate를 맞춘다.</div></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1260px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">온라인 스케줄링: Pull 방식 KV 전송 + Replanning</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Pull 방식</strong>: decode instance가 필요할 때 prefill instance에서 KV cache를 능동적으로 가져온다(push가 아님) — prefill instance의 GPU 메모리를 큐잉 버퍼로 써서, burst 상황에서 decode instance 메모리가 넘치는 걸 방지한다.<br><br><strong style="font-size:1.1em">Periodic replanning</strong>: 워크로드 프로파일러가 도착률·입출력 길이 등 패턴 변화를 감지하면 placement 알고리즘을 재실행 — 수 초~수 분이면 끝나 실용적.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.200</span></summary>
+<div class="ng-orig-text">To circumvent this, DistServe employs a &quot;pull&quot; method for KV cache transmission rather than a &quot;push&quot; approach - decoding instances fetch KV cache from prefill instances as needed, using the GPU memory of prefill instances as a queuing buffer.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#9B59B6;border-radius:2px;left:620px;top:1400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">KV Cache 전송량은 실제로 얼마나 되나</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">OPT-66B, 512토큰 요청 하나의 KV cache 크기는 약 <strong style="font-size:1.1em">$1.13$GB</strong>. 평균 도착률 10 rps라면 초당 <strong style="font-size:1.1em">$11.3$GB</strong>(약 90Gbps 상당)를 전송해야 한다. NVLink(600GB/s)에서는 무시할 수준이지만, cross-node 대역폭이 제한적인 클러스터에서는 이게 그대로 병목이 될 수 있다 — 이 계산이 Algorithm 2(node-affinity 배치)를 정당화하는 근거다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.198</span></summary>
+<div class="ng-orig-text">For example, the KV cache size of a single 512-token request on OPT-66B is approximately 1.13GB. Assuming an average arrival rate of 10 rps, we need to transfer 11.3GB data per second—or equivalently 90Gbps bandwidth to render the overhead invisible.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:620px;top:1020px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">End-to-end 벤치마크 결과</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">세 애플리케이션(chatbot/code completion/summarization) 모두에서 DistServe가 vLLM·DeepSpeed-MII를 앞선다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Task</th><th>vs vLLM (rate)</th><th>vs vLLM (SLO)</th><th>vs DeepSpeed-MII (rate)</th></tr></thead><tbody><tr><td>Chatbot (ShareGPT)</td><td>$2.0\times$-$4.6\times$</td><td>$1.8\times$-$3.2\times$</td><td>$1.6\times$-$7.4\times$</td></tr><tr><td>Code Completion</td><td>$5.7\times$</td><td>$1.4\times$</td><td>$1.6\times$</td></tr><tr><td>Summarization</td><td>$4.3\times$</td><td>$12.6\times$</td><td>$1.8\times$</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.194</span></summary>
+<div class="ng-orig-text">Compared to state-of-the-art solutions, DistServe can serve up to 7.4x more requests or 12.6x tighter SLO under various latency constraints.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#9B59B6;border-radius:2px;left:620px;top:1200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Latency Breakdown: 통신 오버헤드는 무시할 수준</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">OPT-175B를 ShareGPT로 서빙할 때, KV cache transmission은 전체 execution time의 <strong style="font-size:1.1em">$0.1\%$ 미만</strong>을 차지한다. 전송 시간의 CDF를 봐도 95% 이상의 요청이 <strong style="font-size:1.1em">$30$ms 미만</strong>의 전송 지연을 겪는다 — cross-node 대역폭이 제한적인 테스트베드임에도 그렇다. Algorithm 2가 KV cache 전송을 항상 NVLink로만 흐르게 강제한 덕분.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.3, p.203</span></summary>
+<div class="ng-orig-text">In fact, even for OPT-175B, the KV Cache transmission only accounts for less than 0.1% of the total latency. Even by examining the CDF of the absolute transmission time shown in Figure 10(b), we observe that over 95% of requests experience a delay of less than 30ms, despite our testbed having only limited cross-node bandwidth.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#9B59B6;border-radius:2px;left:620px;top:1380px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Ablation: Disaggregation 자체의 기여 분리</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">병렬화 설정만 최적화한 &quot;vLLM++&quot;는 원래 vLLM과 성능이 동일하다 — 즉 <strong style="font-size:1.1em">병렬화 튜닝만으로는 부족하고, disaggregation 자체가 핵심</strong>임을 보여준다. 또한 placement 탐색 제약이 적은 DistServe-High가 제약이 많은 DistServe-Low보다 더 나은 배치를 찾아, 알고리즘의 탐색 폭도 성능에 실질적으로 기여한다는 것을 확인.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.4, p.204</span></summary>
+<div class="ng-orig-text">&quot;vLLM++&quot; has the same performance as &quot;vLLM&quot; because we find that the default parallelism setting (intra-op=4) has the best per-GPU goodput. This further demonstrates the importance of disaggregation.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">저자가 스스로 인정한 한계</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Resource-constrained 시나리오</strong>(GPU 한두 개): disaggregation할 여지 자체가 없어 non-disaggregated 시스템이 더 나을 수 있다고 인정.<br><strong style="font-size:1.1em">Preemption/fault tolerance</strong>: 구현하지 않음 — prefill instance 하나의 장애가 거기 연결된 여러 decode instance로 전파될 위험을 인정만 하고 future work로 남김.<br><strong style="font-size:1.1em">워크로드 정상성 가정</strong>: replanning이 패턴 변화를 전제로 하며, 초단기(수 분 이하) 변동엔 대응하지 못함.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.200</span></summary>
+<div class="ng-orig-text">While not a primary focus in the current DistServe, fault tolerance is a critical aspect for consideration. In traditional colocation- and replication-based systems, a fault in one instance typically does not disrupt other replica instances. However, in DistServe, the dependency between prefill and decoding instances introduces the risk of fault propagation.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_020" style="--color:#95A5A6;border-radius:22px;left:620px;top:1500px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Resource Disaggregation 계보와의 관계</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">저자들이 §7에서 스스로 위치를 규정: DistServe는 LegoOS, Mira 같은 <strong style="font-size:1.1em">자원 분리(compute/memory pooling) 시스템</strong> 문헌과 개념을 공유하지만, 이들은 하드웨어 자원(메모리 등) 자체를 분리하는 반면 DistServe는 <strong style="font-size:1.1em">GPU 인스턴스(연산 역할) 단위</strong>를 분리한다는 점에서 스케일과 대상이 다르다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7, p.205</span></summary>
+<div class="ng-orig-text">Resource disaggregated systems decouple the hardware resources from the traditional monolithic server infrastructure and separate them into resource pools to manage independently. [...] DistServe shares the concept by disaggregating its system components, allowing for independent resource scaling and management.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#BDC3C7;border-radius:22px;left:950px;top:1400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향과의 연결</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DistServe의 Algorithm 2(Low Node-Affinity)는 <strong style="font-size:1.1em">&quot;인터커넥트 등급(NVLink vs cross-node)에 따라 배치 전략을 통째로 바꾼다&quot;</strong>는 점에서, 내가 CXL multi-node coherence에서 고민하는 &quot;거리·인터커넥트 등급별로 동기화 전략을 특화한다&quot;는 가설(H1)과 구조적으로 같은 문제다.<br><br>다만 결정적 차이: DistServe는 이걸 <strong style="font-size:1.1em">오프라인 시뮬레이터 탐색 + 정적 배치</strong>로 풀고(Algorithm 1/2는 배포 전에 한 번 돌리는 것), 런타임엔 그 결정을 그대로 쓴다. 워크로드가 바뀌면 replanning으로 몇 분 걸려 재탐색할 뿐이다. 내가 관심 있는 건 이걸 <strong style="font-size:1.1em">런타임에, 그것도 HW/OS coherence 프로토콜 레벨에서 값싸게 반응</strong>하도록 내리면 무엇이 달라지는가 — DistServe는 소프트웨어 스케줄러 레벨 해법의 상한선을 보여주는 좋은 참조점이다.</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":200,"children":["node_006","node_007"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":200,"searchText":"killer application llm 서빙에서 **prefill**(prompt 전체를 병렬 처리해 첫 토큰 생성)과 **decode**(토큰을 하나씩 순차 생성)를 같은 gpu에 섞어 배치(colocate)하면, 서로가 서로를 지연시키는 **간섭(interference)**이 생겨 ttft(첫 토큰까지 시간)와 tpot(토큰당 시간) slo를 동시에 만족시키기 매우 어렵다.\n\ndistserve는 이 둘을 **물리적으로 다른 gpu(instance)로 분리(disaggregate)**해서 간섭을 완전히 제거하고, 각 단계에 맞는 자원 배분·병렬화를 독립적으로 최적화한다. 그 결과 기존 시스템(vllm) 대비 **$7.4\\times$ 더 많은 요청** 또는 **$12.6\\times$ 더 엄격한 slo**를 90% 이상 요청에서 만족시키며 서빙한다. we overcome these challenges to disaggregate the prefill and decoding phases of llm inference, assigning them to separate gpus. our approach has two benefits. first, operating each phase independently on different gpus eliminates prefill-decoding interference. second, it allows to scale each phase independently with tailored resource allocation and model parallelism strategies to meet their specific latency requirements."},{"id":"node_002","lx":100,"ly":500,"children":["node_008","node_009","node_010"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":500,"searchText":"필요한 이유 (why it's needed) 기존 서빙 시스템(vllm 등)은 **continuous batching**으로 prefill과 decode 요청을 같은 배치에 섞어서 gpu 활용률과 전체 throughput을 극대화한다. 하지만 이 방식은 두 가지 문제를 낳는다.\n\n1. **prefill-decoding interference**: prefill 스텝 하나가 decode보다 훨씬 오래 걸리는데, 같은 배치에 섞이면 decode 요청들이 prefill이 끝날 때까지 기다려야 해 tpot가 크게 늘어난다.\n2. **자원·병렬화 결합(coupling)**: 두 단계가 같은 gpu 자원과 병렬화 설정을 공유해야 해서, 한쪽의 slo에 맞추면 다른 쪽은 자원을 과잉 프로비저닝(over-provision)해야 한다.\n\nchunked-prefill(piggyback) 같은 완화책도 있지만 근본 해결은 아니다. one attempt to mitigate this interference is chunked-prefill with piggyback. it proposes to split the long prefill into chunks and batch a prefill chunk with a few decoding jobs (a.k.a. piggybacking). this technique alleviates the slowdown of the decoding job caused by the long prefill job, but it does not eliminate it."},{"id":"node_003","lx":100,"ly":800,"children":["node_011","node_012","node_013","node_014","node_015"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":800,"searchText":"해결책 (solution) disaggregation 이후, prefill instance와 decode instance를 **독립적으로** 분석·최적화할 수 있다. prefill instance는 m/d/1 큐 모델로 ttft를 정량화해 batching·parallelism 전략을 고른다. decode instance는 memory-bandwidth-bound이므로 배치 크기를 키우는 게 핵심이다.\n\n두 종류의 placement 알고리즘을 제공한다: 노드 간 대역폭이 충분한 클러스터용 **high node-affinity**(algorithm 1)와, nvlink 내부 대역폭만 믿을 수 있는 일반적 클러스터용 **low node-affinity**(algorithm 2). 후자는 kv cache 전송이 항상 nvlink를 타도록 prefill/decode의 대응 stage를 같은 노드에 강제로 배치한다. the key insight is that kv cache transfer occurs exclusively between corresponding layers of prefill and decoding instances. leveraging inter-op parallelism, we group layers into stages and divide each instance into segments, termed instance segments, with each segment maintaining one specific inter-op stage. by colocating prefill and decoding segments of the same stage within a single node, we force the transfer of intermediate states to occur only via nvlink."},{"id":"node_004","lx":100,"ly":1100,"children":["node_016","node_017","node_018"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1100,"searchText":"결과 (results) chatbot(opt-13b/66b/175b, sharegpt), code completion(opt-66b, humaneval), summarization(opt-66b, longbench) 세 워크로드에서 vllm·deepspeed-mii와 비교했다. sharegpt에서 vllm 대비 **$2.0\\times$-$4.6\\times$** 높은 요청률을 유지하며 slo를 만족한다.\n\nlatency breakdown 분석에서 kv cache 전송 비용은 opt-175b 기준 전체 latency의 **$0.1\\%$ 미만**으로, \"통신 오버헤드는 인터커넥트를 인식한 배치로 관리하면 무시할 수준\"이라는 §3.3의 주장을 실측으로 검증한다. on the sharegpt dataset, distserve can sustain 2.0x-4.6x higher rate compared to vllm. this is because distllm eliminates the prefill-decoding interference through disaggregation."},{"id":"node_005","lx":100,"ly":1400,"children":["node_019","node_020","node_021"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1400,"searchText":"결론 (conclusion) 저자들은 지연시간이 llm 서빙에서 점점 더 중요한 지표가 되면서, prefill/decoding disaggregation이 성능과 서비스 품질 보장을 동시에 개선하는 유망한 전략이라고 결론짓는다. 다만 이 전략이 모든 시나리오에 최적은 아니라는 것도 §7에서 스스로 인정한다 — throughput-optimized(offline, latency 안 민감), resource-constrained(gpu 한두 개), 그리고 preemption/fault tolerance는 각각 한계 또는 future work로 남는다. we present distserve, a new llm serving architecture that disaggregates the prefill and decoding computation. distserve maximizes the per-gpu goodput [...] our findings affirm that as latency becomes an increasingly important metric for llm services, prefill and decoding disaggregation is a vital strategy in promising improved performance and service quality guarantees."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"figure 1: colocation이 goodput을 짓누른다 13b 모델을 a100 gpu 하나에서 기존 시스템으로 서빙할 때, prefill만 따로 서빙하면 ttft slo를 만족하는 rate가 **$5.6$ rps**, decode만 따로 서빙하면 tpot slo를 만족하는 rate가 **$10$ rps**까지 나온다. 그런데 둘을 같이 배치(colocate)하는 순간 goodput은 **$1.6$ rps**로 급락한다 — 분리해서 조합하면 사실상 $2.1\\times$ 개선. "},{"id":"node_007","lx":620,"ly":300,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":300,"searchText":"headline 수치 vllm 대비 최대 **$7.4\\times$** 더 많은 요청, 또는 **$12.6\\times$** 더 엄격한 slo를 90% 이상의 요청에서 만족하며 서빙 가능. "},{"id":"node_008","lx":620,"ly":420,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":420,"searchText":"prefill vs decode의 근본적으로 다른 연산 특성 **prefill**: prompt 전체 토큰을 한 스텝에 병렬 처리 — 긴 prompt일수록 **compute-bound**(연산량 병목) 경향.\n**decode**: 매 스텝 새 토큰 1개씩 생성, 이전 모든 토큰의 kv cache를 다시 읽어야 함 — **memory-bandwidth-bound**(gpu 메모리 대역폭 병목).\n\n이 둘을 같은 배치·같은 gpu 설정으로 처리하는 것 자체가 근본적인 부조화(mismatch)다. "},{"id":"node_009","lx":620,"ly":580,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":580,"searchText":"figure 2: prefill 하나가 decode 배치 전체를 지연 decoding-only 배치에 prefill job **하나**만 추가해도 tpot가 눈에 띄게 늘어나고, prefill이 길수록 slowdown이 심해진다. 반대로 decode job이 섞이면 prefill 완료 시간도 늘어난다 — 양방향 간섭. as figure 2 shows, adding a single prefill job to a batch of decoding requests significantly slows down both processes, leading to a marked increase in ttft and tpot."},{"id":"node_010","lx":620,"ly":720,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":720,"searchText":"chunked-prefill로는 왜 부족한가 긴 prefill을 chunk로 쪼개 decode와 함께 배치하는 완화책(piggyback)이 있지만, chunk 크기를 gpu가 포화되지 않게 작게 잡으면 prefill 실행시간이 늘고, 크게 잡으면 decode가 piggyback할 슬롯이 줄어든다. 게다가 chunk가 늘수록 kv cache를 반복해서 hbm에서 sram으로 다시 로드해야 해서(o(n^2) 메모리 접근) 근본 해결이 아니다. however, due to the reasons discussed in §2.3, chunked prefill is slower than full prefill, so it struggles to meet the ttft slo as a sacrifice for better tpot."},{"id":"node_011","lx":620,"ly":840,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":840,"searchText":"m/d/1 큐 모델로 ttft 정량화 disaggregation 덕분에 prefill instance를 단일 서버 m/d/1 큐로 모델링할 수 있다. 도착률 $r$, 실행시간 $d$, 이용률 조건 $rd<1$일 때 평균 ttft는:\n\n$$avg\\_ttft = d + \\frac{rd^2}{2(1-rd)}$$\n\n첫 항은 실행시간, 둘째 항은 큐잉 지연이다. 2-way inter-op parallelism을 넣으면 비슷한 형태의 닫힌 식을 유도할 수 있고, 이 식으로 낮은 요청률에선 intra-op parallelism이, 높은 요청률에선 inter-op parallelism이 유리하다는 걸 정량적으로 보인다. where the first term represents the execution time and the second corresponds to the queuing delay."},{"id":"node_012","lx":620,"ly":980,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":980,"searchText":"algorithm 1: high node-affinity placement 노드 간 대역폭이 충분한(infiniband 등) 클러스터용. prefill/decode instance의 병렬화(intra-op $\\times$ inter-op)를 각각 독립적으로 최적화해 phase-level optimal per-gpu goodput을 찾고, 목표 traffic rate를 만족할 때까지 replication한다.\n\n시뮬레이터(simu_prefill/simu_decode)로 slo attainment를 추정하며, 복잡도는 $o(nm^2)$(n=인스턴스당 노드 수 제한, m=노드당 gpu 수), 32 gpu 설정에서도 실행시간 1.3분 이내. "},{"id":"node_013","lx":620,"ly":1120,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1120,"searchText":"algorithm 2: low node-affinity placement nvlink 내부 대역폭만 믿을 수 있는 일반적 클러스터용(이 논문의 실제 테스트베드가 이 경우 — cross-node 25gbps). inter-op stage 단위로 나눈 prefill/decode의 **대응 segment를 같은 노드에 강제로 colocate**시켜, kv cache 전송이 항상 nvlink(600gb/s)만 타도록 만든다.\n\n노드 내에서는 모든 segment 조합을 열거해 시뮬레이션으로 최적을 찾고, 그 뒤 replication으로 목표 rate를 맞춘다. "},{"id":"node_014","lx":620,"ly":1260,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1260,"searchText":"온라인 스케줄링: pull 방식 kv 전송 + replanning **pull 방식**: decode instance가 필요할 때 prefill instance에서 kv cache를 능동적으로 가져온다(push가 아님) — prefill instance의 gpu 메모리를 큐잉 버퍼로 써서, burst 상황에서 decode instance 메모리가 넘치는 걸 방지한다.\n\n**periodic replanning**: 워크로드 프로파일러가 도착률·입출력 길이 등 패턴 변화를 감지하면 placement 알고리즘을 재실행 — 수 초~수 분이면 끝나 실용적. to circumvent this, distserve employs a \"pull\" method for kv cache transmission rather than a \"push\" approach - decoding instances fetch kv cache from prefill instances as needed, using the gpu memory of prefill instances as a queuing buffer."},{"id":"node_015","lx":620,"ly":1400,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1400,"searchText":"kv cache 전송량은 실제로 얼마나 되나 opt-66b, 512토큰 요청 하나의 kv cache 크기는 약 **$1.13$gb**. 평균 도착률 10 rps라면 초당 **$11.3$gb**(약 90gbps 상당)를 전송해야 한다. nvlink(600gb/s)에서는 무시할 수준이지만, cross-node 대역폭이 제한적인 클러스터에서는 이게 그대로 병목이 될 수 있다 — 이 계산이 algorithm 2(node-affinity 배치)를 정당화하는 근거다. for example, the kv cache size of a single 512-token request on opt-66b is approximately 1.13gb. assuming an average arrival rate of 10 rps, we need to transfer 11.3gb data per second—or equivalently 90gbps bandwidth to render the overhead invisible."},{"id":"node_016","lx":620,"ly":1020,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1020,"searchText":"end-to-end 벤치마크 결과 세 애플리케이션(chatbot/code completion/summarization) 모두에서 distserve가 vllm·deepspeed-mii를 앞선다.\n\n| task | vs vllm (rate) | vs vllm (slo) | vs deepspeed-mii (rate) |\n|---|---|---|---|\n| chatbot (sharegpt) | $2.0\\times$-$4.6\\times$ | $1.8\\times$-$3.2\\times$ | $1.6\\times$-$7.4\\times$ |\n| code completion | $5.7\\times$ | $1.4\\times$ | $1.6\\times$ |\n| summarization | $4.3\\times$ | $12.6\\times$ | $1.8\\times$ | compared to state-of-the-art solutions, distserve can serve up to 7.4x more requests or 12.6x tighter slo under various latency constraints."},{"id":"node_017","lx":620,"ly":1200,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1200,"searchText":"latency breakdown: 통신 오버헤드는 무시할 수준 opt-175b를 sharegpt로 서빙할 때, kv cache transmission은 전체 execution time의 **$0.1\\%$ 미만**을 차지한다. 전송 시간의 cdf를 봐도 95% 이상의 요청이 **$30$ms 미만**의 전송 지연을 겪는다 — cross-node 대역폭이 제한적인 테스트베드임에도 그렇다. algorithm 2가 kv cache 전송을 항상 nvlink로만 흐르게 강제한 덕분. in fact, even for opt-175b, the kv cache transmission only accounts for less than 0.1% of the total latency. even by examining the cdf of the absolute transmission time shown in figure 10(b), we observe that over 95% of requests experience a delay of less than 30ms, despite our testbed having only limited cross-node bandwidth."},{"id":"node_018","lx":620,"ly":1380,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1380,"searchText":"ablation: disaggregation 자체의 기여 분리 병렬화 설정만 최적화한 \"vllm++\"는 원래 vllm과 성능이 동일하다 — 즉 **병렬화 튜닝만으로는 부족하고, disaggregation 자체가 핵심**임을 보여준다. 또한 placement 탐색 제약이 적은 distserve-high가 제약이 많은 distserve-low보다 더 나은 배치를 찾아, 알고리즘의 탐색 폭도 성능에 실질적으로 기여한다는 것을 확인. \"vllm++\" has the same performance as \"vllm\" because we find that the default parallelism setting (intra-op=4) has the best per-gpu goodput. this further demonstrates the importance of disaggregation."},{"id":"node_019","lx":620,"ly":1300,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1300,"searchText":"저자가 스스로 인정한 한계 **resource-constrained 시나리오**(gpu 한두 개): disaggregation할 여지 자체가 없어 non-disaggregated 시스템이 더 나을 수 있다고 인정.\n**preemption/fault tolerance**: 구현하지 않음 — prefill instance 하나의 장애가 거기 연결된 여러 decode instance로 전파될 위험을 인정만 하고 future work로 남김.\n**워크로드 정상성 가정**: replanning이 패턴 변화를 전제로 하며, 초단기(수 분 이하) 변동엔 대응하지 못함. while not a primary focus in the current distserve, fault tolerance is a critical aspect for consideration. in traditional colocation- and replication-based systems, a fault in one instance typically does not disrupt other replica instances. however, in distserve, the dependency between prefill and decoding instances introduces the risk of fault propagation."},{"id":"node_020","lx":620,"ly":1500,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1500,"searchText":"resource disaggregation 계보와의 관계 저자들이 §7에서 스스로 위치를 규정: distserve는 legoos, mira 같은 **자원 분리(compute/memory pooling) 시스템** 문헌과 개념을 공유하지만, 이들은 하드웨어 자원(메모리 등) 자체를 분리하는 반면 distserve는 **gpu 인스턴스(연산 역할) 단위**를 분리한다는 점에서 스케일과 대상이 다르다. resource disaggregated systems decouple the hardware resources from the traditional monolithic server infrastructure and separate them into resource pools to manage independently. [...] distserve shares the concept by disaggregating its system components, allowing for independent resource scaling and management."},{"id":"node_021","lx":950,"ly":1400,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1400,"searchText":"내 연구방향과의 연결 distserve의 algorithm 2(low node-affinity)는 **\"인터커넥트 등급(nvlink vs cross-node)에 따라 배치 전략을 통째로 바꾼다\"**는 점에서, 내가 cxl multi-node coherence에서 고민하는 \"거리·인터커넥트 등급별로 동기화 전략을 특화한다\"는 가설(h1)과 구조적으로 같은 문제다.\n\n다만 결정적 차이: distserve는 이걸 **오프라인 시뮬레이터 탐색 + 정적 배치**로 풀고(algorithm 1/2는 배포 전에 한 번 돌리는 것), 런타임엔 그 결정을 그대로 쓴다. 워크로드가 바뀌면 replanning으로 몇 분 걸려 재탐색할 뿐이다. 내가 관심 있는 건 이걸 **런타임에, 그것도 hw/os coherence 프로토콜 레벨에서 값싸게 반응**하도록 내리면 무엇이 달라지는가 — distserve는 소프트웨어 스케줄러 레벨 해법의 상한선을 보여주는 좋은 참조점이다. "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":""},{"source":"node_001","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":""},{"source":"node_002","target":"node_009","type":"line","label":""},{"source":"node_002","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_003","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_016","type":"line","label":""},{"source":"node_004","target":"node_017","type":"line","label":""},{"source":"node_004","target":"node_018","type":"line","label":""},{"source":"node_005","target":"node_019","type":"line","label":""},{"source":"node_005","target":"node_020","type":"line","label":""},{"source":"node_005","target":"node_021","type":"line","label":""}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

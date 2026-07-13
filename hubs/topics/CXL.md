@@ -11,6 +11,7 @@ CXL(Compute Express Link) substrate가 SSD/메모리 아키텍처의 host–devi
 
 - [[ArtMem]] — ISCA 2025
 - [[DJFS]] — FAST 2025
+- [[Formalising CXL Cache Coherence]] — ASPLOS 2025 🎤8/6 (CXL.cache 형식검증)
 - [[Pre-Stores]] — Eurosys 2025
 - [[SkyByte]] — HPCA 2025 🟡
 - [[XHarvest]] — ISCA 2025 🟡
