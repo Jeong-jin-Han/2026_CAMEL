@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "SkyByte: Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design",
   "created": "2026-07-13T00:00:00.000Z",
-  "modified": "2026-07-13T00:00:00.000Z",
+  "modified": "2026-07-13T03:00:00.000Z",
   "source": {
     "pdf": "SkyByte - Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design.pdf",
     "authors": "Haoyang Zhang*, Yuqi Xue*, Yirui Eric Zhou, Shaobo Li, Jian Huang (UIUC; *co-primary)",
@@ -10,14 +10,54 @@
     "pages": 17
   },
   "nodeTemplates": {
-    "main_topic": { "label": "Main topic", "color": "#4B8BBE", "icon": "file-text",   "shape": "sharp" },
-    "method":     { "label": "Method",     "color": "#5C9E6E", "icon": "cpu",         "shape": "sharp" },
-    "result":     { "label": "Result",     "color": "#9B59B6", "icon": "bar-chart-2", "shape": "sharp" },
-    "claim":      { "label": "Claim",      "color": "#E74C3C", "icon": "alert-circle","shape": "sharp" },
-    "question":   { "label": "Question",   "color": "#E5A835", "icon": "help-circle", "shape": "rounded" },
-    "gap":        { "label": "Gap / Idea", "color": "#1ABC9C", "icon": "lightbulb",   "shape": "rounded" },
-    "reference":  { "label": "Reference",  "color": "#95A5A6", "icon": "book-open",   "shape": "rounded" },
-    "memo":       { "label": "Memo",        "color": "#BDC3C7", "icon": "edit-3",      "shape": "rounded" }
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#5C9E6E",
+      "icon": "cpu",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#9B59B6",
+      "icon": "bar-chart-2",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#E74C3C",
+      "icon": "alert-circle",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#1ABC9C",
+      "icon": "lightbulb",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Reference",
+      "color": "#95A5A6",
+      "icon": "book-open",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#BDC3C7",
+      "icon": "edit-3",
+      "shape": "rounded"
+    }
   },
   "nodes": [
     {
@@ -32,8 +72,13 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 0 },
-      "children": ["node_006"],
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_006"
+      ],
       "links": []
     },
     {
@@ -48,8 +93,15 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 300 },
-      "children": ["node_007", "node_008", "node_009"],
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "children": [
+        "node_007",
+        "node_008",
+        "node_009"
+      ],
       "links": []
     },
     {
@@ -64,8 +116,20 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 600 },
-      "children": ["node_010", "node_011", "node_012", "node_013", "node_014", "node_015", "node_016", "node_017"],
+      "position": {
+        "x": 0,
+        "y": 600
+      },
+      "children": [
+        "node_010",
+        "node_011",
+        "node_012",
+        "node_013",
+        "node_014",
+        "node_015",
+        "node_016",
+        "node_017"
+      ],
       "links": []
     },
     {
@@ -80,8 +144,17 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 900 },
-      "children": ["node_018", "node_019", "node_020", "node_021", "node_022"],
+      "position": {
+        "x": 0,
+        "y": 900
+      },
+      "children": [
+        "node_018",
+        "node_019",
+        "node_020",
+        "node_021",
+        "node_022"
+      ],
       "links": []
     },
     {
@@ -96,8 +169,14 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 1200 },
-      "children": ["node_023", "node_024"],
+      "position": {
+        "x": 0,
+        "y": 1200
+      },
+      "children": [
+        "node_023",
+        "node_024"
+      ],
       "links": []
     },
     {
@@ -112,8 +191,13 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": -150 },
-      "children": [],
+      "position": {
+        "x": 520,
+        "y": -150
+      },
+      "children": [
+        "node_030"
+      ],
       "links": []
     },
     {
@@ -128,7 +212,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 150 },
+      "position": {
+        "x": 520,
+        "y": 150
+      },
       "children": [],
       "links": []
     },
@@ -144,7 +231,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 300 },
+      "position": {
+        "x": 520,
+        "y": 300
+      },
       "children": [],
       "links": []
     },
@@ -160,7 +250,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 450 },
+      "position": {
+        "x": 520,
+        "y": 450
+      },
       "children": [],
       "links": []
     },
@@ -176,8 +269,13 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 600 },
-      "children": [],
+      "position": {
+        "x": 520,
+        "y": 600
+      },
+      "children": [
+        "node_031"
+      ],
       "links": []
     },
     {
@@ -192,7 +290,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 750 },
+      "position": {
+        "x": 520,
+        "y": 750
+      },
       "children": [],
       "links": []
     },
@@ -208,7 +309,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 900 },
+      "position": {
+        "x": 520,
+        "y": 900
+      },
       "children": [],
       "links": []
     },
@@ -224,7 +328,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 1050 },
+      "position": {
+        "x": 520,
+        "y": 1050
+      },
       "children": [],
       "links": []
     },
@@ -240,7 +347,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 1200 },
+      "position": {
+        "x": 520,
+        "y": 1200
+      },
       "children": [],
       "links": []
     },
@@ -256,7 +366,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 1350 },
+      "position": {
+        "x": 520,
+        "y": 1350
+      },
       "children": [],
       "links": []
     },
@@ -272,7 +385,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 1500 },
+      "position": {
+        "x": 520,
+        "y": 1500
+      },
       "children": [],
       "links": []
     },
@@ -284,7 +400,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 1650 },
+      "position": {
+        "x": 520,
+        "y": 1650
+      },
       "children": [],
       "links": []
     },
@@ -300,7 +419,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 1850 },
+      "position": {
+        "x": 520,
+        "y": 1850
+      },
       "children": [],
       "links": []
     },
@@ -316,7 +438,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 2000 },
+      "position": {
+        "x": 520,
+        "y": 2000
+      },
       "children": [],
       "links": []
     },
@@ -332,7 +457,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 2150 },
+      "position": {
+        "x": 520,
+        "y": 2150
+      },
       "children": [],
       "links": []
     },
@@ -348,7 +476,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 2300 },
+      "position": {
+        "x": 520,
+        "y": 2300
+      },
       "children": [],
       "links": []
     },
@@ -360,7 +491,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 2450 },
+      "position": {
+        "x": 520,
+        "y": 2450
+      },
       "children": [],
       "links": []
     },
@@ -372,7 +506,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 2650 },
+      "position": {
+        "x": 520,
+        "y": 2650
+      },
       "children": [],
       "links": []
     },
@@ -384,8 +521,17 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 520, "y": 2800 },
-      "children": ["node_025", "node_026", "node_027", "node_028", "node_029"],
+      "position": {
+        "x": 520,
+        "y": 2800
+      },
+      "children": [
+        "node_025",
+        "node_026",
+        "node_027",
+        "node_028",
+        "node_029"
+      ],
       "links": []
     },
     {
@@ -396,7 +542,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 1050, "y": 2650 },
+      "position": {
+        "x": 1050,
+        "y": 2650
+      },
       "children": [],
       "links": []
     },
@@ -408,7 +557,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 1050, "y": 2800 },
+      "position": {
+        "x": 1050,
+        "y": 2800
+      },
       "children": [],
       "links": []
     },
@@ -420,7 +572,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 1050, "y": 2950 },
+      "position": {
+        "x": 1050,
+        "y": 2950
+      },
       "children": [],
       "links": []
     },
@@ -432,7 +587,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 1050, "y": 3100 },
+      "position": {
+        "x": 1050,
+        "y": 3100
+      },
       "children": [],
       "links": []
     },
@@ -444,42 +602,284 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 1050, "y": 3250 },
+      "position": {
+        "x": 1050,
+        "y": 3250
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "question",
+      "title": "이거 결국 swap space랑 뭐가 다른가? (개념 정리)",
+      "content": "SSD를 메모리처럼 쓴다는 건 사실 **swap space**가 오래전부터 하던 일 아닌가? 핵심 차이는 '어디에 매핑되고, 누가 miss를 처리하느냐'에 있다.\n\n| 축 | Swap space (전통) | CXL-SSD memory-semantic (SkyByte) |\n|---|---|---|\n| 주소 공간 | 블록 디바이스 — physical memory가 **아님** | **HDM(Host-managed Device Memory)**으로 physical address space에 매핑 |\n| 접근 경로 | **page fault** $\\rightarrow$ OS trap $\\rightarrow$ block I/O(DMA)로 DRAM frame에 복사 후 접근 | CPU가 **CXL.mem `load`/`store`로 SSD에 직접** 접근 |\n| 접근 단위 | page(4KB) 통째 swap-in/out | **cacheline(64B)** |\n| miss 처리 주체 | **OS**(동기 kernel trap) | **하드웨어**(SSD DRAM cache/FTL) — OS는 모름 |\n| context switch 기회 | **자연히 있음** (major fault가 스케줄링 지점) | **사라짐** $\\rightarrow$ SkyByte가 복원 |\n| 데이터 이동 | 접근하려면 **반드시** DRAM으로 복사 | in-place 접근 가능, migration은 **선택적** 최적화 |\n\n**핵심 아이러니**: swap은 page fault라는 동기 trap 덕분에 '막히면 다른 thread로 전환하는 무료 점심(context switch)'을 공짜로 누렸다. 그런데 CXL.mem은 `load`/`store`가 OS를 우회해 SSD로 직접 나가므로 그 trap 경계가 사라지고, CPU는 그냥 조용히 stall한다. **SkyByte의 coordinated context switch는 결국 swap이 공짜로 갖던 이 이점을, cacheline 단위·프로토콜/하드웨어 수준에서 재구성**하는 셈이다 — NDR opcode로 miss를 알리고, precise한 trap이 없으니 retire-time exception을 새로 만들어 그 경계를 복원한다.\n\n마찬가지로 **adaptive page migration $\\approx$ 선택적 swap-in**이다. 단, swap-in은 fault 시점에 강제로 일어나고 항상 4KB를 옮기지만, SkyByte의 promotion은 hot page만 골라 하드웨어가 트리거하고, precise fault 경계가 없어 **PLB로 일관성을 따로 지켜야** 한다. 정리하면 — swap은 'storage를 느린 memory로 빌려쓰되 OS가 전부 중재', CXL-SSD는 'storage가 진짜 memory 주소공간에 들어오되 그 대가로 OS의 중재 지점(그리고 context switch)을 잃음'이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": -150
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_031",
+      "template": "reference",
+      "title": "기반: CXL Type-3 device + CXL.mem 프로토콜 (버전 명시 없음)",
+      "content": "SkyByte가 서 있는 **CXL 기반(substrate)** 정리 — 논문 §II·§V·Fig.8 근거.\n\n**Device type: Type-3.** SSD 전체를 **HDM(Host-managed Device Memory)**으로 host physical address space에 매핑해 normal physical memory처럼 노출한다. 즉 memory-expander 형태의 Type-3 device다.\n\n**사용 프로토콜: CXL.io + CXL.mem** (CXL은 세 sub-protocol로 정의됨). Type별 프로토콜 조합:\n\n| Type | CXL.io | CXL.cache | CXL.mem | 예 |\n|---|:---:|:---:|:---:|---|\n| Type-1 | O | O | | accelerator(NIC 등) |\n| Type-2 | O | O | O | memory 달린 GPU/가속기 |\n| **Type-3** | O | | O | **memory expander (SkyByte SSD)** |\n\n- **CXL.io**: 전통 PCIe 등가 — device discovery/config/DMA.\n- **CXL.mem**: host가 device memory를 `load`/`store`로 직접 접근. `MemRd`(master$\\rightarrow$slave, M2S)와 `NDR`(slave$\\rightarrow$master, S2M)이 여기 속하며 **SkyByte 메커니즘 전체가 도는 무대**다.\n- **CXL.cache**: device가 host memory를 caching(Type-1/2)하는 용도 — SkyByte는 **사용 안 함**.\n\n**프로토콜 확장**: SkyByte는 CXL.mem **NDR(No Data Response, S2M)** 메시지에 reserved opcode로 `SkyByte-Delay`를 추가한 것뿐(Fig.8), 새 wire protocol을 만들지 않는다.\n\n**버전**: 논문은 특정 CXL spec 버전(2.0/3.0)을 **명시하지 않는다**. Type-3 HDM + CXL.mem은 CXL 1.1/2.0부터 존재하는 기능이다. 여러 host가 한 device를 공유하는 것은 CXL 3.x 영역인데, SkyByte는 **single-host** 전제라 그쪽으로 가지 않는다 — 내 multi-node coherence 관심사와 갈리는 지점.",
+      "original": {
+        "text": "In this paper, we use SSD as a Type-3 CXL device. The entire SSD is exposed as host-managed device memory (HDM). The CXL memory or HDM is exposed to the OS as normal physical memory.",
+        "location": "§V, p.9 (also §II)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 600
+      },
       "children": [],
       "links": []
     }
   ],
   "edges": [
-    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
-    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
-    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
-    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
-    { "id": "edge_005", "source": "node_001", "target": "node_006", "type": "line", "label": "핵심 통찰" },
-    { "id": "edge_006", "source": "node_002", "target": "node_007", "type": "line", "label": "" },
-    { "id": "edge_007", "source": "node_002", "target": "node_008", "type": "line", "label": "" },
-    { "id": "edge_008", "source": "node_002", "target": "node_009", "type": "line", "label": "참고" },
-    { "id": "edge_009", "source": "node_003", "target": "node_010", "type": "line", "label": "" },
-    { "id": "edge_010", "source": "node_003", "target": "node_011", "type": "line", "label": "" },
-    { "id": "edge_011", "source": "node_003", "target": "node_012", "type": "line", "label": "" },
-    { "id": "edge_012", "source": "node_003", "target": "node_013", "type": "line", "label": "" },
-    { "id": "edge_013", "source": "node_003", "target": "node_014", "type": "line", "label": "" },
-    { "id": "edge_014", "source": "node_003", "target": "node_015", "type": "line", "label": "" },
-    { "id": "edge_015", "source": "node_003", "target": "node_016", "type": "line", "label": "" },
-    { "id": "edge_016", "source": "node_003", "target": "node_017", "type": "line", "label": "질문" },
-    { "id": "edge_017", "source": "node_004", "target": "node_018", "type": "line", "label": "" },
-    { "id": "edge_018", "source": "node_004", "target": "node_019", "type": "line", "label": "" },
-    { "id": "edge_019", "source": "node_004", "target": "node_020", "type": "line", "label": "" },
-    { "id": "edge_020", "source": "node_004", "target": "node_021", "type": "line", "label": "" },
-    { "id": "edge_021", "source": "node_004", "target": "node_022", "type": "line", "label": "gap" },
-    { "id": "edge_022", "source": "node_005", "target": "node_023", "type": "line", "label": "발표" },
-    { "id": "edge_023", "source": "node_005", "target": "node_024", "type": "line", "label": "내 연구" },
-    { "id": "edge_024", "source": "node_024", "target": "node_025", "type": "line", "label": "" },
-    { "id": "edge_025", "source": "node_024", "target": "node_026", "type": "line", "label": "" },
-    { "id": "edge_026", "source": "node_024", "target": "node_027", "type": "line", "label": "" },
-    { "id": "edge_027", "source": "node_024", "target": "node_028", "type": "line", "label": "참고" },
-    { "id": "edge_028", "source": "node_024", "target": "node_029", "type": "line", "label": "실험" },
-    { "id": "edge_029", "source": "node_025", "target": "node_026", "type": "line", "label": "연결" },
-    { "id": "edge_030", "source": "node_026", "target": "node_027", "type": "line", "label": "연결" }
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_001",
+      "target": "node_006",
+      "type": "line",
+      "label": "핵심 통찰"
+    },
+    {
+      "id": "edge_006",
+      "source": "node_002",
+      "target": "node_007",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_007",
+      "source": "node_002",
+      "target": "node_008",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_008",
+      "source": "node_002",
+      "target": "node_009",
+      "type": "line",
+      "label": "참고"
+    },
+    {
+      "id": "edge_009",
+      "source": "node_003",
+      "target": "node_010",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_010",
+      "source": "node_003",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_003",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_012",
+      "source": "node_003",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_013",
+      "source": "node_003",
+      "target": "node_014",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_014",
+      "source": "node_003",
+      "target": "node_015",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_015",
+      "source": "node_003",
+      "target": "node_016",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_016",
+      "source": "node_003",
+      "target": "node_017",
+      "type": "line",
+      "label": "질문"
+    },
+    {
+      "id": "edge_017",
+      "source": "node_004",
+      "target": "node_018",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_018",
+      "source": "node_004",
+      "target": "node_019",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_019",
+      "source": "node_004",
+      "target": "node_020",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_020",
+      "source": "node_004",
+      "target": "node_021",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_021",
+      "source": "node_004",
+      "target": "node_022",
+      "type": "line",
+      "label": "gap"
+    },
+    {
+      "id": "edge_022",
+      "source": "node_005",
+      "target": "node_023",
+      "type": "line",
+      "label": "발표"
+    },
+    {
+      "id": "edge_023",
+      "source": "node_005",
+      "target": "node_024",
+      "type": "line",
+      "label": "내 연구"
+    },
+    {
+      "id": "edge_024",
+      "source": "node_024",
+      "target": "node_025",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_025",
+      "source": "node_024",
+      "target": "node_026",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_026",
+      "source": "node_024",
+      "target": "node_027",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_027",
+      "source": "node_024",
+      "target": "node_028",
+      "type": "line",
+      "label": "참고"
+    },
+    {
+      "id": "edge_028",
+      "source": "node_024",
+      "target": "node_029",
+      "type": "line",
+      "label": "실험"
+    },
+    {
+      "id": "edge_029",
+      "source": "node_025",
+      "target": "node_026",
+      "type": "line",
+      "label": "연결"
+    },
+    {
+      "id": "edge_030",
+      "source": "node_026",
+      "target": "node_027",
+      "type": "line",
+      "label": "연결"
+    },
+    {
+      "id": "edge_031",
+      "source": "node_006",
+      "target": "node_030",
+      "type": "line",
+      "label": "swap 대비"
+    },
+    {
+      "id": "edge_032",
+      "source": "node_030",
+      "target": "node_016",
+      "type": "line",
+      "label": "migration≈swap-in"
+    },
+    {
+      "id": "edge_033",
+      "source": "node_010",
+      "target": "node_031",
+      "type": "line",
+      "label": "CXL 기반"
+    }
   ],
-  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
 }
