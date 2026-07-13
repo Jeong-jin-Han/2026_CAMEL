@@ -16,7 +16,7 @@ IEEE International Symposium on High-Performance Computer Architecture.
 - [[Lincoln]] — HPCA 2025
 - [[NVMePass]] — HPCA 2025
 - [[PIMnet]] — HPCA 2025
-- [[SkyByte]] — HPCA 2025 🟡
+- [[SkyByte]] — HPCA 2025 🟡 🎤7/23
 - [[Zebra]] — HPCA 2025
 - [[BeaconGNN]] — HPCA 2024
 - [[DockerSSD]] — HPCA 2024

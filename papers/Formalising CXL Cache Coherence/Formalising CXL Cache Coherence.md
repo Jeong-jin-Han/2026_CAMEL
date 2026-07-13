@@ -5,7 +5,7 @@ description: "CXL.cache 프로토콜을 Isabelle로 형식화해 산문 스펙�
 venue: ASPLOS
 year: 2025
 tier: stub
-status: todo          # 8/6 발표 예정 (랩장 피칭 후 확정)
+status: dropped-from-talks   # 2026-07-13 발표 탈락 (랩장: formal proof는 랩 방향과 다름) — 개인 정독 후보로 유지
 tags:
   - paper
   - topic/cxl
@@ -40,8 +40,10 @@ CXL의 device간 cache coherence 프로토콜인 **CXL.cache**를 산문(영어)
 - 배경: [[CXL Coherence]] · [[CXL Multi-node Coherence]]
 - 같은 우물 (정독 목록): HeteroGen (HPCA'22, coherence 자동 합성 — plan B였음) · Trippel "Axiomatic HW-SW Contracts" (ISCA'22) · MC² (FMCAD'24)
 
-## TODO
-- [ ] 랩장님 피칭 (이번 주): "SSD가 CXL로 memory-semantic해지는 흐름(SkyByte·CMM-H)의 기반인 CXL.cache 스펙을 형식검증해 컨소시엄이 수정까지 채택한 ASPLOS'25 논문 — 8/6에 다뤄도 될까요?"
-- [ ] PDF 확보·정독 → deep 노트로 승격
-- [ ] 발견된 스펙 결함 목록·SWMR 증명 구조 정리 (발표 핵심)
-- [ ] 저자(Wickerson) 이메일 질문 후보 메모하며 읽기
+> [!warning] 발표 탈락 (2026-07-13)
+> 랩장 피드백 *"formal proof·수학 증명 중심 논문은 랩과 결이 맞지 않다"*로 WOFS와 함께 발표 라인업에서 제외 (최종 4편 = Smart-Infinity·SkyByte·Ananke·Sparse Checkpointing). **개인 정독 후보 + 장기 formal 노선([[연구 목표 변화 로그]] v1 north star)의 핵심 논문**으로 유지. 아래 "선정 이유"는 당시 판단의 기록.
+
+## TODO (개인 채널)
+- [ ] PDF 확보·정독 (세미나 무관, 개인 pace)
+- [ ] 발견된 스펙 결함 목록·SWMR 증명 구조 정리
+- [ ] H1/H2 검증 도구로서의 Isabelle 접근 가능성 타진

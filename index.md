@@ -12,11 +12,12 @@ SSD Internals Intensive Seminar (26S) 논문 위키. **75편 전부 정독(deep)
 > 처음이면 [[Communication Tax]](교수님 비전 문서)부터 → 발표 4편 → 토픽 hub 순으로 보면 맥락이 잡힙니다.
 
 ## 🎤 내 발표 4편 (격주 목 · 4회 전부 녹화/교수님 온라인 참관)
-프레임 = **"storage를 실증에서 증명까지"** (v1 pivot — [[연구 목표 변화 로그]]): 실측 → crash test → 프로토콜 증명 → 시스템 증명, 증명 강도 상승순.
-- [[Smart-Infinity]] — HPCA'24 · **7/9 ✅** · near-storage LLM training (real-system 실측)
-- [[DJFS]] — FAST'25 · **7/23** · CMM-H(=CXL) 위 filesystem journaling (실 prototype + 1,000 crash test) — 발표 내 **CXL bridge**
-- [[Formalising CXL Cache Coherence]] — ASPLOS'25 · **8/6 (랩장 피칭 예정)** · CXL.cache 스펙 형식화 — 결함 발견→컨소시엄 채택. *(Ananke 교체 — Ananke는 정독 후보로 강등)*
-- [[WOFS]] — OSDI'25 · **8/20** · crash consistency **formal proof** = correct-by-construction (climax)
+프레임 = **"SSD의 이중 역할(compute + persistence)이 LLM 학습을 어떻게 뒷받침하는가"** + 관통 개념 **transparent HW-SW co-design** (2026-07-13 랩장 피드백 반영 **최종 확정** — [[연구 목표 변화 로그]] v2 · 상세 기록: 2026_vault 「세미나_최종4편_선정_기록」).
+- [[Smart-Infinity]] — HPCA'24 · **7/9 ✅** · LLM 학습 compute를 near-storage로 offload *(Phase 1: Compute)*
+- [[SkyByte]] — HPCA'25 · **7/23** · SSD를 memory-semantic CXL로 재설계 (OS+HW co-design) *(Phase 1: Compute)*
+- [[Ananke]] — FAST'25 · **8/6** · transparent FS microkernel recovery (3만+ fault-injection) *(Phase 2: Persistence)*
+- [[Sparse Checkpointing for Fast and Reliable MoE Training|Sparse Checkpointing]] — NSDI'26 · **8/20** · MoE 학습 sparse checkpoint 알고리즘 *(Phase 2: Persistence)*
+- ~~DJFS(CMM-H 니치)·WOFS(formal proof, 랩장: "수학 증명은 랩 방향과 다름")·Formalising CXL Cache Coherence(동일 사유)~~ → 정독 후보로 강등
 
 ## By Topic (cluster 기준 편수)
 - [[File System]] (18) · [[In-Storage Computing]] (13) · [[Reliability]] (8)
@@ -37,7 +38,7 @@ SSD Internals Intensive Seminar (26S) 논문 위키. **75편 전부 정독(deep)
 - 내 연구 가설 (검증 전): [[Hypotheses]] — [[H1 — 워크로드 특화로 multi-node coherence 줄이기|H1: 왜 워크로드 특화]] → [[H2 — CXL 위에서 PGAS 재해석|H2: 어떻게 = CXL 위 PGAS]]
 - 🧭 [[연구 목표 변화 로그]] — 목표·안목이 어떻게 진화하는지 시간순 기록 (기존 목표 안 지우고 쌓음)
 - 비전: [[Communication Tax]] — 병목은 compute가 아니라 communication+memory (CXL 배경 이해용)
-- CXL 배경 reading (발표 focus 아님, 감 잡기용): [[LightPC]] (ISCA'22, full-system persistence) → [[TrainingCXL]] (IEEE Micro'23, CXL type-2 학습) · 발표 내 CXL 접점은 [[DJFS]] (CMM-H 위 FS, build로 증명)
+- CXL 배경 reading (발표 focus 아님, 감 잡기용): [[LightPC]] (ISCA'22, full-system persistence) → [[TrainingCXL]] (IEEE Micro'23, CXL type-2 학습) · 발표 내 CXL 접점은 [[SkyByte]] (memory-semantic CXL SSD, OS+HW co-design)
 - CAMEL Lab CXL 연구 계보 (리스트 밖·내 CXL 연구 배경): [[CAMEL Lab CXL 연구 계보]] — DirectCXL(뿌리)부터 Panmnesia silicon·One-Chip vision까지 시간순 flow + 빈 자리(programming model)
 
 ## 🔬 랩 관심사 맵 (리스트 75편 분포)
@@ -51,7 +52,7 @@ SSD Internals Intensive Seminar (26S) 논문 위키. **75편 전부 정독(deep)
 - **CXL / tiered-memory / disaggregation — 8**
 - ZNS — 6 · Vector search — 2
 
-해석: 무게중심은 **① ML×스토리지 → ② in-storage → ③ FS·신뢰성**. 내 발표 framing은 토픽이 아니라 *방법론*(feasibility-by-building) — FS·crash consistency 클러스터(③)를 골라 *증명 강도 사다리*로 묶음. CXL은 deep-invest 대신 background로 감만 잡음(발표 내 유일한 CXL 접점 = [[DJFS]]).
+해석: 무게중심은 **① ML×스토리지 → ② in-storage → ③ FS·신뢰성**. 내 발표 framing(2026-07-13 최종) = **"SSD의 이중 역할(compute+persistence) × transparent HW-SW co-design"** — ①(Smart-Infinity·Sparse Ckpt)과 ②③(SkyByte·Ananke)을 관통. CXL은 deep-invest 대신 background로 감만 잡음(발표 내 CXL 접점 = [[SkyByte]]).
 
 ## 진행 현황
 - deep: **75 / 75** · stub: 0 · 남은 SSD-list: 0 ✅

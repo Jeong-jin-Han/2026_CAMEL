@@ -24,6 +24,17 @@ Training은 매 스텝마다 **forward pass + backward pass(역전파) + optimiz
 
 Inference는 이 중 **1번(forward)만, 그것도 activation을 저장하지 않고** 수행한다는 점에서 training과 근본적으로 다르다.
 
+## Training의 "Decode"는 없다 — Teacher Forcing
+Training과 inference 둘 다 "다음 토큰을 예측한다"는 점은 같지만, **inference의 decode 같은 순차 루프가 training에는 아예 없다.** 그 이유가 **teacher forcing**이다.
+
+- **Training**: 정답 시퀀스 전체("나는 밥을 먹었다")를 **한 번에 행렬로** 모델에 넣는다. Causal mask 덕분에 위치 1은 위치 2를, 위치 2는 위치 3을... 예측하는 계산이 **단 한 번의 forward pass**에서 모든 위치에 대해 동시에 이뤄진다. 다음 위치의 입력으로 "모델이 실제로 뭘 생성했는지"는 필요 없다 — **정답을 이미 알고 있으니(teacher forcing) 그걸 그대로 다음 위치의 입력으로 쓴다.**
+- **Inference의 decode**: 모델은 다음 토큰이 뭔지 모른다(그게 생성의 목적이므로). 그래서 토큰 하나를 실제로 만들고, 그걸 다시 입력에 넣고, 또 하나를 만드는 **순차적 의존 관계(sequential dependency)**를 강제로 따라야 한다.
+
+즉 training의 forward pass는 구조적으로 [[Prefill vs Decode|prefill]]과 완전히 같은 모양(masked, matrix-matrix, 모든 위치 병렬)이고, **inference의 decode에 해당하는 순차 생성 단계는 training에 아예 존재하지 않는다.** 이게 바로 아래 표에서 "training은 KV cache가 보통 불필요하다"고 한 이유다 — KV cache는 순차적으로 한 토큰씩 만들 때 과거 결과를 재사용하려는 장치인데, training은 애초에 순차적으로 만들지 않으므로 그 장치 자체가 필요 없다. (scheduled sampling처럼 모델 자신의 출력을 일부러 섞어 넣는 예외적 학습 기법도 있지만, 표준 LLM pretraining은 순수 teacher forcing이다.)
+
+> [!warning] 흔한 오해: "masked attention은 training에서만 쓰고 inference에서는 안 쓴다"
+> 정확하지 않다. Masked attention은 **"행렬로 병렬 처리하느냐"**의 문제지 **"training이냐 inference냐"**의 문제가 아니다. Training과 inference의 [[Prefill vs Decode|prefill]]은 둘 다 정답/prompt 전체를 행렬로 병렬 처리하므로 masked attention을 **똑같이 쓴다.** 오직 inference의 **decode**만 토큰 1개(벡터)라 마스크 자체가 무의미해서 안 쓴다 — 갈리는 기준은 training vs inference가 아니라 "병렬 행렬 처리(training+prefill) vs 순차 벡터 처리(decode)"다. 상세 수식: [[Prefill vs Decode#Decode 스텝의 실제 연산: Vector-Matrix]]
+
 ## 메모리 구성 요소 비교
 | 구성 요소 | Training에 필요? | Inference에 필요? | 비고 |
 |---|---|---|---|

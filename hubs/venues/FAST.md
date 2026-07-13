@@ -21,7 +21,7 @@ USENIX Conference on File and Storage Technologies.
 - [[WARP]] — FAST 2026
 - [[WSBuffer]] — FAST 2026
 - [[AegonKV]] — FAST 2025
-- [[Ananke]] — FAST 2025
+- [[Ananke]] — FAST 2025 🎤8/6
 - [[AWUPF Rediscovered]] — FAST 2025
 - [[D2FS]] — FAST 2025
 - [[DJFS]] — FAST 2025

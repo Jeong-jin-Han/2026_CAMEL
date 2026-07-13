@@ -10,7 +10,7 @@ ACM International Conference on Architectural Support for Programming Languages 
 ## Papers (this wiki)
 
 - [[Nemo]] — ASPLOS 2026
-- [[Formalising CXL Cache Coherence]] — ASPLOS 2025 🎤8/6
+- [[Formalising CXL Cache Coherence]] — ASPLOS 2025
 - [[AnyKey]] — ASPLOS 2025
 - [[CIPHERMATCH]] — ASPLOS 2025
 - [[MaxEmbed]] — ASPLOS 2025

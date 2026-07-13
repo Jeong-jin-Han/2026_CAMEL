@@ -9,4 +9,4 @@ USENIX Symposium on Networked Systems Design and Implementation.
 
 ## Papers (this wiki)
 
-- [[Sparse Checkpointing]] — NSDI 2026 🟡
+- [[Sparse Checkpointing]] — NSDI 2026 🟡 🎤8/20
