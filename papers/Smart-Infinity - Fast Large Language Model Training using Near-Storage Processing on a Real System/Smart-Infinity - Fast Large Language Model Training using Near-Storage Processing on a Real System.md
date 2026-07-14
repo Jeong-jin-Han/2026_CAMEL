@@ -158,7 +158,7 @@ Smart-Infinity는 세 가지 구성요소를 둔다.
 > SAMSUNG SmartSSD(4TB, 내부 Kintex UltraScale+ KU15P FPGA, DDR4 4GB), GPU는 A5000/A100/A4000. SW는 DeepSpeed 위에 통합되고 Xilinx OpenCL extension, pread/pwrite P2P, pybind11을 사용. 옵션만 켜면 기존 코드 수정 없이 실행 (Table II p.8, Fig.8 p.7~8).
 
 ## 🔗 Connections
-[[LLM Systems]] · [[In-Storage Computing]] · [[HPCA]] · [[2024]]
+[[LLM Systems]] · [[In-Storage Computing]] · [[HPCA]] · [[2024]] · 📚 [[Smart-Infinity refs]]
 관련: [[Sparse Checkpointing for Fast and Reliable MoE Training]], [[SkyByte]], [[XHarvest]]
 
 ## References worth following

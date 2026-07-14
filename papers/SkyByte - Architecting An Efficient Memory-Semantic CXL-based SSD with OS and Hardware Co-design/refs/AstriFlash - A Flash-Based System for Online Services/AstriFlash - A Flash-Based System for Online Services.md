@@ -4,9 +4,10 @@ aliases: [AstriFlash]
 type: paper-ref
 venue: HPCA
 year: 2023
+ref-of: "SkyByte"
 tags:
   - paper
-  - cluster/cxl
+  - ref
   - topic/flash-as-memory
   - topic/dram-cache
   - topic/latency-hiding

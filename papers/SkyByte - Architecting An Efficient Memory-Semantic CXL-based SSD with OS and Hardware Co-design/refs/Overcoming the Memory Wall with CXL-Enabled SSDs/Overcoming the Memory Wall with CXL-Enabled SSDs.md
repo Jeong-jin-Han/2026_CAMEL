@@ -4,9 +4,10 @@ aliases: [Overcoming the Memory Wall, CXL-Enabled SSDs]
 type: paper-ref
 venue: USENIX ATC
 year: 2023
+ref-of: "SkyByte"
 tags:
   - paper
-  - cluster/cxl
+  - ref
   - topic/cxl-ssd
   - topic/memory-semantic-ssd
   - topic/flash-as-memory

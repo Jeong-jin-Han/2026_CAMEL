@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Overcoming the Memory Wall with CXL-Enabled SSDs</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">Overcoming the Memory Wall with CXL-Enabled SSDs</span>
+    <span id="tb-source">Shao-Peng Yang, Minjae Kim, Sanghyun Nam, Juhyung Park, Jin-yong Choi, Eyee Hyun Nam, Eunji Lee, Sungjin Lee, Bryan S. Kim (Syracuse / DGIST / Soongsil / FADU) · USENIX ATC 2023</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_006" style="--color:#4B8BBE;border-radius:2px;left:100px;top:220px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문이 푸는 문제: <strong style="font-size:1.1em">NLP 모델은 연 14.1×로 커지는데 GPU 메모리는 연 1.3×밖에 안 느는 memory wall</strong>을, DRAM보다 훨씬 싸고 TB급으로 스케일하는 <strong style="font-size:1.1em">flash를 CXL Type-3 메모리 확장 장치(CXL-flash)</strong>로 넘을 수 있는지 처음으로 open-source로 깊게 검증한다.<br><br><strong style="font-size:1.1em">Killer application 1 — flash를 CXL memory로 쓰는 feasibility 특성화</strong>: 자체 제작한 <strong style="font-size:1.1em">physical memory tracing tool</strong> + <strong style="font-size:1.1em">MQSim 기반 CXL-flash 시뮬레이터</strong>(둘 다 공개)로, flash 3대 난관(granularity mismatch · µs latency · endurance)을 장치 내부 <strong style="font-size:1.1em">DRAM cache · MSHR · prefetcher</strong>로 얼마나 가릴 수 있는지 정량화.<br><br><strong style="font-size:1.1em">Killer application 2 — &quot;된다, 단 조건부&quot;라는 명확한 답</strong>: real-application trace에서 메모리 요청의 <strong style="font-size:1.1em">68–91%를 sub-µs</strong>로 서비스, 수명 <strong style="font-size:1.1em">최소 3.1년</strong>, DRAM-only 대비 <strong style="font-size:1.1em">11–91× 성능/비용</strong>.<br><br><strong style="font-size:1.1em">Killer application 3 — 한계 진단과 co-design 제안</strong>: caching만으론 부족(MSHR 필수), <strong style="font-size:1.1em">V2P 주소변환이 prefetch를 무력화</strong>, 그래서 <strong style="font-size:1.1em">kernel이 access-pattern hint를 장치에 넘기는 OS 협력</strong>을 제안 — 정확히 [[SkyByte]]가 밀어붙이는 방향의 출발선.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
+<div class="ng-orig-text">This paper investigates the feasibility of using inexpensive flash memory on new interconnect technologies such as CXL ... We demonstrate using real-world application traces that these techniques enable the CXL device to have an estimated lifetime of at least 3.1 years and serve 68-91% of the memory requests under a microsecond.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" data-children="node_007,node_008,node_009" style="--color:#4B8BBE;border-radius:2px;left:100px;top:520px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">memory wall</strong>: NLP 모델 파라미터는 <strong style="font-size:1.1em">연 14.1×</strong>로 폭증하지만 GPU 메모리 용량은 <strong style="font-size:1.1em">연 1.3×</strong>에 그친다(Figure 1). DRAM은 GB급으로만·비싸게 스케일하는 반면, flash SSD는 3D 적층·multi-bit cell로 <strong style="font-size:1.1em">TB급</strong>으로 싸게 스케일한다. CXL·Gen-Z·CCIX·OpenCAPI 같은 coherent 인터커넥트가 PCIe 장치를 CPU의 load/store로 직접 접근하게 해주면서 <strong style="font-size:1.1em">flash를 main memory로</strong> 쓰는 길이 열렸다.<br><br>그러나 flash를 memory로 쓰는 데는 <strong style="font-size:1.1em">3대 난관</strong>이 있다.<br><br><strong style="font-size:1.1em">(1) Granularity mismatch</strong>: 64B cacheline flush 하나가 16KiB page read $\rightarrow$ 64B update $\rightarrow$ 16KiB program으로 폭발(write amplification).<br><br><strong style="font-size:1.1em">(2) µs-level latency</strong>: flash read 수십 µs vs DRAM 수십 ns — load/store로 직접 접근하면 이 µs가 그대로 노출된다.<br><br><strong style="font-size:1.1em">(3) Limited endurance</strong>: program/erase가 cell을 마모 — memory로 쓰면 잦은 write로 금방 소진.<br><br>storage에선 firmware가 이 문제를 흡수하지만 CXL-flash는 timescale이 훨씬 짧아 <strong style="font-size:1.1em">hardware가 처리</strong>해야 한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2-3</span></summary>
+<div class="ng-orig-text">First, there is a granularity mismatch between memory requests and flash memory ... Second, flash memory is still orders of magnitude slower than DRAM (tens of microseconds vs. tens of nanoseconds) ... Lastly, flash memory has limited endurance and wears out after repeated writes.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_010,node_011,node_012,node_013,node_014" style="--color:#4B8BBE;border-radius:2px;left:100px;top:820px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문의 '해결책'은 새 하드웨어가 아니라 <strong style="font-size:1.1em">CXL-flash 설계 공간을 체계적으로 탐색하는 방법론과 시뮬레이터</strong>다.<br><br><strong style="font-size:1.1em">1. Physical memory tracing tool(§3)</strong>: main memory·CXL-flash는 physical address로 접근되는데 이를 잡는 공개 도구가 없었다. <strong style="font-size:1.1em">Valgrind/Cachegrind</strong>(LLC miss/eviction 필터) + <strong style="font-size:1.1em">page-fault 후킹</strong>(V2P 매핑 수집)으로 physical trace 생성. virtual trace는 과대낙관이라 physical이 필수.<br><br><strong style="font-size:1.1em">2. CXL-flash 시뮬레이터(§4)</strong>: MQSim[68]+MQSim-E[49] 기반. 아키텍처 = CXL interface $\rightarrow$ indexing $\rightarrow$ prefetcher $\rightarrow$ <strong style="font-size:1.1em">DRAM cache</strong> $\rightarrow$ <strong style="font-size:1.1em">MSHR</strong> $\rightarrow$ FTL $\rightarrow$ flash channel.<br><br><strong style="font-size:1.1em">3. 설계옵션 탐색(§4)</strong>: caching, traffic 감축(MSHR), prefetching, flash tech/parallelism.<br><br><strong style="font-size:1.1em">4. 정책 평가(§5)</strong>: real workload 5종으로 cache replacement(CFLRU 등)·prefetcher 5종(NL/FD/BO/LP) 비교 $\rightarrow$ <strong style="font-size:1.1em">7 Observations</strong> + <strong style="font-size:1.1em">kernel hint co-design</strong> 제안.<br><br>도구·아티팩트 전부 open-source(`github.com/spypaul/MQSim_CXL`).</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, §4, p.4-6</span></summary>
+<div class="ng-orig-text">We build a physical memory tracing tool using page fault events (§3.1) ... To model the hardware, we build a CXL-flash simulator based on MQSim and its extension MQSim-E, and use the physical memory traces of the five synthetic applications to evaluate the effects of design options.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_004" data-children="node_015,node_016,node_017,node_018" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1120px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">Real workload 5종(BERT/PageRank/Radiosity/XZ/YCSB), 일부러 작은 64MiB cache + ULL flash + 8×8 parallelism으로 큰 workload를 대변.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>결과</th><th>값</th></tr></thead><tbody><tr><td>sub-µs 메모리 요청 비율</td><td><strong style="font-size:1.1em">68–91%</strong></td></tr><tr><td>장치 수명(worst=PageRank)</td><td><strong style="font-size:1.1em">≥3.1년</strong> (Radiosity 최대 403년)</td></tr><tr><td>DRAM-only 대비 성능/비용</td><td><strong style="font-size:1.1em">11–91×</strong></td></tr><tr><td>flash read 중 repeated read</td><td><strong style="font-size:1.1em">90%↑</strong> (hashmap/matmul/heap)</td></tr><tr><td>ULL vs SLC (cache 有)</td><td>차이 <strong style="font-size:1.1em">미미</strong></td></tr><tr><td>kernel hint 효과 (BERT sub-µs)</td><td><strong style="font-size:1.1em">86 $\rightarrow$ 91%</strong></td></tr></tbody></table></div><div class="ng-seg"><br>핵심: (1) <strong style="font-size:1.1em">caching만으론 부족</strong> — MSHR로 repeated read를 막아야 tail latency가 잡힘. (2) <strong style="font-size:1.1em">CFLRU</strong>가 write 줄여 성능·수명 최고. (3) <strong style="font-size:1.1em">prefetcher는 양날의 검</strong> — accuracy 높으면 도움, 낮으면 pollution으로 오히려 악화. (4) <strong style="font-size:1.1em">V2P 변환이 prefetch를 무력화</strong>(PageRank accuracy virtual 99%→physical 42%).</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§5, Obs#1-#2, p.10-11</span></summary>
+<div class="ng-orig-text">Although 68-91% of requests have a latency of under a microsecond, using a prefetcher can be detrimental to the performance of real-world applications ... Even under high-intensity workloads, a CXL-flash has a lifetime of at least 3.1 years.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_019,node_020" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1420px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">CXL-flash는 flash 특유의 3대 난관에도 불구하고 <strong style="font-size:1.1em">caching·MSHR·prefetching</strong>을 잘 조합하면 real workload의 <strong style="font-size:1.1em">68–91%를 sub-µs</strong>로 서비스하고 <strong style="font-size:1.1em">≥3.1년</strong> 버티는, DRAM-only 대비 <strong style="font-size:1.1em">cost-effective</strong>한 memory 확장 장치가 될 수 있다. 그러나 <strong style="font-size:1.1em">hardware 기법만으론 DRAM-급에 못 미친다</strong> — 특히 <strong style="font-size:1.1em">virtual→physical 주소 변환이 prefetcher를 무력화</strong>하므로, 저자들은 <strong style="font-size:1.1em">kernel이 access-pattern hint를 장치에 넘기는 system-level 변경</strong>을 제안한다.<br><br><strong style="font-size:1.1em">의의 (SkyByte baseline)</strong>: 이 논문은 [[SkyByte]]가 baseline으로 삼는 <strong style="font-size:1.1em">레퍼런스 CXL-SSD 아키텍처(Base-CSSD 계보)</strong>다. &quot;flash-CXL memory는 된다, 단 OS 협력이 필요하다&quot;는 진단을 SkyByte가 <strong style="font-size:1.1em">coordinated context switch + cacheline write log + OS/HW co-design</strong>으로 이어받아 공격적으로 실현한다. 또한 [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]]의 CXL-SSD vision을 실증적으로 검증한 첫 in-depth study.<br><br><strong style="font-size:1.1em">한계</strong>: flash 내부 task(GC·wear leveling) 미고려, real HW가 아닌 시뮬레이션, 전부 <strong style="font-size:1.1em">single-host</strong> 전제.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7, p.13</span></summary>
+<div class="ng-orig-text">We discover that the address translation for virtual memory makes it particularly difficult for the CXL-flash's prefetcher to be effective and suggest passing kernel-level access pattern hints to further improve the performance ... our work can be a platform on which future research can build upon.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#E74C3C;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 질문 + 기여: 최초의 open-source CXL-flash in-depth study</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문의 전제이자 기여: prior work가 CXL-SSD의 <strong style="font-size:1.1em">확장성·인터커넥트</strong>를 논했다면(예: [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]]), 이 논문은 <strong style="font-size:1.1em">장치 내부(device-internal) 설계 결정과 기존 최적화 기법의 실효성</strong>을 처음으로 open-source로 깊게 판다.<br><br>세 기여:<br><strong style="font-size:1.1em">(1)</strong> page-fault 이벤트로 <strong style="font-size:1.1em">physical memory trace</strong>를 수집하는 도구 + <strong style="font-size:1.1em">CXL-flash 시뮬레이터</strong>(`github.com/spypaul/MQSim_CXL`).<br><strong style="font-size:1.1em">(2)</strong> 합성 workload로 caching·prefetching의 latency 감축 잠재력 정량화(§4).<br><strong style="font-size:1.1em">(3)</strong> real workload로 현 prefetcher 한계 분석 + <strong style="font-size:1.1em">kernel hint</strong> system-level 변경 제안(§5).</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.3</span></summary>
+<div class="ng-orig-text">to the best of our knowledge, we are the first open-sourced in-depth study on the design choices of a CXL-flash device and on the effectiveness of existing optimization techniques.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#E74C3C;border-radius:2px;left:620px;top:370px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Memory wall: NLP 14.1×/yr vs 메모리 1.3×/yr</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">동기의 핵심 수치. NLP 모델 파라미터는 <strong style="font-size:1.1em">연 14.1×</strong>로 커지는데 GPU 메모리 용량은 <strong style="font-size:1.1em">연 1.3×</strong>밖에 안 늘어(Figure 1), 격차가 memory wall로 벌어진다. DRAM은 DIMM당 GB급으로만 스케일하고 비싸지만, flash SSD는 3D 적층·multi-bit cell 덕에 <strong style="font-size:1.1em">TB급</strong>으로 싸게 스케일 — memory wall을 메울 충분한 용량. CXL의 coherent load/store가 이 flash를 memory로 노출할 하드웨어적 인에이블러다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1</span></summary>
+<div class="ng-orig-text">the rapid growth in NLP (natural language processing) models (14.1x per year), which far outpaces that of memory capacity (1.3x per year).</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_008" style="--color:#E74C3C;border-radius:2px;left:620px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">flash 3대 난관 + Table 1 latency</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">flash를 memory로 쓸 때의 세 병목:<br><br><strong style="font-size:1.1em">(1) Granularity mismatch</strong> — flash는 KB page 단위 read/write, overwrite 불가(block erase 선행). 64B flush 하나가 16KiB read + 64B update + 16KiB program으로 폭발.<br><strong style="font-size:1.1em">(2) µs latency</strong> — DRAM보다 orders of magnitude 느림, cell 기술별 심화.<br><strong style="font-size:1.1em">(3) Endurance</strong> — program/erase 마모, memory로 쓰면 잦은 write로 금방 소진.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Tech</th><th>Read</th><th>Program</th><th>Erase</th><th>Endurance</th></tr></thead><tbody><tr><td>DRAM</td><td>46ns</td><td>46ns</td><td>N/A</td><td>N/A</td></tr><tr><td>ULL</td><td>3µs</td><td>100µs</td><td>10ms</td><td>100K</td></tr><tr><td>SLC</td><td>25µs</td><td>200µs</td><td>10ms</td><td>100K</td></tr><tr><td>MLC</td><td>50µs</td><td>600µs</td><td>3000µs</td><td>10K</td></tr><tr><td>TLC</td><td>75µs</td><td>900µs</td><td>4500µs</td><td>3K</td></tr></tbody></table></div><div class="ng-seg"><br>storage에선 firmware가 흡수하지만, CXL-flash는 timescale이 짧아 <strong style="font-size:1.1em">hardware가 처리</strong>해야 한다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§2.2, p.3-4</span></summary>
+<div class="ng-orig-text">As outlined in Table 1 as an example, as more bits are stored per cell, the latency increases, from SLC (single-level cell) to TLC (triple-level cell) ... they should be addressed by hardware due to the much finer timescale.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_009" style="--color:#95A5A6;border-radius:22px;left:620px;top:720px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">CXL Type-3 HDM 기회 + 관련 CXL 연구 좌표</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg"><strong style="font-size:1.1em">CXL Type-3(§2.1)</strong>: host-managed device memory(<strong style="font-size:1.1em">HDM</strong>)를 노출하고 CPU가 load/store로 직접 조작. coherent access로 동기화 오버헤드 감소 + switch로 손쉬운 scale-out. CXL은 현재 DRAM/PMEM만 주 확장 매체로 보지만 <strong style="font-size:1.1em">SSD도 coherent access 덕에 가능</strong>.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>연구</th><th>관계</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">CXL-SSD / Hello Bytes</strong> (Jung, HotStorage'22) [42]</td><td>CXL+SSD 결합 vision — 이 논문이 실증 검증</td></tr><tr><td><strong style="font-size:1.1em">DirectCXL</strong> (Gouk, ATC'22) [36]</td><td>real HW로 외부 DRAM을 CXL로 disaggregation</td></tr><tr><td><strong style="font-size:1.1em">Pond</strong> (Li, ASPLOS'23) [50]</td><td>CXL DRAM pooling(클라우드) — 이 논문은 flash로 구현</td></tr><tr><td><strong style="font-size:1.1em">FlatFlash</strong> (ASPLOS'19) [23] · <strong style="font-size:1.1em">FlashMap</strong> [40]</td><td>SSD 주소변환을 page table에 통합</td></tr></tbody></table></div><div class="ng-seg"><br>차별점: 앞 연구들이 OS-level·host-device 상호작용에 집중한 반면, 이 논문은 <strong style="font-size:1.1em">memory 확장 장치 내부의 설계 결정</strong>을 판다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.13</span></summary>
+<div class="ng-orig-text">CXL-SSD advocates combining CXL and SSD to expand host memory. While we share the same goal with this work, it mainly discusses the CXL interconnect and scalability potentials of CXL-SSDs.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:620px;top:840px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§3 Physical memory tracing tool (virtual은 과대낙관)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">main memory·CXL-flash는 <strong style="font-size:1.1em">physical address</strong>로 접근되는데, LLC↔memory controller 사이 physical transaction을 HW 수정 없이 잡는 공개 도구가 없었다. 해법:<br><br>- <strong style="font-size:1.1em">Valgrind/Cachegrind</strong>로 LLC miss/eviction을 걸러낸 memory access(가상주소)를 수집.<br>- 동시에 <strong style="font-size:1.1em">page-fault 시 kernel PTE 설치 함수</strong>(`do_anonymous_page()`, `do_set_pte()`)를 후킹해 대상 PID의 <strong style="font-size:1.1em">V2P 매핑</strong>을 `/proc`에 기록.<br>- 둘을 합쳐 physical trace 생성(Figure 2).<br><br>결정적 관찰: <strong style="font-size:1.1em">virtual 접근 패턴은 규칙적이지만 physical은 V2P 변환 때문에 전혀 다르다</strong>(Figure 3). virtual trace로 시뮬레이션하면 sub-µs 비율이 과대낙관(matmul 오차 25%↑). 그래서 physical trace가 필수 — 이게 §5 Obs#6(prefetch 방해)의 뿌리.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.5-6</span></summary>
+<div class="ng-orig-text">the corresponding physical frame number (PFN) does not resemble the VPN ... Using virtual memory traces generates an overly optimistic result with far more requests completing under a microsecond compared to the result from running physical memory traces.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1010px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.1 Caching — 하지만 caching만으론 부족</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">flash 앞단 <strong style="font-size:1.1em">DRAM cache</strong>는 두 역할: (1) hot data를 빠른 DRAM에서 서빙, (2) hit 시 flash traffic 감소. cache 크기를 0~8GiB로 바꾸며 평균 latency와 flash inter-arrival time을 측정(Figure 5).<br><br><strong style="font-size:1.1em">핵심 반전</strong>: 충분히 큰 cache(workload footprint보다 커도)에서조차 평균 latency가 DRAM보다 훨씬 높다. 이유는 <strong style="font-size:1.1em">짧은 inter-arrival time</strong>이 flash backend를 압도해 queuing delay가 쌓이기 때문. 32×32의 넉넉한 parallelism으로도 부족.<br><br>$\Rightarrow$ &quot;cache 하나로는 CXL-flash latency를 못 줄인다. traffic 자체를 줄이는 <strong style="font-size:1.1em">보조 구조(MSHR)</strong>가 필요하다.&quot;</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.7</span></summary>
+<div class="ng-orig-text">This experiment shows that caching alone is insufficient in reducing the latency of a CXL-flash, and we need additional auxiliary structures to reduce the traffic to flash memory.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1180px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.2 MSHR — repeated reads가 90%↑</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">cache miss 시 <strong style="font-size:1.1em">4KiB</strong>를 fetch하는데, 그 fetch가 진행 중일 때 같은 4KiB 안의 후속 64B miss가 <strong style="font-size:1.1em">또 flash read를 발행</strong>한다. 이를 <strong style="font-size:1.1em">repeated reads</strong>라 부르며, hashmap/matrix-mult/heap에선 flash read의 <strong style="font-size:1.1em">90%↑가 repeat</strong>(Figure 6)!<br><br>해법: CPU cache에서 빌려온 <strong style="font-size:1.1em">MSHR(miss status holding register)</strong>로 outstanding flash read를 추적해, <strong style="font-size:1.1em">한 번의 flash read로 여러 64B 요청을 서비스</strong>한다. Figure 7: MSHR이 긴 tail latency를 대폭 감소.<br><br>주목: SSD엔 MSHR이 드물다 — storage stack이 겹치는 block I/O를 software로 merge하기 때문. 그러나 CXL-flash엔 그 software layer가 없어(LLC에서 직접 transaction 수신) <strong style="font-size:1.1em">HW가 MSHR을 구현해야</strong> 한다. (단 MSHR은 traffic만 줄일 뿐 hit rate를 능동적으로 올리진 않음 → prefetch 필요.)</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.7</span></summary>
+<div class="ng-orig-text">over 90% of flash memory reads are repeats! ... We observe in Figure 7 that MSHRs significantly reduce long tail latencies, particularly for the three workloads with a significant number of repeated reads.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1350px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.3-4.4 Prefetching + flash tech/parallelism</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Prefetching(§4.3)</strong>: Next-N-line prefetcher, 두 파라미터 — <strong style="font-size:1.1em">degree</strong>(공격성, 얼마나 많이)·<strong style="font-size:1.1em">offset</strong>(얼마나 앞서). degree↑는 대체로 성능↑(matmul sub-µs 64→76%, prefetch 필요성 입증). 단 <strong style="font-size:1.1em">best config은 workload 의존</strong>, offset 64는 너무 멀리 fetch해 오히려 악화.<br><br><strong style="font-size:1.1em">Flash tech &amp; parallelism(§4.4)</strong>:<br>- <strong style="font-size:1.1em">cache가 있으면 ULL(3µs) vs SLC(25µs) 차이 미미</strong> — cache 없을 때만 ULL이 압도적.<br>- MLC/TLC는 성능·수명 모두 크게 악화(1GiB cache로는 1년도 못 감). ULL/SLC+cache면 수명 4년↑.<br>- parallelism은 cache가 크면 8×4로 줄여도 무방, 작으면 중요. random은 cache 크기에, stride는 parallelism에 민감.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.8</span></summary>
+<div class="ng-orig-text">Even a small degree of 1 increases the portion of sub-microsecond requests from 64% to 76% for the matrix multiply workload, highlighting the necessity of prefetching for CXL-flash. However, the improvement plateaus and further increasing the degree may only pollute the cache.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1520px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§5.1-5.2 정책 평가: CFLRU + prefetcher 5종</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Real workload 5종(BERT/PageRank/Radiosity/XZ/YCSB, Table 5), 일부러 작은 <strong style="font-size:1.1em">64MiB</strong> cache + ULL + 8×8.<br><br><strong style="font-size:1.1em">Cache replacement(§5.1)</strong>: FIFO/Random/LRU/<strong style="font-size:1.1em">CFLRU</strong>(clean을 modified보다 먼저 evict). associativity↑ → hit rate↑ → 성능↑(miss penalty가 커서 hit rate가 hit time보다 중요). <strong style="font-size:1.1em">CFLRU가 최고</strong>(write traffic·flash 마모 감소). read-dominant &gt; write-heavy. 고locality(Radiosity)는 정책에 둔감.<br><br><strong style="font-size:1.1em">Prefetcher(§5.2)</strong>: NP/NL(Next-N-line)/FD(feedback-directed)/BO(best-offset)/LP(Leap) 비교. accuracy·coverage·lateness·pollution 4지표로 분석. 이 비교가 아래 <strong style="font-size:1.1em">7 Observations</strong>의 무대.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1, p.9-10</span></summary>
+<div class="ng-orig-text">CFLRU outperforms the other replacement policies, particularly in BERT, XZ, and YCSB ... This is supported by the significant reduction in write traffic.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_015" style="--color:#9B59B6;border-radius:2px;left:620px;top:1690px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Feasibility headline: 68–91% sub-µs, 수명 ≥3.1년</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">이 논문의 대표 결과(Obs#1, #2).<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>지표</th><th>값</th></tr></thead><tbody><tr><td>sub-µs 요청 비율</td><td><strong style="font-size:1.1em">68–91%</strong></td></tr><tr><td>수명 (worst=PageRank)</td><td><strong style="font-size:1.1em">≥3.1년</strong></td></tr><tr><td>수명 (best=Radiosity)</td><td>최대 <strong style="font-size:1.1em">403년</strong></td></tr></tbody></table></div><div class="ng-seg"><br>수명을 좌우하는 3요소: <strong style="font-size:1.1em">workload 강도 · read/write 비율 · locality</strong>. PageRank가 최악(고강도·고write·저locality)이지만 그래도 3.1년 — 즉 <strong style="font-size:1.1em">durability는 memory 요청 강도를 감당할 수 있다</strong>. 68–91%가 sub-µs이므로 flash가 DRAM-급은 아니어도 memory-intensive 앱엔 충분히 실용적.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, Obs#2, p.11</span></summary>
+<div class="ng-orig-text">we observe, in the worst case, the device would last 3.1 years under PageRank, but under workloads such as Radiosity, it would be as much as 403 years ... the durability of the CXL-flash can sustain the intensity of memory requests.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_016" data-children="node_021" style="--color:#9B59B6;border-radius:2px;left:620px;top:1860px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">7 Observations: prefetcher는 양날의 검, V2P가 핵심 장애</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">§5.2의 7개 관찰 — 이 논문의 지적 핵심.<br><br>- <strong style="font-size:1.1em">#1</strong> 68–91% sub-µs지만 prefetcher가 real workload엔 <strong style="font-size:1.1em">해로울 수 있음</strong>(BERT/XZ/YCSB 악화, Radiosity +36%).<br>- <strong style="font-size:1.1em">#2</strong> 고강도에서도 수명 <strong style="font-size:1.1em">≥3.1년</strong>.<br>- <strong style="font-size:1.1em">#3</strong> DRAM-only 대비 <strong style="font-size:1.1em">11–91× 성능/비용</strong>(DRAM이 NAND보다 17–100× 비쌈).<br>- <strong style="font-size:1.1em">#4</strong> prefetcher가 도움될 땐 <strong style="font-size:1.1em">높은 accuracy</strong> 때문(Leap: Radiosity 85% vs BERT 27%).<br>- <strong style="font-size:1.1em">#5</strong> accuracy 낮을 때 성능저하 주범은 <strong style="font-size:1.1em">cache pollution</strong>(BERT/YCSB).<br>- <strong style="font-size:1.1em">#6</strong> <strong style="font-size:1.1em">V2P 주소변환이 prefetch를 무력화</strong>(BO on PageRank accuracy virtual 99%→physical 42%; BERT coverage 76→26%).<br>- <strong style="font-size:1.1em">#7</strong> <strong style="font-size:1.1em">kernel hint</strong>로 hit-under-miss를 cache hit으로 전환 → 성능↑(BERT sub-µs 86→91%).<br><br>$\Rightarrow$ hardware caching/prefetching만으론 한계, <strong style="font-size:1.1em">OS 협력(hint)</strong>이 돌파구.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, Obs#6, p.12</span></summary>
+<div class="ng-orig-text">The BO prefetcher under Page Rank is 99% accurate for the virtual memory trace, but with the physical trace, accuracy drops to 42% ... The drop in both accuracy and coverage for physical traces shows that the CXL-flash would perform better if it were addressed virtually.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#9B59B6;border-radius:2px;left:620px;top:2030px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Cost &amp; tech: 11–91× perf/cost, ULL vs SLC marginal</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Cost-effectiveness(Obs#3)</strong>: DRAM이 NAND flash보다 <strong style="font-size:1.1em">17–100× 비싸다</strong>(DRAM $5/GB, NAND $0.05–0.30/GB). CXL-flash가 68–91%를 sub-µs로 서비스하므로 DRAM-only 대비 <strong style="font-size:1.1em">11–91× 성능/비용</strong> 이득(Figure 14). 최고 성능이 절대적으로 필요한 경우가 아니면 <strong style="font-size:1.1em">cost-effective한 memory 확장 옵션</strong>.<br><br><strong style="font-size:1.1em">Tech 선택</strong>: cache가 있으면 값싼 SLC로도 고가 ULL과 성능 대등 — 즉 <strong style="font-size:1.1em">적절한 cache가 flash 매체 등급의 열세를 상쇄</strong>한다. MLC/TLC는 endurance·성능 둘 다 실용성 낮음.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, Obs#3, p.11</span></summary>
+<div class="ng-orig-text">the recent price point of DRAM is 17-100x higher than that of NAND flash, we expect an 11-91x performance-per-cost benefit from a CXL-flash over a DRAM-only device.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#1ABC9C;border-radius:22px;left:620px;top:2200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">설계 지침: OS 협력 없이는 near-DRAM 불가</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">논문이 데이터로 도출한 <strong style="font-size:1.1em">설계 가이드라인</strong>(SkyByte로 이어지는 지점):<br><br>1. <strong style="font-size:1.1em">MSHR은 필수</strong> — caching만으론 repeated read를 못 막는다.<br>2. <strong style="font-size:1.1em">CFLRU + 높은 associativity</strong> — write 줄여 성능·수명 동시 개선.<br>3. <strong style="font-size:1.1em">prefetcher는 accuracy 기반으로 켜고 꺼야</strong> — pollution이 역효과.<br>4. <strong style="font-size:1.1em">V2P가 근본 장애</strong> — 장치가 physical만 보므로 virtual 규칙성이 소실. huge page는 부분 완화일 뿐.<br>5. <strong style="font-size:1.1em">kernel hint(co-design)가 돌파구</strong> — host의 workload 지식을 장치에 전달해야 near-DRAM.<br><br>$\Rightarrow$ &quot;device-internal HW 최적화만으론 벽에 부딪힌다&quot;는 것이 이 논문의 최종 진단. <strong style="font-size:1.1em">OS+HW co-design 필요성</strong>을 실증한 것.</div><details class="ng-original"><summary>설계 지침 (원문) <span class="ng-loc">§1, p.3</span></summary>
+<div class="ng-orig-text">we analyze the limitations of the current prefetchers and suggest system-level changes for future CXL-flash to achieve near-DRAM performance, specifically sub-µs latencies for the device.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_019" style="--color:#BDC3C7;border-radius:22px;left:620px;top:2370px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">SkyByte와의 관계: 이 논문 = 실증 baseline, SkyByte = 공격적 co-design</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">이 논문은 [[SkyByte]]의 <strong style="font-size:1.1em">직계 baseline(Base-CSSD 계보)</strong>이다. 이 논문이 세운 판(flash-backed CXL-SSD를 memory로) 위에서, SkyByte는 여기서 &quot;부족하다&quot;고 진단한 지점을 넘어선다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th></th><th>ATC'23 (이 논문)</th><th>SkyByte (HPCA'25)</th></tr></thead><tbody><tr><td>성격</td><td><strong style="font-size:1.1em">특성화</strong>(characterization)</td><td><strong style="font-size:1.1em">설계</strong>(co-designed architecture)</td></tr><tr><td>지연 은닉</td><td>HW caching/prefetching/MSHR</td><td>+coordinated <strong style="font-size:1.1em">context switch</strong>, cacheline <strong style="font-size:1.1em">write log</strong></td></tr><tr><td>OS 협력</td><td>kernel <strong style="font-size:1.1em">hint</strong> 제안(방향만)</td><td>OS+HW <strong style="font-size:1.1em">co-design</strong> 구현</td></tr><tr><td>결론</td><td>&quot;OS 협력이 필요하다&quot;</td><td>&quot;OS 협력을 이렇게 한다&quot;</td></tr></tbody></table></div><div class="ng-seg"><br>★ 이 논문의 <strong style="font-size:1.1em">Obs#6(V2P 방해) + Obs#7(hint 효과)</strong>이 SkyByte가 왜 OS를 끌어들였는지의 실증적 근거. 관련 vision: [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]].</div></div></div>
+</div>
+<div class="ng-node" id="node-node_020" data-children="node_022" style="--color:#1ABC9C;border-radius:22px;left:620px;top:2540px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향: single-host 특성화 → multi-host 공유의 빈칸</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문은 CXL-flash를 <strong style="font-size:1.1em">한 host가 보는</strong> memory 확장 장치로 특성화한다. cache·MSHR·prefetch·kernel-hint 전부 <strong style="font-size:1.1em">단일 host address space·단일 page table·단일 V2P 관계</strong> 위에서 성립한다.<br><br>내 방향(<strong style="font-size:1.1em">multi-node CXL coherence</strong>)은 이 특성화를 <strong style="font-size:1.1em">multi-host로 재수행</strong>하는 것이 gap:<br>- <strong style="font-size:1.1em">cross-host 간섭</strong>: 여러 host의 요청이 섞이면 inter-arrival time·cache pollution·prefetch accuracy 계산이 전부 재정의된다.<br>- <strong style="font-size:1.1em">coherence</strong>: host A가 캐싱/promote한 page를 host B가 stale로 봄 → CXL 3.0 <strong style="font-size:1.1em">back-invalidate/HDM-DB</strong> 필요.<br>- <strong style="font-size:1.1em">hint 소유권</strong>: kernel hint(Obs#7)를 multi-host에선 누가 생성·조정하나?<br><br>즉 이 논문의 &quot;무엇이 필요한가&quot;를 <strong style="font-size:1.1em">공유 CXL-SSD 맥락에서 다시 묻는</strong> 것이 내 자리. $\Rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]], [[CXL Overview]]</div></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#E5A835;border-radius:22px;left:1150px;top:1860px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">clairvoyant kernel hint — co-design의 씨앗 (Obs#7)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Obs#7의 실험: <strong style="font-size:1.1em">자주 접근되는 top physical frame</strong> 정보를 아는 가상의 clairvoyant kernel이 접근 전에 장치에 hint를 준다. hint 대상 주소를 늘리면 BERT의 sub-µs가 <strong style="font-size:1.1em">86→91%</strong>로, hit-under-miss가 cache hit으로 전환되며 개선(Figure 18). data-intensive 앱은 반복 iterate하므로 profiling으로 실현 가능하다는 논리.<br><br>이건 &quot;장치가 physical만 봐서 못 푸는 문제를, host의 workload 지식으로 푼다&quot;는 <strong style="font-size:1.1em">OS+HW co-design의 씨앗</strong>이다. [[SkyByte]]가 OS를 co-design에 끌어들이는 정당화가 정확히 여기서 실증됐다. 단 이 논문은 <strong style="font-size:1.1em">hint를 제안</strong>했을 뿐, hint 생성 오버헤드·정확한 인터페이스·multi-host 소유권은 열어둠 → 후속 co-design의 몫.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, Obs#7, p.12-13</span></summary>
+<div class="ng-orig-text">We consider a hypothetically clairvoyant kernel that knows the physical memory access pattern ... the percentage of sub-microsecond latencies increases from 86% to 91% by converting hit-under-misses into cache hits.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_022" style="--color:#1ABC9C;border-radius:22px;left:1150px;top:2540px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">multi-host coherence: 이 논문 전제가 붕괴하는 지점</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문의 모든 결과가 <strong style="font-size:1.1em">한 host = 한 page table = 하나의 V2P 매핑</strong>에 의존한다. 여러 host가 같은 CXL-SSD를 공유하면:<br><br>- <strong style="font-size:1.1em">prefetch accuracy 지표 무의미화</strong>: physical trace가 host마다 다르고 시간에 따라 섞여, Obs#4~#6의 accuracy/coverage 분석 틀이 깨진다.<br>- <strong style="font-size:1.1em">cache/promotion coherence</strong>: 장치 내부 DRAM cache의 한 line을 여러 host가 공유 시 write ordering·invalidation 필요 → CXL 3.0 <strong style="font-size:1.1em">back-invalidate</strong>, <strong style="font-size:1.1em">HDM-DB</strong>.<br>- <strong style="font-size:1.1em">CFLRU/MSHR의 재정의</strong>: clean/dirty 판정과 outstanding-read 병합이 host 경계를 넘으면 달라진다.<br><br>$\Rightarrow$ FlatFlash·SkyByte가 계승한 PLB류 single-host 일관성처럼, 이 논문의 device-internal 최적화도 <strong style="font-size:1.1em">multi-host에서 문제 정의부터 다시</strong> 세워야 한다 — 이게 내 field(공유 memory coherence/consistency 원리)의 정확한 좌표.</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":220,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":220,"searchText":"killer application 이 논문이 푸는 문제: **nlp 모델은 연 14.1×로 커지는데 gpu 메모리는 연 1.3×밖에 안 느는 memory wall**을, dram보다 훨씬 싸고 tb급으로 스케일하는 **flash를 cxl type-3 메모리 확장 장치(cxl-flash)**로 넘을 수 있는지 처음으로 open-source로 깊게 검증한다.\n\n**killer application 1 — flash를 cxl memory로 쓰는 feasibility 특성화**: 자체 제작한 **physical memory tracing tool** + **mqsim 기반 cxl-flash 시뮬레이터**(둘 다 공개)로, flash 3대 난관(granularity mismatch · µs latency · endurance)을 장치 내부 **dram cache · mshr · prefetcher**로 얼마나 가릴 수 있는지 정량화.\n\n**killer application 2 — \"된다, 단 조건부\"라는 명확한 답**: real-application trace에서 메모리 요청의 **68–91%를 sub-µs**로 서비스, 수명 **최소 3.1년**, dram-only 대비 **11–91× 성능/비용**.\n\n**killer application 3 — 한계 진단과 co-design 제안**: caching만으론 부족(mshr 필수), **v2p 주소변환이 prefetch를 무력화**, 그래서 **kernel이 access-pattern hint를 장치에 넘기는 os 협력**을 제안 — 정확히 [[skybyte]]가 밀어붙이는 방향의 출발선. this paper investigates the feasibility of using inexpensive flash memory on new interconnect technologies such as cxl ... we demonstrate using real-world application traces that these techniques enable the cxl device to have an estimated lifetime of at least 3.1 years and serve 68-91% of the memory requests under a microsecond."},{"id":"node_002","lx":100,"ly":520,"children":["node_007","node_008","node_009"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":520,"searchText":"필요한 이유 (why it's needed) **memory wall**: nlp 모델 파라미터는 **연 14.1×**로 폭증하지만 gpu 메모리 용량은 **연 1.3×**에 그친다(figure 1). dram은 gb급으로만·비싸게 스케일하는 반면, flash ssd는 3d 적층·multi-bit cell로 **tb급**으로 싸게 스케일한다. cxl·gen-z·ccix·opencapi 같은 coherent 인터커넥트가 pcie 장치를 cpu의 load/store로 직접 접근하게 해주면서 **flash를 main memory로** 쓰는 길이 열렸다.\n\n그러나 flash를 memory로 쓰는 데는 **3대 난관**이 있다.\n\n**(1) granularity mismatch**: 64b cacheline flush 하나가 16kib page read $\\rightarrow$ 64b update $\\rightarrow$ 16kib program으로 폭발(write amplification).\n\n**(2) µs-level latency**: flash read 수십 µs vs dram 수십 ns — load/store로 직접 접근하면 이 µs가 그대로 노출된다.\n\n**(3) limited endurance**: program/erase가 cell을 마모 — memory로 쓰면 잦은 write로 금방 소진.\n\nstorage에선 firmware가 이 문제를 흡수하지만 cxl-flash는 timescale이 훨씬 짧아 **hardware가 처리**해야 한다. first, there is a granularity mismatch between memory requests and flash memory ... second, flash memory is still orders of magnitude slower than dram (tens of microseconds vs. tens of nanoseconds) ... lastly, flash memory has limited endurance and wears out after repeated writes."},{"id":"node_003","lx":100,"ly":820,"children":["node_010","node_011","node_012","node_013","node_014"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":820,"searchText":"해결책 (solution) 이 논문의 '해결책'은 새 하드웨어가 아니라 **cxl-flash 설계 공간을 체계적으로 탐색하는 방법론과 시뮬레이터**다.\n\n**1. physical memory tracing tool(§3)**: main memory·cxl-flash는 physical address로 접근되는데 이를 잡는 공개 도구가 없었다. **valgrind/cachegrind**(llc miss/eviction 필터) + **page-fault 후킹**(v2p 매핑 수집)으로 physical trace 생성. virtual trace는 과대낙관이라 physical이 필수.\n\n**2. cxl-flash 시뮬레이터(§4)**: mqsim[68]+mqsim-e[49] 기반. 아키텍처 = cxl interface $\\rightarrow$ indexing $\\rightarrow$ prefetcher $\\rightarrow$ **dram cache** $\\rightarrow$ **mshr** $\\rightarrow$ ftl $\\rightarrow$ flash channel.\n\n**3. 설계옵션 탐색(§4)**: caching, traffic 감축(mshr), prefetching, flash tech/parallelism.\n\n**4. 정책 평가(§5)**: real workload 5종으로 cache replacement(cflru 등)·prefetcher 5종(nl/fd/bo/lp) 비교 $\\rightarrow$ **7 observations** + **kernel hint co-design** 제안.\n\n도구·아티팩트 전부 open-source(`github.com/spypaul/mqsim_cxl`). we build a physical memory tracing tool using page fault events (§3.1) ... to model the hardware, we build a cxl-flash simulator based on mqsim and its extension mqsim-e, and use the physical memory traces of the five synthetic applications to evaluate the effects of design options."},{"id":"node_004","lx":100,"ly":1120,"children":["node_015","node_016","node_017","node_018"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1120,"searchText":"결과 (results) real workload 5종(bert/pagerank/radiosity/xz/ycsb), 일부러 작은 64mib cache + ull flash + 8×8 parallelism으로 큰 workload를 대변.\n\n| 결과 | 값 |\n|---|---|\n| sub-µs 메모리 요청 비율 | **68–91%** |\n| 장치 수명(worst=pagerank) | **≥3.1년** (radiosity 최대 403년) |\n| dram-only 대비 성능/비용 | **11–91×** |\n| flash read 중 repeated read | **90%↑** (hashmap/matmul/heap) |\n| ull vs slc (cache 有) | 차이 **미미** |\n| kernel hint 효과 (bert sub-µs) | **86 $\\rightarrow$ 91%** |\n\n핵심: (1) **caching만으론 부족** — mshr로 repeated read를 막아야 tail latency가 잡힘. (2) **cflru**가 write 줄여 성능·수명 최고. (3) **prefetcher는 양날의 검** — accuracy 높으면 도움, 낮으면 pollution으로 오히려 악화. (4) **v2p 변환이 prefetch를 무력화**(pagerank accuracy virtual 99%→physical 42%). although 68-91% of requests have a latency of under a microsecond, using a prefetcher can be detrimental to the performance of real-world applications ... even under high-intensity workloads, a cxl-flash has a lifetime of at least 3.1 years."},{"id":"node_005","lx":100,"ly":1420,"children":["node_019","node_020"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1420,"searchText":"결론 (conclusion) cxl-flash는 flash 특유의 3대 난관에도 불구하고 **caching·mshr·prefetching**을 잘 조합하면 real workload의 **68–91%를 sub-µs**로 서비스하고 **≥3.1년** 버티는, dram-only 대비 **cost-effective**한 memory 확장 장치가 될 수 있다. 그러나 **hardware 기법만으론 dram-급에 못 미친다** — 특히 **virtual→physical 주소 변환이 prefetcher를 무력화**하므로, 저자들은 **kernel이 access-pattern hint를 장치에 넘기는 system-level 변경**을 제안한다.\n\n**의의 (skybyte baseline)**: 이 논문은 [[skybyte]]가 baseline으로 삼는 **레퍼런스 cxl-ssd 아키텍처(base-cssd 계보)**다. \"flash-cxl memory는 된다, 단 os 협력이 필요하다\"는 진단을 skybyte가 **coordinated context switch + cacheline write log + os/hw co-design**으로 이어받아 공격적으로 실현한다. 또한 [[hello bytes, bye blocks - pcie storage meets compute express link for memory expansion (cxl-ssd)]]의 cxl-ssd vision을 실증적으로 검증한 첫 in-depth study.\n\n**한계**: flash 내부 task(gc·wear leveling) 미고려, real hw가 아닌 시뮬레이션, 전부 **single-host** 전제. we discover that the address translation for virtual memory makes it particularly difficult for the cxl-flash's prefetcher to be effective and suggest passing kernel-level access pattern hints to further improve the performance ... our work can be a platform on which future research can build upon."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"핵심 질문 + 기여: 최초의 open-source cxl-flash in-depth study 이 논문의 전제이자 기여: prior work가 cxl-ssd의 **확장성·인터커넥트**를 논했다면(예: [[hello bytes, bye blocks - pcie storage meets compute express link for memory expansion (cxl-ssd)]]), 이 논문은 **장치 내부(device-internal) 설계 결정과 기존 최적화 기법의 실효성**을 처음으로 open-source로 깊게 판다.\n\n세 기여:\n**(1)** page-fault 이벤트로 **physical memory trace**를 수집하는 도구 + **cxl-flash 시뮬레이터**(`github.com/spypaul/mqsim_cxl`).\n**(2)** 합성 workload로 caching·prefetching의 latency 감축 잠재력 정량화(§4).\n**(3)** real workload로 현 prefetcher 한계 분석 + **kernel hint** system-level 변경 제안(§5). to the best of our knowledge, we are the first open-sourced in-depth study on the design choices of a cxl-flash device and on the effectiveness of existing optimization techniques."},{"id":"node_007","lx":620,"ly":370,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":370,"searchText":"memory wall: nlp 14.1×/yr vs 메모리 1.3×/yr 동기의 핵심 수치. nlp 모델 파라미터는 **연 14.1×**로 커지는데 gpu 메모리 용량은 **연 1.3×**밖에 안 늘어(figure 1), 격차가 memory wall로 벌어진다. dram은 dimm당 gb급으로만 스케일하고 비싸지만, flash ssd는 3d 적층·multi-bit cell 덕에 **tb급**으로 싸게 스케일 — memory wall을 메울 충분한 용량. cxl의 coherent load/store가 이 flash를 memory로 노출할 하드웨어적 인에이블러다. the rapid growth in nlp (natural language processing) models (14.1x per year), which far outpaces that of memory capacity (1.3x per year)."},{"id":"node_008","lx":620,"ly":550,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":550,"searchText":"flash 3대 난관 + table 1 latency flash를 memory로 쓸 때의 세 병목:\n\n**(1) granularity mismatch** — flash는 kb page 단위 read/write, overwrite 불가(block erase 선행). 64b flush 하나가 16kib read + 64b update + 16kib program으로 폭발.\n**(2) µs latency** — dram보다 orders of magnitude 느림, cell 기술별 심화.\n**(3) endurance** — program/erase 마모, memory로 쓰면 잦은 write로 금방 소진.\n\n| tech | read | program | erase | endurance |\n|---|---|---|---|---|\n| dram | 46ns | 46ns | n/a | n/a |\n| ull | 3µs | 100µs | 10ms | 100k |\n| slc | 25µs | 200µs | 10ms | 100k |\n| mlc | 50µs | 600µs | 3000µs | 10k |\n| tlc | 75µs | 900µs | 4500µs | 3k |\n\nstorage에선 firmware가 흡수하지만, cxl-flash는 timescale이 짧아 **hardware가 처리**해야 한다. as outlined in table 1 as an example, as more bits are stored per cell, the latency increases, from slc (single-level cell) to tlc (triple-level cell) ... they should be addressed by hardware due to the much finer timescale."},{"id":"node_009","lx":620,"ly":720,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":720,"searchText":"cxl type-3 hdm 기회 + 관련 cxl 연구 좌표 **cxl type-3(§2.1)**: host-managed device memory(**hdm**)를 노출하고 cpu가 load/store로 직접 조작. coherent access로 동기화 오버헤드 감소 + switch로 손쉬운 scale-out. cxl은 현재 dram/pmem만 주 확장 매체로 보지만 **ssd도 coherent access 덕에 가능**.\n\n| 연구 | 관계 |\n|---|---|\n| **cxl-ssd / hello bytes** (jung, hotstorage'22) [42] | cxl+ssd 결합 vision — 이 논문이 실증 검증 |\n| **directcxl** (gouk, atc'22) [36] | real hw로 외부 dram을 cxl로 disaggregation |\n| **pond** (li, asplos'23) [50] | cxl dram pooling(클라우드) — 이 논문은 flash로 구현 |\n| **flatflash** (asplos'19) [23] · **flashmap** [40] | ssd 주소변환을 page table에 통합 |\n\n차별점: 앞 연구들이 os-level·host-device 상호작용에 집중한 반면, 이 논문은 **memory 확장 장치 내부의 설계 결정**을 판다. cxl-ssd advocates combining cxl and ssd to expand host memory. while we share the same goal with this work, it mainly discusses the cxl interconnect and scalability potentials of cxl-ssds."},{"id":"node_010","lx":620,"ly":840,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":840,"searchText":"§3 physical memory tracing tool (virtual은 과대낙관) main memory·cxl-flash는 **physical address**로 접근되는데, llc↔memory controller 사이 physical transaction을 hw 수정 없이 잡는 공개 도구가 없었다. 해법:\n\n- **valgrind/cachegrind**로 llc miss/eviction을 걸러낸 memory access(가상주소)를 수집.\n- 동시에 **page-fault 시 kernel pte 설치 함수**(`do_anonymous_page()`, `do_set_pte()`)를 후킹해 대상 pid의 **v2p 매핑**을 `/proc`에 기록.\n- 둘을 합쳐 physical trace 생성(figure 2).\n\n결정적 관찰: **virtual 접근 패턴은 규칙적이지만 physical은 v2p 변환 때문에 전혀 다르다**(figure 3). virtual trace로 시뮬레이션하면 sub-µs 비율이 과대낙관(matmul 오차 25%↑). 그래서 physical trace가 필수 — 이게 §5 obs#6(prefetch 방해)의 뿌리. the corresponding physical frame number (pfn) does not resemble the vpn ... using virtual memory traces generates an overly optimistic result with far more requests completing under a microsecond compared to the result from running physical memory traces."},{"id":"node_011","lx":620,"ly":1010,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1010,"searchText":"§4.1 caching — 하지만 caching만으론 부족 flash 앞단 **dram cache**는 두 역할: (1) hot data를 빠른 dram에서 서빙, (2) hit 시 flash traffic 감소. cache 크기를 0~8gib로 바꾸며 평균 latency와 flash inter-arrival time을 측정(figure 5).\n\n**핵심 반전**: 충분히 큰 cache(workload footprint보다 커도)에서조차 평균 latency가 dram보다 훨씬 높다. 이유는 **짧은 inter-arrival time**이 flash backend를 압도해 queuing delay가 쌓이기 때문. 32×32의 넉넉한 parallelism으로도 부족.\n\n$\\rightarrow$ \"cache 하나로는 cxl-flash latency를 못 줄인다. traffic 자체를 줄이는 **보조 구조(mshr)**가 필요하다.\" this experiment shows that caching alone is insufficient in reducing the latency of a cxl-flash, and we need additional auxiliary structures to reduce the traffic to flash memory."},{"id":"node_012","lx":620,"ly":1180,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1180,"searchText":"§4.2 mshr — repeated reads가 90%↑ cache miss 시 **4kib**를 fetch하는데, 그 fetch가 진행 중일 때 같은 4kib 안의 후속 64b miss가 **또 flash read를 발행**한다. 이를 **repeated reads**라 부르며, hashmap/matrix-mult/heap에선 flash read의 **90%↑가 repeat**(figure 6)!\n\n해법: cpu cache에서 빌려온 **mshr(miss status holding register)**로 outstanding flash read를 추적해, **한 번의 flash read로 여러 64b 요청을 서비스**한다. figure 7: mshr이 긴 tail latency를 대폭 감소.\n\n주목: ssd엔 mshr이 드물다 — storage stack이 겹치는 block i/o를 software로 merge하기 때문. 그러나 cxl-flash엔 그 software layer가 없어(llc에서 직접 transaction 수신) **hw가 mshr을 구현해야** 한다. (단 mshr은 traffic만 줄일 뿐 hit rate를 능동적으로 올리진 않음 → prefetch 필요.) over 90% of flash memory reads are repeats! ... we observe in figure 7 that mshrs significantly reduce long tail latencies, particularly for the three workloads with a significant number of repeated reads."},{"id":"node_013","lx":620,"ly":1350,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1350,"searchText":"§4.3-4.4 prefetching + flash tech/parallelism **prefetching(§4.3)**: next-n-line prefetcher, 두 파라미터 — **degree**(공격성, 얼마나 많이)·**offset**(얼마나 앞서). degree↑는 대체로 성능↑(matmul sub-µs 64→76%, prefetch 필요성 입증). 단 **best config은 workload 의존**, offset 64는 너무 멀리 fetch해 오히려 악화.\n\n**flash tech & parallelism(§4.4)**:\n- **cache가 있으면 ull(3µs) vs slc(25µs) 차이 미미** — cache 없을 때만 ull이 압도적.\n- mlc/tlc는 성능·수명 모두 크게 악화(1gib cache로는 1년도 못 감). ull/slc+cache면 수명 4년↑.\n- parallelism은 cache가 크면 8×4로 줄여도 무방, 작으면 중요. random은 cache 크기에, stride는 parallelism에 민감. even a small degree of 1 increases the portion of sub-microsecond requests from 64% to 76% for the matrix multiply workload, highlighting the necessity of prefetching for cxl-flash. however, the improvement plateaus and further increasing the degree may only pollute the cache."},{"id":"node_014","lx":620,"ly":1520,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1520,"searchText":"§5.1-5.2 정책 평가: cflru + prefetcher 5종 real workload 5종(bert/pagerank/radiosity/xz/ycsb, table 5), 일부러 작은 **64mib** cache + ull + 8×8.\n\n**cache replacement(§5.1)**: fifo/random/lru/**cflru**(clean을 modified보다 먼저 evict). associativity↑ → hit rate↑ → 성능↑(miss penalty가 커서 hit rate가 hit time보다 중요). **cflru가 최고**(write traffic·flash 마모 감소). read-dominant > write-heavy. 고locality(radiosity)는 정책에 둔감.\n\n**prefetcher(§5.2)**: np/nl(next-n-line)/fd(feedback-directed)/bo(best-offset)/lp(leap) 비교. accuracy·coverage·lateness·pollution 4지표로 분석. 이 비교가 아래 **7 observations**의 무대. cflru outperforms the other replacement policies, particularly in bert, xz, and ycsb ... this is supported by the significant reduction in write traffic."},{"id":"node_015","lx":620,"ly":1690,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1690,"searchText":"feasibility headline: 68–91% sub-µs, 수명 ≥3.1년 이 논문의 대표 결과(obs#1, #2).\n\n| 지표 | 값 |\n|---|---|\n| sub-µs 요청 비율 | **68–91%** |\n| 수명 (worst=pagerank) | **≥3.1년** |\n| 수명 (best=radiosity) | 최대 **403년** |\n\n수명을 좌우하는 3요소: **workload 강도 · read/write 비율 · locality**. pagerank가 최악(고강도·고write·저locality)이지만 그래도 3.1년 — 즉 **durability는 memory 요청 강도를 감당할 수 있다**. 68–91%가 sub-µs이므로 flash가 dram-급은 아니어도 memory-intensive 앱엔 충분히 실용적. we observe, in the worst case, the device would last 3.1 years under pagerank, but under workloads such as radiosity, it would be as much as 403 years ... the durability of the cxl-flash can sustain the intensity of memory requests."},{"id":"node_016","lx":620,"ly":1860,"children":["node_021"],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1860,"searchText":"7 observations: prefetcher는 양날의 검, v2p가 핵심 장애 §5.2의 7개 관찰 — 이 논문의 지적 핵심.\n\n- **#1** 68–91% sub-µs지만 prefetcher가 real workload엔 **해로울 수 있음**(bert/xz/ycsb 악화, radiosity +36%).\n- **#2** 고강도에서도 수명 **≥3.1년**.\n- **#3** dram-only 대비 **11–91× 성능/비용**(dram이 nand보다 17–100× 비쌈).\n- **#4** prefetcher가 도움될 땐 **높은 accuracy** 때문(leap: radiosity 85% vs bert 27%).\n- **#5** accuracy 낮을 때 성능저하 주범은 **cache pollution**(bert/ycsb).\n- **#6** **v2p 주소변환이 prefetch를 무력화**(bo on pagerank accuracy virtual 99%→physical 42%; bert coverage 76→26%).\n- **#7** **kernel hint**로 hit-under-miss를 cache hit으로 전환 → 성능↑(bert sub-µs 86→91%).\n\n$\\rightarrow$ hardware caching/prefetching만으론 한계, **os 협력(hint)**이 돌파구. the bo prefetcher under page rank is 99% accurate for the virtual memory trace, but with the physical trace, accuracy drops to 42% ... the drop in both accuracy and coverage for physical traces shows that the cxl-flash would perform better if it were addressed virtually."},{"id":"node_017","lx":620,"ly":2030,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2030,"searchText":"cost & tech: 11–91× perf/cost, ull vs slc marginal **cost-effectiveness(obs#3)**: dram이 nand flash보다 **17–100× 비싸다**(dram $5/gb, nand $0.05–0.30/gb). cxl-flash가 68–91%를 sub-µs로 서비스하므로 dram-only 대비 **11–91× 성능/비용** 이득(figure 14). 최고 성능이 절대적으로 필요한 경우가 아니면 **cost-effective한 memory 확장 옵션**.\n\n**tech 선택**: cache가 있으면 값싼 slc로도 고가 ull과 성능 대등 — 즉 **적절한 cache가 flash 매체 등급의 열세를 상쇄**한다. mlc/tlc는 endurance·성능 둘 다 실용성 낮음. the recent price point of dram is 17-100x higher than that of nand flash, we expect an 11-91x performance-per-cost benefit from a cxl-flash over a dram-only device."},{"id":"node_018","lx":620,"ly":2200,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2200,"searchText":"설계 지침: os 협력 없이는 near-dram 불가 논문이 데이터로 도출한 **설계 가이드라인**(skybyte로 이어지는 지점):\n\n1. **mshr은 필수** — caching만으론 repeated read를 못 막는다.\n2. **cflru + 높은 associativity** — write 줄여 성능·수명 동시 개선.\n3. **prefetcher는 accuracy 기반으로 켜고 꺼야** — pollution이 역효과.\n4. **v2p가 근본 장애** — 장치가 physical만 보므로 virtual 규칙성이 소실. huge page는 부분 완화일 뿐.\n5. **kernel hint(co-design)가 돌파구** — host의 workload 지식을 장치에 전달해야 near-dram.\n\n$\\rightarrow$ \"device-internal hw 최적화만으론 벽에 부딪힌다\"는 것이 이 논문의 최종 진단. **os+hw co-design 필요성**을 실증한 것. we analyze the limitations of the current prefetchers and suggest system-level changes for future cxl-flash to achieve near-dram performance, specifically sub-µs latencies for the device."},{"id":"node_019","lx":620,"ly":2370,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2370,"searchText":"skybyte와의 관계: 이 논문 = 실증 baseline, skybyte = 공격적 co-design 이 논문은 [[skybyte]]의 **직계 baseline(base-cssd 계보)**이다. 이 논문이 세운 판(flash-backed cxl-ssd를 memory로) 위에서, skybyte는 여기서 \"부족하다\"고 진단한 지점을 넘어선다.\n\n| | atc'23 (이 논문) | skybyte (hpca'25) |\n|---|---|---|\n| 성격 | **특성화**(characterization) | **설계**(co-designed architecture) |\n| 지연 은닉 | hw caching/prefetching/mshr | +coordinated **context switch**, cacheline **write log** |\n| os 협력 | kernel **hint** 제안(방향만) | os+hw **co-design** 구현 |\n| 결론 | \"os 협력이 필요하다\" | \"os 협력을 이렇게 한다\" |\n\n★ 이 논문의 **obs#6(v2p 방해) + obs#7(hint 효과)**이 skybyte가 왜 os를 끌어들였는지의 실증적 근거. 관련 vision: [[hello bytes, bye blocks - pcie storage meets compute express link for memory expansion (cxl-ssd)]]. "},{"id":"node_020","lx":620,"ly":2540,"children":["node_022"],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2540,"searchText":"내 연구방향: single-host 특성화 → multi-host 공유의 빈칸 이 논문은 cxl-flash를 **한 host가 보는** memory 확장 장치로 특성화한다. cache·mshr·prefetch·kernel-hint 전부 **단일 host address space·단일 page table·단일 v2p 관계** 위에서 성립한다.\n\n내 방향(**multi-node cxl coherence**)은 이 특성화를 **multi-host로 재수행**하는 것이 gap:\n- **cross-host 간섭**: 여러 host의 요청이 섞이면 inter-arrival time·cache pollution·prefetch accuracy 계산이 전부 재정의된다.\n- **coherence**: host a가 캐싱/promote한 page를 host b가 stale로 봄 → cxl 3.0 **back-invalidate/hdm-db** 필요.\n- **hint 소유권**: kernel hint(obs#7)를 multi-host에선 누가 생성·조정하나?\n\n즉 이 논문의 \"무엇이 필요한가\"를 **공유 cxl-ssd 맥락에서 다시 묻는** 것이 내 자리. $\\rightarrow$ [[skybyte]], [[cxl multi-node coherence]], [[cxl overview]] "},{"id":"node_021","lx":1150,"ly":1860,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1860,"searchText":"clairvoyant kernel hint — co-design의 씨앗 (obs#7) obs#7의 실험: **자주 접근되는 top physical frame** 정보를 아는 가상의 clairvoyant kernel이 접근 전에 장치에 hint를 준다. hint 대상 주소를 늘리면 bert의 sub-µs가 **86→91%**로, hit-under-miss가 cache hit으로 전환되며 개선(figure 18). data-intensive 앱은 반복 iterate하므로 profiling으로 실현 가능하다는 논리.\n\n이건 \"장치가 physical만 봐서 못 푸는 문제를, host의 workload 지식으로 푼다\"는 **os+hw co-design의 씨앗**이다. [[skybyte]]가 os를 co-design에 끌어들이는 정당화가 정확히 여기서 실증됐다. 단 이 논문은 **hint를 제안**했을 뿐, hint 생성 오버헤드·정확한 인터페이스·multi-host 소유권은 열어둠 → 후속 co-design의 몫. we consider a hypothetically clairvoyant kernel that knows the physical memory access pattern ... the percentage of sub-microsecond latencies increases from 86% to 91% by converting hit-under-misses into cache hits."},{"id":"node_022","lx":1150,"ly":2540,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2540,"searchText":"multi-host coherence: 이 논문 전제가 붕괴하는 지점 이 논문의 모든 결과가 **한 host = 한 page table = 하나의 v2p 매핑**에 의존한다. 여러 host가 같은 cxl-ssd를 공유하면:\n\n- **prefetch accuracy 지표 무의미화**: physical trace가 host마다 다르고 시간에 따라 섞여, obs#4~#6의 accuracy/coverage 분석 틀이 깨진다.\n- **cache/promotion coherence**: 장치 내부 dram cache의 한 line을 여러 host가 공유 시 write ordering·invalidation 필요 → cxl 3.0 **back-invalidate**, **hdm-db**.\n- **cflru/mshr의 재정의**: clean/dirty 판정과 outstanding-read 병합이 host 경계를 넘으면 달라진다.\n\n$\\rightarrow$ flatflash·skybyte가 계승한 plb류 single-host 일관성처럼, 이 논문의 device-internal 최적화도 **multi-host에서 문제 정의부터 다시** 세워야 한다 — 이게 내 field(공유 memory coherence/consistency 원리)의 정확한 좌표. "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":"기여"},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":""},{"source":"node_002","target":"node_009","type":"line","label":"기회"},{"source":"node_003","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_004","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_016","type":"line","label":""},{"source":"node_004","target":"node_017","type":"line","label":""},{"source":"node_004","target":"node_018","type":"line","label":"지침"},{"source":"node_016","target":"node_021","type":"line","label":"co-design 씨앗"},{"source":"node_005","target":"node_019","type":"line","label":"SkyByte"},{"source":"node_005","target":"node_020","type":"line","label":"내 연구"},{"source":"node_020","target":"node_022","type":"line","label":"심화"},{"source":"node_019","target":"node_020","type":"line","label":"연결"}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

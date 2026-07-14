@@ -4,9 +4,10 @@ aliases: [TPP]
 type: paper-ref
 venue: ASPLOS
 year: 2023
+ref-of: "SkyByte"
 tags:
   - paper
-  - cluster/cxl
+  - ref
   - topic/tiered-memory
   - topic/page-placement
   - topic/os-memory-management

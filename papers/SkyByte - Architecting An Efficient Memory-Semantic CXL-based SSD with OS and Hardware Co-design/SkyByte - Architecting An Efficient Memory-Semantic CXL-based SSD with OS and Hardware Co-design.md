@@ -143,7 +143,7 @@ SkyByte는 세 가지 주요 컴포넌트로 구성된다 (p.4).
 > orthogonal하다. SkyByte-C의 Base-CSSD 대비 향상과 SkyByte-Full의 SkyByte-WP 대비 향상이 모두 평균 1.49배로, context switch 이점이 write log·migration 이점과 독립적임을 보인다(단 tpcc는 예외로 page migration이 지배) (p.10).
 
 ## 🔗 Connections
-[[CXL]] · [[HPCA]] · [[2025]]
+[[CXL]] · [[HPCA]] · [[2025]] · 📚 [[SkyByte refs]]
 관련: [[XHarvest]], [[Smart-Infinity]], [[Sparse Checkpointing for Fast and Reliable MoE Training]]
 
 ## References worth following

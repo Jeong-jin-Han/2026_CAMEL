@@ -4,9 +4,10 @@ aliases: [Informing Memory Operations, Informing Loads, Informing Memory Ops]
 type: paper-ref
 venue: ISCA
 year: 1996
+ref-of: "SkyByte"
 tags:
   - paper
-  - cluster/cxl
+  - ref
   - topic/informing-memory-operations
   - topic/hardware-software-codesign
   - topic/cache-miss-feedback

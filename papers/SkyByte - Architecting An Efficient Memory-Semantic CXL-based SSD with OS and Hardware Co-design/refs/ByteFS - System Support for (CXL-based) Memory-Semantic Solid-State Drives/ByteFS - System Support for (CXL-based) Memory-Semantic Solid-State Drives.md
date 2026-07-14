@@ -4,9 +4,10 @@ aliases: [ByteFS]
 type: paper-ref
 venue: ASPLOS
 year: 2025
+ref-of: "SkyByte"
 tags:
   - paper
-  - cluster/cxl
+  - ref
   - topic/byte-addressable-ssd
   - topic/memory-semantic-ssd
   - topic/filesystem

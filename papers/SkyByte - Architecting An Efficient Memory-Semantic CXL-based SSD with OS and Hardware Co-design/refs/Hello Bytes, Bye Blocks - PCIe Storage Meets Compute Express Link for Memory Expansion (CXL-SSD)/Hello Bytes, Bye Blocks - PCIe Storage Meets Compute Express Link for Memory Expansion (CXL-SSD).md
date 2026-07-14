@@ -4,9 +4,10 @@ aliases: [CXL-SSD, Hello Bytes Bye Blocks]
 type: paper-ref
 venue: HotStorage
 year: 2022
+ref-of: "SkyByte"
 tags:
   - paper
-  - cluster/cxl
+  - ref
   - topic/cxl-ssd
   - topic/memory-semantic-ssd
   - topic/memory-expander

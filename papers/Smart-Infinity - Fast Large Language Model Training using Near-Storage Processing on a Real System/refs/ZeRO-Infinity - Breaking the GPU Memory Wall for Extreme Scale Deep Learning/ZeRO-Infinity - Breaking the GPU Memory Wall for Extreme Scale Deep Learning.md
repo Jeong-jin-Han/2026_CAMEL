@@ -1,3 +1,20 @@
+---
+title: "ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning"
+aliases: [ZeRO-Infinity]
+description: "NVMe/CPU 메모리까지 optimizer state·param을 offload해 GPU 메모리 한계를 넘는 storage-offloaded training framework (Smart-Infinity의 baseline)"
+type: paper-ref
+ref-of: "Smart-Infinity"
+venue: SC
+year: 2021
+tags:
+  - paper
+  - ref
+  - topic/llm-training
+  - topic/storage-offloading
+  - venue/sc
+  - year/2021
+---
+
 # ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning
 
 > **Source PDF**: [ZeRO-Infinity - Breaking the GPU Memory Wall for Extreme Scale Deep Learning.pdf](<ZeRO-Infinity - Breaking the GPU Memory Wall for Extreme Scale Deep Learning.pdf>)

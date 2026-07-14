@@ -4,9 +4,10 @@ aliases: [DirectCXL]
 type: paper-ref
 venue: USENIX ATC
 year: 2022
+ref-of: "SkyByte"
 tags:
   - paper
-  - cluster/cxl
+  - ref
   - topic/memory-disaggregation
   - topic/cxl-mem
   - topic/rdma

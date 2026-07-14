@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Informing Memory Operations: Providing Memory Performance Feedback in Modern Processors</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">Informing Memory Operations: Providing Memory Performance Feedback in Modern Processors</span>
+    <span id="tb-source">Mark Horowitz (Stanford), Margaret Martonosi (Princeton), Todd C. Mowry (Univ. of Toronto), Michael D. Smith (Harvard) · ISCA 1996</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_006" style="--color:#4B8BBE;border-radius:2px;left:100px;top:160px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문이 세운 것은 <strong style="font-size:1.1em">정보 제공 메모리 연산(informing memory operations)</strong> 이라는 새로운 primitive다 — 메모리 연산에, 그 연산이 <strong style="font-size:1.1em">cache miss일 때만 taken되는 conditional branch-and-link</strong>를 (암묵적/명시적으로) 결합한 것.<br><br><strong style="font-size:1.1em">핵심 아이디어</strong>: branch는 어느 경로를 갔는지 소프트웨어가 관측 가능하지만 load/store는 hit/miss를 알 수 없다. informing operation은 <strong style="font-size:1.1em">miss를 관측·반응 가능한 이벤트로 승격</strong>시켜, 프로세서가 원래 stall할 miss 구간에 소프트웨어 handler를 실행하게 한다.<br><br><strong style="font-size:1.1em">무엇이 remarkable한가</strong>:<br>1. hit case 오버헤드가 (조건에 따라) <strong style="font-size:1.1em">0 또는 명령 1개</strong>로 극히 작다 — fine-grained 관측을 실용 가능하게 만듦.<br>2. 필요한 하드웨어가 현대 superscalar에 <strong style="font-size:1.1em">이미 있는 branch·exception 메커니즘</strong>으로 대부분 충족된다.<br>3. 하나의 primitive가 prefetching·performance monitoring·<strong style="font-size:1.1em">context-switch-on-a-miss multithreading</strong>·cache coherence를 전부 지원한다.<br><br>★ 이 primitive가 30년 뒤 [[SkyByte]]의 &quot;SSD long stall을 CPU/OS에 알려 context switch&quot;로 부활한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
+<div class="ng-orig-text">we propose a new class of memory operations called informing memory operations, which essentially consist of a memory operation combined (either implicitly or explicitly) with a conditional branch-and-link operation that is taken only if the reference suffers a cache miss.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" data-children="node_007,node_008" style="--color:#4B8BBE;border-radius:2px;left:100px;top:460px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">processor$\leftrightarrow$memory 속도 격차로 메모리 latency가 지배적 병목이 됐다 — uniprocessor에서 main memory 참조가 <strong style="font-size:1.1em">50+ cycle</strong>, multiprocessor는 더 크다.<br><br>소프트웨어 기법(compiler prefetching, cache blocking, page migration)이 상황별로 성공했지만 <strong style="font-size:1.1em">일반성이 제한</strong>됐다. 근본 원인:<br><br><strong style="font-size:1.1em">소프트웨어가 자기 자신의 메모리 동작을 직접 관측할 수 없다.</strong> load/store 명령은 메모리 계층이 flat하던 시절 정의되어, branch와 달리 hit/miss를 알려주는 메커니즘이 없다.<br><br>기존 하드웨어 모니터링은 둘 다 부적합:<br>- <strong style="font-size:1.1em">heavyweight</strong>: 모니터링 정보 접근이 프로그램 동작을 크게 교란.<br>- <strong style="font-size:1.1em">coarse-grained</strong>: 실제 동작의 요약만 제공(loop-level 등).<br><br>Pentium/R10000/Alpha의 performance counter조차 특정 참조 hit/miss를 알려면 참조 전후로 miss counter를 읽어야 해 극도로 느리고, out-of-order(R10000)에선 counter 접근이 <strong style="font-size:1.1em">pipeline을 serialize</strong>한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1</span></summary>
+<div class="ng-orig-text">load and store instructions were defined when memory hierarchies were flat, and the abstraction they present to software is one of a uniform high-speed memory. Unlike branch instructions ... loads and stores offer no direct mechanism for software to determine if a particular reference was a hit or a miss.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_009,node_010,node_011,node_012" style="--color:#4B8BBE;border-radius:2px;left:100px;top:760px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">informing memory operation = <strong style="font-size:1.1em">메모리 연산 + 그 hit/miss 신호에 predicate된 conditional branch-and-link</strong>. hit이면 transfer-of-control이 nullify, miss이면 해당 참조 전용 코드로 제어 이동.<br><br>세 가지 구현(§2):<br><br><strong style="font-size:1.1em">1. Cache outcome condition code(§2.1)</strong>: miss를 하나의 condition code로 만들고, 새 conditional branch-and-link 명령으로 직전 연산 결과를 검사. common case(hit)에 맞춰 <strong style="font-size:1.1em">not-taken 예측</strong>.<br><br><strong style="font-size:1.1em">2. Squashed slot(§2.2 서두)</strong>: hit이면 뒤따르는 slot 명령을 squash(delay-slot 방식) $\rightarrow$ branch-and-link-if-miss. delay-slot 기피·복잡성으로 본문에선 제외.<br><br><strong style="font-size:1.1em">3. Low-overhead cache miss trap(§2.2)</strong>: primary data cache miss 시 OS를 거치지 않는 가벼운 user-space trap. 레지스터 둘 추가 — <strong style="font-size:1.1em">MHAR</strong>(handler 주소), <strong style="font-size:1.1em">MHRR</strong>(return 주소).<br><br>구현(§3): in-order(Alpha 21164)는 기존 <strong style="font-size:1.1em">replay trap</strong> 재활용, out-of-order(MIPS R10000)는 <strong style="font-size:1.1em">branch/exception 메커니즘</strong> 재활용. 즉 필요한 HW가 대부분 이미 존재.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
+<div class="ng-orig-text">We can essentially decompose the informing memory mechanism into a memory operation and a conditional branch-and-link operation whose execution is predicated on the outcome of the memory operation's hit/miss signal.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_004" data-children="node_013,node_014,node_015" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1060px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">14개 SPEC92 벤치마크를 cycle 단위로 시뮬레이션(MIPS R10000 out-of-order · Alpha 21164 in-order 기반).<br><br><strong style="font-size:1.1em">오버헤드(§4.2)</strong>: 1·10-instruction generic miss handler에서 tomcatv 제외 <strong style="font-size:1.1em">12/13 벤치마크가 두 모델 모두 오버헤드 40% 미만</strong>. 놀라운 점: 명령 수가 30%+ 늘어도(mdljsp2, alvinn) 실행시간은 <strong style="font-size:1.1em">+1%</strong>뿐 $\rightarrow$ MHAR를 자주 바꾸는 기법(prefetching·multithreading·coherence)도 페널티 작음. su2cor만 예외(8KB direct-mapped cache의 심한 conflict). branch-처리 방식 &gt; exception-처리 방식.<br><br><strong style="font-size:1.1em">Coherence case study(§4.3)</strong>: fine-grained access control로 cache coherence 구현. informing 방식이 두 baseline을 <strong style="font-size:1.1em">항상</strong> 능가 — ECC-based 대비 평균 <strong style="font-size:1.1em">11%</strong>, reference-checking 대비 <strong style="font-size:1.1em">24%</strong> 빠름.<br><br>응용 스펙트럼(§4.1): software-controlled prefetching, performance monitoring, <strong style="font-size:1.1em">context-switch-on-a-miss multithreading</strong>, enforcing cache coherence.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2.2, p.7-8</span></summary>
+<div class="ng-orig-text">for twelve of these thirteen benchmarks (all but tomcatv), the execution overhead of using informing memory operations is less than 40% under both processor models.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_016" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1360px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">informing memory operations = 소프트웨어가 자기 메모리 참조 동작을 <strong style="font-size:1.1em">관측·반응하는 general primitive</strong>. 두 구현(cache outcome condition code, low-overhead cache miss trap) 모두 현대 프로세서가 branch·exception 지원을 위해 <strong style="font-size:1.1em">이미 가진 HW</strong>로 대부분 충족된다.<br><br>- <strong style="font-size:1.1em">condition code</strong>: HW 최소(miss 시 set되는 bit 하나)지만 실행파일 재컴파일/instrument 필요.<br>- <strong style="font-size:1.1em">low-overhead trap</strong>: HW 약간 복잡하나 특수 컴파일러·에디터 없이 whole-system 모니터링 가능(소스 없는 상용 SW·OS 코드까지).<br><br><strong style="font-size:1.1em">의의</strong>: 성능 모니터링을 넘어 prefetching·multithreading·access control을 <strong style="font-size:1.1em">하나의 primitive로</strong> 지원 $\rightarrow$ 기능마다 전용 HW를 넣는 것보다 경제적. 이 generality가 미래 프로세서의 매력이며 실제 HW에 등장하면 더 혁신적 사용을 촉발.<br><br>★ <strong style="font-size:1.1em">계보</strong>: &quot;HW가 long-latency 이벤트를 SW에 알려 스케줄링으로 은닉&quot;이라는 co-design 원리가 여기서 시작해 [[SkyByte]]로 이어진다. 매체만 cache miss $\rightarrow$ CXL-SSD stall로 바뀌었을 뿐 원리는 불변.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.10</span></summary>
+<div class="ng-orig-text">Informing memory operations are a general primitive for allowing software to observe and react to its own memory referencing behavior ... modern processors already contain the bulk of the necessary hardware support; it is used to support branches and exceptions.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#E74C3C;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">관측성의 비대칭: branch는 관측 가능, load/store는 불가</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문의 출발 통찰: <strong style="font-size:1.1em">branch는 소프트웨어가 어느 경로를 갔는지 관측 가능</strong>하지만, <strong style="font-size:1.1em">load/store는 hit이었는지 miss였는지 알 방법이 없다</strong>.<br><br>load/store 명령의 추상화는 &quot;균일한 고속 메모리(uniform high-speed memory)&quot;라, 계층(cache$\rightarrow$L2$\rightarrow$DRAM)의 실제 동작이 소프트웨어에게 숨겨진다. informing operation은 이 비대칭을 없애 miss를 branch처럼 <strong style="font-size:1.1em">관측·반응 가능</strong>하게 만든다.<br><br>결과적으로 소프트웨어는 &quot;프로세서가 원래 stall할 unexpected miss 구간&quot;에 handler 코드를 끼워 넣을 수 있다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
+<div class="ng-orig-text">An informing memory operation lets software react differently to the unexpected case of the reference missing in the cache and execute handler code under the miss, when the processor could normally stall.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#E74C3C;border-radius:2px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">기존 counter는 slow하고 pipeline을 serialize</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Pentium/R10000/Alpha 21064·21164는 reference·cache miss counter를 갖지만, <strong style="font-size:1.1em">특정 참조</strong>의 hit/miss를 알려면 그 참조 실행 전후로 miss counter 값을 읽어야 한다 $\rightarrow$ 극도로 느리다.<br><br>게다가 out-of-order 머신(R10000)에서는 counter 접근을 load/store 주위로 reorder하면 안 되고, 실제로 <strong style="font-size:1.1em">counter 접근이 pipeline을 serialize</strong>한다.<br><br>즉 on-chip counter는 coarse-grained 요약엔 쓸 수 있어도, prefetching·context-switch 결정을 위한 <strong style="font-size:1.1em">참조 단위(on-the-fly) 관측엔 부적합</strong>하다. 이것이 informing operation의 직접 동기.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
+<div class="ng-orig-text">counter accesses in the R10000 serialize the pipeline.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_008" style="--color:#95A5A6;border-radius:22px;left:620px;top:560px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">선행/비교: Blizzard(access control) · HEP(multithreading) · 이전 TR</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">이 논문의 좌표를 정하는 핵심 인용:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>연구</th><th>관계</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">Informing Loads</strong> [HMMS95] (Stanford TR, 1995)</td><td>이 논문의 직전 technical report — squashed-slot 방식·monitoring 평가의 원출처</td></tr><tr><td><strong style="font-size:1.1em">Blizzard-S/E</strong> [SFL+94] (ASPLOS'94)</td><td>fine-grained access control(ECC fault·per-reference check) — coherence case study의 baseline</td></tr><tr><td><strong style="font-size:1.1em">HEP</strong> [Smi81]</td><td>cache miss 시 context 전환하는 multithreading의 원류</td></tr><tr><td><strong style="font-size:1.1em">Non-Blocking Loads</strong> [FJ94] (ISCA'94)</td><td>MSHR·lockup-free cache — cache-as-visible-state 구현 토대</td></tr><tr><td><strong style="font-size:1.1em">Compiler Prefetching</strong> [MLG92] (ASPLOS'92)</td><td>software-controlled prefetching 표준(같은 저자 Mowry)</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1</span></summary>
+<div class="ng-orig-text">Wisconsin's Blizzard systems implement fine-grained access control in parallel programs by instrumenting all shared data references or by modifying ECC fault handlers to detect when data is potentially shared by multiple processors.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#5C9E6E;border-radius:2px;left:620px;top:640px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§2.1 Cache Outcome Condition Code</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">모든 메모리 연산이 기본으로 informing이 되고, 하드웨어는 각 연산의 hit/miss를 <strong style="font-size:1.1em">user-visible state에 기록</strong>. 소프트웨어는 새 <strong style="font-size:1.1em">conditional branch-and-link 명령</strong>으로 직전 메모리 연산의 결과를 검사해, miss면 인코딩된 target 주소로 제어 이동.<br><br><strong style="font-size:1.1em">HW 비용</strong>: 대부분 base machine에 이미 있음(특히 condition code 지원 머신) — miss가 그냥 또 하나의 condition code가 되고, 그것을 저장할 HW + 적절한 bypassing/renaming만 추가.<br><br><strong style="font-size:1.1em">오버헤드</strong>: informing 연산마다 명령 1개(branch-and-link) 추가. common case(hit)에 최적화하려면 이 branch를 <strong style="font-size:1.1em">not-taken으로 예측</strong> $\rightarrow$ mispredict 페널티는 miss case에만 적용. 강점은 단순함과, static 참조별로 고유 target을 줄 수 있는 유연성.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.1, p.2</span></summary>
+<div class="ng-orig-text">In our first method, all memory operations become informing memory operations by default. The hardware simply records hit/miss results of each data memory operation in user-visible state ... the cache miss simply becomes another condition code.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:620px;top:790px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§2.2 Low-Overhead Cache Miss Trap (MHAR / MHRR)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">explicit check 명령의 오버헤드마저 제거한다. primary data cache miss 시 <strong style="font-size:1.1em">user space로 가는 저오버헤드 trap</strong>을 유발 — hit case 오버헤드 잠재적 0.<br><br>전통적 trap(OS로 context switch, 수백 cycle)을 피하고 conditional branch에 가깝게 설계: running application의 <strong style="font-size:1.1em">PC만 바꾸고 OS 코드를 호출하지 않으며 user-visible 레지스터 하나만 저장</strong>.<br><br>두 레지스터 추가:<br>- <strong style="font-size:1.1em">MHAR (Miss Handler Address Register)</strong>: miss 시 호출할 handler 명령 주소.<br>- <strong style="font-size:1.1em">MHRR (Miss Handler Return Register)</strong>: trap 시 return 주소(miss난 연산 다음 명령) 기록.<br><br>MHAR=0이면 trapping 비활성. 장점: MHAR를 모든 프로세스의 general handler로 default 설정하면 <strong style="font-size:1.1em">컴파일러·에디터 없이 whole-system 모니터링</strong>(소스 없는 SW·OS 코드까지).<br><br>★ 이 MHAR/MHRR 기반 &quot;miss $\rightarrow$ user handler&quot;가 [[SkyByte]]의 Long Delay Exception의 원형.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.2, p.3</span></summary>
+<div class="ng-orig-text">One register is the Miss Handler Address Register (MHAR), which contains the instruction address of the handler to invoke on an informing memory operation cache miss. The other register is the Miss Handler Return Register (MHRR), into which the return address is written when the trap occurs.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:940px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§3.1-3.2 구현: in-order replay trap · out-of-order branch/exception 재활용</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">핵심 메시지: informing operation 구현에 필요한 HW는 <strong style="font-size:1.1em">대부분 이미 있는 branch·exception 메커니즘</strong>이다.<br><br><strong style="font-size:1.1em">In-order (Alpha 21164)</strong>: 4-issue, issue된 명령은 stall 불가라 어려운 상황을 <strong style="font-size:1.1em">replay trap</strong>으로 처리. 그중 하나가 이미 cache 관련(load가 hit 타이밍에 dependent 명령을 issue했는데 miss). 이 <strong style="font-size:1.1em">동일 replay trap을 재활용</strong> — informing 연산 직후 명령을 hit/miss 신호에 dependent로 표시하고 hit으로 예측, miss면 replay trap $\rightarrow$ 재issue 대신 implicit branch-and-link issue(MHRR에 return 주소).<br><br><strong style="font-size:1.1em">Out-of-order (MIPS R10000)</strong>: branch(renaming shadow state) 또는 exception(graduation queue 최상단 대기)으로 구현 가능. branch 방식은 miss 오버헤드 낮지만 각 참조가 잠재적 branch가 되어 <strong style="font-size:1.1em">shadow state $\sim 3\times$</strong> 필요. exception 방식은 느리지만 HW는 매우 modest(reorder buffer가 miss 기록).</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.4</span></summary>
+<div class="ng-orig-text">most of the necessary hardware mechanisms are the branch and exception mechanisms already present in current machines.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1090px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§3.3 Cache as Visible State (speculative load + MSHR 수명 연장)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">informing operation이 cache 상태를 소프트웨어에 노출하니 새 문제 발생: coherence 같은 응용은 &quot;새 line이 cache로 들어올 때마다 miss를 감지해 <strong style="font-size:1.1em">access rights</strong>를 검사&quot;해야 하므로 이 검사가 우회되면 안 된다.<br><br>그런데 out-of-order 머신은 first-level cache를 <strong style="font-size:1.1em">speculative</strong>하게 갱신한다. squash된 speculative informing load가 조용히 cache를 갱신하면 안 됨.<br><br><strong style="font-size:1.1em">해법</strong>: speculative informing load가 miss로 cache를 갱신하는 건 허용(common case 최적화, 사실상 L2로 prefetch 효과)하되, load가 squash되면 그 line을 <strong style="font-size:1.1em">invalidate</strong>. 이를 위해 lockup-free cache의 <strong style="font-size:1.1em">MSHR(Miss Status Handling Register) 수명을 연장</strong>(명령이 squash 또는 graduate될 때까지 register 해제 지연). 시뮬레이션상 register 개수(8개)는 그대로 충분.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.5</span></summary>
+<div class="ng-orig-text">we must guarantee that the data updates the first-level cache only when the informing load operation commits ... we extend the lifetime of the Miss Status Handling Registers (MSHR).</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#9B59B6;border-radius:2px;left:620px;top:1190px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">오버헤드: 12/13 벤치마크 &lt;40%, 명령 30%↑에도 실행시간 1%↑</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">14개 SPEC92, MIPS R10000·Alpha 21164 기반 cycle 단위 시뮬. 1·10-instruction generic handler.<br><br>- tomcatv 제외 <strong style="font-size:1.1em">12/13 벤치마크가 두 모델 모두 오버헤드 40% 미만</strong>.<br>- out-of-order에서 mdljsp2·alvinn은 <strong style="font-size:1.1em">명령 수 30%+ 증가에도 실행시간 +1%</strong>뿐 $\rightarrow$ instruction-level parallelism이 추가 명령을 흡수. MHAR를 자주 바꾸는 기법도 페널티 작다는 뜻.<br>- <strong style="font-size:1.1em">su2cor</strong> 예외: 8KB direct-mapped primary cache의 심한 conflict로 handler 빈발 $\rightarrow$ 명령 수 5배, 실행시간 3배.<br>- <strong style="font-size:1.1em">branch-처리 &gt; exception-처리</strong>: compress에서 exception 방식이 1·10-instr handler 실행시간을 9%·7% 더 늘림.<br>- out-of-order가 큰 handler(10 instr)에서 in-order보다 훨씬 유리(handler를 miss와 overlap).</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2.2, p.8</span></summary>
+<div class="ng-orig-text">the instruction count for both mdljsp2 and alvinn under the out-of-order model increases by over 30%, but the execution time only increases by 1%. This means that techniques that need to modify the MHAR frequently ... will not suffer much of a performance penalty.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#9B59B6;border-radius:2px;left:620px;top:1340px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Case study: coherence — informing이 ECC 대비 11%, ref-check 대비 24% 빠름</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">fine-grained access control로 cache coherence</strong> 구현(Blizzard-E 유사, ECC fault 대신 informing operation으로 block-level handler 호출). handler가 per-cache-line 보호 상태(INVALID/READONLY/READWRITE)를 조회해 read/write에 적절한지 판정.<br><br>16-processor 시뮬. informing 방식이 두 baseline을 <strong style="font-size:1.1em">항상 능가</strong>:<br>- <strong style="font-size:1.1em">ECC-based(Blizzard-E) 대비 평균 11%</strong> 빠름 $\rightarrow$ coherence action time 개선(handler가 cache에 tightly-coupled).<br>- <strong style="font-size:1.1em">reference-checking(Blizzard-S) 대비 24%</strong> 빠름 $\rightarrow$ (no-coherence-action case에서) 모든 참조가 아니라 <strong style="font-size:1.1em">cache miss에서만</strong> lookup.<br><br>Table 2: Informing = <strong style="font-size:1.1em">33-cycle lookup</strong>(6 pipe + 9 handler) / 25-cycle state change vs ECC = 250-cycle read-to-invalid. 더 작은 network latency·더 큰 primary cache일수록 informing 유리.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3.2, p.10</span></summary>
+<div class="ng-orig-text">the informing memory scheme is an average of 11% faster than the ECC-based scheme, and 24% faster than the reference-checking scheme.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" data-children="node_017" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1490px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.1.3 Context-Switch-on-a-Miss Multithreading (★ SkyByte의 조상)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">★ <strong style="font-size:1.1em">SkyByte의 직계 조상 노드.</strong> multithreading은 <strong style="font-size:1.1em">cache miss 시점에 한 thread(context)에서 다른 context로 전환</strong>해 memory latency를 은닉한다.<br><br>기존 구현은 HW로 thread를 관리·전환했지만, informing operation은 <strong style="font-size:1.1em">단일 miss handler가 (전부 소프트웨어 제어로) thread를 save/restart</strong>하는 소프트웨어 기반 접근을 가능케 한다.<br><br>두 최적화:<br>1. primary가 아니라 <strong style="font-size:1.1em">secondary cache miss에서만</strong> switch 유발(static 예측 + dynamic 관측 조합으로 secondary miss 격리) — 짧은 miss엔 전환 안 함.<br>2. register save/restore 오버헤드를 컴파일러 최적화(live register만 저장, thread별 register 정적 분할)나 HW 지원(SPARC register window류)으로 최소화.<br><br>$\rightarrow$ &quot;long-latency 이벤트를 SW에 알려 context를 전환&quot;이라는 이 아이디어가 [[SkyByte]]에서 &quot;SSD long stall $\rightarrow$ context switch&quot;로 재현된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1.3, p.6</span></summary>
+<div class="ng-orig-text">Multithreading tolerates memory latency by switching from one thread (or &quot;context&quot;) to another at the start of a cache miss ... informing memory operations enable a software-based approach where a single miss handler could save and restart threads (all under software control) upon cache misses.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1660px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">왜 general primitive가 전용 HW보다 나은가</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">논문의 결론적 주장: commodity 프로세서마다 memory reference counting·multithreading·access control 각각을 위한 <strong style="font-size:1.1em">별도 전용 HW를 넣는 것은 비경제적</strong>이다.<br><br>informing memory operations는 branch·exception 지원용으로 이미 존재하는 HW 위에 얹혀, <strong style="font-size:1.1em">하나의 basic primitive로 그 모든 응용을 지원</strong>한다. 이 generality가 미래 프로세서에 매력적인 이유이며, 실제 HW에 등장하면 예상 못 한 innovative use를 촉발할 것.<br><br>두 구현의 SW-side tradeoff:<br>- <strong style="font-size:1.1em">condition code</strong>: HW 단순, 하지만 branch-on-cache-miss로 재컴파일/edit 필요.<br>- <strong style="font-size:1.1em">low-overhead trap</strong>: HW 약간 복잡, 하지만 특수 컴파일러·에디터 없이(소스 없는 상용 SW·OS 코드까지) 모니터링.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.10</span></summary>
+<div class="ng-orig-text">While it may not be cost-effective for all commodity microprocessors to include separate support for memory reference counting, multithreading, access control mechanisms, etc., informing memory operations as proposed here provide basic hardware support that is general enough to apply to many such uniprocessor and multiprocessor applications.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_017" data-children="node_018" style="--color:#BDC3C7;border-radius:22px;left:1150px;top:1490px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">계보: informing memory ops (1996) → SkyByte (2025)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">이 논문은 <strong style="font-size:1.1em">&quot;하드웨어가 long-latency 이벤트를 소프트웨어에 알려, 소프트웨어가 스케줄링으로 대응한다&quot;</strong>는 co-design primitive의 지적 뿌리다. [[SkyByte]]는 이 primitive를 CXL-SSD 시대로 옮겼다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th></th><th>Informing Memory Ops (ISCA'96)</th><th>SkyByte (HPCA'25)</th></tr></thead><tbody><tr><td>노출 이벤트</td><td>primary <strong style="font-size:1.1em">cache miss</strong></td><td><strong style="font-size:1.1em">SSD long stall</strong>(NAND까지)</td></tr><tr><td>알림 메커니즘</td><td>MHAR/MHRR low-overhead trap</td><td>NDR `SkyByte-Delay` opcode + <strong style="font-size:1.1em">Long Delay Exception</strong></td></tr><tr><td>SW 반응</td><td>context-switch-on-a-miss(SW 스레드)</td><td>OS <strong style="font-size:1.1em">context switch</strong>로 stall 은닉</td></tr><tr><td>목적</td><td>µs 이하 miss 은닉</td><td>µs급 SSD stall 은닉</td></tr></tbody></table></div><div class="ng-seg"><br>★ 매체만 cache miss $\rightarrow$ CXL-SSD stall로 바뀌었을 뿐, <strong style="font-size:1.1em">&quot;HW가 stall 이벤트를 노출 $\rightarrow$ SW가 context를 전환&quot;</strong> 원리는 30년간 불변. 내 &quot;SSD 이중역할 $\times$ transparent co-design&quot; 축의 co-design 계보 출발점.</div></div></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#1ABC9C;border-radius:22px;left:1150px;top:1660px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향: informing을 multi-host coherence 이벤트로 확장</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문의 informing 이벤트는 전부 <strong style="font-size:1.1em">local</strong>(자기 core의 cache miss)이고, coherence case study조차 각 node가 <strong style="font-size:1.1em">자기 miss</strong>를 informing할 뿐이다. MHAR/MHRR도 single address space·single core context 전제.<br><br>내 방향(multi-node CXL coherence)은 이 primitive를 <strong style="font-size:1.1em">multi-host</strong>로 들어올린다. 여러 host가 공유 메모리를 coherent하게 볼 때:<br>- <strong style="font-size:1.1em">remote back-invalidation</strong>(CXL 3.0 BI / HDM-DB): 다른 host의 write로 내 line이 무효화되는 것도 하나의 long-latency 이벤트다. 이를 어느 host의 스케줄러에 informing해야 하나?<br>- <strong style="font-size:1.1em">cross-host miss</strong>: 원격 host의 cache/메모리로 내려가는 miss는 local miss보다 훨씬 길다 $\rightarrow$ SkyByte식 context switch가 더 이득. 하지만 <strong style="font-size:1.1em">누가 그 이벤트를 관측·통지</strong>하나 (fabric? home agent?).<br>- <strong style="font-size:1.1em">MHAR의 multi-host화</strong>: 단일 core 레지스터를 어떻게 directory/fabric 수준으로 일반화?<br><br>즉 1996 &quot;miss $\rightarrow$ local thread switch&quot;, SkyByte &quot;SSD stall $\rightarrow$ local context switch&quot;를, <strong style="font-size:1.1em">&quot;remote invalidation/cross-host miss $\rightarrow$ 원격 host 스케줄링 조정&quot;</strong>으로 확장하는 것이 gap. $\rightarrow$ [[CXL Multi-node Coherence]], [[CXL Overview]]</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":160,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":160,"searchText":"killer application 이 논문이 세운 것은 **정보 제공 메모리 연산(informing memory operations)** 이라는 새로운 primitive다 — 메모리 연산에, 그 연산이 **cache miss일 때만 taken되는 conditional branch-and-link**를 (암묵적/명시적으로) 결합한 것.\n\n**핵심 아이디어**: branch는 어느 경로를 갔는지 소프트웨어가 관측 가능하지만 load/store는 hit/miss를 알 수 없다. informing operation은 **miss를 관측·반응 가능한 이벤트로 승격**시켜, 프로세서가 원래 stall할 miss 구간에 소프트웨어 handler를 실행하게 한다.\n\n**무엇이 remarkable한가**:\n1. hit case 오버헤드가 (조건에 따라) **0 또는 명령 1개**로 극히 작다 — fine-grained 관측을 실용 가능하게 만듦.\n2. 필요한 하드웨어가 현대 superscalar에 **이미 있는 branch·exception 메커니즘**으로 대부분 충족된다.\n3. 하나의 primitive가 prefetching·performance monitoring·**context-switch-on-a-miss multithreading**·cache coherence를 전부 지원한다.\n\n★ 이 primitive가 30년 뒤 [[skybyte]]의 \"ssd long stall을 cpu/os에 알려 context switch\"로 부활한다. we propose a new class of memory operations called informing memory operations, which essentially consist of a memory operation combined (either implicitly or explicitly) with a conditional branch-and-link operation that is taken only if the reference suffers a cache miss."},{"id":"node_002","lx":100,"ly":460,"children":["node_007","node_008"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":460,"searchText":"필요한 이유 (why it's needed) processor$\\leftrightarrow$memory 속도 격차로 메모리 latency가 지배적 병목이 됐다 — uniprocessor에서 main memory 참조가 **50+ cycle**, multiprocessor는 더 크다.\n\n소프트웨어 기법(compiler prefetching, cache blocking, page migration)이 상황별로 성공했지만 **일반성이 제한**됐다. 근본 원인:\n\n**소프트웨어가 자기 자신의 메모리 동작을 직접 관측할 수 없다.** load/store 명령은 메모리 계층이 flat하던 시절 정의되어, branch와 달리 hit/miss를 알려주는 메커니즘이 없다.\n\n기존 하드웨어 모니터링은 둘 다 부적합:\n- **heavyweight**: 모니터링 정보 접근이 프로그램 동작을 크게 교란.\n- **coarse-grained**: 실제 동작의 요약만 제공(loop-level 등).\n\npentium/r10000/alpha의 performance counter조차 특정 참조 hit/miss를 알려면 참조 전후로 miss counter를 읽어야 해 극도로 느리고, out-of-order(r10000)에선 counter 접근이 **pipeline을 serialize**한다. load and store instructions were defined when memory hierarchies were flat, and the abstraction they present to software is one of a uniform high-speed memory. unlike branch instructions ... loads and stores offer no direct mechanism for software to determine if a particular reference was a hit or a miss."},{"id":"node_003","lx":100,"ly":760,"children":["node_009","node_010","node_011","node_012"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":760,"searchText":"해결책 (solution) informing memory operation = **메모리 연산 + 그 hit/miss 신호에 predicate된 conditional branch-and-link**. hit이면 transfer-of-control이 nullify, miss이면 해당 참조 전용 코드로 제어 이동.\n\n세 가지 구현(§2):\n\n**1. cache outcome condition code(§2.1)**: miss를 하나의 condition code로 만들고, 새 conditional branch-and-link 명령으로 직전 연산 결과를 검사. common case(hit)에 맞춰 **not-taken 예측**.\n\n**2. squashed slot(§2.2 서두)**: hit이면 뒤따르는 slot 명령을 squash(delay-slot 방식) $\\rightarrow$ branch-and-link-if-miss. delay-slot 기피·복잡성으로 본문에선 제외.\n\n**3. low-overhead cache miss trap(§2.2)**: primary data cache miss 시 os를 거치지 않는 가벼운 user-space trap. 레지스터 둘 추가 — **mhar**(handler 주소), **mhrr**(return 주소).\n\n구현(§3): in-order(alpha 21164)는 기존 **replay trap** 재활용, out-of-order(mips r10000)는 **branch/exception 메커니즘** 재활용. 즉 필요한 hw가 대부분 이미 존재. we can essentially decompose the informing memory mechanism into a memory operation and a conditional branch-and-link operation whose execution is predicated on the outcome of the memory operation's hit/miss signal."},{"id":"node_004","lx":100,"ly":1060,"children":["node_013","node_014","node_015"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1060,"searchText":"결과 (results) 14개 spec92 벤치마크를 cycle 단위로 시뮬레이션(mips r10000 out-of-order · alpha 21164 in-order 기반).\n\n**오버헤드(§4.2)**: 1·10-instruction generic miss handler에서 tomcatv 제외 **12/13 벤치마크가 두 모델 모두 오버헤드 40% 미만**. 놀라운 점: 명령 수가 30%+ 늘어도(mdljsp2, alvinn) 실행시간은 **+1%**뿐 $\\rightarrow$ mhar를 자주 바꾸는 기법(prefetching·multithreading·coherence)도 페널티 작음. su2cor만 예외(8kb direct-mapped cache의 심한 conflict). branch-처리 방식 > exception-처리 방식.\n\n**coherence case study(§4.3)**: fine-grained access control로 cache coherence 구현. informing 방식이 두 baseline을 **항상** 능가 — ecc-based 대비 평균 **11%**, reference-checking 대비 **24%** 빠름.\n\n응용 스펙트럼(§4.1): software-controlled prefetching, performance monitoring, **context-switch-on-a-miss multithreading**, enforcing cache coherence. for twelve of these thirteen benchmarks (all but tomcatv), the execution overhead of using informing memory operations is less than 40% under both processor models."},{"id":"node_005","lx":100,"ly":1360,"children":["node_016"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1360,"searchText":"결론 (conclusion) informing memory operations = 소프트웨어가 자기 메모리 참조 동작을 **관측·반응하는 general primitive**. 두 구현(cache outcome condition code, low-overhead cache miss trap) 모두 현대 프로세서가 branch·exception 지원을 위해 **이미 가진 hw**로 대부분 충족된다.\n\n- **condition code**: hw 최소(miss 시 set되는 bit 하나)지만 실행파일 재컴파일/instrument 필요.\n- **low-overhead trap**: hw 약간 복잡하나 특수 컴파일러·에디터 없이 whole-system 모니터링 가능(소스 없는 상용 sw·os 코드까지).\n\n**의의**: 성능 모니터링을 넘어 prefetching·multithreading·access control을 **하나의 primitive로** 지원 $\\rightarrow$ 기능마다 전용 hw를 넣는 것보다 경제적. 이 generality가 미래 프로세서의 매력이며 실제 hw에 등장하면 더 혁신적 사용을 촉발.\n\n★ **계보**: \"hw가 long-latency 이벤트를 sw에 알려 스케줄링으로 은닉\"이라는 co-design 원리가 여기서 시작해 [[skybyte]]로 이어진다. 매체만 cache miss $\\rightarrow$ cxl-ssd stall로 바뀌었을 뿐 원리는 불변. informing memory operations are a general primitive for allowing software to observe and react to its own memory referencing behavior ... modern processors already contain the bulk of the necessary hardware support; it is used to support branches and exceptions."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"관측성의 비대칭: branch는 관측 가능, load/store는 불가 이 논문의 출발 통찰: **branch는 소프트웨어가 어느 경로를 갔는지 관측 가능**하지만, **load/store는 hit이었는지 miss였는지 알 방법이 없다**.\n\nload/store 명령의 추상화는 \"균일한 고속 메모리(uniform high-speed memory)\"라, 계층(cache$\\rightarrow$l2$\\rightarrow$dram)의 실제 동작이 소프트웨어에게 숨겨진다. informing operation은 이 비대칭을 없애 miss를 branch처럼 **관측·반응 가능**하게 만든다.\n\n결과적으로 소프트웨어는 \"프로세서가 원래 stall할 unexpected miss 구간\"에 handler 코드를 끼워 넣을 수 있다. an informing memory operation lets software react differently to the unexpected case of the reference missing in the cache and execute handler code under the miss, when the processor could normally stall."},{"id":"node_007","lx":620,"ly":400,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"기존 counter는 slow하고 pipeline을 serialize pentium/r10000/alpha 21064·21164는 reference·cache miss counter를 갖지만, **특정 참조**의 hit/miss를 알려면 그 참조 실행 전후로 miss counter 값을 읽어야 한다 $\\rightarrow$ 극도로 느리다.\n\n게다가 out-of-order 머신(r10000)에서는 counter 접근을 load/store 주위로 reorder하면 안 되고, 실제로 **counter 접근이 pipeline을 serialize**한다.\n\n즉 on-chip counter는 coarse-grained 요약엔 쓸 수 있어도, prefetching·context-switch 결정을 위한 **참조 단위(on-the-fly) 관측엔 부적합**하다. 이것이 informing operation의 직접 동기. counter accesses in the r10000 serialize the pipeline."},{"id":"node_008","lx":620,"ly":560,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":560,"searchText":"선행/비교: blizzard(access control) · hep(multithreading) · 이전 tr 이 논문의 좌표를 정하는 핵심 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **informing loads** [hmms95] (stanford tr, 1995) | 이 논문의 직전 technical report — squashed-slot 방식·monitoring 평가의 원출처 |\n| **blizzard-s/e** [sfl+94] (asplos'94) | fine-grained access control(ecc fault·per-reference check) — coherence case study의 baseline |\n| **hep** [smi81] | cache miss 시 context 전환하는 multithreading의 원류 |\n| **non-blocking loads** [fj94] (isca'94) | mshr·lockup-free cache — cache-as-visible-state 구현 토대 |\n| **compiler prefetching** [mlg92] (asplos'92) | software-controlled prefetching 표준(같은 저자 mowry) | wisconsin's blizzard systems implement fine-grained access control in parallel programs by instrumenting all shared data references or by modifying ecc fault handlers to detect when data is potentially shared by multiple processors."},{"id":"node_009","lx":620,"ly":640,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":640,"searchText":"§2.1 cache outcome condition code 모든 메모리 연산이 기본으로 informing이 되고, 하드웨어는 각 연산의 hit/miss를 **user-visible state에 기록**. 소프트웨어는 새 **conditional branch-and-link 명령**으로 직전 메모리 연산의 결과를 검사해, miss면 인코딩된 target 주소로 제어 이동.\n\n**hw 비용**: 대부분 base machine에 이미 있음(특히 condition code 지원 머신) — miss가 그냥 또 하나의 condition code가 되고, 그것을 저장할 hw + 적절한 bypassing/renaming만 추가.\n\n**오버헤드**: informing 연산마다 명령 1개(branch-and-link) 추가. common case(hit)에 최적화하려면 이 branch를 **not-taken으로 예측** $\\rightarrow$ mispredict 페널티는 miss case에만 적용. 강점은 단순함과, static 참조별로 고유 target을 줄 수 있는 유연성. in our first method, all memory operations become informing memory operations by default. the hardware simply records hit/miss results of each data memory operation in user-visible state ... the cache miss simply becomes another condition code."},{"id":"node_010","lx":620,"ly":790,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":790,"searchText":"§2.2 low-overhead cache miss trap (mhar / mhrr) explicit check 명령의 오버헤드마저 제거한다. primary data cache miss 시 **user space로 가는 저오버헤드 trap**을 유발 — hit case 오버헤드 잠재적 0.\n\n전통적 trap(os로 context switch, 수백 cycle)을 피하고 conditional branch에 가깝게 설계: running application의 **pc만 바꾸고 os 코드를 호출하지 않으며 user-visible 레지스터 하나만 저장**.\n\n두 레지스터 추가:\n- **mhar (miss handler address register)**: miss 시 호출할 handler 명령 주소.\n- **mhrr (miss handler return register)**: trap 시 return 주소(miss난 연산 다음 명령) 기록.\n\nmhar=0이면 trapping 비활성. 장점: mhar를 모든 프로세스의 general handler로 default 설정하면 **컴파일러·에디터 없이 whole-system 모니터링**(소스 없는 sw·os 코드까지).\n\n★ 이 mhar/mhrr 기반 \"miss $\\rightarrow$ user handler\"가 [[skybyte]]의 long delay exception의 원형. one register is the miss handler address register (mhar), which contains the instruction address of the handler to invoke on an informing memory operation cache miss. the other register is the miss handler return register (mhrr), into which the return address is written when the trap occurs."},{"id":"node_011","lx":620,"ly":940,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":940,"searchText":"§3.1-3.2 구현: in-order replay trap · out-of-order branch/exception 재활용 핵심 메시지: informing operation 구현에 필요한 hw는 **대부분 이미 있는 branch·exception 메커니즘**이다.\n\n**in-order (alpha 21164)**: 4-issue, issue된 명령은 stall 불가라 어려운 상황을 **replay trap**으로 처리. 그중 하나가 이미 cache 관련(load가 hit 타이밍에 dependent 명령을 issue했는데 miss). 이 **동일 replay trap을 재활용** — informing 연산 직후 명령을 hit/miss 신호에 dependent로 표시하고 hit으로 예측, miss면 replay trap $\\rightarrow$ 재issue 대신 implicit branch-and-link issue(mhrr에 return 주소).\n\n**out-of-order (mips r10000)**: branch(renaming shadow state) 또는 exception(graduation queue 최상단 대기)으로 구현 가능. branch 방식은 miss 오버헤드 낮지만 각 참조가 잠재적 branch가 되어 **shadow state $\\sim 3\\times$** 필요. exception 방식은 느리지만 hw는 매우 modest(reorder buffer가 miss 기록). most of the necessary hardware mechanisms are the branch and exception mechanisms already present in current machines."},{"id":"node_012","lx":620,"ly":1090,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1090,"searchText":"§3.3 cache as visible state (speculative load + mshr 수명 연장) informing operation이 cache 상태를 소프트웨어에 노출하니 새 문제 발생: coherence 같은 응용은 \"새 line이 cache로 들어올 때마다 miss를 감지해 **access rights**를 검사\"해야 하므로 이 검사가 우회되면 안 된다.\n\n그런데 out-of-order 머신은 first-level cache를 **speculative**하게 갱신한다. squash된 speculative informing load가 조용히 cache를 갱신하면 안 됨.\n\n**해법**: speculative informing load가 miss로 cache를 갱신하는 건 허용(common case 최적화, 사실상 l2로 prefetch 효과)하되, load가 squash되면 그 line을 **invalidate**. 이를 위해 lockup-free cache의 **mshr(miss status handling register) 수명을 연장**(명령이 squash 또는 graduate될 때까지 register 해제 지연). 시뮬레이션상 register 개수(8개)는 그대로 충분. we must guarantee that the data updates the first-level cache only when the informing load operation commits ... we extend the lifetime of the miss status handling registers (mshr)."},{"id":"node_013","lx":620,"ly":1190,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1190,"searchText":"오버헤드: 12/13 벤치마크 <40%, 명령 30%↑에도 실행시간 1%↑ 14개 spec92, mips r10000·alpha 21164 기반 cycle 단위 시뮬. 1·10-instruction generic handler.\n\n- tomcatv 제외 **12/13 벤치마크가 두 모델 모두 오버헤드 40% 미만**.\n- out-of-order에서 mdljsp2·alvinn은 **명령 수 30%+ 증가에도 실행시간 +1%**뿐 $\\rightarrow$ instruction-level parallelism이 추가 명령을 흡수. mhar를 자주 바꾸는 기법도 페널티 작다는 뜻.\n- **su2cor** 예외: 8kb direct-mapped primary cache의 심한 conflict로 handler 빈발 $\\rightarrow$ 명령 수 5배, 실행시간 3배.\n- **branch-처리 > exception-처리**: compress에서 exception 방식이 1·10-instr handler 실행시간을 9%·7% 더 늘림.\n- out-of-order가 큰 handler(10 instr)에서 in-order보다 훨씬 유리(handler를 miss와 overlap). the instruction count for both mdljsp2 and alvinn under the out-of-order model increases by over 30%, but the execution time only increases by 1%. this means that techniques that need to modify the mhar frequently ... will not suffer much of a performance penalty."},{"id":"node_014","lx":620,"ly":1340,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1340,"searchText":"case study: coherence — informing이 ecc 대비 11%, ref-check 대비 24% 빠름 **fine-grained access control로 cache coherence** 구현(blizzard-e 유사, ecc fault 대신 informing operation으로 block-level handler 호출). handler가 per-cache-line 보호 상태(invalid/readonly/readwrite)를 조회해 read/write에 적절한지 판정.\n\n16-processor 시뮬. informing 방식이 두 baseline을 **항상 능가**:\n- **ecc-based(blizzard-e) 대비 평균 11%** 빠름 $\\rightarrow$ coherence action time 개선(handler가 cache에 tightly-coupled).\n- **reference-checking(blizzard-s) 대비 24%** 빠름 $\\rightarrow$ (no-coherence-action case에서) 모든 참조가 아니라 **cache miss에서만** lookup.\n\ntable 2: informing = **33-cycle lookup**(6 pipe + 9 handler) / 25-cycle state change vs ecc = 250-cycle read-to-invalid. 더 작은 network latency·더 큰 primary cache일수록 informing 유리. the informing memory scheme is an average of 11% faster than the ecc-based scheme, and 24% faster than the reference-checking scheme."},{"id":"node_015","lx":620,"ly":1490,"children":["node_017"],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1490,"searchText":"§4.1.3 context-switch-on-a-miss multithreading (★ skybyte의 조상) ★ **skybyte의 직계 조상 노드.** multithreading은 **cache miss 시점에 한 thread(context)에서 다른 context로 전환**해 memory latency를 은닉한다.\n\n기존 구현은 hw로 thread를 관리·전환했지만, informing operation은 **단일 miss handler가 (전부 소프트웨어 제어로) thread를 save/restart**하는 소프트웨어 기반 접근을 가능케 한다.\n\n두 최적화:\n1. primary가 아니라 **secondary cache miss에서만** switch 유발(static 예측 + dynamic 관측 조합으로 secondary miss 격리) — 짧은 miss엔 전환 안 함.\n2. register save/restore 오버헤드를 컴파일러 최적화(live register만 저장, thread별 register 정적 분할)나 hw 지원(sparc register window류)으로 최소화.\n\n$\\rightarrow$ \"long-latency 이벤트를 sw에 알려 context를 전환\"이라는 이 아이디어가 [[skybyte]]에서 \"ssd long stall $\\rightarrow$ context switch\"로 재현된다. multithreading tolerates memory latency by switching from one thread (or \"context\") to another at the start of a cache miss ... informing memory operations enable a software-based approach where a single miss handler could save and restart threads (all under software control) upon cache misses."},{"id":"node_016","lx":620,"ly":1660,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1660,"searchText":"왜 general primitive가 전용 hw보다 나은가 논문의 결론적 주장: commodity 프로세서마다 memory reference counting·multithreading·access control 각각을 위한 **별도 전용 hw를 넣는 것은 비경제적**이다.\n\ninforming memory operations는 branch·exception 지원용으로 이미 존재하는 hw 위에 얹혀, **하나의 basic primitive로 그 모든 응용을 지원**한다. 이 generality가 미래 프로세서에 매력적인 이유이며, 실제 hw에 등장하면 예상 못 한 innovative use를 촉발할 것.\n\n두 구현의 sw-side tradeoff:\n- **condition code**: hw 단순, 하지만 branch-on-cache-miss로 재컴파일/edit 필요.\n- **low-overhead trap**: hw 약간 복잡, 하지만 특수 컴파일러·에디터 없이(소스 없는 상용 sw·os 코드까지) 모니터링. while it may not be cost-effective for all commodity microprocessors to include separate support for memory reference counting, multithreading, access control mechanisms, etc., informing memory operations as proposed here provide basic hardware support that is general enough to apply to many such uniprocessor and multiprocessor applications."},{"id":"node_017","lx":1150,"ly":1490,"children":["node_018"],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1490,"searchText":"계보: informing memory ops (1996) → skybyte (2025) 이 논문은 **\"하드웨어가 long-latency 이벤트를 소프트웨어에 알려, 소프트웨어가 스케줄링으로 대응한다\"**는 co-design primitive의 지적 뿌리다. [[skybyte]]는 이 primitive를 cxl-ssd 시대로 옮겼다.\n\n| | informing memory ops (isca'96) | skybyte (hpca'25) |\n|---|---|---|\n| 노출 이벤트 | primary **cache miss** | **ssd long stall**(nand까지) |\n| 알림 메커니즘 | mhar/mhrr low-overhead trap | ndr `skybyte-delay` opcode + **long delay exception** |\n| sw 반응 | context-switch-on-a-miss(sw 스레드) | os **context switch**로 stall 은닉 |\n| 목적 | µs 이하 miss 은닉 | µs급 ssd stall 은닉 |\n\n★ 매체만 cache miss $\\rightarrow$ cxl-ssd stall로 바뀌었을 뿐, **\"hw가 stall 이벤트를 노출 $\\rightarrow$ sw가 context를 전환\"** 원리는 30년간 불변. 내 \"ssd 이중역할 $\\times$ transparent co-design\" 축의 co-design 계보 출발점. "},{"id":"node_018","lx":1150,"ly":1660,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1660,"searchText":"내 연구방향: informing을 multi-host coherence 이벤트로 확장 이 논문의 informing 이벤트는 전부 **local**(자기 core의 cache miss)이고, coherence case study조차 각 node가 **자기 miss**를 informing할 뿐이다. mhar/mhrr도 single address space·single core context 전제.\n\n내 방향(multi-node cxl coherence)은 이 primitive를 **multi-host**로 들어올린다. 여러 host가 공유 메모리를 coherent하게 볼 때:\n- **remote back-invalidation**(cxl 3.0 bi / hdm-db): 다른 host의 write로 내 line이 무효화되는 것도 하나의 long-latency 이벤트다. 이를 어느 host의 스케줄러에 informing해야 하나?\n- **cross-host miss**: 원격 host의 cache/메모리로 내려가는 miss는 local miss보다 훨씬 길다 $\\rightarrow$ skybyte식 context switch가 더 이득. 하지만 **누가 그 이벤트를 관측·통지**하나 (fabric? home agent?).\n- **mhar의 multi-host화**: 단일 core 레지스터를 어떻게 directory/fabric 수준으로 일반화?\n\n즉 1996 \"miss $\\rightarrow$ local thread switch\", skybyte \"ssd stall $\\rightarrow$ local context switch\"를, **\"remote invalidation/cross-host miss $\\rightarrow$ 원격 host 스케줄링 조정\"**으로 확장하는 것이 gap. $\\rightarrow$ [[cxl multi-node coherence]], [[cxl overview]] "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":"통찰"},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":"참고"},{"source":"node_003","target":"node_009","type":"line","label":"구현1"},{"source":"node_003","target":"node_010","type":"line","label":"구현3"},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_004","target":"node_013","type":"line","label":""},{"source":"node_004","target":"node_014","type":"line","label":"case study"},{"source":"node_004","target":"node_015","type":"line","label":"응용"},{"source":"node_005","target":"node_016","type":"line","label":""},{"source":"node_015","target":"node_017","type":"line","label":"계승"},{"source":"node_005","target":"node_017","type":"line","label":"계보"},{"source":"node_017","target":"node_018","type":"line","label":"내 연구"}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>
