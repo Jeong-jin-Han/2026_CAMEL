@@ -37,6 +37,20 @@ host CPU(또는 device B)가 X를 고침
 ```
 - 핵심 = **접근자 수가 아니라 "복사본의 존재"**. → device 하나 + host만 있어도 device가 캐싱하면 coherence 필요. **single-node에서도 CXL.cache가 의미 있음.**
 
+### 복사본의 scope — intra-host(항상·자동) vs inter-host(sharing·back-invalidate)
+복사본이 있으면 coherence가 필요한데, 그 복사본이 **한 host 안**이냐 **host들 사이**냐로 **scope가 갈린다.** ("sharing 없이도 coherence가 있나?"에서 헷갈리는 지점.)
+
+| | **intra-host** (한 host 안) | **inter-host** (host들 사이) |
+|---|---|---|
+| 복사본 | host 코어 캐시 ↔ 그 host가 보는 메모리(local DRAM / device HDM) | host A 캐시 ↔ host B 캐시 (같은 shared 영역) |
+| 언제 | **항상** (single-host도) | **sharing할 때만** |
+| 누가 | host home agent 자동(MESI) / device caching agent(CXL.cache) | **device back-invalidate** (`HDM-DB`, 3.0) |
+| 비용 | 공짜처럼 보임 | 비쌈 → 연구 frontier |
+
+- **정밀 표현**: "독립(unshared) 접근이면 coherence 불필요"는 정확히는 **"inter-host(cross-host) coherence 불필요"**다. intra-host coherence는 sharing 여부와 무관하게 하드웨어가 **늘** 본다(공짜라 안 보일 뿐).
+- **pooling**(분할·독립) = inter-host 복사본 없음 → inter-host coherence 없음. **sharing**(공유) = inter-host 복사본 생김 → 켜짐. 그 층이 [[CXL Multi-node Coherence]].
+- 이건 [[CXL Overview]]의 **두 축**과도 대응: intra-host의 device-caching = 축 A, inter-host sharing = 축 B. (Type-3 single-host가 device HDM을 캐시하는 것도 intra-host scope — host가 관리(HDM-H).)
+
 ## coherence vs synchronization — 역할이 다르다
 | | cache coherence | synchronization |
 |---|---|---|

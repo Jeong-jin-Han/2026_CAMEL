@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "Hello Bytes, Bye Blocks: PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)",
   "created": "2026-07-13T00:00:00.000Z",
-  "modified": "2026-07-13T06:00:00.000Z",
+  "modified": "2026-07-14T04:00:00.000Z",
   "source": {
     "pdf": "Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD).pdf",
     "authors": "Myoungsoo Jung (KAIST CAMELab)",
@@ -186,6 +186,48 @@
       "childrenExpanded": false,
       "position": {
         "x": 520,
+        "y": -120
+      },
+      "children": [
+        "node_017"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "claim",
+      "title": "초록의 coherence는 Type-1 coherence와 다른가? — 방향·주체가 다름",
+      "content": "초록: *'CXL manages data coherency mainly between CPU memory spaces and memory on attached devices'* — 이 coherence는 **Type-1의 coherence와 방향·주체가 다르다.**\n\n초록 문장은 먼저 CXL의 **일반적 coherence 우산**(CXL.io+.cache+.mem이 한 coherent domain)을 가리킨다. 하지만 이 논문이 CXL-SSD를 **Type-3**로 만들 때 실제로 쓰는 coherence는 그 우산 중 **한쪽**이다.\n\n| 축 | Type-1 coherence | 이 논문 (CXL-SSD = Type-3) |\n|---|---|---|\n| 프로토콜 | **CXL.cache** | **CXL.mem** |\n| 누가 누구 메모리를 캐시 | **device가 host 메모리를** | **host가 device HDM을** |\n| 방향 | device $\\rightarrow$ host | host $\\rightarrow$ device |\n| 관리 주체 | device가 **능동 caching agent**(snoop 참여) | **host가 관리 (HDM-H)**, device는 CXL.cache 미사용 |\n| 목적 | 가속기가 host 데이터를 coherent하게 | storage HDM을 **cacheable working memory**로 |\n\n**핵심**: Type-3 CXL-SSD의 device는 **CXL.cache를 아예 안 쓴다**(§3). 그래서 여기 coherence는 'device가 coherence 참여자가 되는 것'이 아니라, **host CPU가 device의 HDM을 캐시할 때 그 캐시를 host가 일관되게 유지**하는 것 — single-host면 **HDM-H(host-only coherent)**. 이 논문의 진짜 win도 'device를 caching agent로'가 아니라 **PCIe에선 non-cacheable이던 storage 접근을 cacheable로** 만든 것(「non-cacheable BAR의 벽」 노드와 직결).\n\n**두 축 관점**: Type-1 = **축 A의 'device가 host를 캐시'** 방향, 이 논문 = **host가 device HDM을 캐시**(single-host라 host-managed HDM-H). 둘 다 single-host지만 방향·주체가 반대다. 여러 host가 같은 HDM을 공유하는 **축 B(back-invalidate, HDM-DB)**는 또 별개 — 「내 연구방향」 노드 참조.",
+      "original": {
+        "text": "CXL manages data coherency mainly between CPU memory spaces and memory on attached devices.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": -120
+      },
+      "children": [
+        "node_018"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "claim",
+      "title": "coherence의 두 scope: intra-host(항상·자동) vs inter-host(sharing·back-invalidate)",
+      "content": "'sharing 없이도 coherence가 있나?'에서 헷갈리는 이유 — coherence는 **복사본이 있으면** 필요한데, 그 복사본이 **한 host 안**이냐 **host들 사이**냐로 **scope가 갈린다.**\n\n| | intra-host (한 host 안) | inter-host (host들 사이) |\n|---|---|---|\n| 복사본 | host 코어 캐시 ↔ 그 host가 보는 메모리(local DRAM / device HDM) | host A 캐시 ↔ host B 캐시 (같은 shared 영역) |\n| 언제 | **항상** (single-host도) | **sharing할 때만** |\n| 누가 | host home agent가 **자동**(MESI) | **device가 back-invalidate**(HDM-DB, CXL 3.0) |\n| 비용 | 공짜처럼 보임 | 비쌈 $\\rightarrow$ 연구 frontier |\n\n**Hello Bytes 초록 case(Type-3, single-host)** = 왼쪽. host 캐시 ↔ device HDM 복사본은 있지만 host가 하나라 inter-host는 없음 $\\rightarrow$ **HDM-H(host-managed)**로 자동 처리. 그래서 'sharing 없이도 coherence가 있다'가 성립(단 그건 intra-host scope).\n\n**여러 host가 같은 HDM을 공유(sharing)** = 오른쪽. host A·B에 같은 라인 복사본이 생겨 **inter-host coherence**가 새로 켜진다 $\\rightarrow$ device가 directory+back-invalidate로. pooling(독립·분할)엔 없고 sharing에만 있는 층 = **내 연구**(「내 연구방향」 노드).\n\n**정밀 표현**: '독립(unshared) 접근이면 coherence 불필요'는 정확히는 **'inter-host(cross-host) coherence 불필요'**다. intra-host coherence는 sharing 여부와 무관하게 하드웨어가 **늘** 본다(공짜라 안 보일 뿐). 즉 네 모델('shared되는 순간 host간 coherence를 봐야 한다')은 **오른쪽 열에서 정확히 맞다.**",
+      "original": {
+        "text": "CXL manages data coherency mainly between CPU memory spaces and memory on attached devices.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1580,
         "y": -120
       },
       "children": [],
@@ -493,6 +535,34 @@
       "target": "node_016",
       "type": "line",
       "label": "MLD→공유"
+    },
+    {
+      "id": "edge_018",
+      "source": "node_006",
+      "target": "node_017",
+      "type": "line",
+      "label": "coherence 구분"
+    },
+    {
+      "id": "edge_019",
+      "source": "node_017",
+      "target": "node_008",
+      "type": "line",
+      "label": "Type별"
+    },
+    {
+      "id": "edge_020",
+      "source": "node_017",
+      "target": "node_018",
+      "type": "line",
+      "label": "두 scope"
+    },
+    {
+      "id": "edge_021",
+      "source": "node_018",
+      "target": "node_016",
+      "type": "line",
+      "label": "inter-host=내 연구"
     }
   ],
   "viewport": {
