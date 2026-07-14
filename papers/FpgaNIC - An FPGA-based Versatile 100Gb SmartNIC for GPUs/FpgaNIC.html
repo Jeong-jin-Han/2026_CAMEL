@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FpgaNIC: An FPGA-based Versatile 100Gb SmartNIC for GPUs</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">FpgaNIC: An FPGA-based Versatile 100Gb SmartNIC for GPUs</span>
+    <span id="tb-source">Zeke Wang, Hongjing Huang, Jie Zhang, Fei Wu, Gustavo Alonso · USENIX ATC 2022</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" style="--color:#4B8BBE;border-radius:2px;left:100px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">GPU-centric SmartNIC 최초 구현</strong>: 기존 SmartNIC은 산업계 전부(Broadcom, Pensando, Netronome, Intel IPU)가 CPU-centric인데, FpgaNIC은 GPU가 SmartNIC을 CPU 개입 없이 직접 제어하는 최초의 100Gbps FPGA 기반 SmartNIC이다.<br><br><strong style="font-size:1.1em">양방향 CPU-우회 통신</strong>: (1) GPU가 FPGA의 doorbell/status 레지스터를 CUDA 커널 내부에서 직접 트리거·폴링(control plane, G1), (2) FPGA가 GPU 가상주소(virtual address)로 GPU 메모리에 직접 PCIe P2P DMA를 수행(data plane, G2). 이 두 방향을 모두 CPU 없이 구현한 것은 이 논문이 최초라고 주장한다.<br><br><strong style="font-size:1.1em">하드웨어로 완전히 구현된 100Gbps 신뢰성 네트워크 트랜스포트(G3)</strong>: 소프트웨어 스택이 감당하지 못하는 line-rate 처리를 FPGA 하드웨어 TCP 스택으로 해결.<br><br><strong style="font-size:1.1em">HLS로 프로그램 가능한 데이터패스 가속기(G4, G5)</strong>: On-NIC Computing(ONC) 모듈을 C++ 기반 HLS(High Level Synthesis)로 작성 가능하게 하여, direct/on-path/off-path 세 SmartNIC 모델을 단일 아키텍처로 모두 지원.<br><br><strong style="font-size:1.1em">실증된 성능</strong>: 8-GPU 분산 AllReduce에서 NCCL 대비 최대 2.5배 속도 향상을, GPU/CPU 컴퓨팅 사이클을 전혀 소모하지 않으면서 달성.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.967</span></summary>
+<div class="ng-orig-text">In this paper, we present the design of a 100Gb GPU-centric SmartNIC to serve distributed applications running on GPUs.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" style="--color:#4B8BBE;border-radius:2px;left:100px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">멀티코어 SmartNIC의 한계</strong>: BlueField-2 같은 임베디드 ARM 코어는 control-plane 관리에는 적합하지만, 100Gbps 데이터 스트림을 line-rate로 처리(data-path accelerator, G4)하기엔 메모리 대역폭이 부족하다(실측 27.3GB/s, §1 p.968).<br><br><strong style="font-size:1.1em">FPGA-증강 SmartNIC의 한계</strong>: Mellanox Innova-2는 FPGA가 NIC ASIC에 PCIe Gen4 x8로 연결되어 있어, 패킷이 FPGA를 거치는 순간 상당한 지연이 추가되고 line-rate 처리가 불가능하다. GPU 가상주소 접근(C1)도 지원하지 않는다.<br><br><strong style="font-size:1.1em">CPU 기반 네트워크 트랜스포트의 한계</strong>: 100Gbps 신뢰성 네트워크 트랜스포트를 CPU 소프트웨어로 구현하면 여러 CPU 코어를 소모하고, GPU가 네트워크 오퍼레이션을 개시할 때마다 CPU를 거쳐야 해 지연이 늘어난다(C2).<br><br><strong style="font-size:1.1em">GPU 가상주소 문제(C1)</strong>: GPU 프로그램은 가상주소를 다루는데 DMA 엔진은 물리주소만 인식한다. GPU의 64KB 페이지 크기 때문에 32GB 메모리는 순진하게 구현 시 512K TLB 엔트리가 필요해 FPGA 온칩 메모리로 감당하지 못한다.<br><br><strong style="font-size:1.1em">프로그래밍 인터페이스 문제(C3)</strong>: FPGA 전통적 프로그래밍은 HDL(cycle-sensitive)이라 시스템 프로그래머 접근성이 낮다.<br><br><strong style="font-size:1.1em">SmartNIC 모델 다양성 문제(C4)</strong>: 스마트 기능의 위치(direct/on-path/off-path)에 따라 적합한 모델이 다른데, 기존 SmartNIC은 특정 모델 하나에 고정되어 있다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.1, p.969</span></summary>
+<div class="ng-orig-text">how to enable the GPU to efficiently manipulate the reliable hardware transport on the FPGA becomes a new challenge.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1000px;min-width:552px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">3계층 아키텍처</strong>: GPU Communication Stack(제어/데이터 평면 오프로드) + 100Gbps Hardware Network Transport(신뢰성 TCP) + On-NIC Computing(ONC, HLS 데이터패스 가속기)을 하나의 FPGA(Xilinx Alveo U50/U280)에 계층적으로 결합(Figure 1).<br><br><strong style="font-size:1.1em">GTLB (GPU Translation Lookaside Buffer)</strong>: main TLB(2MB 페이지, 물리적으로 연속인 경우) + complementary TLB(64KB 페이지, 비연속인 경우)로 구성. GPU 커널 함수 nvidia_p2p_put_pages로 얻은 주소 쌍을 순회하며 최대한 2MB 페이지로 병합, 완전 파이프라인된 온라인 주소 변환을 FPGA 온칩 메모리(BRAM)에서 수행.<br><br><strong style="font-size:1.1em">Decoupled application interface</strong>: 원래의 TCP 스택은 handshake(10~30 사이클)와 payload transfer가 직렬화되어 대역폭 손실이 컸는데, FpgaNIC은 둘을 오버랩시켜 최대 4GB 스트림을 자동 chunking.<br><br><strong style="font-size:1.1em">Direct / On-path / Off-path 세 모델</strong>: (1) direct — GPU가 네트워크 트랜스포트를 직접 조작(GCN 예시), (2) on-path — 패킷 흐름 위에서 즉시 처리(HyperLogLog 예시), (3) off-path — 별도 엔진이 데이터 흐름을 오케스트레이션(AllReduce 예시).<br><br><span class="ng-img-missing">fig1_architecture.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">§2.3, p.970</span></summary>
+<div class="ng-orig-text">FpgaNIC enables offloading of control plane onto GPUs (via a slave interface) and offloading of the data plane onto the FPGA (via a master interface), such that the host CPU is bypassed.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_004" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">공유 인프라 벤치마크</strong>: 제어 평면 지연(GPU에서 FPGA)은 1$\mu$s 미만, PCIe P2P DMA read to A100 GPU는 12.6GB/s(PCIe 이론 대역폭에 근접). 하드웨어 TCP 스택 RTT는 마이크로초 단위(3.1~7$\mu$s), 처리량은 큰 패킷에서 94.4Gbps(100Gbps 채널에 근접).<br><br><strong style="font-size:1.1em">Direct 모델</strong>: 제어 평면 오프로드가 있을 때 작은 chunk/transfer size에서 처리량이 유의미하게 향상(CUDA 커널 invocation 오버헤드 제거).<br><br><strong style="font-size:1.1em">Off-path 모델(AllReduce)</strong>: 8-GPU 분산 풀에서 NCCL 대비 최대 2.5배 speedup(소데이터), 8MB 이상에서 이론적 bus bandwidth 도달, GPU/CPU 사이클 소모 없음.<br><br><strong style="font-size:1.1em">On-path 모델(HyperLogLog)</strong>: 오프로딩해도 전체 처리량에 영향 없이 최소 8개 A100 GPU SM 절약.<br><br><strong style="font-size:1.1em">리소스 사용</strong>: GPU 통신 스택 + 100G HW 트랜스포트가 U50 FPGA 자원의 약 20%만 사용, 나머지 80% 이상이 ONC(온-NIC 컴퓨팅)에 할당 가능.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.4, p.976</span></summary>
+<div class="ng-orig-text">FpgaNIC leads to up to a 2.5x speedup over NCCL, because the AllReduce engine in FpgaNIC efficiently overlaps the operations of the PCIe DMA, network transport, and FPGA memory.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">FpgaNIC은 GPU 클러스터를 위한 최초의 FPGA 기반 GPU-centric 100Gbps SmartNIC으로, direct/off-path/on-path 세 모델을 하나의 아키텍처로 지원하며 오픈소스로 공개되었다(GitHub: RC4ML/FpgaNIC). 저자들은 이를 발판으로 (1) Deep Learning 분산학습에서 통신(AllReduce) + 컴퓨팅(compressor, Adam optimizer)을 함께 오프로드하는 연구, (2) Intel FPGA 포팅, (3) OpenCL 성능 분석 프레임워크를 통한 완전 자동화된 오프로드 식별을 미래 방향으로 제시한다.<br><br>내 연구 방향에서 이 논문의 위치는 명확하다 — <strong style="font-size:1.1em">네트워킹(원격 GPU-to-GPU)을 위한 FPGA-GPU P2P 메커니즘의 실증</strong>이며, H3(로컬 GPU 제어 평면)이 요구하는 세 가지 필요조건(PCIe endpoint + bus mastering, 같은 PCIe 스위치 아래 P2P, 성숙한 스택인 HLS)이 실제 상용 FPGA 보드 위에서 모두 충족 가능함을 보여주는 구체적 증거다. 다만 FPGA가 GPU의 실행(커널 스케줄링/launch)을 지시하는 사례는 아니며, 그 지점은 여전히 미탐색 공간으로 남아 있다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6 Conclusion, p.978</span></summary>
+<div class="ng-orig-text">Inspired by the fact that there is no SmartNIC designed for GPUs, we present FpgaNIC, a full-stack FPGA-based GPU-centric 100Gbps SmartNIC that allows a large design space exploration around SmartNICs for accelerating applications running on distributed GPUs.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_006" style="--color:#5C9E6E;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">5대 설계 목표 (G1-G5)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>목표</th><th>내용</th></tr></thead><tbody><tr><td>G1</td><td>GPU가 doorbell/status 레지스터를 CPU 없이 직접 트리거·폴링</td></tr><tr><td>G2</td><td>GPU 가상주소로 PCIe P2P GPU 메모리 접근 (CPU 없이)</td></tr><tr><td>G3</td><td>하드웨어로 완전한 네트워크 스택 구현 (저지연·고처리량)</td></tr><tr><td>G4</td><td>응용 로직을 소프트웨어 정의·하드웨어 가속 data-path accelerator로 오프로드 (line-rate on-NIC computing)</td></tr><tr><td>G5</td><td>data-path accelerator를 시스템 프로그래머가 쉽게 프로그램 가능해야 함</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.967</span></summary>
+<div class="ng-orig-text"></div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_007" style="--color:#5C9E6E;border-radius:2px;left:620px;top:250px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 1: SmartNIC 유형별 비교</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>목표</th><th>Multicore SmartNIC</th><th>FPGA-aug SmartNIC</th><th>FpgaNIC</th></tr></thead><tbody><tr><td>Control plane offload (G1)</td><td>미지원</td><td>미지원</td><td>지원</td></tr><tr><td>Access GPU with virtual address (G2)</td><td>지원</td><td>미지원</td><td>지원</td></tr><tr><td>100Gb transport offload (G3)</td><td>미지원</td><td>부분 지원</td><td>지원</td></tr><tr><td>100Gb data-path accelerator (G4)</td><td>미지원</td><td>부분 지원</td><td>지원</td></tr><tr><td>High programmability (G5)</td><td>지원</td><td>미지원</td><td>지원</td></tr></tbody></table></div><div class="ng-seg"><br>(원문 Table 1, p.968)</div></div><details class="ng-original"><summary>Original <span class="ng-loc">Table 1, p.968</span></summary>
+<div class="ng-orig-text"></div></details></div>
+</div>
+<div class="ng-node" id="node-node_008" style="--color:#95A5A6;border-radius:22px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">기존 SmartNIC의 한계: BlueField-2, Innova-2</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">BlueField-2(멀티코어, ARM 임베디드 CPU)의 achievable memory bandwidth는 27.3GB/s로 100Gbps 스트림 처리에 부족. Mellanox Innova-2(FPGA-증강)는 FPGA가 NIC ASIC(ConnectX-5)에 PCIe Gen4x8로 종속되어, GPU 또는 네트워크 중 한쪽만 동시에 소비 가능 — AllReduce 처리량이 반토막될 것으로 저자들이 추정(Appendix A.2.2, p.985).</div><details class="ng-original"><summary>Original <span class="ng-loc">§4, p.977; Appendix A.2.2, p.985</span></summary>
+<div class="ng-orig-text"></div></details></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#1ABC9C;border-radius:22px;left:620px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">왜 산업계 SmartNIC은 전부 CPU-centric인가?</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Table 7(p.977)에 따르면 Broadcom Stingray, Pensando DSC-25, Netronome NFP4000, Intel IPU 모두 CPU-centric이고 GPU-centric은 없다. 저자들은 이를 '시장에 GPU를 위한 SmartNIC이 없다'는 gap으로 명시(§6). 상용 NIC ASIC 벤더가 GPU 워크로드를 1급 시민으로 다루지 않는 이유는 무엇일까 — AI/HPC 클러스터의 성장 속도에 비해 NIC 설계 주기가 느린 구조적 문제일 가능성.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.978</span></summary>
+<div class="ng-orig-text">Inspired by the fact that there is no SmartNIC designed for GPUs</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#BDC3C7;border-radius:22px;left:620px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">용어: on-NIC computing = data-path accelerator</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">논문 각주1(p.968)에서 'on-NIC computing module'과 'data-path accelerator'를 상호 교환적으로 사용한다고 명시. 이 용어 통일을 몰랐다면 §2.5/ONC과 §1의 G4가 다른 개념인 것으로 오해하기 쉽다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, footnote 1, p.968</span></summary>
+<div class="ng-orig-text">In the paper, we use on-NIC computing module and data-path accelerator interchangeably.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">C1: 512K -&gt; 18K 엔트리로 압축</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">32GB GPU 메모리, 64KB 페이지 -&gt; naive하게 저장 시 512K TLB 엔트리 필요. FpgaNIC은 64KB 페이지들이 물리적으로 연속(2MB 정렬)인 경우가 많다는 관찰을 이용해, 연속 64KB 페이지 32개를 2MB 페이지로 병합한다.<br><br>$$16K + 2K = 18K \text{ entries} \quad (\text{vs. } 512K \text{ naive})$$</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.3.2, p.970</span></summary>
+<div class="ng-orig-text">the total number of required entries for 32GB memory becomes 16K+2K=18K, significantly smaller than the previous 512K entries.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">멀티코어 SmartNIC 실측 병목: BlueField-2</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">BlueField-2의 achievable memory bandwidth는 sysbench로 측정 시 27.3GB/s(§1, p.968, ref[1]) — 100Gbps(약 12.5GB/s) 데이터 스트림을 NIC의 임베디드 CPU에 올리는 것만으로도 이미 과부하 수준. [40]의 측정 결과와도 일치.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.968</span></summary>
+<div class="ng-orig-text">BlueField-2 has 27.3GB/s achievable memory bandwidth under a benchmarking tool sysbench, indicating that directly staging 100Gbps data stream at the NIC CPU already overwhelms BlueField-2.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#E74C3C;border-radius:2px;left:620px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">C2: GPU는 원래 신뢰성 네트워크용이 아니다</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">GPU는 대규모 병렬성을 위해 설계되었는데, 신뢰성 네트워크(retransmission 등 복잡한 flow control)는 병렬성을 저해한다(§2.1, p.969, ref[28,43]). CPU 기반 트랜스포트는 여러 코어를 소모하고 GPU발 오퍼레이션마다 CPU 개입이 필요해 지연이 늘어난다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.1, p.969</span></summary>
+<div class="ng-orig-text">GPUs are not originally designed for reliable network transport since reliable networking reduces the degree of parallelism and requires a complex flow control, e.g., retransmission.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#95A5A6;border-radius:22px;left:620px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Innova-2의 구조적 한계</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Mellanox Innova-2는 FPGA가 ConnectX-5 NIC ASIC에 PCIe Gen4x8 인터페이스로 연결된다. 패킷이 FPGA에서 처리될 때 이미 상당한 지연이 붙어 line-rate가 불가능(G4 부분 지원에 그침). Appendix A.2.2(p.985)에서 저자들은 동일한 AllReduce를 Innova에서 구현하면 처리량이 반토막날 것이라 추정한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Appendix A.2.2, p.985</span></summary>
+<div class="ng-orig-text">In such a design, the FPGA can consume data either from the GPU or from the network but not from both at the same time. We estimate that the overall throughput would be halved.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1000px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">off-path 멀티코어 CPU도 여전히 병목이 될 수 있다</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">off-path 모델에서 멀티코어 CPU(2-channel DDR4)를 staging에 쓸 수 있지만, 멀티코어 CPU의 메모리 대역폭이 100Gb 트래픽 처리 시 쉽게 병목이 된다(§2.1, p.969, ref[40]). 즉 off-path라고 CPU를 쓰면 여전히 병목 — FpgaNIC은 off-path도 FPGA 내부(온보드 메모리)로 구현해 이 문제를 회피한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.1, p.969</span></summary>
+<div class="ng-orig-text">multicore CPU's memory bandwidth can easily become a performance bottleneck when processing 100Gb network traffic using the multicore CPU.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#5C9E6E;border-radius:2px;left:620px;top:550px;min-width:552px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">System Architecture (Figure 1)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">FpgaNIC의 전체 아키텍처. GPU가 Control plane(GPU에서 FPGA로)으로 doorbell을 트리거하면, FPGA는 Data plane(FPGA에서 GPU로)으로 PCIe Master Interface를 통해 GTLB로 가상주소를 변환한 뒤 DMA를 수행한다. On-NIC Computing이 HBM/DDR4와 Network Transport 사이에 위치해 데이터패스를 가속한다.<br><br><span class="ng-img-missing">fig1_architecture.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">Figure 1, p.969</span></summary>
+<div class="ng-orig-text">Figure 1: System architecture of FpgaNIC, which enables control/data plane offloading and reliable network transport offloading, and enables on-NIC computing module to process data from network at line rate.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#5C9E6E;border-radius:2px;left:620px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">GTLB 주소 변환 알고리즘</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Algorithm 1 (POPULATING GTLB, p.971): (1) gpuMemAlloc으로 GPU 메모리 공간을 미리 할당, (2) nvidia_p2p_put_pages로 모든 64KB 페이지의 VA/PA 쌍을 획득, (3) 물리적으로 연속인 64KB 페이지 32개를 2MB 페이지로 최대한 병합, (4) main TLB(2MB 단위)와 complementary TLB(64KB 단위, 비연속인 경우)를 채운다.<br><br>$$\text{index} \leftarrow 0, \quad \text{comp} \leftarrow 0$$<br><br>물리적으로 연속인 2MB 페어는 main TLB에 저장(valid=1)하고, 비연속인 경우 complementary TLB에 32개의 64KB 서브페이지를 저장한 뒤 main TLB에는 comp_offset만 기록한다. 조회 시 main TLB를 먼저 확인하고, 비연속이면 comp_offset으로 complementary TLB를 참조 — 완전 파이프라인(fully-pipelined) 조회가 가능하다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.3.2, p.971</span></summary>
+<div class="ng-orig-text">FpgaNIC can easily achieve fully-pipelined translation lookup on the FPGA.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#5C9E6E;border-radius:2px;left:620px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Decoupled Application Interface</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">원래 인터페이스: control handshake(10~30 사이클) 후 payload(최대 1460B, 10~23 사이클) — handshake 오버헤드가 payload 전송시간과 맞먹어 대역폭 낭비가 컸다. FpgaNIC의 decoupled interface는 handshake를 payload transfer와 오버랩시키고, 최대 4GB 데이터 스트림을 프로그래머 개입 없이 자동으로 올바른 크기 청크로 분할한다(§2.4.1, p.971).</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.4.1, p.971</span></summary>
+<div class="ng-orig-text">The proposed decoupled interface gets rid of the handshake, overlapping the control handshakes with the data transfer.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1000px;min-width:632px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">GCN (Direct Model) 아키텍처 - Figure 11</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Direct 모델의 예시인 GPU-centric Networking(GCN): 3계층(GPU user / GPU kernel / FpgaNIC)으로 구성되며, 송신측은 send buffer(circular buffer)에서 DMA read and forward, 수신측은 100Gb HW Transport에서 receive buffer로 add header and DMA write. Credit-based flow control로 신뢰성을 보장한다.<br><br>$$M = \frac{100}{N}\text{MB (연결당 버퍼 크기)}, \quad W = \frac{M}{F}\text{MB (슬롯 크기)}$$<br><br>수신자가 누적 수신량 $M_r$이 임계값 $Th$를 넘으면 $Th \times M$ 바이트의 credit을 doorbell로 송신자에 반환한다.<br><br><span class="ng-img-missing">fig11_gcn.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">Figure 11, §A.1.4, p.983</span></summary>
+<div class="ng-orig-text">Reliable communication (goal D1) is achieved through a simple credit-based flow control over each TCP connection.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_020" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1150px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">세 SmartNIC 모델의 응용 매핑</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">direct — GPU가 네트워크 트랜스포트를 직접 조작(예: GCN, 소켓형 API로 원격 GPU와 통신). on-path — 패킷이 네트워크에서 GPU로 흐르는 도중 op_in/op_out/op_return 포트로 즉시 처리(예: HyperLogLog로 cardinality를 line-rate로 계산). off-path — 별도 엔진이 PCIe DMA/네트워크/온보드 메모리 세 리소스를 오케스트레이션(예: AllReduce 8-step 링 알고리즘). 다른 스마트 기능은 다른 SmartNIC 모델을 선호한다 — 예: 데이터베이스 필터 연산은 on-path, AllReduce는 off-path가 유리.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.1, p.969</span></summary>
+<div class="ng-orig-text">Different smart functions favor different SmartNIC models. For example, an on-path approach is preferred when offloading database's filter operator while AllReduce is better mapped to off-path SmartNICs.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">왜 HLS(C3)를 택했는가</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">HLS(C++)는 시스템 프로그래머의 접근성을 높이지만(G5), 하드웨어 효율은 손수 작성한 HDL보다 낮을 수 있다. 논문은 AXI-Stream 타입을 인터페이스의 핵심으로 삼아 HDL과의 호환성도 유지한다고 언급한다(§5, p.978). HLS로 인한 성능 손실을 정량화한 수치는 논문에 없음 — 이것이 이 논문이 다루지 않은 gap.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.978</span></summary>
+<div class="ng-orig-text">FpgaNIC's interface mainly leverages the stream type in HLS, i.e., AXI stream in HDL, for better compatibility.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_022" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Multi-tenant 지원은 future work</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">§2.5.2(p.973)에서 Coyote[32]의 vFPGA(virtual FPGA) 개념을 언급하며, 여러 테넌트가 각자의 partial reconfiguration region으로 안전하게 시공간 다중화될 수 있다고 제안하지만 실제 구현·평가는 하지 않고 future work로 남긴다. 즉 지금의 FpgaNIC은 single-tenant 가정 위에서만 검증되었다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.5.2, p.973</span></summary>
+<div class="ng-orig-text">We leave this as future work.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_023" style="--color:#9B59B6;border-radius:2px;left:620px;top:925px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">제어 평면 지연 및 PCIe P2P 처리량</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>측정</th><th>값</th></tr></thead><tbody><tr><td>GPU에서 FPGA 제어 지연</td><td>1$\mu$s 미만 (R8K/A100 유사)</td></tr><tr><td>CPU에서 FPGA 제어 지연</td><td>더 크고 변동폭도 큼 (Figure 3)</td></tr><tr><td>DMA read to A100 GPU</td><td>12.6GB/s (PCIe 이론 대역폭 근접)</td></tr><tr><td>PCIe P2P bandwidth (Quadro)</td><td>10.6GB/s</td></tr><tr><td>PCIe P2P bandwidth (Tesla)</td><td>12.6GB/s</td></tr></tbody></table></div><div class="ng-seg"><br>(§3.2.1, p.974; Appendix D4, p.982)</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.1, p.974</span></summary>
+<div class="ng-orig-text">the latency of interactions between the GPU and the FPGA is comparable to that of the CPU calling the FPGA and it is under 1 microsecond.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_024" style="--color:#9B59B6;border-radius:2px;left:620px;top:1075px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">TCP 하드웨어 스택: RTT와 처리량</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>메시지 크기</th><th>RTT</th></tr></thead><tbody><tr><td>64B</td><td>3.1$\mu$s</td></tr><tr><td>1KB</td><td>3.5$\mu$s</td></tr><tr><td>32KB</td><td>7$\mu$s</td></tr></tbody></table></div><div class="ng-seg"><br>처리량: 1408B payload, 1000 connections에서 94.4Gbps 달성(100Gbps 채널 용량에 근접). 연결 수(1~1000)는 동일 패킷 크기에서 처리량에 영향이 없음 — multi-connection 지원 효율을 입증(§3.2.2, Figure 5, p.975).</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.2, p.975</span></summary>
+<div class="ng-orig-text">The most striking result is that the TCP latency is in microseconds, instead of milliseconds, demonstrating the advantages of offloading to a SmartNIC instead of using the CPU for communication.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_025" style="--color:#9B59B6;border-radius:2px;left:620px;top:1225px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">AllReduce: NCCL 대비 2.5배 speedup</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Bus bandwidth 지표로 측정:<br><br>$$\text{bus bandwidth} = \text{algorithm bandwidth} \times \frac{2(N-1)}{N}$$<br><br>8-노드 클러스터에서 FpgaNIC이 최대 2.5배 speedup(데이터 크기 1MB 미만일 때, 빠른 state transition 덕분). 8MB 이상에서는 이론적 bus bandwidth에 도달(FpgaNIC이 PCIe DMA/네트워크/FPGA 메모리 자원을 모두 활용). NCCL은 노드 수 증가에 따라 상당한 CPU/GPU 컴퓨팅 사이클이 필요한 반면 FpgaNIC은 불필요(§3.4, p.975-976).</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.4, p.976</span></summary>
+<div class="ng-orig-text">FpgaNIC leads to up to a 2.5x speedup over NCCL, because the AllReduce engine in FpgaNIC efficiently overlaps the operations of the PCIe DMA, network transport, and FPGA memory.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_026" style="--color:#9B59B6;border-radius:2px;left:620px;top:1375px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">HyperLogLog on-path: SM 8개 절약</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Block size</th><th>필요 A100 SM 수 (오프로딩 없이)</th></tr></thead><tbody><tr><td>128K 이하</td><td>256 초과</td></tr><tr><td>256K</td><td>8</td></tr><tr><td>512K</td><td>8</td></tr><tr><td>1024K</td><td>8</td></tr></tbody></table></div><div class="ng-seg"><br>FpgaNIC-enhanced HLL은 write-only baseline과 거의 동일한 처리량(64B~1408B 패킷 전 구간)을 달성하면서 최소 8개 A100 SM을 절약 — '와이어 위의 혹(bump in the wire)'으로 작동함을 실증(§3.5, p.976).</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.5, p.977</span></summary>
+<div class="ng-orig-text">FpgaNIC-enhanced HLL does not require any GPU compute power, e.g., at least 8 A100 SMs, which can be used in other computing task.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_027" style="--color:#9B59B6;border-radius:2px;left:620px;top:1525px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">FPGA 자원 사용량 (Table 2)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">U50 FPGA(871K LUT, 1743K REG, 232.4Mb RAM, 9024 DSP) 기준:<br><br>- GPU Commu. Stack: 79K LUT, 103K REG, 5.2Mb RAM<br>- 100G HW Transport: 101.3K LUT, 166.5K REG, 23.4Mb RAM<br><br>합계 약 20% 미만의 FPGA 자원만 공유 인프라(네트워크+GPU 통신)에 소모되고, 나머지 80% 이상은 ONC(응용별 데이터패스 가속기)에 활용 가능하다(§5, p.978).</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.978</span></summary>
+<div class="ng-orig-text">the majority of the FPGA resources can be dedicated to on-NIC computing for SmartNIC functionality.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_028" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1675px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Speedup이 데이터 크기와 노드 수에 따라 달라지는 이유</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Figure 7(p.976)에서 speedup은 데이터 크기가 작을 때(1MB 미만) 최대(2.5배)이고, 데이터가 커질수록(8MB 이상) NCCL과 FpgaNIC 모두 이론적 bus bandwidth에 수렴해 speedup이 줄어든다. 즉 FpgaNIC의 이점은 고정 오버헤드(state transition, CUDA 커널 개입 등)를 제거하는 데서 오며, 순수 대역폭이 병목인 대용량 전송에서는 이점이 줄어든다 — 이는 H3처럼 결정/스케줄링 오버헤드 제거가 목표인 시스템에서도 소규모·빈번한 오퍼레이션에서 이득이 극대화되는 비슷한 패턴이 나타날 가능성을 시사한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.4, p.976</span></summary>
+<div class="ng-orig-text">when data size is small (&lt;1MB), the speedup is up to 2.5x, due to the faster transition between states in FpgaNIC (Table 8) compared when the same operation being implemented on GPUs.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_029" style="--color:#E74C3C;border-radius:2px;left:620px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">오픈소스 공개 - 재현 가능성</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">GitHub: https://github.com/RC4ML/FpgaNIC. Artifact Evaluated(AVAILABLE + FUNCTIONAL) 배지를 획득(표지, p.967). §7 Artifact에 하드웨어 비트스트림 생성, 드라이버 설치, 실험 재현을 위한 3단계 절차와 체크리스트(Hugepages 설정, xdma/gdr 드라이버 등)를 상세히 기록.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6 Conclusion, p.978</span></summary>
+<div class="ng-orig-text">FpgaNIC is open-source to encourage further development and research in GPU-centric applications (Github: https://github.com/RC4ML/FpgaNIC).</div></details></div>
+</div>
+<div class="ng-node" id="node-node_030" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Intel FPGA 포팅 미해결</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">현재 구현은 전부 Xilinx(Alveo U50/U280, Vivado 2020.1)에 종속. 각주3(p.969)에서 Intel FPGA 보드로는 아직 포팅하지 않았다고 명시하며 future work로 남긴다 — HLS를 썼음에도 벤더 이식성은 자동으로 보장되지 않음.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, footnote 3, p.969</span></summary>
+<div class="ng-orig-text">Though we have not ported FpgaNIC onto Intel FPGA boards yet, we believe that it requires only a small amount of effort to do so. We leave this porting to future work.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_031" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Multi-tenant / 성능 격리는 future work</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">§2.5.2에서 Coyote의 vFPGA로 여러 테넌트를 partial reconfiguration region으로 격리하는 아이디어를 제시하지만 미구현. §5에서는 U50의 2채널 독립 HBM(채널당 13.6GB/s)이 자연스러운 메모리 대역폭 격리를 제공한다고 주장하나, 이는 컴퓨팅 스케줄링·보안 격리와는 다른 차원의 격리다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.978</span></summary>
+<div class="ng-orig-text">U50 features 2-channel HBMs with 32 independent memory channels, each of which provides up to 13.6GB/s of memory throughput. This guarantees that each offloaded compute task is able to gain exclusive control over the assigned memory channels.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_032" style="--color:#95A5A6;border-radius:22px;left:620px;top:1750px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">H3 가설과의 연결: BaM과 나란한 두 번째 선례</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">내 H3 가설의 실현 가능성 조사 관점에서, FpgaNIC은 GPU가 스토리지를 직접 제어하는 BaM(GPU-Initiated On-Demand High-Throughput Storage Access, ASPLOS 2023)과 대칭점에 있는 선례다: BaM은 'GPU에서 스토리지로' 직접 제어, FpgaNIC은 'FPGA에서 GPU 메모리로' 직접 접근 + 'GPU에서 FPGA로' 직접 트리거. 두 논문 모두 CPU를 우회한 디바이스 간 직접 상호작용이 상용 하드웨어(NVMe SSD / Xilinx Alveo FPGA)로 이미 실현 가능함을 보여준다는 점에서 H3의 실현 경로에 신뢰를 더하는 근거가 된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">본인 종합 (cross-paper synthesis, not a direct quote)</span></summary>
+<div class="ng-orig-text"></div></details></div>
+</div>
+<div class="ng-node" id="node-node_033" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1900px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">스코프 차이를 잊지 말 것: 네트워킹 vs 로컬 제어 평면</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">이 논문을 인용할 때 반드시 '원격 GPU-to-GPU 네트워킹'이라는 스코프를 명시해야 한다. FpgaNIC의 스마트 기능은 전부 네트워크 데이터 흐름(AllReduce 리덕션, HLL cardinality, GCN 소켓 통신) 위에서 동작하며, GPU 커널의 launch/scheduling을 FPGA가 결정하는 사례는 전혀 없다. 과장해서 'FpgaNIC이 이미 GPU 제어 평면을 구현했다'고 말하면 부정확 — 정확히는 'FpgaNIC이 그 제어 평면을 만들기 위한 배관(PCIe P2P, doorbell, HLS)을 실증했다'가 맞는 표현이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">본인 종합</span></summary>
+<div class="ng-orig-text"></div></details></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":400,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"killer application **gpu-centric smartnic 최초 구현**: 기존 smartnic은 산업계 전부(broadcom, pensando, netronome, intel ipu)가 cpu-centric인데, fpganic은 gpu가 smartnic을 cpu 개입 없이 직접 제어하는 최초의 100gbps fpga 기반 smartnic이다.\n\n**양방향 cpu-우회 통신**: (1) gpu가 fpga의 doorbell/status 레지스터를 cuda 커널 내부에서 직접 트리거·폴링(control plane, g1), (2) fpga가 gpu 가상주소(virtual address)로 gpu 메모리에 직접 pcie p2p dma를 수행(data plane, g2). 이 두 방향을 모두 cpu 없이 구현한 것은 이 논문이 최초라고 주장한다.\n\n**하드웨어로 완전히 구현된 100gbps 신뢰성 네트워크 트랜스포트(g3)**: 소프트웨어 스택이 감당하지 못하는 line-rate 처리를 fpga 하드웨어 tcp 스택으로 해결.\n\n**hls로 프로그램 가능한 데이터패스 가속기(g4, g5)**: on-nic computing(onc) 모듈을 c++ 기반 hls(high level synthesis)로 작성 가능하게 하여, direct/on-path/off-path 세 smartnic 모델을 단일 아키텍처로 모두 지원.\n\n**실증된 성능**: 8-gpu 분산 allreduce에서 nccl 대비 최대 2.5배 속도 향상을, gpu/cpu 컴퓨팅 사이클을 전혀 소모하지 않으면서 달성. in this paper, we present the design of a 100gb gpu-centric smartnic to serve distributed applications running on gpus."},{"id":"node_002","lx":100,"ly":700,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":700,"searchText":"필요한 이유 (why) **멀티코어 smartnic의 한계**: bluefield-2 같은 임베디드 arm 코어는 control-plane 관리에는 적합하지만, 100gbps 데이터 스트림을 line-rate로 처리(data-path accelerator, g4)하기엔 메모리 대역폭이 부족하다(실측 27.3gb/s, §1 p.968).\n\n**fpga-증강 smartnic의 한계**: mellanox innova-2는 fpga가 nic asic에 pcie gen4 x8로 연결되어 있어, 패킷이 fpga를 거치는 순간 상당한 지연이 추가되고 line-rate 처리가 불가능하다. gpu 가상주소 접근(c1)도 지원하지 않는다.\n\n**cpu 기반 네트워크 트랜스포트의 한계**: 100gbps 신뢰성 네트워크 트랜스포트를 cpu 소프트웨어로 구현하면 여러 cpu 코어를 소모하고, gpu가 네트워크 오퍼레이션을 개시할 때마다 cpu를 거쳐야 해 지연이 늘어난다(c2).\n\n**gpu 가상주소 문제(c1)**: gpu 프로그램은 가상주소를 다루는데 dma 엔진은 물리주소만 인식한다. gpu의 64kb 페이지 크기 때문에 32gb 메모리는 순진하게 구현 시 512k tlb 엔트리가 필요해 fpga 온칩 메모리로 감당하지 못한다.\n\n**프로그래밍 인터페이스 문제(c3)**: fpga 전통적 프로그래밍은 hdl(cycle-sensitive)이라 시스템 프로그래머 접근성이 낮다.\n\n**smartnic 모델 다양성 문제(c4)**: 스마트 기능의 위치(direct/on-path/off-path)에 따라 적합한 모델이 다른데, 기존 smartnic은 특정 모델 하나에 고정되어 있다. how to enable the gpu to efficiently manipulate the reliable hardware transport on the fpga becomes a new challenge."},{"id":"node_003","lx":100,"ly":1000,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1000,"searchText":"해결책 (solution) **3계층 아키텍처**: gpu communication stack(제어/데이터 평면 오프로드) + 100gbps hardware network transport(신뢰성 tcp) + on-nic computing(onc, hls 데이터패스 가속기)을 하나의 fpga(xilinx alveo u50/u280)에 계층적으로 결합(figure 1).\n\n**gtlb (gpu translation lookaside buffer)**: main tlb(2mb 페이지, 물리적으로 연속인 경우) + complementary tlb(64kb 페이지, 비연속인 경우)로 구성. gpu 커널 함수 nvidia_p2p_put_pages로 얻은 주소 쌍을 순회하며 최대한 2mb 페이지로 병합, 완전 파이프라인된 온라인 주소 변환을 fpga 온칩 메모리(bram)에서 수행.\n\n**decoupled application interface**: 원래의 tcp 스택은 handshake(10~30 사이클)와 payload transfer가 직렬화되어 대역폭 손실이 컸는데, fpganic은 둘을 오버랩시켜 최대 4gb 스트림을 자동 chunking.\n\n**direct / on-path / off-path 세 모델**: (1) direct — gpu가 네트워크 트랜스포트를 직접 조작(gcn 예시), (2) on-path — 패킷 흐름 위에서 즉시 처리(hyperloglog 예시), (3) off-path — 별도 엔진이 데이터 흐름을 오케스트레이션(allreduce 예시).\n\n[[img:fig1_architecture.png:520x444]] fpganic enables offloading of control plane onto gpus (via a slave interface) and offloading of the data plane onto the fpga (via a master interface), such that the host cpu is bypassed."},{"id":"node_004","lx":100,"ly":1300,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1300,"searchText":"결과 (results) **공유 인프라 벤치마크**: 제어 평면 지연(gpu에서 fpga)은 1$\\mu$s 미만, pcie p2p dma read to a100 gpu는 12.6gb/s(pcie 이론 대역폭에 근접). 하드웨어 tcp 스택 rtt는 마이크로초 단위(3.1~7$\\mu$s), 처리량은 큰 패킷에서 94.4gbps(100gbps 채널에 근접).\n\n**direct 모델**: 제어 평면 오프로드가 있을 때 작은 chunk/transfer size에서 처리량이 유의미하게 향상(cuda 커널 invocation 오버헤드 제거).\n\n**off-path 모델(allreduce)**: 8-gpu 분산 풀에서 nccl 대비 최대 2.5배 speedup(소데이터), 8mb 이상에서 이론적 bus bandwidth 도달, gpu/cpu 사이클 소모 없음.\n\n**on-path 모델(hyperloglog)**: 오프로딩해도 전체 처리량에 영향 없이 최소 8개 a100 gpu sm 절약.\n\n**리소스 사용**: gpu 통신 스택 + 100g hw 트랜스포트가 u50 fpga 자원의 약 20%만 사용, 나머지 80% 이상이 onc(온-nic 컴퓨팅)에 할당 가능. fpganic leads to up to a 2.5x speedup over nccl, because the allreduce engine in fpganic efficiently overlaps the operations of the pcie dma, network transport, and fpga memory."},{"id":"node_005","lx":100,"ly":1600,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1600,"searchText":"결론 (conclusion) fpganic은 gpu 클러스터를 위한 최초의 fpga 기반 gpu-centric 100gbps smartnic으로, direct/off-path/on-path 세 모델을 하나의 아키텍처로 지원하며 오픈소스로 공개되었다(github: rc4ml/fpganic). 저자들은 이를 발판으로 (1) deep learning 분산학습에서 통신(allreduce) + 컴퓨팅(compressor, adam optimizer)을 함께 오프로드하는 연구, (2) intel fpga 포팅, (3) opencl 성능 분석 프레임워크를 통한 완전 자동화된 오프로드 식별을 미래 방향으로 제시한다.\n\n내 연구 방향에서 이 논문의 위치는 명확하다 — **네트워킹(원격 gpu-to-gpu)을 위한 fpga-gpu p2p 메커니즘의 실증**이며, h3(로컬 gpu 제어 평면)이 요구하는 세 가지 필요조건(pcie endpoint + bus mastering, 같은 pcie 스위치 아래 p2p, 성숙한 스택인 hls)이 실제 상용 fpga 보드 위에서 모두 충족 가능함을 보여주는 구체적 증거다. 다만 fpga가 gpu의 실행(커널 스케줄링/launch)을 지시하는 사례는 아니며, 그 지점은 여전히 미탐색 공간으로 남아 있다. inspired by the fact that there is no smartnic designed for gpus, we present fpganic, a full-stack fpga-based gpu-centric 100gbps smartnic that allows a large design space exploration around smartnics for accelerating applications running on distributed gpus."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"5대 설계 목표 (g1-g5) | 목표 | 내용 |\n|---|---|\n| g1 | gpu가 doorbell/status 레지스터를 cpu 없이 직접 트리거·폴링 |\n| g2 | gpu 가상주소로 pcie p2p gpu 메모리 접근 (cpu 없이) |\n| g3 | 하드웨어로 완전한 네트워크 스택 구현 (저지연·고처리량) |\n| g4 | 응용 로직을 소프트웨어 정의·하드웨어 가속 data-path accelerator로 오프로드 (line-rate on-nic computing) |\n| g5 | data-path accelerator를 시스템 프로그래머가 쉽게 프로그램 가능해야 함 | "},{"id":"node_007","lx":620,"ly":250,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":250,"searchText":"table 1: smartnic 유형별 비교 | 목표 | multicore smartnic | fpga-aug smartnic | fpganic |\n|---|---|---|---|\n| control plane offload (g1) | 미지원 | 미지원 | 지원 |\n| access gpu with virtual address (g2) | 지원 | 미지원 | 지원 |\n| 100gb transport offload (g3) | 미지원 | 부분 지원 | 지원 |\n| 100gb data-path accelerator (g4) | 미지원 | 부분 지원 | 지원 |\n| high programmability (g5) | 지원 | 미지원 | 지원 |\n\n(원문 table 1, p.968) "},{"id":"node_008","lx":620,"ly":400,"children":[],"template":"reference","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":400,"searchText":"기존 smartnic의 한계: bluefield-2, innova-2 bluefield-2(멀티코어, arm 임베디드 cpu)의 achievable memory bandwidth는 27.3gb/s로 100gbps 스트림 처리에 부족. mellanox innova-2(fpga-증강)는 fpga가 nic asic(connectx-5)에 pcie gen4x8로 종속되어, gpu 또는 네트워크 중 한쪽만 동시에 소비 가능 — allreduce 처리량이 반토막될 것으로 저자들이 추정(appendix a.2.2, p.985). "},{"id":"node_009","lx":620,"ly":550,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":550,"searchText":"왜 산업계 smartnic은 전부 cpu-centric인가? table 7(p.977)에 따르면 broadcom stingray, pensando dsc-25, netronome nfp4000, intel ipu 모두 cpu-centric이고 gpu-centric은 없다. 저자들은 이를 '시장에 gpu를 위한 smartnic이 없다'는 gap으로 명시(§6). 상용 nic asic 벤더가 gpu 워크로드를 1급 시민으로 다루지 않는 이유는 무엇일까 — ai/hpc 클러스터의 성장 속도에 비해 nic 설계 주기가 느린 구조적 문제일 가능성. inspired by the fact that there is no smartnic designed for gpus"},{"id":"node_010","lx":620,"ly":700,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":700,"searchText":"용어: on-nic computing = data-path accelerator 논문 각주1(p.968)에서 'on-nic computing module'과 'data-path accelerator'를 상호 교환적으로 사용한다고 명시. 이 용어 통일을 몰랐다면 §2.5/onc과 §1의 g4가 다른 개념인 것으로 오해하기 쉽다. in the paper, we use on-nic computing module and data-path accelerator interchangeably."},{"id":"node_011","lx":620,"ly":400,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"c1: 512k -> 18k 엔트리로 압축 32gb gpu 메모리, 64kb 페이지 -> naive하게 저장 시 512k tlb 엔트리 필요. fpganic은 64kb 페이지들이 물리적으로 연속(2mb 정렬)인 경우가 많다는 관찰을 이용해, 연속 64kb 페이지 32개를 2mb 페이지로 병합한다.\n\n$$16k + 2k = 18k \\text{ entries} \\quad (\\text{vs. } 512k \\text{ naive})$$ the total number of required entries for 32gb memory becomes 16k+2k=18k, significantly smaller than the previous 512k entries."},{"id":"node_012","lx":620,"ly":550,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":550,"searchText":"멀티코어 smartnic 실측 병목: bluefield-2 bluefield-2의 achievable memory bandwidth는 sysbench로 측정 시 27.3gb/s(§1, p.968, ref[1]) — 100gbps(약 12.5gb/s) 데이터 스트림을 nic의 임베디드 cpu에 올리는 것만으로도 이미 과부하 수준. [40]의 측정 결과와도 일치. bluefield-2 has 27.3gb/s achievable memory bandwidth under a benchmarking tool sysbench, indicating that directly staging 100gbps data stream at the nic cpu already overwhelms bluefield-2."},{"id":"node_013","lx":620,"ly":700,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":700,"searchText":"c2: gpu는 원래 신뢰성 네트워크용이 아니다 gpu는 대규모 병렬성을 위해 설계되었는데, 신뢰성 네트워크(retransmission 등 복잡한 flow control)는 병렬성을 저해한다(§2.1, p.969, ref[28,43]). cpu 기반 트랜스포트는 여러 코어를 소모하고 gpu발 오퍼레이션마다 cpu 개입이 필요해 지연이 늘어난다. gpus are not originally designed for reliable network transport since reliable networking reduces the degree of parallelism and requires a complex flow control, e.g., retransmission."},{"id":"node_014","lx":620,"ly":850,"children":[],"template":"reference","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":850,"searchText":"innova-2의 구조적 한계 mellanox innova-2는 fpga가 connectx-5 nic asic에 pcie gen4x8 인터페이스로 연결된다. 패킷이 fpga에서 처리될 때 이미 상당한 지연이 붙어 line-rate가 불가능(g4 부분 지원에 그침). appendix a.2.2(p.985)에서 저자들은 동일한 allreduce를 innova에서 구현하면 처리량이 반토막날 것이라 추정한다. in such a design, the fpga can consume data either from the gpu or from the network but not from both at the same time. we estimate that the overall throughput would be halved."},{"id":"node_015","lx":620,"ly":1000,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1000,"searchText":"off-path 멀티코어 cpu도 여전히 병목이 될 수 있다 off-path 모델에서 멀티코어 cpu(2-channel ddr4)를 staging에 쓸 수 있지만, 멀티코어 cpu의 메모리 대역폭이 100gb 트래픽 처리 시 쉽게 병목이 된다(§2.1, p.969, ref[40]). 즉 off-path라고 cpu를 쓰면 여전히 병목 — fpganic은 off-path도 fpga 내부(온보드 메모리)로 구현해 이 문제를 회피한다. multicore cpu's memory bandwidth can easily become a performance bottleneck when processing 100gb network traffic using the multicore cpu."},{"id":"node_016","lx":620,"ly":550,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":550,"searchText":"system architecture (figure 1) fpganic의 전체 아키텍처. gpu가 control plane(gpu에서 fpga로)으로 doorbell을 트리거하면, fpga는 data plane(fpga에서 gpu로)으로 pcie master interface를 통해 gtlb로 가상주소를 변환한 뒤 dma를 수행한다. on-nic computing이 hbm/ddr4와 network transport 사이에 위치해 데이터패스를 가속한다.\n\n[[img:fig1_architecture.png:520x444]] figure 1: system architecture of fpganic, which enables control/data plane offloading and reliable network transport offloading, and enables on-nic computing module to process data from network at line rate."},{"id":"node_017","lx":620,"ly":700,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":700,"searchText":"gtlb 주소 변환 알고리즘 algorithm 1 (populating gtlb, p.971): (1) gpumemalloc으로 gpu 메모리 공간을 미리 할당, (2) nvidia_p2p_put_pages로 모든 64kb 페이지의 va/pa 쌍을 획득, (3) 물리적으로 연속인 64kb 페이지 32개를 2mb 페이지로 최대한 병합, (4) main tlb(2mb 단위)와 complementary tlb(64kb 단위, 비연속인 경우)를 채운다.\n\n$$\\text{index} \\leftarrow 0, \\quad \\text{comp} \\leftarrow 0$$\n\n물리적으로 연속인 2mb 페어는 main tlb에 저장(valid=1)하고, 비연속인 경우 complementary tlb에 32개의 64kb 서브페이지를 저장한 뒤 main tlb에는 comp_offset만 기록한다. 조회 시 main tlb를 먼저 확인하고, 비연속이면 comp_offset으로 complementary tlb를 참조 — 완전 파이프라인(fully-pipelined) 조회가 가능하다. fpganic can easily achieve fully-pipelined translation lookup on the fpga."},{"id":"node_018","lx":620,"ly":850,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":850,"searchText":"decoupled application interface 원래 인터페이스: control handshake(10~30 사이클) 후 payload(최대 1460b, 10~23 사이클) — handshake 오버헤드가 payload 전송시간과 맞먹어 대역폭 낭비가 컸다. fpganic의 decoupled interface는 handshake를 payload transfer와 오버랩시키고, 최대 4gb 데이터 스트림을 프로그래머 개입 없이 자동으로 올바른 크기 청크로 분할한다(§2.4.1, p.971). the proposed decoupled interface gets rid of the handshake, overlapping the control handshakes with the data transfer."},{"id":"node_019","lx":620,"ly":1000,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1000,"searchText":"gcn (direct model) 아키텍처 - figure 11 direct 모델의 예시인 gpu-centric networking(gcn): 3계층(gpu user / gpu kernel / fpganic)으로 구성되며, 송신측은 send buffer(circular buffer)에서 dma read and forward, 수신측은 100gb hw transport에서 receive buffer로 add header and dma write. credit-based flow control로 신뢰성을 보장한다.\n\n$$m = \\frac{100}{n}\\text{mb (연결당 버퍼 크기)}, \\quad w = \\frac{m}{f}\\text{mb (슬롯 크기)}$$\n\n수신자가 누적 수신량 $m_r$이 임계값 $th$를 넘으면 $th \\times m$ 바이트의 credit을 doorbell로 송신자에 반환한다.\n\n[[img:fig11_gcn.png:600x479]] reliable communication (goal d1) is achieved through a simple credit-based flow control over each tcp connection."},{"id":"node_020","lx":620,"ly":1150,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1150,"searchText":"세 smartnic 모델의 응용 매핑 direct — gpu가 네트워크 트랜스포트를 직접 조작(예: gcn, 소켓형 api로 원격 gpu와 통신). on-path — 패킷이 네트워크에서 gpu로 흐르는 도중 op_in/op_out/op_return 포트로 즉시 처리(예: hyperloglog로 cardinality를 line-rate로 계산). off-path — 별도 엔진이 pcie dma/네트워크/온보드 메모리 세 리소스를 오케스트레이션(예: allreduce 8-step 링 알고리즘). 다른 스마트 기능은 다른 smartnic 모델을 선호한다 — 예: 데이터베이스 필터 연산은 on-path, allreduce는 off-path가 유리. different smart functions favor different smartnic models. for example, an on-path approach is preferred when offloading database's filter operator while allreduce is better mapped to off-path smartnics."},{"id":"node_021","lx":620,"ly":1300,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1300,"searchText":"왜 hls(c3)를 택했는가 hls(c++)는 시스템 프로그래머의 접근성을 높이지만(g5), 하드웨어 효율은 손수 작성한 hdl보다 낮을 수 있다. 논문은 axi-stream 타입을 인터페이스의 핵심으로 삼아 hdl과의 호환성도 유지한다고 언급한다(§5, p.978). hls로 인한 성능 손실을 정량화한 수치는 논문에 없음 — 이것이 이 논문이 다루지 않은 gap. fpganic's interface mainly leverages the stream type in hls, i.e., axi stream in hdl, for better compatibility."},{"id":"node_022","lx":620,"ly":1450,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1450,"searchText":"multi-tenant 지원은 future work §2.5.2(p.973)에서 coyote[32]의 vfpga(virtual fpga) 개념을 언급하며, 여러 테넌트가 각자의 partial reconfiguration region으로 안전하게 시공간 다중화될 수 있다고 제안하지만 실제 구현·평가는 하지 않고 future work로 남긴다. 즉 지금의 fpganic은 single-tenant 가정 위에서만 검증되었다. we leave this as future work."},{"id":"node_023","lx":620,"ly":925,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":925,"searchText":"제어 평면 지연 및 pcie p2p 처리량 | 측정 | 값 |\n|---|---|\n| gpu에서 fpga 제어 지연 | 1$\\mu$s 미만 (r8k/a100 유사) |\n| cpu에서 fpga 제어 지연 | 더 크고 변동폭도 큼 (figure 3) |\n| dma read to a100 gpu | 12.6gb/s (pcie 이론 대역폭 근접) |\n| pcie p2p bandwidth (quadro) | 10.6gb/s |\n| pcie p2p bandwidth (tesla) | 12.6gb/s |\n\n(§3.2.1, p.974; appendix d4, p.982) the latency of interactions between the gpu and the fpga is comparable to that of the cpu calling the fpga and it is under 1 microsecond."},{"id":"node_024","lx":620,"ly":1075,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1075,"searchText":"tcp 하드웨어 스택: rtt와 처리량 | 메시지 크기 | rtt |\n|---|---|\n| 64b | 3.1$\\mu$s |\n| 1kb | 3.5$\\mu$s |\n| 32kb | 7$\\mu$s |\n\n처리량: 1408b payload, 1000 connections에서 94.4gbps 달성(100gbps 채널 용량에 근접). 연결 수(1~1000)는 동일 패킷 크기에서 처리량에 영향이 없음 — multi-connection 지원 효율을 입증(§3.2.2, figure 5, p.975). the most striking result is that the tcp latency is in microseconds, instead of milliseconds, demonstrating the advantages of offloading to a smartnic instead of using the cpu for communication."},{"id":"node_025","lx":620,"ly":1225,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1225,"searchText":"allreduce: nccl 대비 2.5배 speedup bus bandwidth 지표로 측정:\n\n$$\\text{bus bandwidth} = \\text{algorithm bandwidth} \\times \\frac{2(n-1)}{n}$$\n\n8-노드 클러스터에서 fpganic이 최대 2.5배 speedup(데이터 크기 1mb 미만일 때, 빠른 state transition 덕분). 8mb 이상에서는 이론적 bus bandwidth에 도달(fpganic이 pcie dma/네트워크/fpga 메모리 자원을 모두 활용). nccl은 노드 수 증가에 따라 상당한 cpu/gpu 컴퓨팅 사이클이 필요한 반면 fpganic은 불필요(§3.4, p.975-976). fpganic leads to up to a 2.5x speedup over nccl, because the allreduce engine in fpganic efficiently overlaps the operations of the pcie dma, network transport, and fpga memory."},{"id":"node_026","lx":620,"ly":1375,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1375,"searchText":"hyperloglog on-path: sm 8개 절약 | block size | 필요 a100 sm 수 (오프로딩 없이) |\n|---|---|\n| 128k 이하 | 256 초과 |\n| 256k | 8 |\n| 512k | 8 |\n| 1024k | 8 |\n\nfpganic-enhanced hll은 write-only baseline과 거의 동일한 처리량(64b~1408b 패킷 전 구간)을 달성하면서 최소 8개 a100 sm을 절약 — '와이어 위의 혹(bump in the wire)'으로 작동함을 실증(§3.5, p.976). fpganic-enhanced hll does not require any gpu compute power, e.g., at least 8 a100 sms, which can be used in other computing task."},{"id":"node_027","lx":620,"ly":1525,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1525,"searchText":"fpga 자원 사용량 (table 2) u50 fpga(871k lut, 1743k reg, 232.4mb ram, 9024 dsp) 기준:\n\n- gpu commu. stack: 79k lut, 103k reg, 5.2mb ram\n- 100g hw transport: 101.3k lut, 166.5k reg, 23.4mb ram\n\n합계 약 20% 미만의 fpga 자원만 공유 인프라(네트워크+gpu 통신)에 소모되고, 나머지 80% 이상은 onc(응용별 데이터패스 가속기)에 활용 가능하다(§5, p.978). the majority of the fpga resources can be dedicated to on-nic computing for smartnic functionality."},{"id":"node_028","lx":620,"ly":1675,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1675,"searchText":"speedup이 데이터 크기와 노드 수에 따라 달라지는 이유 figure 7(p.976)에서 speedup은 데이터 크기가 작을 때(1mb 미만) 최대(2.5배)이고, 데이터가 커질수록(8mb 이상) nccl과 fpganic 모두 이론적 bus bandwidth에 수렴해 speedup이 줄어든다. 즉 fpganic의 이점은 고정 오버헤드(state transition, cuda 커널 개입 등)를 제거하는 데서 오며, 순수 대역폭이 병목인 대용량 전송에서는 이점이 줄어든다 — 이는 h3처럼 결정/스케줄링 오버헤드 제거가 목표인 시스템에서도 소규모·빈번한 오퍼레이션에서 이득이 극대화되는 비슷한 패턴이 나타날 가능성을 시사한다. when data size is small (<1mb), the speedup is up to 2.5x, due to the faster transition between states in fpganic (table 8) compared when the same operation being implemented on gpus."},{"id":"node_029","lx":620,"ly":1300,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1300,"searchText":"오픈소스 공개 - 재현 가능성 github: https://github.com/rc4ml/fpganic. artifact evaluated(available + functional) 배지를 획득(표지, p.967). §7 artifact에 하드웨어 비트스트림 생성, 드라이버 설치, 실험 재현을 위한 3단계 절차와 체크리스트(hugepages 설정, xdma/gdr 드라이버 등)를 상세히 기록. fpganic is open-source to encourage further development and research in gpu-centric applications (github: https://github.com/rc4ml/fpganic)."},{"id":"node_030","lx":620,"ly":1450,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1450,"searchText":"intel fpga 포팅 미해결 현재 구현은 전부 xilinx(alveo u50/u280, vivado 2020.1)에 종속. 각주3(p.969)에서 intel fpga 보드로는 아직 포팅하지 않았다고 명시하며 future work로 남긴다 — hls를 썼음에도 벤더 이식성은 자동으로 보장되지 않음. though we have not ported fpganic onto intel fpga boards yet, we believe that it requires only a small amount of effort to do so. we leave this porting to future work."},{"id":"node_031","lx":620,"ly":1600,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1600,"searchText":"multi-tenant / 성능 격리는 future work §2.5.2에서 coyote의 vfpga로 여러 테넌트를 partial reconfiguration region으로 격리하는 아이디어를 제시하지만 미구현. §5에서는 u50의 2채널 독립 hbm(채널당 13.6gb/s)이 자연스러운 메모리 대역폭 격리를 제공한다고 주장하나, 이는 컴퓨팅 스케줄링·보안 격리와는 다른 차원의 격리다. u50 features 2-channel hbms with 32 independent memory channels, each of which provides up to 13.6gb/s of memory throughput. this guarantees that each offloaded compute task is able to gain exclusive control over the assigned memory channels."},{"id":"node_032","lx":620,"ly":1750,"children":[],"template":"reference","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1750,"searchText":"h3 가설과의 연결: bam과 나란한 두 번째 선례 내 h3 가설의 실현 가능성 조사 관점에서, fpganic은 gpu가 스토리지를 직접 제어하는 bam(gpu-initiated on-demand high-throughput storage access, asplos 2023)과 대칭점에 있는 선례다: bam은 'gpu에서 스토리지로' 직접 제어, fpganic은 'fpga에서 gpu 메모리로' 직접 접근 + 'gpu에서 fpga로' 직접 트리거. 두 논문 모두 cpu를 우회한 디바이스 간 직접 상호작용이 상용 하드웨어(nvme ssd / xilinx alveo fpga)로 이미 실현 가능함을 보여준다는 점에서 h3의 실현 경로에 신뢰를 더하는 근거가 된다. "},{"id":"node_033","lx":620,"ly":1900,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1900,"searchText":"스코프 차이를 잊지 말 것: 네트워킹 vs 로컬 제어 평면 이 논문을 인용할 때 반드시 '원격 gpu-to-gpu 네트워킹'이라는 스코프를 명시해야 한다. fpganic의 스마트 기능은 전부 네트워크 데이터 흐름(allreduce 리덕션, hll cardinality, gcn 소켓 통신) 위에서 동작하며, gpu 커널의 launch/scheduling을 fpga가 결정하는 사례는 전혀 없다. 과장해서 'fpganic이 이미 gpu 제어 평면을 구현했다'고 말하면 부정확 — 정확히는 'fpganic이 그 제어 평면을 만들기 위한 배관(pcie p2p, doorbell, hls)을 실증했다'가 맞는 표현이다. "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":""},{"source":"node_001","target":"node_007","type":"line","label":""},{"source":"node_001","target":"node_008","type":"line","label":""},{"source":"node_001","target":"node_009","type":"line","label":""},{"source":"node_001","target":"node_010","type":"line","label":""},{"source":"node_002","target":"node_011","type":"line","label":""},{"source":"node_002","target":"node_012","type":"line","label":""},{"source":"node_002","target":"node_013","type":"line","label":""},{"source":"node_002","target":"node_014","type":"line","label":""},{"source":"node_002","target":"node_015","type":"line","label":""},{"source":"node_003","target":"node_016","type":"line","label":""},{"source":"node_003","target":"node_017","type":"line","label":""},{"source":"node_003","target":"node_018","type":"line","label":""},{"source":"node_003","target":"node_019","type":"line","label":""},{"source":"node_003","target":"node_020","type":"line","label":""},{"source":"node_003","target":"node_021","type":"line","label":""},{"source":"node_003","target":"node_022","type":"line","label":""},{"source":"node_004","target":"node_023","type":"line","label":""},{"source":"node_004","target":"node_024","type":"line","label":""},{"source":"node_004","target":"node_025","type":"line","label":""},{"source":"node_004","target":"node_026","type":"line","label":""},{"source":"node_004","target":"node_027","type":"line","label":""},{"source":"node_004","target":"node_028","type":"line","label":""},{"source":"node_005","target":"node_029","type":"line","label":""},{"source":"node_005","target":"node_030","type":"line","label":""},{"source":"node_005","target":"node_031","type":"line","label":""},{"source":"node_005","target":"node_032","type":"line","label":""},{"source":"node_005","target":"node_033","type":"line","label":""}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

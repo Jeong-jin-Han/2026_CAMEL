@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
   "created": "2026-07-13T00:37:43.000Z",
-  "modified": "2026-07-13T00:37:43.000Z",
+  "modified": "2026-07-13T07:00:00.000Z",
   "source": {
     "pdf": "DistServe - Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving.pdf",
     "authors": "Yinmin Zhong, Shengyu Liu, Jianbo Hu, Xuanzhe Liu, Xin Jin (Peking University), Junda Chen, Hao Zhang (UC San Diego), Yibo Zhu (StepFun)",
@@ -332,6 +332,74 @@
       "position": { "x": 850, "y": 1200 },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "memo",
+      "title": "TTFT/TPOT의 정의와 왜 하필 P90인가",
+      "content": "**TTFT (Time To First Token)** = prefill 단계 전체의 소요 시간 — 요청이 들어온 시점부터 첫 번째 출력 토큰이 나올 때까지.\n**TPOT (Time Per Output Token)** = decode 단계에서 토큰 하나(첫 토큰 제외)를 생성하는 데 걸리는 평균 시간.\n\n**P90 = 90번째 백분위수(percentile)**. 'P90 TTFT가 0.4초'라는 말은 '전체 요청의 90%가 0.4초 이하로 첫 토큰을 받았다(나머지 10%는 그보다 늦었다)'는 뜻이다.\n\n**왜 하필 90인가**: 임의로 고른 숫자가 아니라, 이 논문이 스스로 정의한 서빙 품질 목표('SLO attainment goal (say, 90%)', §2.2) — 즉 '요청의 90% 이상이 SLA(latency 임계값)를 만족해야 한다'는 목표와 정확히 대응한다. 'P90 latency가 SLA 임계값 이하'라는 조건은 정의상 '요청의 90%가 SLA를 만족한다'는 것과 동치이기 때문에, 이 90% 목표를 검증하는 지표로 P90을 쓰는 것이다. 목표가 95%였다면 P95를, 99%였다면 P99를 썼을 것 — **percentile 숫자 = SLO attainment 목표 %**라는 대응관계가 핵심이다.\n\n**Figure 1에서의 쓰임**: 그래프의 가로 점선이 SLA 임계값(TTFT 약 0.4초, TPOT 약 0.04초), 세로 점선이 각 곡선이 그 임계값을 막 넘어서는 지점의 요청률(rps)이다. 이 '넘기 직전까지의 최대 rps'가 이 논문의 핵심 지표인 **goodput**(SLO를 지키면서 서빙 가능한 최대 요청률)의 정의 그 자체다.",
+      "original": {
+        "text": "an effective LLM serving system should balance these needs and maximize per-GPU goodput, defined as the maximum request rate that can be served adhering to the SLO attainment goal (say, 90%) for each GPU provisioned",
+        "location": "§1, p.194"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": -100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "method",
+      "title": "그래프가 수직으로 치솟는 이유 — 큐잉 이론의 점근선(asymptote)",
+      "content": "Figure 1의 세 곡선(existing systems/prefill-only/decode-only) 모두 낮은 rps에서는 완만하다가, 특정 rps 근처에서 거의 수직으로 치솟는다 — 그래프를 잘못 그린 게 아니라 **큐잉 이론(queueing theory)의 근본적인 성질**이다.\n\n'M/D/1 큐 모델로 TTFT 정량화' 노드의 수식을 다시 보면:\n\n$$Avg\\_TTFT = D + \\frac{RD^2}{2(1-RD)}$$\n\n도착률 $R$이 GPU가 감당할 수 있는 최대 처리량 $1/D$에 가까워질수록 $RD$는 1에 가까워지고, 분모 $(1-RD)$는 0에 가까워지면서 큐잉 지연 항 전체가 **무한대로 발산**한다.\n\n즉 그래프가 수직으로 다가가는 그 rps 값은 임의의 지점이 아니라, **해당 GPU/구성이 감당할 수 있는 이론적 최대 처리량(saturation point)**이다. 그 지점을 넘기면 도착 속도가 처리 속도를 앞질러 큐가 무한히 쌓이고, 그 직전부터 이미 지연이 폭발적으로 증가한다.\n\n**실무적 함의**: 서빙 시스템은 이론적 최대 처리량보다 한참 아래에서 운영해야 한다 — 점근선에 가까울수록 부하가 조금만 늘어도 지연이 폭발하기 때문. 이게 바로 이 논문이 단순 throughput이 아니라 **goodput**(P90 SLO를 지키는 선까지의 처리량)을 핵심 지표로 삼는 이유다: 점근선 직전까지 밀어붙인 raw throughput 숫자는 실제로는 대부분의 요청이 이미 SLO를 어기고 있는 상태일 수 있다.\n\n**Colocation이 점근선을 앞당기는 이유**: prefill-decoding 간섭 때문에 같이 배치하면 각 단계의 실효 서비스 시간 $D$가 늘어난다. $D$가 커지면 최대 처리량 $1/D$는 작아지므로, 포화 지점(점근선) 자체가 더 낮은 rps에서 나타난다 — Figure 1에서 existing systems 곡선이 prefill-only/decode-only보다 훨씬 낮은 rps(1.6)에서 이미 치솟는 게 바로 이 효과다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "memo",
+      "title": "왜 Percentile인가 — 그리고 그걸 만들려면 벤치마크가 필요하다",
+      "content": "**Percentile을 쓸 수밖에 없는 이유**: TTFT/TPOT는 요청마다 고정된 값이 아니라, 그 순간 큐에 몇 개가 밀려있는지·배치 구성이 어떤지에 따라 달라지는 **확률변수**다. 평균(mean)은 오해를 부르기 쉽다 — 큐잉 시스템의 지연 분포는 보통 오른쪽으로 길게 늘어진 모양(대부분은 빠르고 일부만 아주 느림)이라, 평균만 보면 그 '느린 일부'가 묻힌다. 그래서 percentile(특히 tail 쪽)로 '사용자 경험이 나쁜 쪽 몇 %가 어느 정도인지'를 직접 보는 게 시스템/네트워킹 분야의 표준이다.\n\n**Percentile을 내려면 요청이 많이 필요하고, 그 요청들을 만드는 방식(벤치마크)이 결과를 좌우한다.** §6.1에서 저자들이 실제로 쓴 방법:\n\n- **길이 분포**: 실제 데이터셋(chatbot=ShareGPT, code completion=HumanEval, summarization=LongBench)에서 프롬프트·출력 길이 분포를 그대로 사용(Figure 7)\n- **도착 시각**: 데이터셋엔 타임스탬프가 없어서 **Poisson distribution으로 요청 도착 시각을 합성** — 이게 M/D/1 큐 모델(§3.1)의 'M'(Markovian/Poisson arrival) 가정과 정확히 대응한다\n- **SLO 임계값**: 해당 애플리케이션들에 대한 기존 SLO 기준이 없어서 저자들이 직접 경험적으로 설정(Table 1)\n\n즉 'rps=X에서의 P90 TTFT'라는 숫자 하나는 'Poisson(rate=X)으로 도착시킨 특정 데이터셋 길이분포의 요청들을 흘려서 나온 분포의 90번째 백분위수'라는 재현 가능한 실험 절차 전체를 압축한 표현이다.",
+      "original": {
+        "text": "Since all the datasets do not include timestamps, we generate request arrival times using Poisson distribution with different request rates.",
+        "location": "§6.1, p.201"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": -100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "claim",
+      "title": "Existing systems는 prefill-only + decode-only의 합이 아니다",
+      "content": "'Existing systems 곡선이 prefill-only와 decode-only를 더한 것 아닌가'라는 직관은 **틀렸다** — 세 가지 이유.\n\n**① GPU 개수 자체가 다르다.** Existing systems는 GPU **1개**가 prefill+decode를 같이 처리하고, prefill-only/decode-only는 각각 **별도 GPU 1개씩**(합 2개)을 쓴다. 애초에 투입 자원이 다른 시나리오라 '더한다'는 개념이 성립하지 않는다.\n\n**② 단순 자원 분할이 아니라 실제 물리적 간섭이 있다.** 만약 existing systems가 'GPU 1개의 처리능력을 두 단계가 사이좋게 나눠 쓴다'는 것뿐이라면 두 곡선의 어떤 가중 평균 정도로 예측할 수 있어야 한다. 그런데 Figure 2가 보여주듯 prefill 하나가 배치에 끼어들면 decode 전체가 지연되는(반대도 마찬가지) **적극적인 상호 방해**가 있어서, 단순 분할 모델이 예측하는 것보다 실측이 훨씬 더 나쁘다.\n\n**③ 논문이 실제로 쓰는 비교 방법은 '더하기'가 아니라 'GPU당 정규화'다.** prefill 전용 GPU 2개 + decode 전용 GPU 1개(총 3개)로 10rps를 서빙 $\\rightarrow$ GPU당 3.3rps. 이걸 existing systems의 GPU당 1.6rps와 비교해 우위를 주장한다. 비교 단위가 'rps 그 자체'가 아니라 **'GPU 1개당 얼마나 서빙할 수 있는가(goodput/GPU)'**라는 점이 핵심 — §6.2/Figure 8의 x축이 'Per-GPU Rate (req/s)'로 표시되는 이유이기도 하다.\n\n**결론**: existing systems 곡선은 두 baseline의 합/평균이 아니라, 간섭이라는 별도의 물리적 현상까지 포함된 완전히 독립적인 세 번째 측정치다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "memo",
+      "title": "Figure 1은 왜 표준 벤치(ShareGPT 등)를 안 쓰고도 괜찮은가",
+      "content": "Figure 1은 §6 Evaluation의 진짜 벤치(ShareGPT/HumanEval/LongBench, 실제 길이 분포)가 아니라, **입력 512/출력 64 고정 길이의 synthetic 워크로드**를 쓴다. 이건 부족한 게 아니라, Figure 1이 하는 역할이 다르기 때문에 의도적으로 그렇게 설계된 것이다.\n\n**① 목적이 다르다 — '증명'이 아니라 '동기 부여(motivating example)'.** Figure 1은 Introduction에 있고, 아직 DistServe가 뭔지 설명하기도 전이다. 이 그림의 역할은 '이 논문이 왜 필요한가'라는 문제(colocation이 goodput을 얼마나 짓누르는가)를 독자에게 최대한 빠르고 명확하게 각인시키는 것이지, 논문의 정량적 주장($7.4\\times$, $12.6\\times$)을 뒷받침하는 것이 아니다. 그 정량적 주장은 §6의 표준 벤치 실험이 담당한다.\n\n**② 통제된 실험이 오히려 메커니즘을 더 선명하게 보여준다.** 실제 데이터셋(ShareGPT 등)을 쓰면 길이가 요청마다 들쭉날쭉해서, 지연 변화가 'colocation 때문인지' '길이가 우연히 길어서인지' 뒤섞인다. 입력/출력 길이를 고정하면 **rps(요청률)라는 변수 하나만 바뀌고 나머지는 전부 고정**되므로, '같은 조건에서 colocate만 했을 뿐인데 goodput이 1.6배로 폭락한다'는 인과관계를 깨끗하게 분리해서 보여줄 수 있다 — 이게 바로 통제된(synthetic) 실험의 존재 이유다.\n\n**③ 이 그림의 정성적 주장(colocation이 나쁘다)은 §6에서 실제 데이터셋으로 독립적으로 재확인된다.** ShareGPT 기준 vLLM 대비 $2.0\\times$-$4.6\\times$ 개선이라는 §6.2 결과가 Figure 1의 메시지(disaggregation이 이긴다)를 표준 벤치로도 다시 증명한다. 즉 Figure 1은 논문의 유일한 증거가 아니라 **먼저 보여주는 직관적 예고편**이고, 진짜 증거는 뒤에 따로 있다.\n\n**일반 원리**: '메커니즘을 격리해서 보여주는 통제된/synthetic 실험'과 '실제 조건에서 그 효과가 얼마나 되는지 검증하는 표준 벤치 실험'은 같은 논문 안에서도 서로 다른 역할을 한다 — 전자는 왜(why)를, 후자는 얼마나(how much)를 답한다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1250, "y": -100 },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -354,7 +422,12 @@
     { "id": "edge_017", "source": "node_004", "target": "node_018", "type": "line", "label": "" },
     { "id": "edge_018", "source": "node_005", "target": "node_019", "type": "line", "label": "" },
     { "id": "edge_019", "source": "node_005", "target": "node_020", "type": "line", "label": "" },
-    { "id": "edge_020", "source": "node_005", "target": "node_021", "type": "line", "label": "" }
+    { "id": "edge_020", "source": "node_005", "target": "node_021", "type": "line", "label": "" },
+    { "id": "edge_021", "source": "node_006", "target": "node_022", "type": "line", "label": "" },
+    { "id": "edge_022", "source": "node_006", "target": "node_023", "type": "line", "label": "" },
+    { "id": "edge_023", "source": "node_022", "target": "node_024", "type": "line", "label": "" },
+    { "id": "edge_024", "source": "node_006", "target": "node_025", "type": "line", "label": "" },
+    { "id": "edge_025", "source": "node_024", "target": "node_026", "type": "line", "label": "" }
   ],
   "viewport": { "x": 0, "y": 0, "zoom": 1 }
 }

@@ -1,0 +1,503 @@
+{
+  "version": "1.0.0",
+  "title": "Hello Bytes, Bye Blocks: PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)",
+  "created": "2026-07-13T00:00:00.000Z",
+  "modified": "2026-07-13T06:00:00.000Z",
+  "source": {
+    "pdf": "Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD).pdf",
+    "authors": "Myoungsoo Jung (KAIST CAMELab)",
+    "venue": "HotStorage 2022",
+    "doi": "10.1145/3538643.3539744",
+    "pages": 7
+  },
+  "nodeTemplates": {
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#5C9E6E",
+      "icon": "cpu",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#9B59B6",
+      "icon": "bar-chart-2",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#E74C3C",
+      "icon": "alert-circle",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#1ABC9C",
+      "icon": "lightbulb",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Reference",
+      "color": "#95A5A6",
+      "icon": "book-open",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#BDC3C7",
+      "icon": "edit-3",
+      "shape": "rounded"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "이 논문은 **'CXL-SSD'라는 개념을 정립한 비전/포지션 논문**이다. 값싸고 대용량인 **PCIe block storage를, CXL로 host CPU에 붙여 byte-addressable working memory로** 바꾸자고 논증한다.\n\n**Killer application 1 — block을 byte로, non-cacheable을 cacheable로**: PCIe로 SSD 내부 DRAM을 BAR로 노출해도 x86이 그 접근을 **non-cacheable로 강제**해 성능이 무너진다. CXL은 cache-coherent라 이 접근을 **cacheable**로 만들어 storage를 메모리 계층에 편입시킨다.\n\n**Killer application 2 — 왜 Type-3인가의 논거**: 세 device type 중 **Type-3가 storage-integrated memory expander에 최적**임을 3가지 이유(확장성·CXL.cache 오버헤드·host 허가)로 논증 → SkyByte류 CXL-SSD가 Type-3인 근거.\n\n**Killer application 3 — storage 물성을 위한 프로토콜 힌트**: GC 지연·persistence를 다루도록 CXL.mem 예약 필드에 **determinism/bufferability** 힌트를 달자고 제안.\n\nFPGA 투영: 고locality에서 CXL가 PCIe 대비 **129.5×**, 평균 **3×** 빠르고 DRAM에 근접.",
+      "original": {
+        "text": "we advocate that CXL can open a new door that changes PCIe storage's block interface to a memory-like, byte interface.",
+        "location": "§2, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_006"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "PCIe storage가 byte-addressable memory가 되는 건 **오랜 꿈**이다(2B-SSD·NVMe가 SSD 내부 DRAM을 BAR로 노출; 내부 DRAM을 backend flash의 write-back cache로 써 긴 지연 은닉).\n\n그런데 **결정적 벽**: PCIe 대역폭은 far memory로 충분(Gen5/6 16× = 63~121 GB/s)한데도, PCIe는 storage를 **peripheral**로 취급해 CPU가 BAR로의 `load`/`store`를 **non-cacheable**로 해야 한다. x86(Intel/AMD)은 PCIe 메모리 요청을 캐시하면 **시스템 실패·storage 단절** 위험이 있어 아예 금지한다.\n\n결과: non-cacheable 접근이 성능을 크게 떨어뜨리고, **storage-integrated memory expander가 메모리 계층에서 배제**되며 CPU cache를 못 쓴다. 이게 CXL이 필요한 이유 — cache-coherent라 이 접근을 cacheable로 만든다.",
+      "original": {
+        "text": "this non-cacheable characteristic severely degrades the performance of all memory accesses targeting the BARs ... enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy.",
+        "location": "§2, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "children": [
+        "node_007"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "PCIe storage를 CXL로 host 메모리에 편입시키되, **Type-3**로 하고 storage 물성을 힌트로 다룬다.\n\n**1. 세 protocol / 세 type**: CXL.io(기본, PCIe·FlexBus), CXL.cache(device가 host mem 캐시), CXL.mem(host가 HDM 접근) → Type-1/2/3 정의.\n\n**2. ★ Type-3 옹호**: Type-2 대비 (i) RP당 device 1개 제한 없이 **확장** 가능, (ii) CXL.cache 풀피처의 **매 I/O cache-state 확인 오버헤드** 없음, (iii) storage-side 연산의 **host 허가** 불필요.\n\n**3. storage-side 최소 수정**: 기존 PCIe endpoint 로직 재활용 + NVMe controller를 CXL.mem read/write로 단순화 → 대부분 SSD가 minor 수정으로 Type-3 지원.\n\n**4. 시스템 통합**: 부팅 시 BAR/HDM을 **cacheable 시스템 메모리**에 매핑, RP가 remap offset 동기화. load/store → CXL flit → controller가 firmware와 협력 서비스.\n\n**5. disaggregation & storage 힌트**: switch/multi-switch/VH + MLD(16)로 multi-host 분해, **determinism/bufferability**로 GC·persistence 제어.",
+      "original": {
+        "text": "we advocate Type 3 for a storage-integrated memory expander in CXL. There are three reasons why we believe that Type 3 devices are better than Type 2 devices for the storage-integrated memory expander.",
+        "location": "§3, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 600
+      },
+      "children": [
+        "node_008",
+        "node_009",
+        "node_010",
+        "node_011",
+        "node_013",
+        "node_014"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "상용 CXL가 없어 **FPGA 프로토타입**으로 투영: 자작 **RISC-V O3 dual-core**(128KB L1, 4MB L2) host + **OpenExpress 32GB NVMe**(16nm FPGA, backend=Z-NAND emul) storage, PCIe backplane. 비교: DRAM-only / PCIe expander / CXL. Workload = **Apex-Map**(locality param $\\alpha$, 64B, 512M inst).\n\n| 케이스 | 결과 |\n|---|---|\n| Best ($\\alpha=0.001$, 고locality) | CXL가 PCIe 대비 **129.5×**↓, DRAM에 근접 |\n| Average | CXL가 PCIe 대비 **3×**↓ (DRAM 대비 9.3× 나쁨) |\n| Worst ($\\alpha=1$, 완전 랜덤) | CXL가 DRAM 대비 84.1× 나쁨, PCIe 대비 **1.6×**↑ |\n\n핵심 메시지: **non-cacheable을 극복한 CXL은 고locality에서 DRAM급**, 랜덤에서만 flash 지연이 노출. 대부분 워크로드는 고locality라 대용량 이득이 크다.",
+      "original": {
+        "text": "While most memory requests in this test are hit from the CPU caches, PCIe cannot take any advantage of the host CPU caches, thereby exhibiting 129.5x longer latency than CXL.",
+        "location": "§5, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 900
+      },
+      "children": [
+        "node_012"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "CXL을 **memory expander 관점**에서 보고, block semantic을 byte semantic으로 옮기는 여러 구성을 탐색한 논문. 결론: CXL은 PCIe storage를 값싼 대용량 working memory로 편입시키는 실용적 길이며, **Type-3 + storage-aware 힌트(determinism/bufferability)**가 그 핵심.\n\n**의의**: **'CXL-SSD' 개념의 정립** — [[SkyByte]](Type-3 memory-semantic CXL-SSD)가 이 비전을 실제 co-design으로 구현한다. determinism/bufferability(storage 물성을 host에 힌트로 노출)는 SkyByte의 coordinated context switch(긴 flash 지연을 host에 알림)와 같은 transparent co-design 사고.\n\n**한계**: (1) 성능 투영이 Apex-Map 합성 + FPGA emul(실 워크로드·실 CXL 실리콘 부재). (2) determinism/bufferability는 **제안**일 뿐 표준·구현 미완. (3) ★ MLD는 storage를 **분할**해 각 host에 줄 뿐, **여러 host가 같은 영역을 coherent하게 공유**하는 것은 다루지 않음(pooling≠sharing). (4) MLD 분할이 backend/internal DRAM 병렬성을 깎아 per-MLD 대역폭 저하.",
+      "original": {
+        "text": "This paper examines CXL from a memory expander viewpoint and explores different configurations to transfer PCIe's block semantic to memory-compatible byte semantic.",
+        "location": "§8, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1200
+      },
+      "children": [
+        "node_015",
+        "node_016"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "claim",
+      "title": "non-cacheable BAR의 벽 → CXL로 cacheable",
+      "content": "PCIe로도 SSD 내부 DRAM을 BAR로 노출하면 byte `load`/`store`는 된다. 그러나 x86(Intel/AMD)은 PCIe 주소공간으로의 메모리 요청을 캐시하면 **시스템 실패·storage 단절** 위험이 있어 **non-cacheable로 강제**한다(BAR는 host가 storage에 '무엇을 요청/제어'하는지 알리는 인터페이스라, 캐시되면 storage가 요청 도착을 못 잡음).\n\n결과: BAR 접근 성능이 크게 무너지고 storage-integrated expander가 **메모리 계층에서 배제**된다. **CXL은 cache-coherent interconnect라 PCIe 주소공간으로의 load/store를 cacheable로** 만들어 이 벽을 정확히 없앤다 — 이게 'CXL이 storage에 필요한' 단 하나의 핵심 이유.",
+      "original": {
+        "text": "If CPU can cache/buffer the memory requests targeting the PCIe address space, there is no way for the PCIe storage to catch their arrivals. This can introduce an unexpected situation such as a system failure or storage disconnection.",
+        "location": "§2, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": -120
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "claim",
+      "title": "byte-addressability는 오랜 꿈 + 내부 DRAM = write-back cache",
+      "content": "PCIe storage에 byte-addressability를 주는 건 오랜 목표다 — 2B-SSD·NVMe 표준이 SSD **내부 DRAM/buffer를 BAR로** 노출해 host가 local memory처럼 load/store하게 한다. 그리고 그 내부 DRAM을 backend block media(**Z-NAND/Flash/Optane**)의 **write-back inclusive cache**로 써서 긴 backend 지연을 숨긴다.\n\n즉 하드웨어적 재료(byte 인터페이스 + 내부 DRAM cache)는 이미 있다. 빠진 것은 그 접근을 **CPU cache에 태우는 것**인데, 그게 바로 non-cacheable 벽(왼쪽 노드) 때문에 막혀 있었다.",
+      "original": {
+        "text": "It is a long-standing dream for PCIe storage to have byte-addressability and be a part of working memory devices ... they can use the internal memory/buffer as a write-back inclusive cache of the backend.",
+        "location": "§2, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 180
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "method",
+      "title": "세 protocol과 세 device type",
+      "content": "CXL의 세 sub-protocol과 그 조합으로 정의되는 세 type:\n\n| Protocol | 역할 |\n|---|---|\n| **CXL.io** | 기본(모든 device 필수). PCIe 기능·FlexBus, 비coherent I/O |\n| **CXL.cache** | device가 host 메모리를 coherent 캐시 |\n| **CXL.mem** | host가 device HDM을 load/store |\n\n| Type | 프로토콜 | 성격 |\n|---|---|---|\n| **1** | .io+.cache | 로컬 캐시만(내부 DRAM 없음), TPU류 |\n| **2** | .io+.cache+.mem | HDM+연산, host↔device 양방향 coherent |\n| **3** | .io+.mem | HDM만(연산 없음), 순수 memory expander |\n\nType-3는 CXL.cache를 안 쓰지만 CXL.mem의 read/write로 HDM 확장이 된다. CXL.io는 device-side에서 관리해 다양한 I/O 수요 수용.",
+      "original": {
+        "text": "CXL provides three different sub-protocols, i) CXL.io, ii) CXL.mem, and iii) CXL.cache, which can also define three different types of CXL devices (Type 1 ~ Type 3).",
+        "location": "§3, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "claim",
+      "title": "★ 왜 Type-3인가 — 3가지 이유 (vs Type-2)",
+      "content": "저자가 storage-integrated memory expander로 **Type-3를 옹호**하는 3가지 근거:\n\n**(1) 확장성**: Type-2는 연산집약 가속용이라 **CXL RP당 device 1개**만 연결 가능 → Type-3만큼 scalable하지 않다.\n\n**(2) CXL.cache 오버헤드**: Type-2의 풀피처(CXL.cache+.mem)는 매 `load`/`store`가 PCIe storage 연산복합체의 **cache 상태를 확인**해야 해서, I/O마다 여러 CXL transaction 발생 → 성능 저하.\n\n**(3) host 허가 비용**: Type-2의 CXL.cache는 host local memory와 HDM을 **모두 coherent 관리**하므로, storage-side 연산이 자기 메모리를 접근할 때마다 **host 허가**가 필요 → device I/O 성능이 오히려 악화.\n\n→ 이게 SkyByte를 비롯한 CXL-SSD가 **Type-3인 1차 논거**. (우리가 대화로 정리한 'Type-2는 왜 안 되나'의 원출처.)",
+      "original": {
+        "text": "only one device (per CXL RP) can be connected to a host system, which makes Type 2 devices not scalable as Type 3 devices can do.",
+        "location": "§3, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 630
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "method",
+      "title": "Storage-side 최소 수정으로 Type-3 지원",
+      "content": "PCIe storage는 이미 **PCIe endpoint + NVMe controller**로 요청을 파싱하고 데이터를 옮긴다. 따라서 Type-3 지원의 HW 변경은 작다: (a) 기존 **PCIe endpoint 로직을 재활용**해 CXL transaction packet formatting·CXL.io 제어, (b) 기존 **NVMe controller의 command parsing·page copy 기능을 단순화**해 CXL.mem read/write 인터페이스 구현, (c) **firmware가 내부 DRAM + backend block media 관리**. NVMe 스펙은 controller를 firmware/hardware 어느 쪽으로도 구현 가능케 하므로, CXL.mem read/write는 hardware로 자동화하고 내부 DRAM 관리는 firmware로 두는 게 낫다.",
+      "original": {
+        "text": "a hardware change at the storage side can be simple, which in turn makes most storage devices easily support Type 3 with a minor modification.",
+        "location": "§3, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 780
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "시스템 통합 흐름 (BAR/HDM 매핑 → flit)",
+      "content": "부팅 시 host가 RP에 연결된 CXL device를 enumerate하고, CXL **BAR + HDM** 크기를 받아 **cacheable 시스템 메모리**에 매핑한다. HDM이 device가 원래 관리하던 주소와 다른 곳에 매핑되므로, **CXL RP가 CXL controller에 remap offset을 동기화**한다(target storage의 CXL capability/config 영역에 기록).\n\napp이 HDM(=시스템 메모리)에 load/store → **CXL RP가 CXL flit 생성** → CXL.mem으로 storage controller에 전달 → endpoint+CXL controller가 flit 파싱해 command·target address 추출 → **firmware와 협력해 데이터 서비스**.",
+      "original": {
+        "text": "When an application loads or stores data on the system memory (mapped to HDM), CXL RP generates a message, called CXL flit, and sends it to the target's CXL storage controller via CXL.mem.",
+        "location": "§4, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 960
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "Disaggregation 3토폴로지 + MLD(16) + multi-host",
+      "content": "storage를 컴퓨팅에서 분해하는 세 구성(Fig.3): **(a) Switch**(DSP→각 storage, USP→host RP; switch 레인 64~128 → 16-lane storage 4~8개), **(b) Multi-switch**(top switch가 host RP+하위 브리지, leaf switch가 다수 storage; network 최대 **4PB**), **(c) Virtual Hierarchy(VH)**(FM crossbar가 host↔storage 경로 기억 → 완전 분해).\n\n**Multi-host + storage 가상화**: 각 storage를 **MLD(multiple logical device, 최대 16)**로 논리 분할, 각 MLD가 자기 HDM을 서로 다른 host에 매핑(물리 storage처럼). **단점**: 대역폭 공유·트래픽 혼잡, backend/internal DRAM 분할로 **병렬성·per-MLD 대역폭 저하**. (우리가 정리한 MLD 논의의 원출처.)",
+      "original": {
+        "text": "CXL allows a system to logically split each endpoint into multiple Type 3 devices (up to 16), called multiple logical device (MLD). Thus, we can make each MLD define its own HDM, which can be mapped to a different place of any host of system memory.",
+        "location": "§6, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1110
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "method",
+      "title": "Storage 힌트: determinism / bufferability (+ GPF)",
+      "content": "Type-3는 memory pooling용이라 storage 특유의 **(i) latency fluctuation(GC 등 internal task)**, **(ii) data persistence** 문제가 남는다. 저자는 CXL.mem **예약 필드**에 두 힌트를 달자고 제안:\n\n- **Determinism**: `DT`(internal task 개입 없이 즉시 서비스) / `ND`(fire-and-forget → storage가 GC 등 스케줄 가능).\n- **Bufferability**: `BF`(SSD 내부 DRAM에 캐시/버퍼 허용) / `NB`(persistence first-class → block media 기록).\n\n조합(BF+DT/BF+ND/NB+DT/NB+ND) + **GPF(global persistent flush)**로 DB 로깅·트랜잭션·lock 시나리오 최적화(예: 로그는 BF+ND로 버퍼링, commit 시 GPF+NB+DT). loads는 대개 DT, prefetch엔 BF. **storage 물성을 host가 힌트로 조종**하는 co-design 사고 — SkyByte의 방향과 통한다.",
+      "original": {
+        "text": "we suggest two simple features, i) determinism and ii) bufferability, which can be annotated to CXL messages and hint the host semantic to the underlying CXL controllers.",
+        "location": "§7, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1260
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "result",
+      "title": "Apex-Map 투영: PCIe 대비 129.5×(best)/3×(avg), DRAM 근접",
+      "content": "Apex-Map(locality $\\alpha$)으로 DRAM/PCIe/CXL 비교(Fig.2):\n\n- **Best($\\alpha=0.001$)**: 대부분 CPU cache hit → PCIe는 cache를 못 써 CXL 대비 **129.5×** 긴 지연. CXL ≈ DRAM.\n- **Average**: CXL가 PCIe 대비 **3×** 빠름. DRAM 대비 9.3× 나쁘지만 block storage 감안 시 합리적.\n- **Worst($\\alpha=1$, 완전 랜덤)**: CXL가 Z-NAND 지연을 못 숨겨 DRAM 대비 84.1× 나쁨. 그래도 PCIe 대비 **1.6×**(PCIe는 BAR 요청을 동기 처리).\n\n결론: non-cacheable을 극복한 CXL은 **고locality에서 DRAM급**, 랜덤에서만 flash 지연 노출. §7의 힌트로 이 긴 지연을 완화할 수 있다고 주장.",
+      "original": {
+        "text": "CXL is also better than PCIe by 3x for the average case. Note that, even though the performance of CXL is 9.3x worse than that of DRAM, we believe it is still in a reasonable range by considering the fact that CXL leverages the block storage.",
+        "location": "§5, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1440
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "memo",
+      "title": "계보/발표축: 'CXL-SSD' 개념의 정립 → SkyByte 구현",
+      "content": "이 논문은 **'CXL-SSD'라는 개념과 그 설계 좌표(Type-3, storage 힌트)를 처음 세운** 글이고, [[SkyByte]]는 그 비전을 **실제 co-design으로 구현**한 관계다.\n\n- **개념(여기)**: Type-3가 옳다 + determinism/bufferability로 storage 물성을 host에 힌트.\n- **구현(SkyByte)**: Type-3 CXL-SSD + coordinated context switch(긴 flash 지연을 host에 알림) + cacheline write log.\n\ndeterminism/bufferability와 SkyByte의 context switch는 **같은 transparent co-design 사고**(storage 내부 상태를 host에 노출해 함께 최적화). 내 **'SSD 이중역할 × transparent co-design'** 발표축의 **개념적 원점** — 그리고 우리가 대화로 정리한 Type 1/2/3·MLD·pooling 논의가 전부 여기서 출발한다([[CXL Overview]]에 정리).",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1620
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "gap",
+      "title": "내 연구방향: MLD 분할(pooling) → 공유(sharing) coherence",
+      "content": "이 논문의 multi-host는 **MLD로 storage를 분할**해 각 조각을 다른 host에 주는 것 — 즉 **pooling(분할)**이지 **sharing(공유)**이 아니다. 여러 host가 **같은 HDM 영역을 동시에** coherent하게 쓰는 시나리오는 다루지 않는다(각 MLD는 한 host 전용).\n\n내 방향(multi-node coherence)은 정확히 그 다음 — MLD 분할을 넘어 **공유된 CXL-SSD 영역**에서 host 간 캐시 일관성을 어떻게 보장할지(**directory + back-invalidate, HDM-DB, CXL 3.0**). determinism/bufferability 같은 storage 힌트도 **공유 상황에서 누가 어떤 힌트를 세우나**로 재정의된다. 즉 이 논문의 개념 프레임(Type-3·힌트·MLD)을 multi-host coherent 공유로 확장하는 게 gap. → [[CXL Multi-node Coherence]], [[CXL Overview]]",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 1620
+      },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_001",
+      "target": "node_006",
+      "type": "line",
+      "label": "핵심 벽"
+    },
+    {
+      "id": "edge_006",
+      "source": "node_002",
+      "target": "node_007",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_007",
+      "source": "node_003",
+      "target": "node_008",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_008",
+      "source": "node_003",
+      "target": "node_009",
+      "type": "line",
+      "label": "핵심"
+    },
+    {
+      "id": "edge_009",
+      "source": "node_003",
+      "target": "node_010",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_010",
+      "source": "node_003",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_003",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_012",
+      "source": "node_003",
+      "target": "node_014",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_013",
+      "source": "node_004",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_014",
+      "source": "node_005",
+      "target": "node_015",
+      "type": "line",
+      "label": "발표"
+    },
+    {
+      "id": "edge_015",
+      "source": "node_005",
+      "target": "node_016",
+      "type": "line",
+      "label": "내 연구"
+    },
+    {
+      "id": "edge_016",
+      "source": "node_015",
+      "target": "node_016",
+      "type": "line",
+      "label": "연결"
+    },
+    {
+      "id": "edge_017",
+      "source": "node_013",
+      "target": "node_016",
+      "type": "line",
+      "label": "MLD→공유"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

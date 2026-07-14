@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Re-architecting End-host Networking with CXL: Coherence, Memory, and Offloading</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">Re-architecting End-host Networking with CXL: Coherence, Memory, and Offloading</span>
+    <span id="tb-source">Houxiang Ji, Yifan Yuan, Yang Zhou, Ipoom Jeong, Ren Wang, Saksham Agarwal, Nam Sung Kim · MICRO '25</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" style="--color:#4B8BBE;border-radius:2px;left:100px;top:260px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문은 두 개의 독립적으로 remarkable한 기여를 갖는다.<br><br><strong style="font-size:1.1em">1. CXL.cache로 PCIe의 NIC I/O를 실제로 대체하는 FPGA 하드웨어 구현</strong> — CXL 연구의 대부분이 `CXL.mem`(Type-3, 메모리 확장)에 쏠려 있는 동안 상대적으로 덜 탐구됐던 `CXL.cache`(Type-1/2)를, 소형·고빈도 패킷 통신이라는 PCIe가 가장 취약한 워크로드에 정면으로 적용한다.<br><br><strong style="font-size:1.1em">2. Networking과 Application을 CXL coherence로 관통하는 co-acceleration</strong> — 단순히 NIC-호스트 통신만 빠르게 하는 게 아니라, NIC 메모리에 Key-Value Store(KVS)를 직접 얹어 host-bias/device-bias 모드를 동적으로 전환하며 hot/cold 데이터를 계층화한다. 네트워킹 계층 최적화가 애플리케이션 계층까지 투명하게 이어진다는 것이 핵심.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1810</span></summary>
+<div class="ng-orig-text">We contend that Network Interface Controllers (NICs) represent a particularly compelling, indeed a 'killer application' for harnessing the power of CXL's cache coherence.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" style="--color:#4B8BBE;border-radius:2px;left:100px;top:560px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">PCIe 기반 NIC의 두 가지 구조적 한계가 출발점이다.<br><br>- <strong style="font-size:1.1em">DMA-only</strong>: load/store가 아닌 DMA만 지원 $\rightarrow$ 대량 전송엔 유리하지만 64B 디스크립터 같은 소형·고빈도 전송엔 setup/completion 오버헤드가 상대적으로 커짐<br>- <strong style="font-size:1.1em">No coherence</strong>: 호스트-디바이스 간 공유 메모리·캐시 일관성 부재 $\rightarrow$ MMIO는 512B 기준 8$\mu$s 이상의 지연, 0.3GB/s 미만의 대역폭. 소프트웨어가 explicit flush·pinning·barrier로 일관성을 직접 관리해야 함<br><br>실측 결과, 64B 패킷 기준 <strong style="font-size:1.1em">e2e 지연의 52%가 PCIe 연산 자체에서 발생</strong>한다(1500B에서는 45%). 이건 이미 알려진 문제였지만, 이 논문이 강조하는 진짜 사각지대는 따로 있다: CXL 연구·산업의 초점이 대부분 메모리 확장(`CXL.mem`, Type-3)에 쏠려 있어, 정작 device-to-host coherence의 핵심인 `CXL.cache`(Type-1/2)는 상대적으로 덜 탐구되어 왔다는 점이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1810</span></summary>
+<div class="ng-orig-text">This focus on memory expansion inadvertently overshadows the potential residing within the CXL.cache protocol, a key feature of CXL Type-1 and Type-2 devices.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" style="--color:#4B8BBE;border-radius:2px;left:100px;top:860px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">CXL.cache의 4가지 요청 타입(`NC-read/write`, `NC-P`, `CS-read`, `CO-read`)을 Rx/Tx 데이터패스 각 단계의 특성에 맞춰 세밀하게 배분하는 것이 핵심 설계 원리다. Type-1(온디바이스 메모리 없음) 아키텍처로 시작해 CXL.cache 자체의 순수 이점을 격리 측정하고, 그 위에 Type-2(coherent on-device memory 보유)를 얹어 버퍼 배치 자유도를 얻고, 마지막으로 Key-Value Store 애플리케이션을 통합해 networking-application co-acceleration까지 보인다 — 세 단계가 점진적으로 쌓이는 구조.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.1814</span></summary>
+<div class="ng-orig-text">CXL-NIC leverages CXL protocols to orchestrate low-latency packet transfers between the host CPU and NIC.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_004" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1160px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>항목</th><th>수치</th></tr></thead><tbody><tr><td>패킷 처리 지연 (vs BF-3 PCIe NIC)</td><td><strong style="font-size:1.1em">49%</strong> 감소</td></tr><tr><td>KVS 요청 처리 지연 (vs SmartNIC)</td><td><strong style="font-size:1.1em">39%</strong> 감소</td></tr><tr><td>최적 request 조합(Comb.0)의 median/p99 지연</td><td>BF-3 대비 <strong style="font-size:1.1em">46%/49%(64B)</strong> 감소</td></tr><tr><td>CC-NIC 대비 latency-optimal 설계</td><td>median <strong style="font-size:1.1em">37%</strong> 감소</td></tr></tbody></table></div><div class="ng-seg"><br>세부 결과는 하위 노드 참고.</div></div></div>
+</div>
+<div class="ng-node" id="node-node_005" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1460px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">CXL.cache 기반 coherence, coherent NIC memory, application co-acceleration이라는 세 축을 하나의 하드웨어-소프트웨어 co-design(CXL-NIC)으로 통합해 보였다. 저자들이 스스로 명시한 한계는 CXL 1.1의 CAS 부재(MPMC 큐 문제), 세밀하지 않은 HPA 기반 보안 모델, FPGA 클럭 제약(400MHz)에 따른 절대 수치의 하드웨어 세대 종속성이다. CXL.cache가 '메모리 확장에 가려진 저평가 영역'이라는 이 논문의 문제의식은, 단일 host-device 관계를 넘어 여러 노드·여러 디바이스가 참여하는 coherence 도메인으로 자연스럽게 이어질 수 있는 여지를 남긴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§10, p.1822</span></summary>
+<div class="ng-orig-text">We present CXL-NIC, a novel hardware-software co-design for high-performance NIC, leveraging the great potential of the emerging CXL protocols.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#5C9E6E;border-radius:2px;left:620px;top:320px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">PCIe의 두 가지 구조적 한계</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">- <strong style="font-size:1.1em">DMA-only</strong>: device-to-host memory access가 load/store를 지원하지 않고 DMA에만 의존 $\rightarrow$ setup·completion 오버헤드가 소형·고빈도 전송(예: 64B 디스크립터)에서 특히 비효율적<br>- <strong style="font-size:1.1em">No coherence</strong>: 호스트 CPU-디바이스 간 공유 메모리·캐시 일관성 부재 $\rightarrow$ CPU는 MMIO로만 디바이스 메모리 접근 가능(512B 기준 <strong style="font-size:1.1em">8$\mu$s 초과 지연</strong>, <strong style="font-size:1.1em">0.3GB/s 미만 대역폭</strong>). 소프트웨어가 explicit cache flush, memory pinning, memory barrier로 일관성을 직접 관리해야 해 프로그래밍이 복잡해지고 지연이 추가됨</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1810</span></summary>
+<div class="ng-orig-text">PCIe does not support load/store semantics for device-to-host memory access, instead relying on Direct Memory Access (DMA).</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_007" style="--color:#9B59B6;border-radius:2px;left:620px;top:480px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">PCIe 지연 실측: e2e 지연의 45~52%</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-seg">DPDK 기반 ping-pong 마이크로벤치마크로 PCIe가 e2e 패킷 지연에 기여하는 비중을 직접 측정했다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>패킷 크기</th><th>PCIe 기여 비중</th></tr></thead><tbody><tr><td>64B</td><td>52%</td></tr><tr><td>1500B (MTU)</td><td>45%</td></tr></tbody></table></div><div class="ng-seg"><br>처리량이 1$\rightarrow$64Gbps로 증가하면 이 비중은 57%$\rightarrow$52%로 감소한다 — DPDK의 배칭이 MMIO 도어벨 빈도를 낮추기 때문. 다만 상대적 비중이 줄어도 <strong style="font-size:1.1em">절대 지연은 지연 민감 워크로드에 여전히 치명적</strong>이라는 것이 저자들의 강조점.</div></div></div>
+</div>
+<div class="ng-node" id="node-node_008" style="--color:#1ABC9C;border-radius:22px;left:620px;top:640px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">CXL 연구의 사각지대: CXL.cache vs CXL.mem</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">CXL은 `CXL.io`/`CXL.cache`/`CXL.mem` 세 프로토콜을 제공하지만, 지금까지의 CXL 연구·산업 관심은 거의 전부 `CXL.mem` 기반 Type-3 디바이스(메모리 확장·용량/대역폭 스케일링)에 쏠려 있었다. 이 논문은 그 흐름에서 벗어나 Type-1/2 디바이스의 `CXL.cache`(device가 host의 coherence 도메인에 직접 참여하는 능력)로 연구 렌즈를 명시적으로 옮긴다는 점에서, 이 논문 자체가 하나의 gap-filling 시도다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1810</span></summary>
+<div class="ng-orig-text">Therefore, this work shifts the research lens towards CXL Type-1 and Type-2 devices, conducting a focused exploration of the performance advantages unlocked by their inherent cache coherence support.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#5C9E6E;border-radius:2px;left:620px;top:720px;min-width:932px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Type-1 CXL-NIC 아키텍처: DMU + PFU</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Type-1 CXL-NIC(온디바이스 메모리 없음)은 네 컴포넌트로 구성된다.<br><br>- <strong style="font-size:1.1em">Network interface</strong>: NIC ↔ 이더넷 간 양방향 패킷 통신<br>- <strong style="font-size:1.1em">Descriptor Management Unit (DMU)</strong>: RxD/TxD 검색, 패킷 버퍼 주소 추출, 전송 완료 상태 갱신<br>- <strong style="font-size:1.1em">Packet Forwarding Unit (PFU)</strong>: NIC ↔ 패킷 버퍼 간 실제 패킷 이동. 버스트 트래픽 대응용 1MB SRAM 내장<br>- <strong style="font-size:1.1em">CSR/MMIO space</strong>: `CXL.io`를 통해 매핑, 초기화·런타임 설정(레거시 호환용, 드물게만 사용)<br><br>DMU와 PFU는 DCOH(Device COherence engine)에 <strong style="font-size:1.1em">서로 다른 포트로 접속</strong>해 디스크립터 관리와 데이터 전송 간의 경합(contention)을 원천적으로 막는다.<br><br><span class="ng-img-missing">fig5_type1_architecture.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.1814</span></summary>
+<div class="ng-orig-text">This CXL-NIC consists of four core components: ❶ Network interface facilitates bidirectional packet communication between the NIC and the Ethernet network; ❷ Descriptor Management Unit (DMU)... ❸ Packet Forwarding Unit (PFU)... ❹ CSR/MMIO space...</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:620px;top:880px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Rx/Tx 데이터패스의 request-type 배분 전략</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>단계</th><th>요청 타입</th><th>이유</th></tr></thead><tbody><tr><td>Rx: RxD 프리페치</td><td>`CS-read`</td><td>읽기 전용이라 ownership 오버헤드 없이 Shared 상태로 캐싱</td></tr><tr><td>Rx: RxD 확보</td><td>`CO-read`</td><td>HMC에서 직접 히트, host 접근보다 3.3배 빠름</td></tr><tr><td>Rx: 패킷 전송</td><td>`NC-write`</td><td>device cache를 우회해 패킷 데이터로 인한 캐시 오염 방지</td></tr><tr><td>Tx: tail index polling</td><td>`CO-read` (event-driven)</td><td>host의 `st`가 자동으로 캐시 무효화를 트리거 $\rightarrow$ 불필요한 폴링 트래픽 제거</td></tr><tr><td>Tx: TxD 페치</td><td>`NC-read`</td><td></td></tr><tr><td>Tx: 완료 신호</td><td>`NC-write`</td><td></td></tr></tbody></table></div><div class="ng-seg"><br>핵심은 <strong style="font-size:1.1em">읽기 전용·재사용 데이터는 캐싱(`CS`/`CO`)해서 재활용</strong>하고, <strong style="font-size:1.1em">한 번 쓰고 마는 실제 패킷 데이터는 캐시를 우회(`NC`)</strong>해서 오염을 막는 비대칭 전략이다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.1815</span></summary>
+<div class="ng-orig-text">In CXL-NIC, we leverage these request types deliberately at each step of the Rx/Tx flow described in Section 4.2.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1040px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Type-2: Coherent NIC Memory와 4가지 버퍼 레이아웃</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-seg">CXL.mem으로 NIC 메모리를 host에 remote NUMA node처럼 노출한다. Rx/Tx 각각의 패킷 버퍼·디스크립터 링을 host memory 또는 NIC memory 어디에 둘지 4가지 조합이 가능하다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>레이아웃</th><th>Rx 구조 위치</th><th>Tx 구조 위치</th></tr></thead><tbody><tr><td>L1</td><td>Host memory</td><td>Host memory</td></tr><tr><td>L2</td><td>NIC memory</td><td>Host memory</td></tr><tr><td>L3</td><td>Host memory</td><td>NIC memory</td></tr><tr><td>L4</td><td>NIC memory</td><td>NIC memory</td></tr></tbody></table></div><div class="ng-seg"><br><strong style="font-size:1.1em">반직관적으로 L1(모두 host memory)이 가장 빠르다</strong> — NIC memory에 두면(L2-L4) CXL 인터커넥트 홉이 추가되고 host-bias 모드의 coherence 체크 오버헤드가 붙기 때문. 자세한 수치는 Results 참고.</div></div></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">NC-P와 두 가지 완화 기법</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">`NC-P`(push-write)는 device가 데이터를 host LLC로 먼저 밀어넣어, 이후 host의 `ld`가 로컬 캐시 hit이 되게 하는 최적화다. Intel DDIO와 비슷한 목적이지만, 무분별하게 쓰면 LLC를 오염시켜 오히려 성능을 해친다. 두 가지 완화 기법:<br><br>- <strong style="font-size:1.1em">(1) Adaptive push-write gating</strong>: 런타임 설정 가능한 플래그 레지스터로, LLC 이용률이 임계치에 다가가면 host CPU가 `NC-P`를 끄고 `NC-write`로 되돌림. DDIO의 정적(static) LLC 리다이렉션과 달리 세밀한 제어 가능<br>- <strong style="font-size:1.1em">(2) Post-push write-back</strong>: `NC-P` 후 $N$ 사이클 뒤 지연된 `NC-write`를 같은 주소에 발행해 host LLC의 캐시 라인을 무효화하고 device memory로 다시 씀. $N$ 사이클 안에 host가 데이터를 접근하지 않으면 `NC-P`의 지연 이점이 사라지는 시간 트레이드오프가 있어, $N$ 값을 디바이스 레지스터로 조정 가능하게 함</div></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1360px;min-width:882px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">KVS Networking-Application Co-acceleration</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Key-Value Store를 Type-2 CXL-NIC 위에 직접 얹는다. NIC 메모리는 host CPU가 미리 올려둔 '핫(hot)' key-value 쌍의 부분집합을 캐싱하고, host memory는 '콜드(cold)' 데이터의 확장 가능한 백엔드 역할을 한다.<br><br>요청 처리 흐름: 키를 해싱 $\rightarrow$ <strong style="font-size:1.1em">hit</strong>이면 NIC 메모리의 해시 테이블을 `D2D CS-read`로 조회하고 값을 `D2D NC-read`로 읽어 로컬에서 즉시 응답(host 접근 없이, <strong style="font-size:1.1em">device-bias mode</strong>로 coherence 체크 자체를 생략). <strong style="font-size:1.1em">miss</strong>면 <strong style="font-size:1.1em">host-bias mode</strong>로 전환해 `D2H CO-read`로 host 데이터베이스에서 값을 가져와 응답하고, 비동기로 `D2D NC-write`를 통해 NIC 메모리에 저장하며 LRU 항목을 background swap으로 host에 되돌린다.<br><br><span class="ng-img-missing">fig9_kvs_coacceleration.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">§5.4, p.1817</span></summary>
+<div class="ng-orig-text">This tiered database placement design, unified through CXL's hardware-coherent memory semantics, ensures low-latency access to 'hot' data in NIC memory and efficient capacity expansion for 'cold' data in host memory.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1520px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">왜 Type-1과 Type-2를 나눠 설계했나</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Type-1(메모리 없음)을 먼저 설계해 CXL.cache 자체의 순수 이점(host memory만 쓸 때도 PCIe보다 빠른가?)을 격리해서 측정하고, 그 위에 Type-2(coherent NIC memory 추가)를 얹어 '메모리를 NIC에 두면 항상 좋은가?'라는 별개 질문을 분리해서 답한다. 이 점진적 구조 덕분에 §7.2의 반직관적 결과(NIC memory 배치가 오히려 느릴 수 있다)가 명확하게 드러날 수 있었다 — 두 기여를 한 번에 섞었다면 이 결과의 원인 분리가 어려웠을 것.</div></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#9B59B6;border-radius:2px;left:620px;top:1020px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">요청 타입 조합별 Loopback Latency</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Rx/TxD/Tx 각 단계에서 쓸 CXL request type 조합 8가지(Comb. 0-7)를 비교한 결과, <strong style="font-size:1.1em">전 구간에서 non-coherent `NC`만 사용하는 Comb.0이 최적</strong>이다: BF-3 대비 median <strong style="font-size:1.1em">46%</strong>, p99 <strong style="font-size:1.1em">49%(64B) / 38%(1500B)</strong> 지연 감소.<br><br>- `NC-read`$\rightarrow$`CS-read`로 바꾸면(Tx 전송) 캐시 라인이 Shared 상태로 들어가며 coherence 트래픽이 늘어 median 17%(64B)/13%(1500B) 지연 증가<br>- `CO-write`는 exclusive ownership 획득 오버헤드로 15%(64B)/19%(1500B) 지연 증가<br>- `CO-read` 기반 TxD 폴링은 대역폭은 아끼지만 exclusiveness 획득 트래픽으로 19%(64B)/13%(1500B) 지연 페널티<br><br><strong style="font-size:1.1em">결론</strong>: 데이터 이동(data movement)은 캐시-투-캐시 전송을 피하는 `NC` 요청을, 동기화(synchronization)는 대역폭을 아끼기 위한 캐시 가능(`CO-read`) 요청을 쓰는 <strong style="font-size:1.1em">decoupled coherence 전략</strong>이 유효하다.</div></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:620px;top:1180px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">처리량과 배칭 효과</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">이론적 처리량 상한(400MHz, 64B/cycle $\rightarrow$ 204Gbps) 대비: Rx `NC-write`/`NC-P`는 <strong style="font-size:1.1em">90%</strong>, Tx `NC-read`는 <strong style="font-size:1.1em">62%</strong>만 달성 — Tx가 D2H 접근을 인터커넥트로 <strong style="font-size:1.1em">2회 왕복</strong>해야 하는 반면 Rx는 D2H write가 <strong style="font-size:1.1em">단방향(single-trip)</strong>이라는 구조적 비대칭 때문.<br><br>배칭(batch size $N$)으로 동기화 오버헤드를 패킷 여러 개에 분산시키면 격차가 크게 줄어든다: 1500B 패킷 기준 Rx는 batch=8에서 최대 처리량의 <strong style="font-size:1.1em">95%</strong>, Tx는 batch=32에서 <strong style="font-size:1.1em">88%</strong>(배칭 없이는 31%)까지 개선.</div></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#E74C3C;border-radius:2px;left:620px;top:1340px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">반직관적 결과: NIC memory 배치가 항상 빠르지 않다</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">패킷 버퍼·디스크립터를 <strong style="font-size:1.1em">NIC memory에 두면(L2-L4) 오히려 host memory에만 두는 L1보다 느리다</strong>: 64B/1500B 패킷 기준 L2는 23%/38%, L3는 54%/35%, L4는 71%/74% 더 높은 median/p99 지연.<br><br>원인 두 가지: (1) NIC memory 접근은 CXL 인터커넥트를 추가로 거쳐야 함, (2) host-bias 모드의 coherence 체크(host CPU와의 검증)가 D2D 접근의 공간 지역성 이점을 상쇄함. 즉 <strong style="font-size:1.1em">'디바이스 로컬 메모리 = 항상 빠름'이라는 직관이 coherence 오버헤드 앞에서 무너진다</strong> — uninformed data placement가 오히려 성능을 해칠 수 있다는 저자들의 §1 경고가 실측으로 확인된 지점.</div></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#9B59B6;border-radius:2px;left:620px;top:1500px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">CC-NIC 대비 우위와 KVS 애플리케이션 성능</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">버퍼 배치와 request type을 함께 최적화한 latency-optimal 설계(Rx는 NIC memory, Tx는 host memory)가 CC-NIC[48] 대비 64B-1500B 구간 평균 median <strong style="font-size:1.1em">37%</strong> 낮은 지연을 보인다. CC-NIC은 Intel UPI의 symmetric NUMA coherence를 가정한 설계라, 이 논문이 지적하는 hardware heterogeneity(호스트-디바이스 간 클럭·대역폭 비대칭)를 반영하지 못한다는 것이 우위의 근거.<br><br>KVS 애플리케이션 평가(SmartNIC 기반 RAMBDA[61] 방법론 사용): Zipfian 분포 read-only 워크로드에서 median <strong style="font-size:1.1em">18%</strong>, p99 <strong style="font-size:1.1em">39%</strong> 지연 감소. 균일(uniform) 분포에서는 median이 오히려 <strong style="font-size:1.1em">20%</strong> 증가(p99는 변화 없음) — locality 이점이 사라지면 host memory 접근이 잦아지기 때문.</div></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1620px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">CXL 1.1의 한계: CAS 부재로 인한 MPMC 문제</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">CXL 1.1은 Compare-and-Swap(CAS) 같은 원자적 연산을 지원하지 않는다. Tx 경로에서 여러 CXL-NIC 엔진이 동시에 shared tail index(디스크립터 링 버퍼의 head/tail)를 갱신해야 하는 <strong style="font-size:1.1em">Multiple-Producer-Multiple-Consumer(MPMC)</strong> 상황에서, CAS 없이는 디스크립터 중복 처리나 유실이 발생할 수 있다. 저자들은 이를 CXL 2.0+에서의 원자 연산 지원을 기다려야 하는 <strong style="font-size:1.1em">미해결 과제</strong>로 명시적으로 남겨둔다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§8, p.1820</span></summary>
+<div class="ng-orig-text">Without CAS, this coordination is unsafe, leading to potential descriptor duplication or loss.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_020" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1780px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">보안·가상화의 열린 문제</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">CXL 디바이스는 IOMMU 없이도 Host Physical Address(HPA)를 통해 임의 host memory 영역에 DMA(H2D)나 D2H coherent access가 가능해, <strong style="font-size:1.1em">out-of-bound access</strong>로 인한 보안 위험이 있다. CXL 2.0의 HPA 범위 사전 지정 보호는 디바이스당 제한된 수의 영역만 지원해 세밀하지 않다. 가상화(SR-IOV)에서도 CXL 디바이스 자체가 MMU급 보호를 갖추지 못하면 hypervisor가 각 VF에 할당된 HPA 범위 필터링을 직접 에뮬레이션해야 하는 부담이 생긴다 — 두 문제 모두 실제 구현·평가 없이 'open challenge'로만 논의됨.</div></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#95A5A6;border-radius:22px;left:620px;top:1940px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">관련 연구 계보: CC-NIC / Dagger / Enzian</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">- <strong style="font-size:1.1em">CC-NIC</strong>[48] (ASPLOS'24): Intel UPI 기반 cache-coherent NIC 인터페이스. 이 논문의 직접 비교 baseline — symmetric NUMA coherence를 가정해 hardware heterogeneity를 반영하지 못한다는 점이 이 논문과의 핵심 차이<br>- <strong style="font-size:1.1em">Dagger</strong>[26], <strong style="font-size:1.1em">Enzian</strong>[7]: proprietary coherence 프로토콜 기반 host-device coherent 시스템의 선행 사례. 범용성이 떨어진다는 것이 이 논문이 CXL(open standard)을 택한 이유<br>- <strong style="font-size:1.1em">STYX</strong>[21] (ATC'23), <strong style="font-size:1.1em">Demystifying a CXL Type-2 Device</strong>[22] (MICRO'24): 같은 저자 그룹(Nam Sung Kim 랩)의 선행 CXL 하드웨어 실측 연구 계보 — 이 논문의 방법론적 뿌리</div></div>
+</div>
+<div class="ng-node" id="node-node_022" style="--color:#BDC3C7;border-radius:22px;left:950px;top:1620px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향과의 연결: single-device를 넘어 multi-node coherence로</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문은 host 1개 ↔ CXL 디바이스 1개라는 <strong style="font-size:1.1em">단일 host-device coherence 관계</strong>에 철저히 국한된다 — CAS 부재로 인한 MPMC 문제조차 '단일 디바이스 내 여러 엔진 간' 문제로 스코프가 좁다. 내가 보려는 multi-node coherence는 이 스코프를 '여러 host·여러 디바이스가 하나의 coherence 도메인을 공유'하는 상황으로 넓히는 문제다. 이 논문이 증명한 '<strong style="font-size:1.1em">CXL.cache가 메모리 확장에 가려진 저평가 영역</strong>'이라는 프레이밍이, 노드가 여러 개로 늘어날 때도 여전히 유효한 통찰인지(혹은 완전히 새로운 원자성·프로토콜 설계가 필요한지)가 내 연구의 출발 질문이 될 수 있다.</div></div>
+</div>
+<div class="ng-node" id="node-node_023" style="--color:#BDC3C7;border-radius:22px;left:950px;top:640px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">왜 CXL+NIC은 자연스럽고 'SSD+NIC(coherence)'는 안 나오는가</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">CXL.cache가 어떤 워크로드와 잘 맞는지는 <strong style="font-size:1.1em">트랜잭션의 단위 크기와 지연 예산</strong>으로 결정된다.<br><br>- <strong style="font-size:1.1em">CXL.cache가 노리는 프로파일</strong>: 작고(64B 캐시라인 단위) 빈번하며, 지연 예산이 마이크로초 이하로 빡빡한 트랜잭션. <strong style="font-size:1.1em">NIC이 정확히 이 프로파일</strong>이다 — 패킷·디스크립터가 64B 단위이고, PCIe 연산이 e2e 지연의 45~52%를 차지할 만큼 오버헤드가 payload 크기 대비 상대적으로 크다(§3.1 실측).<br>- <strong style="font-size:1.1em">CXL.mem이 노리는 프로파일</strong>: 크고(4KB+ 페이지/블록 단위) 대용량이며, 지연보다 <strong style="font-size:1.1em">용량·대역폭</strong>이 병목인 트랜잭션.<br><br><strong style="font-size:1.1em">SSD/flash 워크로드는 후자에 훨씬 가깝다</strong>: I/O 단위가 4KB 이상 블록이고, end-to-end 지연은 이미 flash media 자체의 접근 지연(수십~수백 $\\mu$s)이 지배적이라, PCIe DMA의 setup/completion 오버헤드(수 $\\mu$s)가 상대적으로 무시할만하다 — NIC의 64B 패킷과는 정반대 상황이다. 그래서 SSD가 CXL과 결합할 때 자연스럽게 맞아떨어지는 지점은 `CXL.cache`(세밀한 coherence)가 아니라 `CXL.mem`(Type-3, 용량 확장·메모리 시맨틱)이다 — 실제로 상용/연구용 CXL-SSD(메모리 확장형 CMM-H류, 이 vault의 Smart-Infinity·SkyByte가 다루는 CXL-연결 flash 계열)는 전부 이 경로를 택한다.<br><br><strong style="font-size:1.1em">결론</strong>: 'SSD-NIC'(CXL.cache에 참여하는 coherent SSD)가 자연스럽게 나오지 않는 이유는, SSD의 자연스러운 CXL 결합처가 이미 다른 프로토콜(`CXL.mem`)로 정해져 있고, 그 결합 방식 자체가 CXL.cache가 요구하는 트랜잭션 프로파일(작고 빈번함)과 맞지 않기 때문이다. 이 논문 §1이 스스로 짚는 구도 — 'CXL.mem에 쏠린 연구(=SSD류 디바이스에 자연스러운 영역) 때문에 CXL.cache(=NIC류 디바이스에 자연스러운 영역)가 저평가됐다' — 는 사실 두 프로토콜이 애초에 서로 다른 디바이스 클래스를 겨냥하도록 설계돼 있다는 것의 다른 표현이다.</div></div>
+</div>
+<div class="ng-node" id="node-node_024" style="--color:#BDC3C7;border-radius:22px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">NIC이란 무엇인가</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">NIC(Network Interface Controller/Card)</strong>는 컴퓨터(host)를 외부 네트워크(이더넷 등)에 연결해주는 하드웨어 부품이다 — 서버 메인보드의 PCIe 슬롯에 꽂히는 카드(또는 온보드 칩) 형태로, 흔히 '랜카드'라고도 부른다.<br><br><strong style="font-size:1.1em">하는 일</strong>: 호스트 내부(CPU/메모리)와 외부 네트워크는 서로 다른 '언어'를 쓴다 — 호스트는 메모리 주소·바이트 배열로 데이터를 다루고, 네트워크는 이더넷 프레임(전기/광 신호)으로 데이터를 주고받는다. NIC이 그 사이를 통역한다.<br><br>- <strong style="font-size:1.1em">송신(Tx)</strong>: 호스트가 보낼 데이터를 메모리에 준비 $\\rightarrow$ NIC이 그 데이터를 읽어와 이더넷 패킷으로 포장 $\\rightarrow$ 케이블/광섬유로 전기·광 신호를 내보냄<br>- <strong style="font-size:1.1em">수신(Rx)</strong>: 케이블에서 들어온 신호를 NIC이 이더넷 패킷으로 복원 $\\rightarrow$ 호스트 메모리의 지정된 버퍼에 써 넣고 CPU에 도착을 알림<br><br><strong style="font-size:1.1em">이 논문에서 왜 중요한가</strong>: 호스트가 패킷 하나를 보내거나 받을 때마다 반드시 NIC과 통신해야 하는데, 지금까지 그 통신 수단이 <strong style="font-size:1.1em">PCIe(DMA + MMIO)</strong>였다. 이 논문의 전체 주장은 정확히 이 'host ↔ NIC 통신 수단'을 PCIe에서 CXL.cache로 바꾸자는 것이다 — 즉 NIC 자체(패킷을 만들고 신호로 내보내는 기능)를 재설계하는 게 아니라, <strong style="font-size:1.1em">NIC이 호스트와 대화하는 방식</strong>을 재설계한다.<br><br><strong style="font-size:1.1em">참고</strong>: 이 논문의 비교 대상인 BF-3(NVIDIA BlueField-3)는 'SmartNIC' — 단순히 신호를 주고받는 기본 NIC을 넘어, 자체 ARM 코어·가속기를 내장해 네트워킹 로직(패킷 처리, 가상화 등) 일부를 직접 수행할 수 있는 고급 NIC이다. 이 논문의 CXL-NIC도 FPGA 기반이라는 점에서 넓게 보면 SmartNIC 계열에 속하지만, 강조점은 '지능(compute)'이 아니라 '호스트와의 통신 방식(coherence)'에 있다.</div></div>
+</div>
+<div class="ng-node" id="node-node_025" style="--color:#BDC3C7;border-radius:22px;left:950px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">NIC 1개가 여러 원격 host/device를 동시에 상대한다</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">NIC 하나가 '여러 디바이스를 상대하는가'는 두 가지로 나눠 봐야 한다.<br><br>- <strong style="font-size:1.1em">물리적으로</strong>: host 한 대가 NIC을 여러 장 가질 수 있다(관리망/데이터망 분리, 대역폭 aggregation, 이중화 등). 이때 각 NIC은 host 입장에서 <strong style="font-size:1.1em">독립된 PCIe/CXL 디바이스</strong>다 — 이 논문의 CXL-NIC도 그중 하나일 뿐, 같은 host에 다른 CXL 디바이스(GPU 등)가 동시에 붙을 수 있다.<br>- <strong style="font-size:1.1em">기능적으로</strong>: NIC 한 장은 물리적으로 하나의 링크만 갖지만, 그 하나의 링크로 <strong style="font-size:1.1em">동시에 수많은 원격 host/디바이스와 패킷을 주고받는다</strong> — 패킷 스위칭 네트워크의 본질이 이것이다. NIC은 패킷 헤더의 주소만으로 상대를 구분하지, 상대마다 별도 물리 채널을 쓰지 않는다.<br><br>즉 'NIC = host의 유일한 관문이지만, 그 관문 하나로 네트워크상의 여러 상대를 동시에 상대한다'는 게 정확한 그림이다.</div></div>
+</div>
+<div class="ng-node" id="node-node_026" style="--color:#BDC3C7;border-radius:22px;left:950px;top:960px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">CXL.cache 캐싱의 진짜 원리 — device가 자기 캐시를 갖고, coherence는 '기존 복사본'에만 적용된다</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">(1) 오버헤드를 줄이는 진짜 메커니즘</strong>: 'host 캐시를 그때그때 device에 빌려준다'가 아니라, <strong style="font-size:1.1em">device가 자기 자신의 캐시(이 논문에서 HMC)를 갖고 host 메모리의 코히런트 사본을 그 안에 들고 있는다</strong>는 게 정확하다. DMA는 매번 처음부터 재전송하지만, CXL.cache로 한 번 `CS-read`/`CO-read`한 데이터는 device 로컬 캐시에 남아있고, host가 원본을 바꾸지 않는 한 재요청이 필요 없다(HMC 히트가 host 접근보다 <strong style="font-size:1.1em">3.3배</strong> 빠름, §4.3). Host가 원본을 바꾸면 <strong style="font-size:1.1em">소프트웨어가 아니라 하드웨어가 자동으로 device의 캐시를 무효화</strong>시킨다 — PCIe였다면 이 무효화 타이밍 판단을 소프트웨어가 직접(explicit flush) 했어야 한다.<br><br><strong style="font-size:1.1em">(2) Coherence는 '이미 존재하는 복사본'에만 적용된다</strong>: coherence가 필요한 조건은 '같은 데이터의 복사본이 host와 device(들)에 동시에 존재하는 것'이다 — device 하나만 있어도 이미 host 사본 + device 사본 2개가 있으니 coherence가 필요하다(CPU 코어 여러 개의 L1/L2 캐시끼리 coherence가 필요한 것과 같은 원리를, CXL.cache가 device 캐시까지 확장한 것). 반대로 <strong style="font-size:1.1em">device가 방금 스스로 생성한 데이터(예: 네트워크에서 막 도착한 패킷)는 애초에 '지킬 기존 복사본'이 없다</strong> — host에 원본이 있던 게 아니라 device가 처음 만든 것이므로, 이건 coherence 문제가 아니라 그냥 일회성 데이터 이동(one-shot transfer)이다.<br><br><strong style="font-size:1.1em">결론</strong>: '반복 참조되는, host가 원본을 가진 데이터'(RxD 디스크립터)는 `CS-read`/`CO-read`(캐싱)로, '한 번 쓰고 끝나는, device가 새로 만든 데이터'(패킷 payload)는 `NC-write`(비캐싱)로 — 이 논문의 Rx/Tx request-type 배분 전략이 정확히 이 원리를 따른다.</div></div>
+</div>
+<div class="ng-node" id="node-node_027" style="--color:#1ABC9C;border-radius:22px;left:1150px;top:640px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">SSD가 CXL.cache의 device cache 역할을 못하는 물리적 이유</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">'캐시를 SSD에 저장한다'는 리프레이밍 자체는 개념적으로 성립하지만, 그 순간 SSD에게 CXL.cache의 device cache가 요구하는 세 조건을 동시에 만족하라고 요구하게 되는데, 셋 다 NAND flash의 물리적 본질과 정반대다.<br><br>- <strong style="font-size:1.1em">속도(latency)</strong>: CXL.cache의 device cache는 coherence probe/invalidation에 서브-마이크로초로 반응해야 한다(HMC 히트가 host 접근보다 3.3배 빠른 이유이기도 함). NAND flash는 read 수십~백$\\mu$s, write 수백$\\mu$s~ms, erase는 ms 단위 — coherence가 요구하는 반응속도를 원천적으로 못 맞춘다.<br>- <strong style="font-size:1.1em">단위 크기(granularity)</strong>: coherence는 64B 캐시라인 단위로 상태를 추적하는데, NAND flash의 물리적 read/write 단위는 4~16KB 페이지, erase 단위는 그보다 훨씬 큰 블록(MB급)이다. 64B짜리 트랜잭션 하나가 SSD 쪽에서는 그보다 몇백 배 큰 단위를 건드리는 극단적 write amplification을 유발한다.<br>- <strong style="font-size:1.1em">내구성(endurance)</strong>: 캐시는 원래 초당 수백만 번 덮어써져도 되는 게 정상 동작이다(SRAM/DRAM은 마모 없음). NAND flash는 셀당 P/E 사이클 수명 한계가 있어, 캐시처럼 쓰면 순식간에 마모된다.<br><br><strong style="font-size:1.1em">결론</strong>: 이건 '뭐라고 부르냐(캐시 vs 저장소)'의 개념 문제가 아니라, coherence 프로토콜이 요구하는 물리적 성질(빠름·작은 단위·무한 덮어쓰기)과 NAND flash의 물리적 성질(느림·큰 단위·마모 한계)이 근본적으로 어긋난다는 하드웨어 문제다.</div></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_028" style="--color:#BDC3C7;border-radius:22px;left:950px;top:800px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">CXL Type-1/2/3 구분 — 누가 누구를 캐싱/메모리로 쓰는가</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">세 타입의 차이는 프로토콜 조합보다 <strong style="font-size:1.1em">방향</strong>으로 이해하는 게 정확하다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Type</th><th>프로토콜</th><th>핵심 동작</th><th>방향</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">Type-1</strong></td><td>`CXL.io` + `CXL.cache`</td><td>device가 <strong style="font-size:1.1em">자기 자신의 캐시</strong>에 host 메모리의 코히런트 사본을 들고 있음(host의 캐시를 빌리는 게 아니라 device 자체 캐시가 host 메모리를 미러링)</td><td>Device가 Host를 캐싱 (D2H)</td></tr><tr><td><strong style="font-size:1.1em">Type-3</strong></td><td>`CXL.io` + `CXL.mem`</td><td>device 메모리를 host가 자기 메모리처럼(원격 NUMA 노드처럼) 접근</td><td>Host가 Device를 메모리로 사용 (H2D)</td></tr><tr><td><strong style="font-size:1.1em">Type-2</strong></td><td>`CXL.io` + `CXL.cache` + `CXL.mem`</td><td>Type-1(D2H 캐싱) + Type-3(H2D 메모리) 둘 다 + device가 자기 메모리에 직접 접근(D2D)까지</td><td>양방향</td></tr></tbody></table></div><div class="ng-seg"><br>이 논문의 Type-1 CXL-NIC이 §4.1에서 스스로 '온디바이스 메모리 없음'이라 명시하는 것도 이 표와 정확히 일치한다 — Type-3의 핵심 요소(device memory)가 Type-1에는 애초에 없다는 뜻이다. Type-2는 이 둘의 단순 합집합이 아니라, 두 방향(D2H 캐싱 + H2D 메모리)이 <strong style="font-size:1.1em">동시에</strong> 성립하면서 서로 다른 데이터 배치 자유도(레이아웃 L1-L4)를 만들어낸다는 점이 실제 설계의 재미있는 지점이다.</div></div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":260,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":260,"searchText":"killer application 이 논문은 두 개의 독립적으로 remarkable한 기여를 갖는다.\n\n**1. cxl.cache로 pcie의 nic i/o를 실제로 대체하는 fpga 하드웨어 구현** — cxl 연구의 대부분이 `cxl.mem`(type-3, 메모리 확장)에 쏠려 있는 동안 상대적으로 덜 탐구됐던 `cxl.cache`(type-1/2)를, 소형·고빈도 패킷 통신이라는 pcie가 가장 취약한 워크로드에 정면으로 적용한다.\n\n**2. networking과 application을 cxl coherence로 관통하는 co-acceleration** — 단순히 nic-호스트 통신만 빠르게 하는 게 아니라, nic 메모리에 key-value store(kvs)를 직접 얹어 host-bias/device-bias 모드를 동적으로 전환하며 hot/cold 데이터를 계층화한다. 네트워킹 계층 최적화가 애플리케이션 계층까지 투명하게 이어진다는 것이 핵심. we contend that network interface controllers (nics) represent a particularly compelling, indeed a 'killer application' for harnessing the power of cxl's cache coherence."},{"id":"node_002","lx":100,"ly":560,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":560,"searchText":"필요한 이유 (why it's needed) pcie 기반 nic의 두 가지 구조적 한계가 출발점이다.\n\n- **dma-only**: load/store가 아닌 dma만 지원 $\\rightarrow$ 대량 전송엔 유리하지만 64b 디스크립터 같은 소형·고빈도 전송엔 setup/completion 오버헤드가 상대적으로 커짐\n- **no coherence**: 호스트-디바이스 간 공유 메모리·캐시 일관성 부재 $\\rightarrow$ mmio는 512b 기준 8$\\mu$s 이상의 지연, 0.3gb/s 미만의 대역폭. 소프트웨어가 explicit flush·pinning·barrier로 일관성을 직접 관리해야 함\n\n실측 결과, 64b 패킷 기준 **e2e 지연의 52%가 pcie 연산 자체에서 발생**한다(1500b에서는 45%). 이건 이미 알려진 문제였지만, 이 논문이 강조하는 진짜 사각지대는 따로 있다: cxl 연구·산업의 초점이 대부분 메모리 확장(`cxl.mem`, type-3)에 쏠려 있어, 정작 device-to-host coherence의 핵심인 `cxl.cache`(type-1/2)는 상대적으로 덜 탐구되어 왔다는 점이다. this focus on memory expansion inadvertently overshadows the potential residing within the cxl.cache protocol, a key feature of cxl type-1 and type-2 devices."},{"id":"node_003","lx":100,"ly":860,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":860,"searchText":"해결책 (solution) cxl.cache의 4가지 요청 타입(`nc-read/write`, `nc-p`, `cs-read`, `co-read`)을 rx/tx 데이터패스 각 단계의 특성에 맞춰 세밀하게 배분하는 것이 핵심 설계 원리다. type-1(온디바이스 메모리 없음) 아키텍처로 시작해 cxl.cache 자체의 순수 이점을 격리 측정하고, 그 위에 type-2(coherent on-device memory 보유)를 얹어 버퍼 배치 자유도를 얻고, 마지막으로 key-value store 애플리케이션을 통합해 networking-application co-acceleration까지 보인다 — 세 단계가 점진적으로 쌓이는 구조. cxl-nic leverages cxl protocols to orchestrate low-latency packet transfers between the host cpu and nic."},{"id":"node_004","lx":100,"ly":1160,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1160,"searchText":"결과 (results) | 항목 | 수치 |\n|---|---|\n| 패킷 처리 지연 (vs bf-3 pcie nic) | **49%** 감소 |\n| kvs 요청 처리 지연 (vs smartnic) | **39%** 감소 |\n| 최적 request 조합(comb.0)의 median/p99 지연 | bf-3 대비 **46%/49%(64b)** 감소 |\n| cc-nic 대비 latency-optimal 설계 | median **37%** 감소 |\n\n세부 결과는 하위 노드 참고. "},{"id":"node_005","lx":100,"ly":1460,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1460,"searchText":"결론 (conclusion) cxl.cache 기반 coherence, coherent nic memory, application co-acceleration이라는 세 축을 하나의 하드웨어-소프트웨어 co-design(cxl-nic)으로 통합해 보였다. 저자들이 스스로 명시한 한계는 cxl 1.1의 cas 부재(mpmc 큐 문제), 세밀하지 않은 hpa 기반 보안 모델, fpga 클럭 제약(400mhz)에 따른 절대 수치의 하드웨어 세대 종속성이다. cxl.cache가 '메모리 확장에 가려진 저평가 영역'이라는 이 논문의 문제의식은, 단일 host-device 관계를 넘어 여러 노드·여러 디바이스가 참여하는 coherence 도메인으로 자연스럽게 이어질 수 있는 여지를 남긴다. we present cxl-nic, a novel hardware-software co-design for high-performance nic, leveraging the great potential of the emerging cxl protocols."},{"id":"node_006","lx":620,"ly":320,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":320,"searchText":"pcie의 두 가지 구조적 한계 - **dma-only**: device-to-host memory access가 load/store를 지원하지 않고 dma에만 의존 $\\rightarrow$ setup·completion 오버헤드가 소형·고빈도 전송(예: 64b 디스크립터)에서 특히 비효율적\n- **no coherence**: 호스트 cpu-디바이스 간 공유 메모리·캐시 일관성 부재 $\\rightarrow$ cpu는 mmio로만 디바이스 메모리 접근 가능(512b 기준 **8$\\mu$s 초과 지연**, **0.3gb/s 미만 대역폭**). 소프트웨어가 explicit cache flush, memory pinning, memory barrier로 일관성을 직접 관리해야 해 프로그래밍이 복잡해지고 지연이 추가됨 pcie does not support load/store semantics for device-to-host memory access, instead relying on direct memory access (dma)."},{"id":"node_007","lx":620,"ly":480,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":480,"searchText":"pcie 지연 실측: e2e 지연의 45~52% dpdk 기반 ping-pong 마이크로벤치마크로 pcie가 e2e 패킷 지연에 기여하는 비중을 직접 측정했다.\n\n| 패킷 크기 | pcie 기여 비중 |\n|---|---|\n| 64b | 52% |\n| 1500b (mtu) | 45% |\n\n처리량이 1$\\rightarrow$64gbps로 증가하면 이 비중은 57%$\\rightarrow$52%로 감소한다 — dpdk의 배칭이 mmio 도어벨 빈도를 낮추기 때문. 다만 상대적 비중이 줄어도 **절대 지연은 지연 민감 워크로드에 여전히 치명적**이라는 것이 저자들의 강조점. "},{"id":"node_008","lx":620,"ly":640,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":640,"searchText":"cxl 연구의 사각지대: cxl.cache vs cxl.mem cxl은 `cxl.io`/`cxl.cache`/`cxl.mem` 세 프로토콜을 제공하지만, 지금까지의 cxl 연구·산업 관심은 거의 전부 `cxl.mem` 기반 type-3 디바이스(메모리 확장·용량/대역폭 스케일링)에 쏠려 있었다. 이 논문은 그 흐름에서 벗어나 type-1/2 디바이스의 `cxl.cache`(device가 host의 coherence 도메인에 직접 참여하는 능력)로 연구 렌즈를 명시적으로 옮긴다는 점에서, 이 논문 자체가 하나의 gap-filling 시도다. therefore, this work shifts the research lens towards cxl type-1 and type-2 devices, conducting a focused exploration of the performance advantages unlocked by their inherent cache coherence support."},{"id":"node_009","lx":620,"ly":720,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":720,"searchText":"type-1 cxl-nic 아키텍처: dmu + pfu type-1 cxl-nic(온디바이스 메모리 없음)은 네 컴포넌트로 구성된다.\n\n- **network interface**: nic ↔ 이더넷 간 양방향 패킷 통신\n- **descriptor management unit (dmu)**: rxd/txd 검색, 패킷 버퍼 주소 추출, 전송 완료 상태 갱신\n- **packet forwarding unit (pfu)**: nic ↔ 패킷 버퍼 간 실제 패킷 이동. 버스트 트래픽 대응용 1mb sram 내장\n- **csr/mmio space**: `cxl.io`를 통해 매핑, 초기화·런타임 설정(레거시 호환용, 드물게만 사용)\n\ndmu와 pfu는 dcoh(device coherence engine)에 **서로 다른 포트로 접속**해 디스크립터 관리와 데이터 전송 간의 경합(contention)을 원천적으로 막는다.\n\n[[img:fig5_type1_architecture.png:900x430]] this cxl-nic consists of four core components: ❶ network interface facilitates bidirectional packet communication between the nic and the ethernet network; ❷ descriptor management unit (dmu)... ❸ packet forwarding unit (pfu)... ❹ csr/mmio space..."},{"id":"node_010","lx":620,"ly":880,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":880,"searchText":"rx/tx 데이터패스의 request-type 배분 전략 | 단계 | 요청 타입 | 이유 |\n|---|---|---|\n| rx: rxd 프리페치 | `cs-read` | 읽기 전용이라 ownership 오버헤드 없이 shared 상태로 캐싱 |\n| rx: rxd 확보 | `co-read` | hmc에서 직접 히트, host 접근보다 3.3배 빠름 |\n| rx: 패킷 전송 | `nc-write` | device cache를 우회해 패킷 데이터로 인한 캐시 오염 방지 |\n| tx: tail index polling | `co-read` (event-driven) | host의 `st`가 자동으로 캐시 무효화를 트리거 $\\rightarrow$ 불필요한 폴링 트래픽 제거 |\n| tx: txd 페치 | `nc-read` | |\n| tx: 완료 신호 | `nc-write` | |\n\n핵심은 **읽기 전용·재사용 데이터는 캐싱(`cs`/`co`)해서 재활용**하고, **한 번 쓰고 마는 실제 패킷 데이터는 캐시를 우회(`nc`)**해서 오염을 막는 비대칭 전략이다. in cxl-nic, we leverage these request types deliberately at each step of the rx/tx flow described in section 4.2."},{"id":"node_011","lx":620,"ly":1040,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1040,"searchText":"type-2: coherent nic memory와 4가지 버퍼 레이아웃 cxl.mem으로 nic 메모리를 host에 remote numa node처럼 노출한다. rx/tx 각각의 패킷 버퍼·디스크립터 링을 host memory 또는 nic memory 어디에 둘지 4가지 조합이 가능하다.\n\n| 레이아웃 | rx 구조 위치 | tx 구조 위치 |\n|---|---|---|\n| l1 | host memory | host memory |\n| l2 | nic memory | host memory |\n| l3 | host memory | nic memory |\n| l4 | nic memory | nic memory |\n\n**반직관적으로 l1(모두 host memory)이 가장 빠르다** — nic memory에 두면(l2-l4) cxl 인터커넥트 홉이 추가되고 host-bias 모드의 coherence 체크 오버헤드가 붙기 때문. 자세한 수치는 results 참고. "},{"id":"node_012","lx":620,"ly":1200,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1200,"searchText":"nc-p와 두 가지 완화 기법 `nc-p`(push-write)는 device가 데이터를 host llc로 먼저 밀어넣어, 이후 host의 `ld`가 로컬 캐시 hit이 되게 하는 최적화다. intel ddio와 비슷한 목적이지만, 무분별하게 쓰면 llc를 오염시켜 오히려 성능을 해친다. 두 가지 완화 기법:\n\n- **(1) adaptive push-write gating**: 런타임 설정 가능한 플래그 레지스터로, llc 이용률이 임계치에 다가가면 host cpu가 `nc-p`를 끄고 `nc-write`로 되돌림. ddio의 정적(static) llc 리다이렉션과 달리 세밀한 제어 가능\n- **(2) post-push write-back**: `nc-p` 후 $n$ 사이클 뒤 지연된 `nc-write`를 같은 주소에 발행해 host llc의 캐시 라인을 무효화하고 device memory로 다시 씀. $n$ 사이클 안에 host가 데이터를 접근하지 않으면 `nc-p`의 지연 이점이 사라지는 시간 트레이드오프가 있어, $n$ 값을 디바이스 레지스터로 조정 가능하게 함 "},{"id":"node_013","lx":620,"ly":1360,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1360,"searchText":"kvs networking-application co-acceleration key-value store를 type-2 cxl-nic 위에 직접 얹는다. nic 메모리는 host cpu가 미리 올려둔 '핫(hot)' key-value 쌍의 부분집합을 캐싱하고, host memory는 '콜드(cold)' 데이터의 확장 가능한 백엔드 역할을 한다.\n\n요청 처리 흐름: 키를 해싱 $\\rightarrow$ **hit**이면 nic 메모리의 해시 테이블을 `d2d cs-read`로 조회하고 값을 `d2d nc-read`로 읽어 로컬에서 즉시 응답(host 접근 없이, **device-bias mode**로 coherence 체크 자체를 생략). **miss**면 **host-bias mode**로 전환해 `d2h co-read`로 host 데이터베이스에서 값을 가져와 응답하고, 비동기로 `d2d nc-write`를 통해 nic 메모리에 저장하며 lru 항목을 background swap으로 host에 되돌린다.\n\n[[img:fig9_kvs_coacceleration.png:850x430]] this tiered database placement design, unified through cxl's hardware-coherent memory semantics, ensures low-latency access to 'hot' data in nic memory and efficient capacity expansion for 'cold' data in host memory."},{"id":"node_014","lx":620,"ly":1520,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1520,"searchText":"왜 type-1과 type-2를 나눠 설계했나 type-1(메모리 없음)을 먼저 설계해 cxl.cache 자체의 순수 이점(host memory만 쓸 때도 pcie보다 빠른가?)을 격리해서 측정하고, 그 위에 type-2(coherent nic memory 추가)를 얹어 '메모리를 nic에 두면 항상 좋은가?'라는 별개 질문을 분리해서 답한다. 이 점진적 구조 덕분에 §7.2의 반직관적 결과(nic memory 배치가 오히려 느릴 수 있다)가 명확하게 드러날 수 있었다 — 두 기여를 한 번에 섞었다면 이 결과의 원인 분리가 어려웠을 것. "},{"id":"node_015","lx":620,"ly":1020,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1020,"searchText":"요청 타입 조합별 loopback latency rx/txd/tx 각 단계에서 쓸 cxl request type 조합 8가지(comb. 0-7)를 비교한 결과, **전 구간에서 non-coherent `nc`만 사용하는 comb.0이 최적**이다: bf-3 대비 median **46%**, p99 **49%(64b) / 38%(1500b)** 지연 감소.\n\n- `nc-read`$\\rightarrow$`cs-read`로 바꾸면(tx 전송) 캐시 라인이 shared 상태로 들어가며 coherence 트래픽이 늘어 median 17%(64b)/13%(1500b) 지연 증가\n- `co-write`는 exclusive ownership 획득 오버헤드로 15%(64b)/19%(1500b) 지연 증가\n- `co-read` 기반 txd 폴링은 대역폭은 아끼지만 exclusiveness 획득 트래픽으로 19%(64b)/13%(1500b) 지연 페널티\n\n**결론**: 데이터 이동(data movement)은 캐시-투-캐시 전송을 피하는 `nc` 요청을, 동기화(synchronization)는 대역폭을 아끼기 위한 캐시 가능(`co-read`) 요청을 쓰는 **decoupled coherence 전략**이 유효하다. "},{"id":"node_016","lx":620,"ly":1180,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1180,"searchText":"처리량과 배칭 효과 이론적 처리량 상한(400mhz, 64b/cycle $\\rightarrow$ 204gbps) 대비: rx `nc-write`/`nc-p`는 **90%**, tx `nc-read`는 **62%**만 달성 — tx가 d2h 접근을 인터커넥트로 **2회 왕복**해야 하는 반면 rx는 d2h write가 **단방향(single-trip)**이라는 구조적 비대칭 때문.\n\n배칭(batch size $n$)으로 동기화 오버헤드를 패킷 여러 개에 분산시키면 격차가 크게 줄어든다: 1500b 패킷 기준 rx는 batch=8에서 최대 처리량의 **95%**, tx는 batch=32에서 **88%**(배칭 없이는 31%)까지 개선. "},{"id":"node_017","lx":620,"ly":1340,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1340,"searchText":"반직관적 결과: nic memory 배치가 항상 빠르지 않다 패킷 버퍼·디스크립터를 **nic memory에 두면(l2-l4) 오히려 host memory에만 두는 l1보다 느리다**: 64b/1500b 패킷 기준 l2는 23%/38%, l3는 54%/35%, l4는 71%/74% 더 높은 median/p99 지연.\n\n원인 두 가지: (1) nic memory 접근은 cxl 인터커넥트를 추가로 거쳐야 함, (2) host-bias 모드의 coherence 체크(host cpu와의 검증)가 d2d 접근의 공간 지역성 이점을 상쇄함. 즉 **'디바이스 로컬 메모리 = 항상 빠름'이라는 직관이 coherence 오버헤드 앞에서 무너진다** — uninformed data placement가 오히려 성능을 해칠 수 있다는 저자들의 §1 경고가 실측으로 확인된 지점. "},{"id":"node_018","lx":620,"ly":1500,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1500,"searchText":"cc-nic 대비 우위와 kvs 애플리케이션 성능 버퍼 배치와 request type을 함께 최적화한 latency-optimal 설계(rx는 nic memory, tx는 host memory)가 cc-nic[48] 대비 64b-1500b 구간 평균 median **37%** 낮은 지연을 보인다. cc-nic은 intel upi의 symmetric numa coherence를 가정한 설계라, 이 논문이 지적하는 hardware heterogeneity(호스트-디바이스 간 클럭·대역폭 비대칭)를 반영하지 못한다는 것이 우위의 근거.\n\nkvs 애플리케이션 평가(smartnic 기반 rambda[61] 방법론 사용): zipfian 분포 read-only 워크로드에서 median **18%**, p99 **39%** 지연 감소. 균일(uniform) 분포에서는 median이 오히려 **20%** 증가(p99는 변화 없음) — locality 이점이 사라지면 host memory 접근이 잦아지기 때문. "},{"id":"node_019","lx":620,"ly":1620,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1620,"searchText":"cxl 1.1의 한계: cas 부재로 인한 mpmc 문제 cxl 1.1은 compare-and-swap(cas) 같은 원자적 연산을 지원하지 않는다. tx 경로에서 여러 cxl-nic 엔진이 동시에 shared tail index(디스크립터 링 버퍼의 head/tail)를 갱신해야 하는 **multiple-producer-multiple-consumer(mpmc)** 상황에서, cas 없이는 디스크립터 중복 처리나 유실이 발생할 수 있다. 저자들은 이를 cxl 2.0+에서의 원자 연산 지원을 기다려야 하는 **미해결 과제**로 명시적으로 남겨둔다. without cas, this coordination is unsafe, leading to potential descriptor duplication or loss."},{"id":"node_020","lx":620,"ly":1780,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1780,"searchText":"보안·가상화의 열린 문제 cxl 디바이스는 iommu 없이도 host physical address(hpa)를 통해 임의 host memory 영역에 dma(h2d)나 d2h coherent access가 가능해, **out-of-bound access**로 인한 보안 위험이 있다. cxl 2.0의 hpa 범위 사전 지정 보호는 디바이스당 제한된 수의 영역만 지원해 세밀하지 않다. 가상화(sr-iov)에서도 cxl 디바이스 자체가 mmu급 보호를 갖추지 못하면 hypervisor가 각 vf에 할당된 hpa 범위 필터링을 직접 에뮬레이션해야 하는 부담이 생긴다 — 두 문제 모두 실제 구현·평가 없이 'open challenge'로만 논의됨. "},{"id":"node_021","lx":620,"ly":1940,"children":[],"template":"reference","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1940,"searchText":"관련 연구 계보: cc-nic / dagger / enzian - **cc-nic**[48] (asplos'24): intel upi 기반 cache-coherent nic 인터페이스. 이 논문의 직접 비교 baseline — symmetric numa coherence를 가정해 hardware heterogeneity를 반영하지 못한다는 점이 이 논문과의 핵심 차이\n- **dagger**[26], **enzian**[7]: proprietary coherence 프로토콜 기반 host-device coherent 시스템의 선행 사례. 범용성이 떨어진다는 것이 이 논문이 cxl(open standard)을 택한 이유\n- **styx**[21] (atc'23), **demystifying a cxl type-2 device**[22] (micro'24): 같은 저자 그룹(nam sung kim 랩)의 선행 cxl 하드웨어 실측 연구 계보 — 이 논문의 방법론적 뿌리 "},{"id":"node_022","lx":950,"ly":1620,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1620,"searchText":"내 연구방향과의 연결: single-device를 넘어 multi-node coherence로 이 논문은 host 1개 ↔ cxl 디바이스 1개라는 **단일 host-device coherence 관계**에 철저히 국한된다 — cas 부재로 인한 mpmc 문제조차 '단일 디바이스 내 여러 엔진 간' 문제로 스코프가 좁다. 내가 보려는 multi-node coherence는 이 스코프를 '여러 host·여러 디바이스가 하나의 coherence 도메인을 공유'하는 상황으로 넓히는 문제다. 이 논문이 증명한 '**cxl.cache가 메모리 확장에 가려진 저평가 영역**'이라는 프레이밍이, 노드가 여러 개로 늘어날 때도 여전히 유효한 통찰인지(혹은 완전히 새로운 원자성·프로토콜 설계가 필요한지)가 내 연구의 출발 질문이 될 수 있다. "},{"id":"node_023","lx":950,"ly":640,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":640,"searchText":"왜 cxl+nic은 자연스럽고 'ssd+nic(coherence)'는 안 나오는가 cxl.cache가 어떤 워크로드와 잘 맞는지는 **트랜잭션의 단위 크기와 지연 예산**으로 결정된다.\n\n- **cxl.cache가 노리는 프로파일**: 작고(64b 캐시라인 단위) 빈번하며, 지연 예산이 마이크로초 이하로 빡빡한 트랜잭션. **nic이 정확히 이 프로파일**이다 — 패킷·디스크립터가 64b 단위이고, pcie 연산이 e2e 지연의 45~52%를 차지할 만큼 오버헤드가 payload 크기 대비 상대적으로 크다(§3.1 실측).\n- **cxl.mem이 노리는 프로파일**: 크고(4kb+ 페이지/블록 단위) 대용량이며, 지연보다 **용량·대역폭**이 병목인 트랜잭션.\n\n**ssd/flash 워크로드는 후자에 훨씬 가깝다**: i/o 단위가 4kb 이상 블록이고, end-to-end 지연은 이미 flash media 자체의 접근 지연(수십~수백 $\\\\mu$s)이 지배적이라, pcie dma의 setup/completion 오버헤드(수 $\\\\mu$s)가 상대적으로 무시할만하다 — nic의 64b 패킷과는 정반대 상황이다. 그래서 ssd가 cxl과 결합할 때 자연스럽게 맞아떨어지는 지점은 `cxl.cache`(세밀한 coherence)가 아니라 `cxl.mem`(type-3, 용량 확장·메모리 시맨틱)이다 — 실제로 상용/연구용 cxl-ssd(메모리 확장형 cmm-h류, 이 vault의 smart-infinity·skybyte가 다루는 cxl-연결 flash 계열)는 전부 이 경로를 택한다.\n\n**결론**: 'ssd-nic'(cxl.cache에 참여하는 coherent ssd)가 자연스럽게 나오지 않는 이유는, ssd의 자연스러운 cxl 결합처가 이미 다른 프로토콜(`cxl.mem`)로 정해져 있고, 그 결합 방식 자체가 cxl.cache가 요구하는 트랜잭션 프로파일(작고 빈번함)과 맞지 않기 때문이다. 이 논문 §1이 스스로 짚는 구도 — 'cxl.mem에 쏠린 연구(=ssd류 디바이스에 자연스러운 영역) 때문에 cxl.cache(=nic류 디바이스에 자연스러운 영역)가 저평가됐다' — 는 사실 두 프로토콜이 애초에 서로 다른 디바이스 클래스를 겨냥하도록 설계돼 있다는 것의 다른 표현이다. "},{"id":"node_024","lx":620,"ly":100,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"searchText":"nic이란 무엇인가 **nic(network interface controller/card)**는 컴퓨터(host)를 외부 네트워크(이더넷 등)에 연결해주는 하드웨어 부품이다 — 서버 메인보드의 pcie 슬롯에 꽂히는 카드(또는 온보드 칩) 형태로, 흔히 '랜카드'라고도 부른다.\n\n**하는 일**: 호스트 내부(cpu/메모리)와 외부 네트워크는 서로 다른 '언어'를 쓴다 — 호스트는 메모리 주소·바이트 배열로 데이터를 다루고, 네트워크는 이더넷 프레임(전기/광 신호)으로 데이터를 주고받는다. nic이 그 사이를 통역한다.\n\n- **송신(tx)**: 호스트가 보낼 데이터를 메모리에 준비 $\\\\rightarrow$ nic이 그 데이터를 읽어와 이더넷 패킷으로 포장 $\\\\rightarrow$ 케이블/광섬유로 전기·광 신호를 내보냄\n- **수신(rx)**: 케이블에서 들어온 신호를 nic이 이더넷 패킷으로 복원 $\\\\rightarrow$ 호스트 메모리의 지정된 버퍼에 써 넣고 cpu에 도착을 알림\n\n**이 논문에서 왜 중요한가**: 호스트가 패킷 하나를 보내거나 받을 때마다 반드시 nic과 통신해야 하는데, 지금까지 그 통신 수단이 **pcie(dma + mmio)**였다. 이 논문의 전체 주장은 정확히 이 'host ↔ nic 통신 수단'을 pcie에서 cxl.cache로 바꾸자는 것이다 — 즉 nic 자체(패킷을 만들고 신호로 내보내는 기능)를 재설계하는 게 아니라, **nic이 호스트와 대화하는 방식**을 재설계한다.\n\n**참고**: 이 논문의 비교 대상인 bf-3(nvidia bluefield-3)는 'smartnic' — 단순히 신호를 주고받는 기본 nic을 넘어, 자체 arm 코어·가속기를 내장해 네트워킹 로직(패킷 처리, 가상화 등) 일부를 직접 수행할 수 있는 고급 nic이다. 이 논문의 cxl-nic도 fpga 기반이라는 점에서 넓게 보면 smartnic 계열에 속하지만, 강조점은 '지능(compute)'이 아니라 '호스트와의 통신 방식(coherence)'에 있다. "},{"id":"node_025","lx":950,"ly":100,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":100,"searchText":"nic 1개가 여러 원격 host/device를 동시에 상대한다 nic 하나가 '여러 디바이스를 상대하는가'는 두 가지로 나눠 봐야 한다.\n\n- **물리적으로**: host 한 대가 nic을 여러 장 가질 수 있다(관리망/데이터망 분리, 대역폭 aggregation, 이중화 등). 이때 각 nic은 host 입장에서 **독립된 pcie/cxl 디바이스**다 — 이 논문의 cxl-nic도 그중 하나일 뿐, 같은 host에 다른 cxl 디바이스(gpu 등)가 동시에 붙을 수 있다.\n- **기능적으로**: nic 한 장은 물리적으로 하나의 링크만 갖지만, 그 하나의 링크로 **동시에 수많은 원격 host/디바이스와 패킷을 주고받는다** — 패킷 스위칭 네트워크의 본질이 이것이다. nic은 패킷 헤더의 주소만으로 상대를 구분하지, 상대마다 별도 물리 채널을 쓰지 않는다.\n\n즉 'nic = host의 유일한 관문이지만, 그 관문 하나로 네트워크상의 여러 상대를 동시에 상대한다'는 게 정확한 그림이다. "},{"id":"node_026","lx":950,"ly":960,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":960,"searchText":"cxl.cache 캐싱의 진짜 원리 — device가 자기 캐시를 갖고, coherence는 '기존 복사본'에만 적용된다 **(1) 오버헤드를 줄이는 진짜 메커니즘**: 'host 캐시를 그때그때 device에 빌려준다'가 아니라, **device가 자기 자신의 캐시(이 논문에서 hmc)를 갖고 host 메모리의 코히런트 사본을 그 안에 들고 있는다**는 게 정확하다. dma는 매번 처음부터 재전송하지만, cxl.cache로 한 번 `cs-read`/`co-read`한 데이터는 device 로컬 캐시에 남아있고, host가 원본을 바꾸지 않는 한 재요청이 필요 없다(hmc 히트가 host 접근보다 **3.3배** 빠름, §4.3). host가 원본을 바꾸면 **소프트웨어가 아니라 하드웨어가 자동으로 device의 캐시를 무효화**시킨다 — pcie였다면 이 무효화 타이밍 판단을 소프트웨어가 직접(explicit flush) 했어야 한다.\n\n**(2) coherence는 '이미 존재하는 복사본'에만 적용된다**: coherence가 필요한 조건은 '같은 데이터의 복사본이 host와 device(들)에 동시에 존재하는 것'이다 — device 하나만 있어도 이미 host 사본 + device 사본 2개가 있으니 coherence가 필요하다(cpu 코어 여러 개의 l1/l2 캐시끼리 coherence가 필요한 것과 같은 원리를, cxl.cache가 device 캐시까지 확장한 것). 반대로 **device가 방금 스스로 생성한 데이터(예: 네트워크에서 막 도착한 패킷)는 애초에 '지킬 기존 복사본'이 없다** — host에 원본이 있던 게 아니라 device가 처음 만든 것이므로, 이건 coherence 문제가 아니라 그냥 일회성 데이터 이동(one-shot transfer)이다.\n\n**결론**: '반복 참조되는, host가 원본을 가진 데이터'(rxd 디스크립터)는 `cs-read`/`co-read`(캐싱)로, '한 번 쓰고 끝나는, device가 새로 만든 데이터'(패킷 payload)는 `nc-write`(비캐싱)로 — 이 논문의 rx/tx request-type 배분 전략이 정확히 이 원리를 따른다. "},{"id":"node_027","lx":1150,"ly":640,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":640,"searchText":"ssd가 cxl.cache의 device cache 역할을 못하는 물리적 이유 '캐시를 ssd에 저장한다'는 리프레이밍 자체는 개념적으로 성립하지만, 그 순간 ssd에게 cxl.cache의 device cache가 요구하는 세 조건을 동시에 만족하라고 요구하게 되는데, 셋 다 nand flash의 물리적 본질과 정반대다.\n\n- **속도(latency)**: cxl.cache의 device cache는 coherence probe/invalidation에 서브-마이크로초로 반응해야 한다(hmc 히트가 host 접근보다 3.3배 빠른 이유이기도 함). nand flash는 read 수십~백$\\\\mu$s, write 수백$\\\\mu$s~ms, erase는 ms 단위 — coherence가 요구하는 반응속도를 원천적으로 못 맞춘다.\n- **단위 크기(granularity)**: coherence는 64b 캐시라인 단위로 상태를 추적하는데, nand flash의 물리적 read/write 단위는 4~16kb 페이지, erase 단위는 그보다 훨씬 큰 블록(mb급)이다. 64b짜리 트랜잭션 하나가 ssd 쪽에서는 그보다 몇백 배 큰 단위를 건드리는 극단적 write amplification을 유발한다.\n- **내구성(endurance)**: 캐시는 원래 초당 수백만 번 덮어써져도 되는 게 정상 동작이다(sram/dram은 마모 없음). nand flash는 셀당 p/e 사이클 수명 한계가 있어, 캐시처럼 쓰면 순식간에 마모된다.\n\n**결론**: 이건 '뭐라고 부르냐(캐시 vs 저장소)'의 개념 문제가 아니라, coherence 프로토콜이 요구하는 물리적 성질(빠름·작은 단위·무한 덮어쓰기)과 nand flash의 물리적 성질(느림·큰 단위·마모 한계)이 근본적으로 어긋난다는 하드웨어 문제다. "},{"id":"node_028","lx":950,"ly":800,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":800,"searchText":"cxl type-1/2/3 구분 — 누가 누구를 캐싱/메모리로 쓰는가 세 타입의 차이는 프로토콜 조합보다 **방향**으로 이해하는 게 정확하다.\n\n| type | 프로토콜 | 핵심 동작 | 방향 |\n|---|---|---|---|\n| **type-1** | `cxl.io` + `cxl.cache` | device가 **자기 자신의 캐시**에 host 메모리의 코히런트 사본을 들고 있음(host의 캐시를 빌리는 게 아니라 device 자체 캐시가 host 메모리를 미러링) | device가 host를 캐싱 (d2h) |\n| **type-3** | `cxl.io` + `cxl.mem` | device 메모리를 host가 자기 메모리처럼(원격 numa 노드처럼) 접근 | host가 device를 메모리로 사용 (h2d) |\n| **type-2** | `cxl.io` + `cxl.cache` + `cxl.mem` | type-1(d2h 캐싱) + type-3(h2d 메모리) 둘 다 + device가 자기 메모리에 직접 접근(d2d)까지 | 양방향 |\n\n이 논문의 type-1 cxl-nic이 §4.1에서 스스로 '온디바이스 메모리 없음'이라 명시하는 것도 이 표와 정확히 일치한다 — type-3의 핵심 요소(device memory)가 type-1에는 애초에 없다는 뜻이다. type-2는 이 둘의 단순 합집합이 아니라, 두 방향(d2h 캐싱 + h2d 메모리)이 **동시에** 성립하면서 서로 다른 데이터 배치 자유도(레이아웃 l1-l4)를 만들어낸다는 점이 실제 설계의 재미있는 지점이다. "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_002","target":"node_006","type":"line","label":""},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":""},{"source":"node_003","target":"node_009","type":"line","label":""},{"source":"node_003","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_004","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_016","type":"line","label":""},{"source":"node_004","target":"node_017","type":"line","label":""},{"source":"node_004","target":"node_018","type":"line","label":""},{"source":"node_005","target":"node_019","type":"line","label":""},{"source":"node_005","target":"node_020","type":"line","label":""},{"source":"node_005","target":"node_021","type":"line","label":""},{"source":"node_005","target":"node_022","type":"line","label":""},{"source":"node_008","target":"node_023","type":"line","label":""},{"source":"node_001","target":"node_024","type":"line","label":""},{"source":"node_024","target":"node_025","type":"line","label":""},{"source":"node_010","target":"node_026","type":"line","label":""},{"source":"node_023","target":"node_027","type":"line","label":""},{"source":"node_008","target":"node_028","type":"line","label":""}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+{
+  "version": "1.0.0",
+  "title": "DockerSSD: Containerized In-Storage Processing and Hardware Acceleration for Computational SSDs",
+  "created": "2026-07-14T00:00:00.000Z",
+  "modified": "2026-07-14T04:00:00.000Z",
+  "source": {
+    "pdf": "DockerSSD - Containerized In-Storage Processing and Hardware Acceleration for Computational SSDs.pdf",
+    "authors": "Miryeong Kwon, Donghyun Gouk, Eunjee Na, Jiseon Kim, Junhee Kim, Hyein Woo, Eojin Ryu, Hyunkyu Choi, Jinwoo Baek, Hanyeoreum Bae (Panmnesia), Mahmut Kandemir (Penn State), Myoungsoo Jung (Panmnesia / KAIST)",
+    "venue": "HPCA 2024 (extended version accepted by IEEE Micro)",
+    "doi": "arXiv:2506.06769",
+    "pages": 13
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic",  "color": "#4B8BBE", "icon": "file-text",    "shape": "sharp"   },
+    "method":     { "label": "Method",      "color": "#5C9E6E", "icon": "cpu",           "shape": "sharp"   },
+    "result":     { "label": "Result",      "color": "#9B59B6", "icon": "bar-chart-2",   "shape": "sharp"   },
+    "claim":      { "label": "Claim",       "color": "#E74C3C", "icon": "alert-circle",  "shape": "sharp"   },
+    "question":   { "label": "Question",    "color": "#E5A835", "icon": "help-circle",   "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea",  "color": "#1ABC9C", "icon": "lightbulb",     "shape": "rounded" },
+    "reference":  { "label": "Reference",   "color": "#95A5A6", "icon": "book-open",     "shape": "rounded" },
+    "memo":       { "label": "Memo",        "color": "#BDC3C7", "icon": "edit-3",        "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "두 개의 독립적으로 remarkable한 기여를 갖는다.\n\n**1. Docker 생태계 전체를 소스 수정 없이 SSD 펌웨어 안으로** — 기존 ISP(In-Storage Processing)는 정적 kernel이나 vendor-specific API를 요구해 채택 장벽이 높았는데, DockerSSD는 `docker pull`/`docker run`이라는 익숙한 명령만으로 기존 Docker 이미지를 그대로 flash 옆에서 실행시킨다.\n\n**2. Host↔ISP 통신 오버헤드 제거 + 그걸 발판 삼은 분산 컴퓨팅 풀** — ISP를 host-independent·autonomous하게 만들어 통신 오버헤드(P.ISP 지연의 43%)를 없애고, 이 자율성을 여러 DockerSSD를 IP로 엮은 **computing-enabled storage pool**로 확장해 분산 LLM inference까지 가속한다(KV cache를 flash에 직접 상주).",
+      "original": {
+        "text": "We propose DockerSSD, an ISP model leveraging OS-level virtualization and lightweight firmware to enable containerized data processing directly on SSDs.",
+        "location": "p.1, Abstract"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "기존 ISP는 host↔storage 데이터 이동을 줄이지만, 새로운 병목인 **host↔ISP 통신/동기화 오버헤드**를 만든다. 저자들은 ISP 미채택의 근본 원인을 5대 challenge(수작업 구현, file layout 무지, kernel context switching, device 의존, data 취약성)로 정리하고, 실측(Fig.3)으로 '진짜 병목이 무엇인가'를 정량화한다 — 통신 오버헤드를 없애지 않으면 ISP 자체의 이득이 통신 비용에 잠식된다는 것.",
+      "original": {
+        "text": "Our findings reveal that Storage accounts for 38% of the total execution time ... this improvement is offset by a 1.4× increase in overall end-to-end latency, primarily due to Communicate, which constitutes 43% of P.ISP latency.",
+        "location": "p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "DockerSSD = **Ether-oN**(system driver, NVMe 위에 Ethernet 오버레이) + **Virtual-FW**(Docker 스택을 내장한 lightweight firmware) + **$\\lambda$FS**(backend flash 관리)의 3중 구조. Ether-oN이 host와 SSD를 독립 네트워크 노드로 묶고, Virtual-FW는 full OS 없이 system call emulation과 mini-docker로 컨테이너를 실행하며, $\\lambda$FS는 host와 ISP-container 간 동시 접근을 안전하게 조율한다. 이 세 요소가 합쳐져 여러 DockerSSD를 IP 주소로 엮은 disaggregated computing-enabled storage pool을 형성한다.",
+      "original": {
+        "text": "We believe that, by eliminating communication overhead, ISP can achieve better performance. We also believe that virtualizing the ISP model can enable it to function as a secure, portable sandbox, paving the way for broader ISP adoption.",
+        "location": "p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "| 항목 | 수치 |\n|---|---|\n| vs P.ISP-R/V | **1.6배** |\n| vs D-Naive | **1.8배** |\n| vs D-FullOS | **1.6배** |\n| 워크로드별 최대 | 약 **2.1~2.2배** |\n| 분산 LLM inference: D-Cache vs H-Cache | **7.9배** |\n| 분산 LLM inference: D-Cache vs H-NoCache | **3.2K배** |\n| Virtual-FW 바이너리 크기 vs Linux | **83.4배** 축소 |\n\n세부 결과는 하위 노드 참고.",
+      "original": {
+        "text": "DockerSSD outperforms host system and leading ISP models [3, 4, 30] by 1.3× and 1.8×, respectively. In addition, the compute-enabled storage pool enhances LLM performance by an average of 7.9×.",
+        "location": "p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "DockerSSD는 OS-level virtualization을 SSD 펌웨어 안으로 가져와, 소스 수정 없는 컨테이너 실행과 host-independent한 자율 ISP를 동시에 달성했다. 다만 저자 스스로 인정하듯, prototype의 RISC-V(2.2GHz)가 host(3.8GHz)보다 느려 compute-bound 짧은 워크로드에선 여전히 host가 우세하고, 큰 LLM 수치($7.9\\times$, $3.2K\\times$)는 analytical 모델+simulator 기반이라 실제 trillion-scale 모델의 end-to-end 실측은 아니다. 그럼에도 '컨테이너화된 자율 ISP를 여러 개 묶어 storage pool 자체를 분산 컴퓨팅 자원으로 쓴다'는 방향은, storage를 넘어 다른 near-data 도메인으로 일반화할 여지를 남긴다.",
+      "original": {
+        "text": "FW-level containerization (DockerSSD). D-VirtFW combines the advantages of full-fledged application execution while avoiding the software stack overhead of D-FullOS and the hardware inefficiencies of D-Naive.",
+        "location": "p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "method",
+      "title": "ISP가 겪는 5대 challenge",
+      "content": "기존 ISP(Willow, Biscuit, KAML, Summarizer 등)가 정적 kernel/vendor-specific API에 의존하면서 겪는 구조적 한계 다섯 가지:\n\n1. **Manual ISP implementation** — application을 offload하려면 상당한 source-level 수정 필요\n2. **File layout 무지** — SSD가 file/block 구조를 모른 채 raw 데이터를 처리해 예측 불가능한 결과\n3. **Kernel context switching** — OS 개입에 따른 오버헤드\n4. **Device reliance** — 새 host-side daemon 개발 필요\n5. **Data vulnerability** — host user가 처리 중인 데이터를 수정할 수 있는 resource protection 부재\n\n이 다섯 가지가 ISP의 산업 채택을 가로막아온 근본 원인이라는 게 저자들의 진단이다.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 60 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "result",
+      "title": "Fig.3: 진짜 병목은 Storage가 아니라 Communicate",
+      "content": "P.ISP(Programmable-ISP)를 실측하면, host 대비 Storage 접근 지연을 **50% 절감**한다(Storage가 전체 실행시간의 38% 차지). 그런데도 end-to-end 지연은 오히려 **1.4배 증가**한다 — 원인은 host↔ISP 간 **Communicate(통신/동기화)**가 P.ISP 지연의 **43%**를 차지하기 때문이다.\n\n즉 ISP가 '데이터를 옆에서 처리한다'는 목표는 이미 달성했지만, 그 처리 결과를 host와 조율하는 비용이 새로운, 더 큰 병목으로 등장한 것 — 이게 DockerSSD가 '통신 오버헤드 제거'를 최우선 설계 목표로 삼는 직접적 근거다.",
+      "original": {
+        "text": "Our findings reveal that Storage accounts for 38% of the total execution time ... this improvement is offset by a 1.4× increase in overall end-to-end latency, primarily due to Communicate, which constitutes 43% of P.ISP latency.",
+        "location": "p.3, Fig.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 220 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "gap",
+      "title": "산업의 disaggregation 시도와 그 한계",
+      "content": "산업계는 이미 ISP 자원을 storage array/node 단위로 disaggregation해서 server-side 연산 부담을 줄이려 시도해왔다. 하지만 SSD를 다양한 애플리케이션 요구에 맞추기 어렵다는 문제가 남아있었다 — 결국 '통신 방식은 그대로 두고 자원 배치만 분산'하는 접근으로는 근본 병목(Communicate 43%)을 건드리지 못한다는 것. DockerSSD의 차별점은 자원 배치가 아니라 **통신/실행 모델 자체**(host-independent, containerized)를 바꾼다는 데 있다.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 380 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "method",
+      "title": "High-level 아키텍처: Ether-oN + Virtual-FW + λFS",
+      "content": "DockerSSD는 세 기술 challenge에 대응하는 세 컴포넌트로 구성된다: (1) storage/network 스택 모두와 호환되는 통신 인터페이스 $\\\\rightarrow$ **Ether-oN**, (2) storage pool 전반의 consistency $\\\\rightarrow$ **$\\\\lambda$FS**, (3) 컨테이너 구조를 인식하고 저오버헤드로 실행하는 firmware $\\\\rightarrow$ **Virtual-FW**.\n\nHost CPU에는 IP가 부여된 `docker-cli`/async upcall 경로가, DockerSSD 쪽에는 대응하는 IP와 Virtual-FW(ISP-container + mini-docker + System call I/F + OS features)가 있다. 미디어는 media mgmt(b)에서 보듯 **Sharable-NS**(host와 공유, inode lock으로 동시접근 조율)와 **Private-NS**(host로부터 격리, image/rootfs 등 보호 대상)로 나뉜다.\n\n[[IMG:fig4_architecture.png:900x360]]",
+      "original": {
+        "text": "Figure 4a illustrates the architecture of DockerSSD. To overcome these challenges, it integrates two key components: i) a system driver introducing a novel ISP management interface, Ether-oN, and ii) a firmware environment equipped with Docker stack, Virtual-FW.",
+        "location": "p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 460 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "method",
+      "title": "Ether-oN: NVMe 위에 Ethernet 오버레이 + Async Upcall",
+      "content": "소켓 기반 Ethernet 통신을 PCIe 위에서 구현하는 **kernel driver**. Host에 가상 네트워크 어댑터를 만들어 Ethernet packet을 NVMe command로 번역해 DockerSSD로 보낸다. 두 개의 **NVMe vendor-specific command**(opcode `0xE0` transmit, `0xE1` receive)로 frame(`struct sk_buff`, 4KB-aligned)을 주고받는다.\n\n핵심 난제는 **PCIe device가 host로 명령을 먼저 발행할 수 없다**는 것(inbound 문제) — 이를 **asynchronous upcall**로 해결한다: 커널 초기화 시 receive-frame용 NVMe command를 미리 SQ에 pre-submit해두고, ISP-container가 frame을 보내면 그 outstanding command를 완료시켜 host에 도달하게 한다. 예비 연구 결과 **SQ당 4개 pre-allocated command**가 효율/자원의 균형점.",
+      "original": {
+        "text": "PCIe devices typically cannot issue NVMe commands to the host. ISP-containers, however, require such an upcall mechanism for user communication.",
+        "location": "p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 620 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "Virtual-FW: syscall emulation + mini-docker",
+      "content": "Full OS 대신 **lightweight function wrapper로 필요한 system call만 구현**하는 syscall emulation이 핵심이다 — 예를 들어 glibc `open`이 내부적으로 호출하는 `openat`만 구현하면 되고, userland 복귀 시 context switch가 없어 mode boundary 자체를 회피한다. 결과적으로 ISP syscall 비용이 'function management' 수준으로 떨어진다.\n\n**mini-docker**는 Docker command 106개 중 핵심 **11개**(`pull/rmi/create/run/start/stop/restart/kill/rm/logs/ps`)만 구현한 streamlined 버전으로, `dockerd`/`containerd`/`runc`의 핵심 기능을 통합해 host `docker-cli`와 HTTP로 통신한다.\n\nPrivileged FW-pool과 ISP-pool을 page 단위로 분리하되, privileged 모드가 ISP-pool에 직접 접근하게 해 data copy·mode-switch 오버헤드를 없앤다.",
+      "original": {
+        "text": "Virtual-FW maintains ISP system call execution costs comparable to function management costs. It creates ISP-containers from existing Docker images and executes them without the overhead of a full OS.",
+        "location": "p.2"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 780 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "λFS: private/sharable NS + inode lock",
+      "content": "EXT4 기반이면서 host의 file 구조와 통합되는 backend filesystem. 미디어를 두 NVMe namespace로 분할한다: **private-NS**(host로부터 격리, `/images/`·`/rootfs/` 등 컨테이너 보호 대상)와 **sharable-NS**(host와 ISP-container가 공유하는 in/out 데이터).\n\n동시 접근 충돌은 **in-memory inode lock**으로 조율한다 — host의 VFS inode에 reference counter를 추가해 open 시 증가·close 시 감소시키고, counter==0일 때만 접근을 허용한다. ISP-container가 접근 권한을 얻으면 VFS가 자신의 inode cache를 무효화해 최신 상태를 참조한다. 이 lock은 **동기화 전용이라 persistence가 없다** — 전원 장애 시 host가 filesystem을 복원한 뒤 ISP-container를 초기 상태에서 재시작해야 한다.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 940 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "Computing-enabled Storage Pool + 분산 LLM inference",
+      "content": "Ether-oN과 Virtual-FW 덕분에 각 DockerSSD가 독립 IP를 가진 네트워크 노드처럼 동작한다 — 여러 대를 PCIe switch로 묶으면 `docker-compose`/Kubernetes로 오케스트레이션 가능한 **array pool / computing-enabled storage pool**이 된다.\n\n**분산 LLM inference**가 대표 use-case다: LLM의 KV cache(재사용으로 $O(n^2)\\to O(n)$ 절감)를 host DRAM의 소프트웨어 swap 대신 **DockerSSD의 flash에 직접 상주**시켜, cache pollution·mode switch·불필요한 data copy를 회피한다. 실행 흐름은 Figure 5처럼 host의 `docker pull`/`run`이 그대로 DockerSSD의 mini-docker로 전달되고, 이후 애플리케이션(예: `mariadb-cli` 쿼리)이 Ether-oN을 통해 직접 처리된다 — host는 컨테이너 배포 시점에만 개입한다.\n\n[[IMG:fig5_execution_example.png:900x360]]",
+      "original": {
+        "text": "Ether-oN supports all essential Ethernet functionalities, allowing storage components to operate as independent nodes within a computing-enabled storage pool, communicating with the host seamlessly and autonomously.",
+        "location": "p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "memo",
+      "title": "핵심 통찰: host-independent가 통신 오버헤드를 없앤다",
+      "content": "이 논문의 모든 설계 결정은 사실 하나의 통찰에서 파생된다: **ISP를 host-independent·autonomous하게 만들면 통신 오버헤드(Fig.3의 43%) 자체가 성립하지 않는다.** 컨테이너화는 이 목표를 위한 수단이다 — cgroups/namespaces 기반 isolated 환경이라 emulation SW 없이도 SSD의 제한된 자원에 lightweight하게 올릴 수 있고, 동시에 secure·portable sandbox로 동작해 data vulnerability 문제(challenge 5)도 함께 해결한다. 즉 '컨테이너를 쓴다'는 선택 자체가 '통신 병목 제거'와 '보안 격리'라는 두 문제를 하나의 메커니즘으로 동시에 푸는 지점이다.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1260 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "result",
+      "title": "Overall 성능: 6개 baseline 비교",
+      "content": "6개 벤치마크(embed/mariadb/rocksdb/pattern/nginx/vsftpd) 13개 워크로드에서 DockerSSD(D-VirtFW)는 P.ISP-R/V를 **1.6배**, D-Naive를 **1.8배**, D-FullOS를 **1.6배** 능가한다. 워크로드별 최대 개선은 약 **2.1~2.2배**(rocksdb-read, pattern-find).\n\n$\\\\lambda$FS가 backend에 직접 접근해 **LBA-set 핸드셰이크를 제거 $\\\\rightarrow$ 8.4% 지연 감소**, 실행 파라미터를 rootfs에 pre-package해 **Kernel-ctx 제거 $\\\\rightarrow$ P.ISP-R/V 대비 30.9% 향상**. P.ISP-R/V는 host보다도 느린 경우가 있는데, Kernel-ctx·LBA-set 오버헤드 때문이다. D-Naive는 D-FullOS 대비 오히려 12.8% 느린데, processor↔controller complex 간 빈번한 data transfer 탓이다.\n\n[[IMG:fig11_overall_performance.png:900x260]]",
+      "original": {
+        "text": "It delivers significant performance improvements, outperforming P.ISP-R/V, D-Naive, and D-FullOS by 1.6×, 1.8×, and 1.6×, respectively.",
+        "location": "p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 760 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "result",
+      "title": "분산 LLM inference: KV cache 효과",
+      "content": "8개 LLM(lamda-137B ~ megatron-1T), 16~128대 DockerSSD pool로 평가. **D-Cache는 H-Cache 대비 7.9배, H-NoCache 대비 3.2K배** 향상된다 — DockerSSD는 host와 달리 flash를 local memory처럼 직접 접근해 소프트웨어 swap이 필요 없기 때문이다.\n\nKV cache 자체의 효과도 크다: H-Cache가 H-NoCache 대비 **421배**, D-Cache가 D-NoCache 대비 **4.6배** 향상 — $O(n^2)\\to O(n)$ 절감이 실제로 이만큼 크다는 실측. 분산 inference에서 DockerSSD는 host 대비 단 **1.7배 열위**에 그치는데, 이는 순수 연산 능력 차이(2.2GHz vs 3.8GHz)에서 오는 것으로, KV cache 접근 방식의 우위가 clock 열세를 상당 부분 상쇄한다는 뜻이다.",
+      "original": {
+        "text": "Expanding memory capacity to enable KV caching greatly boosts performance. Specifically, H-Cache achieves a 421× performance gain over H-NoCache, while D-Cache achieves a remarkable 4.6× improvement over D-NoCache.",
+        "location": "p.10"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 920 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "claim",
+      "title": "Sequence length crossover — 언제 host보다 느린가",
+      "content": "DockerSSD가 항상 host보다 빠른 건 아니다. Prototype RISC-V(2.2GHz)는 host(3.8GHz)보다 느려, **compute-bound인 짧은 sequence·작은 모델에선 host의 약 60% 성능**에 그친다.\n\n**Crossover 지점**: lamda(137B, 가장 작은 모델)는 sequence length **256**, megatron(1T, 가장 큰 모델)은 **1024**에서 DockerSSD가 host를 앞서기 시작한다. 그 이상 길이의 memory-intensive 시나리오에서는 KV cache를 flash에 직접 두는 이점이 연산 능력 열세를 압도해, speedup이 약 **9.5배**로 수렴한다.\n\n즉 이 시스템의 이득은 보편적이지 않고 **'긴 sequence·메모리 용량이 병목인 워크로드'라는 특정 영역에 한정**된다 — 저자들도 이를 숨기지 않고 명시적으로 분석한다.\n\nFigure 13(b)의 Compute(회색)/Memory(초록) 막대그래프가 이걸 시각적으로 보여준다 — sequence가 짧을 땐 회색(Compute) 비중이 크고, 길어질수록 초록(Memory)이 압도적으로 커진다. (a)(c)(d)는 그 결과로 나타나는 speedup 곡선이 sequence length에 따라 어떻게 꺾이는지를 보여준다.\n\n[[IMG:fig13_sensitivity_test.png:950x220]]",
+      "original": {
+        "text": "This crossover occurs at a sequence length of 256 for lamda and 1,024 for megatron, where DockerSSD begins outperforming the host. With longer sequences, the speedup converges to around 9.5×.",
+        "location": "p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1080 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "result",
+      "title": "Virtual-FW footprint: Linux 대비 83.4배 작음",
+      "content": "Full OS(Linux) 대신 system call emulation + mini-docker로 구성한 Virtual-FW는 바이너리 크기가 Linux 대비 **83.4배 작다**. Embedded processor(FPGA 기반 multi-core RISC-V, 4코어, 2.2GHz/2GB DRAM)에 올라가야 하는 firmware라는 제약을 감안하면, 이 축소가 곧 실현 가능성의 전제조건이다 — full OS를 그대로 올렸다면애초에 이 정도 자원의 SSD 컨트롤러에서 실행 자체가 어려웠을 것.",
+      "original": {
+        "text": "Virtual-FW reduced the Linux binary size by 83.4×, making it suitable for embedded processors.",
+        "location": "p.8"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1240 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "gap",
+      "title": "저자가 스스로 인정한 한계",
+      "content": "- **연산 능력 열세**: prototype RISC-V(2.2GHz)가 host(3.8GHz)보다 느려, compute-bound 짧은 시퀀스/작은 모델에서는 host보다 느리다(crossover 이전).\n- **LLM 평가의 간접성**: $7.9\\times$, $3.2K\\times$ 같은 큰 수치는 analytical KV cache 모델 + simulator 기반이며, 실제 trillion-scale 모델의 end-to-end 실측이 아니다.\n- **inode lock의 비영속성**: 동기화 전용이라 persistence가 없어, 전원 장애 시 ISP-container를 초기 상태에서 재시작해야 한다 — 장기 실행 stateful 작업엔 제약.\n- **mini-docker의 제한된 커버리지**: Docker command 106개 중 11개만 지원해, 복잡한 오케스트레이션/이미지 기능에는 제약이 있을 수 있다.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1360 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "reference",
+      "title": "관련 연구 계보: Willow / Biscuit / KAML / Summarizer",
+      "content": "- **Willow**[3] (OSDI'14): user-programmable SSD — P.ISP-R 비교 baseline\n- **Biscuit**[4] (ISCA'16): near-data processing framework — P.ISP-V 비교 baseline\n- **KAML**[7] (HPCA'17): flexible key-value SSD\n- **Summarizer**[8] (MICRO'17): communication과 near-storage computing을 trade-off\n- **Megatron-LM**[28] (SC'21): 분산 LLM 학습, megatron-1T 모델 출처\n- **Calculon**[54] (SC'23): 분산 inference simulator 기반\n\n이 계보 전반이 '정적 kernel/vendor API 의존'이라는 공통 한계를 가진다는 것이 DockerSSD의 문제의식(§ISP Containerization)의 출발점이다.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1520 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "memo",
+      "title": "내 연구방향과의 연결: H3 가설의 실제 원형",
+      "content": "이 논문은 내 working hypothesis H3(\"GPU 패키지 안에 작은 제어 평면을 넣어 host CPU가 하던 결정을 대신하게 하면 어떨까\")가 명시적으로 유추의 원형으로 삼는 바로 그 선례다 — \"DockerSSD가 실행환경(컨테이너)을 데이터가 있는 SSD로 내려보냈듯\"이라는 H3의 한 줄 가설 자체가 이 논문을 가리킨다.\n\n특히 **Ether-oN의 asynchronous upcall 메커니즘**(PCIe device가 host로 명령을 먼저 발행할 수 없다는 제약을, receive-frame용 NVMe command를 SQ에 미리 pre-submit해두는 방식으로 우회)은, H3가 '실현 경로'에서 고민하던 \"FPGA가 CPU 없이 GPU를 dispatch하려면 무엇이 필요한가\"라는 질문에 대한 **storage 도메인의 구체적 선례**다 — device-initiated 통신이 native하게 지원되지 않는 인터커넥트(PCIe/NVMe) 위에서 그걸 우회하는 실제 엔지니어링 패턴을 보여준다.\n\n다만 스코프 차이는 분명하다: DockerSSD는 저장매체(flash)에 담긴 컨테이너 실행환경을 내려보내는 것이지, H3처럼 GPU의 커널 launch·스케줄링이라는 **제어 흐름 자체**를 이관하는 것은 아니다 — '무엇을 이관하는가'(실행환경 vs 제어 결정)의 차이가, storage의 근접-연산(near-data compute) 패턴을 GPU로 일반화할 때 정확히 무엇이 달라져야 하는지를 보여주는 지점이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1360 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "memo",
+      "title": "ISP(In-Storage Processing)는 왜 하는가 — near-data compute의 원리",
+      "content": "전통적인 모델에서는 데이터가 SSD의 flash에 있어도 **연산은 항상 host CPU에서** 일어난다. Host가 데이터를 처리하려면 매번 flash $\\rightarrow$ PCIe/NVMe $\\rightarrow$ host DRAM으로 **데이터 전체를 옮겨야** 하는데, 문제는 그중 상당 부분이 '쓸모없는' 데이터라는 점이다 — 예를 들어 대용량 로그에서 특정 패턴을 찾는 질의(이 논문의 `pattern-find` 워크로드)는 수백만 줄 중 몇 줄만 필요한데도, 그 판단(필터링)을 host가 하려면 일단 전부 host로 옮겨야 한다.\n\n**ISP의 아이디어는 이 판단(연산)을 데이터가 있는 곳(flash 옆)으로 내려보내는 것**이다 — host로 가져오기 전에 SSD 안에서 먼저 필터링/집계해, host로는 **결과(훨씬 작은 데이터)만** 돌려준다. 이는 storage에 국한된 얘기가 아니라, '연산/제어를 데이터 옆으로 옮긴다'는 **near-data computing**이라는 더 큰 원리의 한 사례다 — 데이터를 옮기는 비용(대역폭·에너지·지연)이 그 데이터에 대한 연산 비용보다 클 때, 이동을 줄이는 쪽이 항상 이긴다는 것.\n\n이 논문의 Fig.3 실측이 그 근거다: 기존 P.ISP가 Storage 접근 지연을 실제로 **50% 절감**한다 — ISP라는 아이디어 자체는 유효하다는 뜻. 문제는 그 대신 새로 생긴 host↔ISP 통신 오버헤드(43%)이고, 그게 이 논문 전체가 푸는 문제다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": -160 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "memo",
+      "title": "Docker는 왜 필요한가 — 컨테이너의 존재 이유",
+      "content": "**컨테이너가 푸는 문제**: 소프트웨어는 특정 라이브러리 버전·환경설정에 의존하는데, '내 컴퓨터에서는 되는데 저기서는 안 된다'는 문제가 여기서 생긴다. Docker는 애플리케이션을 **그 실행에 필요한 모든 것(라이브러리, 런타임, 파일시스템)과 함께 하나의 이미지로 묶어서**, 어떤 환경에서도 똑같이 동작하게 만든다.\n\n**왜 VM이 아니라 컨테이너인가**: VM은 하드웨어까지 통째로 가상화해서(하이퍼바이저 + 별도 OS 커널) 무겁고 느리다. 컨테이너는 host OS 커널을 그대로 공유하면서 **Linux `cgroups`(자원 제한) + `namespaces`(격리된 시야)**만으로 '별도 환경처럼 보이게' 만든다 — 하드웨어 에뮬레이션이 없어 VM보다 훨씬 가볍고 빠르게 뜬다. SSD처럼 자원이 극히 제한된 embedded processor 위에서 컨테이너화가 그나마 현실적인 선택지가 되는 이유가 여기 있다.\n\n**이 논문이 굳이 'Docker'를 쓰는 이유**: 컨테이너 개념 자체를 새로 설계할 수도 있었지만, 그러면 사용자가 ISP를 쓰기 위해 새로운 도구를 또 배워야 한다. **이미 전 세계 개발자가 만들어놓은 Docker Hub의 기존 이미지를 그대로**(소스 수정 없이) `docker pull`/`docker run`으로 SSD 위에서 돌릴 수 있게 만드는 것 — 이게 ISP의 5대 challenge 중 1번(수작업 구현 필요)을 정면으로 없애는 지점이다. 컨테이너라는 기술 자체보다, **Docker 생태계 재사용**이 이 논문의 실질적 채택 장벽을 낮추는 핵심 전략이다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 460 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "memo",
+      "title": "왜 경량 FPGA 로직이 아니라 Docker인가 — 재사용 vs 커스텀 제작",
+      "content": "경량 FPGA 로직(=기존 P.ISP 방식)이 잘하는 일은 **미리 정해진 작업 하나를 아주 빠르게** 처리하는 것이다. 하지만 이 논문의 실제 워크로드(`mariadb`, `rocksdb`, `nginx`, `vsftpd`)는 이미 수만~수십만 줄로 만들어진 **거대하고 복잡한 기존 소프트웨어**다. 이걸 경량 FPGA 로직으로 다시 짜라는 건 사실상 MariaDB 전체를 하드웨어 기술언어로 재구현하라는 것과 같다 — 이게 정확히 ISP 5대 challenge의 1번('manual ISP implementation — 상당한 source-level 수정 필요')이다.\n\n**Docker의 역할은 연산 가속이 아니라 '이미 존재하는 소프트웨어를 그대로 옮겨오는 통로'다.** 전 세계 개발자가 이미 만들어놓은 Docker Hub의 이미지를 한 줄도 안 고치고 SSD 위로 가져오는 게 목적이라, '새 작업을 처음부터 짠다'는 시나리오와는 아예 문제 정의 자체가 다르다:\n\n- 새 작업을 위해 최적화된 하드웨어를 새로 만든다 $\\\\rightarrow$ 경량 FPGA/커스텀 로직이 유리(빠르지만 매번 재구현 필요)\n- **이미 있는 복잡한 소프트웨어를 그대로 재사용**하고 싶다 $\\\\rightarrow$ Docker가 유리(약간 무겁지만 재작성 불필요)\n\nDockerSSD는 후자를 택했다 — '더 빠른 하드웨어'가 아니라 '재사용 장벽 없는 근접-연산'이 이 논문의 진짜 기여다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 460 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "memo",
+      "title": "docker pull / docker run이 실제로 하는 일",
+      "content": "**Docker image**란 애플리케이션과 그 실행에 필요한 모든 라이브러리·런타임을 통째로 얼려놓은, 여러 층(layer)이 쌓인 **읽기 전용 파일시스템 스냅샷**이다.\n\n- **`docker pull`**: registry(Docker Hub)에서 그 layer들을 **로컬로 다운로드만** 한다. 아직 아무것도 실행되지 않는다 — '설치 파일을 받기만 한 상태'.\n- **`docker run`**: 로컬 이미지 위에 **쓰기 가능한 얇은 층 하나**를 추가해서(기존 layer는 읽기 전용으로 그대로 재사용 — 그래서 컨테이너 생성이 즉각적이다) 실제 프로세스를 실행한다.\n\n이 두 단계가 분리돼 있다는 게 중요하다 — '가져오기'(pull)와 '실행'(run)이 독립적이라, 같은 이미지를 여러 번 run해서 여러 컨테이너를 동시에 띄우거나, 미리 pull만 해두고 필요할 때 run할 수도 있다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 620 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "memo",
+      "title": "Docker의 격리 원리 — 가상화가 아니라 namespaces + cgroups, DockerSSD의 경량 재현",
+      "content": "**Docker는 VM처럼 하드웨어를 가상화하지 않는다.** 컨테이너 프로세스는 host 커널 위에서 도는 평범한 프로세스이고, 두 가지 리눅스 기능으로 '독립된 것처럼' 보이게 만들 뿐이다:\n\n- **namespaces**(무엇을 볼 수 있는가): 자기 프로세스 목록만 보임(PID), 자기만의 네트워크 인터페이스(network), 자기만의 파일시스템 뷰(mount)\n- **cgroups**(얼마나 쓸 수 있는가): CPU/메모리/I/O 사용량 상한\n\n별도 OS 커널을 부팅하지 않아서 컨테이너는 밀리초 단위로 뜬다 — `docker run`은 사실상 namespace/cgroup 몇 개 설정하고 바이너리를 실행하는 몇 번의 시스템 콜에 불과하다.\n\n**DockerSSD의 mini-docker는 이걸 그대로 이식하지 않는다.** 진짜 리눅스 namespace/cgroup 서브시스템을 통째로 올리면 'Linux 대비 83.4배 작다'는 목표 자체가 무너진다. 대신 $\\\\lambda$FS의 **private-NS/sharable-NS**(mount namespace가 하던 파일시스템 격리 역할)와 Virtual-FW의 **syscall emulation**(실행 컨텍스트 격리 역할)으로, 리눅스 namespace/cgroup의 핵심 효과만 훨씬 가벼운 firmware 메커니즘으로 재현한다 — 겉보기(CLI·이미지 포맷)는 진짜 Docker와 호환되게 유지하면서.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 780 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "method",
+      "title": "DockerSSD 실행 흐름과 Docker를 택하며 기대한 효과",
+      "content": "Figure 5의 4단계가 실제 동작을 보여준다:\n\n**❶ pull / ❷ download**: 사용자가 host에서 `docker pull`을 치면, Ether-oN이 이를 네트워크 요청으로 번역해 DockerSSD의 mini-docker에 전달하고, 이미지 blob이 **Docker Hub에서 DockerSSD로 직접** 다운로드된다(host DRAM을 거치지 않음).\n**❸ run**: `docker run`으로 mini-docker가 ISP-container(예: `mariadb`)를 실행 — 애플리케이션 코드 수정 없이 그대로.\n**❹ query**: 이후 `mariadb-cli` 같은 non-I/O 요청이 Ether-oN을 통해 Ethernet 프로토콜로 ISP-container에 직접 전달·처리된다.\n\n[[IMG:fig5_execution_example.png:900x360]]\n\n**Docker를 택하며 기대한 효과는 두 가지였다**: (1) 단일 SSD 차원에서는 **소스 수정 0**으로 기존 애플리케이션 생태계 전체를 근접-연산에 끌어들이는 것(challenge 1 해결). (2) 더 나아가 여러 DockerSSD를 묶는 Resource Disaggregation 단계에서, Docker 표준 이미지 포맷을 쓴 덕분에 **`docker-compose`/Kubernetes 같은 기존 오케스트레이션 도구를 그대로 재사용**할 수 있게 됐다 — 클러스터 관리 도구를 처음부터 새로 만들 필요가 없어진 것. 즉 Docker 채택은 단일 디바이스의 편의성뿐 아니라, **나중에 pool 단위로 확장할 때의 생태계 재사용**까지 내다본 전략적 선택이었다.",
+      "original": {
+        "text": "Users initiate a blob download from Virtual-FW using docker pull, and launch the corresponding ISP-container via docker run, all without requiring application-level modifications. During ISP-container execution, users can submit non-I/O, ISP-specific requests through Ether-oN.",
+        "location": "p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 850, "y": 1100 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "gap",
+      "title": "실제 하드웨어 프로토타입 vs 시뮬레이션 — 어디까지 검증됐나",
+      "content": "'만들었다 vs 시뮬레이션이다'는 이분법이 아니라, **평가 항목마다 검증 수준이 다르다**.\n\n- **Fig.11의 I/O 성능(1.6~2.2배)**: 실제 **16nm FinFET FPGA 프로토타입**(RISC-V 코어 6개가 실제 RTL로 Virtual-FW를 실행) + gem5 풀시스템 시뮬레이터로 평가. 이 시뮬레이터는 프로토타입의 RTL·synthesized backend와 **cross-validated**되어 있어, 물리 장치가 커버 못하는 설정 공간을 신뢰성 있게 확장한 것.\n- **flash 자체**는 진짜 NAND 칩이 아니라 DDR4 컨트롤러로 타이밍만 흉내 낸 **emulation**(storage 연구에서 흔한 관행).\n- **분산 LLM inference의 $7.9\\times$/$3.2K\\times$**: 별도의 **open-source simulator + 저자들이 직접 만든 analytical KV cache 모델**로 산출 — 실제 128대 DockerSSD에 trillion-parameter 모델을 올려 잰 수치가 아니다(애초에 그 규모를 실물로 검증하는 건 현실적으로 불가능).\n\n즉 **핵심 I/O 주장은 실물 하드웨어에 뿌리를 두고, LLM 관련 큰 수치는 시뮬레이션+수식 기반**이라는 신뢰도 차이를 구분해서 읽어야 한다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1360 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "memo",
+      "title": "Application 단위 배치 — 명령어 하이재킹이 아니라 배포 시점의 사람의 선택",
+      "content": "DockerSSD의 '오프로딩'은 **프로그램 하나가 host에서 돌다가 특정 명령어만 골라 SSD로 가로채는(hijack) 방식이 아니다.** 실제로는 훨씬 단순하다 — **애플리케이션(프로세스) 통째로, 어디서 실행할지를 배포 시점에 사람이 미리 정한다.**\n\n- Host에서는 `mariadb-cli`(클라이언트) 같은 **별개의 프로그램**이 돈다.\n- DockerSSD에서는 `mariadb`(서버) **전체가 통째로** 자기 RISC-V 코어 위에서 돈다.\n- 둘 사이는 Ether-oN을 통한 네트워크 요청/응답일 뿐 — 하나의 프로그램 안에서 일부만 골라 보내는 게 아니다.\n\n일반적인 클라이언트-서버 구조에서 '이 쿼리를 내 노트북이 아니라 원격 DB 서버가 처리한다'를 굳이 '명령어 하이재킹'이라 안 부르는 것과 같은 이치다. Kubernetes가 '어떤 SSD 노드에' 컨테이너를 배치할지는 자동으로 정해주지만, **'이 프로그램의 어느 부분을 SSD로 보낼지'는 정해주지 않는다** — 그건 컨테이너를 통째로 배포하는 순간 사람이 이미 정한 것이다.\n\n이건 정확히 H3 가설이 씨름하던 '어디까지 자동으로 나눌지'(컴파일러 문제)를 DockerSSD가 **아예 풀지 않고 우회**했다는 뜻이다 — 동적·값-의존적·명령어 수준의 자동 분할이 아니라, 정적·애플리케이션 수준의 수동 배치로 문제 자체를 훨씬 쉽게 재정의한 것.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1220 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "gap",
+      "title": "Application 단위 배치의 부작용 — compute-bound 부분도 통째로 끌려간다",
+      "content": "애플리케이션을 통째로 배치한다는 것은, **그 안에 메모리 병목인 부분과 연산 병목인 부분이 섞여 있어도 둘 다 같은 프로세서(DockerSSD의 느린 RISC-V, 2.2GHz)에서 돌아야 한다**는 뜻이다 — 이건 실제로 이 논문의 데이터에 그대로 드러나는 부작용이다.\n\n**Sequence length crossover가 바로 그 증거**: 짧은 sequence(연산 비중이 큰 구간)에서는 DockerSSD가 host(3.8GHz)의 약 60% 성능에 그친다 — 메모리 지역성 이점을 누리기도 전에, 그 워크로드에 섞여 있는 compute-bound 부분이 느린 코어에 발목 잡히기 때문이다. Sequence가 길어져 메모리 병목이 지배적이 되는 지점(lamda 256, megatron 1024)을 넘어서야 비로소 메모리 이점이 연산 열세를 압도한다.\n\n**왜 이걸 세밀하게 못 나누는가**: 이 논문의 병렬화 전략(pipeline/tensor/data parallelism)은 '어떤 레이어를 어떤 DockerSSD가 맡을지'를 나누는 것이지, **하나의 레이어/연산 안에서 '이 부분은 compute-bound니 host로, 이 부분은 memory-bound니 SSD로' 나누는 메커니즘은 제공하지 않는다.** 배치 단위가 '프로세스/레이어'로 고정되어 있어, 그보다 미세한 연산 특성 기반의 분할은 이 논문의 스코프 밖이다 — DistServe(Prefill/Decoding Disaggregation)가 prefill(compute-bound)/decode(memory-bound)를 아예 다른 GPU로 쪼갠 것과 비교하면, DockerSSD는 그 정도의 세밀한 분리는 하지 않는다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 1050, "y": 1080 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+    { "id": "edge_005", "source": "node_002", "target": "node_006", "type": "line", "label": "" },
+    { "id": "edge_006", "source": "node_002", "target": "node_007", "type": "line", "label": "" },
+    { "id": "edge_007", "source": "node_002", "target": "node_008", "type": "line", "label": "" },
+    { "id": "edge_008", "source": "node_003", "target": "node_009", "type": "line", "label": "" },
+    { "id": "edge_009", "source": "node_003", "target": "node_010", "type": "line", "label": "" },
+    { "id": "edge_010", "source": "node_003", "target": "node_011", "type": "line", "label": "" },
+    { "id": "edge_011", "source": "node_003", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_003", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_003", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_004", "target": "node_015", "type": "line", "label": "" },
+    { "id": "edge_015", "source": "node_004", "target": "node_016", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_004", "target": "node_017", "type": "line", "label": "" },
+    { "id": "edge_017", "source": "node_004", "target": "node_018", "type": "line", "label": "" },
+    { "id": "edge_018", "source": "node_005", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_019", "source": "node_005", "target": "node_020", "type": "line", "label": "" },
+    { "id": "edge_020", "source": "node_005", "target": "node_021", "type": "line", "label": "" },
+    { "id": "edge_021", "source": "node_001", "target": "node_022", "type": "line", "label": "" },
+    { "id": "edge_022", "source": "node_003", "target": "node_023", "type": "line", "label": "" },
+    { "id": "edge_023", "source": "node_023", "target": "node_024", "type": "line", "label": "" },
+    { "id": "edge_024", "source": "node_023", "target": "node_025", "type": "line", "label": "" },
+    { "id": "edge_025", "source": "node_023", "target": "node_026", "type": "line", "label": "" },
+    { "id": "edge_026", "source": "node_013", "target": "node_027", "type": "line", "label": "" },
+    { "id": "edge_027", "source": "node_019", "target": "node_028", "type": "line", "label": "" },
+    { "id": "edge_028", "source": "node_021", "target": "node_029", "type": "line", "label": "" },
+    { "id": "edge_029", "source": "node_017", "target": "node_030", "type": "line", "label": "" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "canvasImages": []
+}

@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DockerSSD: Containerized In-Storage Processing and Hardware Acceleration for Computational SSDs</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">DockerSSD: Containerized In-Storage Processing and Hardware Acceleration for Computational SSDs</span>
+    <span id="tb-source">Miryeong Kwon, Donghyun Gouk, Eunjee Na, Jiseon Kim, Junhee Kim, Hyein Woo, Eojin Ryu, Hyunkyu Choi, Jinwoo Baek, Hanyeoreum Bae (Panmnesia), Mahmut Kandemir (Penn State), Myoungsoo Jung (Panmnesia / KAIST) · HPCA 2024 (extended version accepted by IEEE Micro)</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" style="--color:#4B8BBE;border-radius:2px;left:100px;top:260px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">두 개의 독립적으로 remarkable한 기여를 갖는다.<br><br><strong style="font-size:1.1em">1. Docker 생태계 전체를 소스 수정 없이 SSD 펌웨어 안으로</strong> — 기존 ISP(In-Storage Processing)는 정적 kernel이나 vendor-specific API를 요구해 채택 장벽이 높았는데, DockerSSD는 `docker pull`/`docker run`이라는 익숙한 명령만으로 기존 Docker 이미지를 그대로 flash 옆에서 실행시킨다.<br><br><strong style="font-size:1.1em">2. Host↔ISP 통신 오버헤드 제거 + 그걸 발판 삼은 분산 컴퓨팅 풀</strong> — ISP를 host-independent·autonomous하게 만들어 통신 오버헤드(P.ISP 지연의 43%)를 없애고, 이 자율성을 여러 DockerSSD를 IP로 엮은 <strong style="font-size:1.1em">computing-enabled storage pool</strong>로 확장해 분산 LLM inference까지 가속한다(KV cache를 flash에 직접 상주).</div><details class="ng-original"><summary>Original <span class="ng-loc">p.1, Abstract</span></summary>
+<div class="ng-orig-text">We propose DockerSSD, an ISP model leveraging OS-level virtualization and lightweight firmware to enable containerized data processing directly on SSDs.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" style="--color:#4B8BBE;border-radius:2px;left:100px;top:560px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">기존 ISP는 host↔storage 데이터 이동을 줄이지만, 새로운 병목인 <strong style="font-size:1.1em">host↔ISP 통신/동기화 오버헤드</strong>를 만든다. 저자들은 ISP 미채택의 근본 원인을 5대 challenge(수작업 구현, file layout 무지, kernel context switching, device 의존, data 취약성)로 정리하고, 실측(Fig.3)으로 '진짜 병목이 무엇인가'를 정량화한다 — 통신 오버헤드를 없애지 않으면 ISP 자체의 이득이 통신 비용에 잠식된다는 것.</div><details class="ng-original"><summary>Original <span class="ng-loc">p.3</span></summary>
+<div class="ng-orig-text">Our findings reveal that Storage accounts for 38% of the total execution time ... this improvement is offset by a 1.4× increase in overall end-to-end latency, primarily due to Communicate, which constitutes 43% of P.ISP latency.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" style="--color:#4B8BBE;border-radius:2px;left:100px;top:860px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DockerSSD = <strong style="font-size:1.1em">Ether-oN</strong>(system driver, NVMe 위에 Ethernet 오버레이) + <strong style="font-size:1.1em">Virtual-FW</strong>(Docker 스택을 내장한 lightweight firmware) + <strong style="font-size:1.1em">$\lambda$FS</strong>(backend flash 관리)의 3중 구조. Ether-oN이 host와 SSD를 독립 네트워크 노드로 묶고, Virtual-FW는 full OS 없이 system call emulation과 mini-docker로 컨테이너를 실행하며, $\lambda$FS는 host와 ISP-container 간 동시 접근을 안전하게 조율한다. 이 세 요소가 합쳐져 여러 DockerSSD를 IP 주소로 엮은 disaggregated computing-enabled storage pool을 형성한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">p.4</span></summary>
+<div class="ng-orig-text">We believe that, by eliminating communication overhead, ISP can achieve better performance. We also believe that virtualizing the ISP model can enable it to function as a secure, portable sandbox, paving the way for broader ISP adoption.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_004" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1160px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>항목</th><th>수치</th></tr></thead><tbody><tr><td>vs P.ISP-R/V</td><td><strong style="font-size:1.1em">1.6배</strong></td></tr><tr><td>vs D-Naive</td><td><strong style="font-size:1.1em">1.8배</strong></td></tr><tr><td>vs D-FullOS</td><td><strong style="font-size:1.1em">1.6배</strong></td></tr><tr><td>워크로드별 최대</td><td>약 <strong style="font-size:1.1em">2.1~2.2배</strong></td></tr><tr><td>분산 LLM inference: D-Cache vs H-Cache</td><td><strong style="font-size:1.1em">7.9배</strong></td></tr><tr><td>분산 LLM inference: D-Cache vs H-NoCache</td><td><strong style="font-size:1.1em">3.2K배</strong></td></tr><tr><td>Virtual-FW 바이너리 크기 vs Linux</td><td><strong style="font-size:1.1em">83.4배</strong> 축소</td></tr></tbody></table></div><div class="ng-seg"><br>세부 결과는 하위 노드 참고.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">p.2</span></summary>
+<div class="ng-orig-text">DockerSSD outperforms host system and leading ISP models [3, 4, 30] by 1.3× and 1.8×, respectively. In addition, the compute-enabled storage pool enhances LLM performance by an average of 7.9×.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1460px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DockerSSD는 OS-level virtualization을 SSD 펌웨어 안으로 가져와, 소스 수정 없는 컨테이너 실행과 host-independent한 자율 ISP를 동시에 달성했다. 다만 저자 스스로 인정하듯, prototype의 RISC-V(2.2GHz)가 host(3.8GHz)보다 느려 compute-bound 짧은 워크로드에선 여전히 host가 우세하고, 큰 LLM 수치($7.9\times$, $3.2K\times$)는 analytical 모델+simulator 기반이라 실제 trillion-scale 모델의 end-to-end 실측은 아니다. 그럼에도 '컨테이너화된 자율 ISP를 여러 개 묶어 storage pool 자체를 분산 컴퓨팅 자원으로 쓴다'는 방향은, storage를 넘어 다른 near-data 도메인으로 일반화할 여지를 남긴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">p.9</span></summary>
+<div class="ng-orig-text">FW-level containerization (DockerSSD). D-VirtFW combines the advantages of full-fledged application execution while avoiding the software stack overhead of D-FullOS and the hardware inefficiencies of D-Naive.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#5C9E6E;border-radius:2px;left:620px;top:320px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">ISP가 겪는 5대 challenge</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">기존 ISP(Willow, Biscuit, KAML, Summarizer 등)가 정적 kernel/vendor-specific API에 의존하면서 겪는 구조적 한계 다섯 가지:<br><br>1. <strong style="font-size:1.1em">Manual ISP implementation</strong> — application을 offload하려면 상당한 source-level 수정 필요<br>2. <strong style="font-size:1.1em">File layout 무지</strong> — SSD가 file/block 구조를 모른 채 raw 데이터를 처리해 예측 불가능한 결과<br>3. <strong style="font-size:1.1em">Kernel context switching</strong> — OS 개입에 따른 오버헤드<br>4. <strong style="font-size:1.1em">Device reliance</strong> — 새 host-side daemon 개발 필요<br>5. <strong style="font-size:1.1em">Data vulnerability</strong> — host user가 처리 중인 데이터를 수정할 수 있는 resource protection 부재<br><br>이 다섯 가지가 ISP의 산업 채택을 가로막아온 근본 원인이라는 게 저자들의 진단이다.</div></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#9B59B6;border-radius:2px;left:620px;top:480px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Fig.3: 진짜 병목은 Storage가 아니라 Communicate</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">P.ISP(Programmable-ISP)를 실측하면, host 대비 Storage 접근 지연을 <strong style="font-size:1.1em">50% 절감</strong>한다(Storage가 전체 실행시간의 38% 차지). 그런데도 end-to-end 지연은 오히려 <strong style="font-size:1.1em">1.4배 증가</strong>한다 — 원인은 host↔ISP 간 <strong style="font-size:1.1em">Communicate(통신/동기화)</strong>가 P.ISP 지연의 <strong style="font-size:1.1em">43%</strong>를 차지하기 때문이다.<br><br>즉 ISP가 '데이터를 옆에서 처리한다'는 목표는 이미 달성했지만, 그 처리 결과를 host와 조율하는 비용이 새로운, 더 큰 병목으로 등장한 것 — 이게 DockerSSD가 '통신 오버헤드 제거'를 최우선 설계 목표로 삼는 직접적 근거다.</div><details class="ng-original"><summary>Original <span class="ng-loc">p.3, Fig.3</span></summary>
+<div class="ng-orig-text">Our findings reveal that Storage accounts for 38% of the total execution time ... this improvement is offset by a 1.4× increase in overall end-to-end latency, primarily due to Communicate, which constitutes 43% of P.ISP latency.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_008" style="--color:#1ABC9C;border-radius:22px;left:620px;top:640px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">산업의 disaggregation 시도와 그 한계</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">산업계는 이미 ISP 자원을 storage array/node 단위로 disaggregation해서 server-side 연산 부담을 줄이려 시도해왔다. 하지만 SSD를 다양한 애플리케이션 요구에 맞추기 어렵다는 문제가 남아있었다 — 결국 '통신 방식은 그대로 두고 자원 배치만 분산'하는 접근으로는 근본 병목(Communicate 43%)을 건드리지 못한다는 것. DockerSSD의 차별점은 자원 배치가 아니라 <strong style="font-size:1.1em">통신/실행 모델 자체</strong>(host-independent, containerized)를 바꾼다는 데 있다.</div></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#5C9E6E;border-radius:2px;left:620px;top:720px;min-width:932px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">High-level 아키텍처: Ether-oN + Virtual-FW + λFS</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DockerSSD는 세 기술 challenge에 대응하는 세 컴포넌트로 구성된다: (1) storage/network 스택 모두와 호환되는 통신 인터페이스 $\\rightarrow$ <strong style="font-size:1.1em">Ether-oN</strong>, (2) storage pool 전반의 consistency $\\rightarrow$ <strong style="font-size:1.1em">$\\lambda$FS</strong>, (3) 컨테이너 구조를 인식하고 저오버헤드로 실행하는 firmware $\\rightarrow$ <strong style="font-size:1.1em">Virtual-FW</strong>.<br><br>Host CPU에는 IP가 부여된 `docker-cli`/async upcall 경로가, DockerSSD 쪽에는 대응하는 IP와 Virtual-FW(ISP-container + mini-docker + System call I/F + OS features)가 있다. 미디어는 media mgmt(b)에서 보듯 <strong style="font-size:1.1em">Sharable-NS</strong>(host와 공유, inode lock으로 동시접근 조율)와 <strong style="font-size:1.1em">Private-NS</strong>(host로부터 격리, image/rootfs 등 보호 대상)로 나뉜다.<br><br><span class="ng-img-missing">fig4_architecture.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">p.4</span></summary>
+<div class="ng-orig-text">Figure 4a illustrates the architecture of DockerSSD. To overcome these challenges, it integrates two key components: i) a system driver introducing a novel ISP management interface, Ether-oN, and ii) a firmware environment equipped with Docker stack, Virtual-FW.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:620px;top:880px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Ether-oN: NVMe 위에 Ethernet 오버레이 + Async Upcall</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">소켓 기반 Ethernet 통신을 PCIe 위에서 구현하는 <strong style="font-size:1.1em">kernel driver</strong>. Host에 가상 네트워크 어댑터를 만들어 Ethernet packet을 NVMe command로 번역해 DockerSSD로 보낸다. 두 개의 <strong style="font-size:1.1em">NVMe vendor-specific command</strong>(opcode `0xE0` transmit, `0xE1` receive)로 frame(`struct sk_buff`, 4KB-aligned)을 주고받는다.<br><br>핵심 난제는 <strong style="font-size:1.1em">PCIe device가 host로 명령을 먼저 발행할 수 없다</strong>는 것(inbound 문제) — 이를 <strong style="font-size:1.1em">asynchronous upcall</strong>로 해결한다: 커널 초기화 시 receive-frame용 NVMe command를 미리 SQ에 pre-submit해두고, ISP-container가 frame을 보내면 그 outstanding command를 완료시켜 host에 도달하게 한다. 예비 연구 결과 <strong style="font-size:1.1em">SQ당 4개 pre-allocated command</strong>가 효율/자원의 균형점.</div><details class="ng-original"><summary>Original <span class="ng-loc">p.5</span></summary>
+<div class="ng-orig-text">PCIe devices typically cannot issue NVMe commands to the host. ISP-containers, however, require such an upcall mechanism for user communication.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1040px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Virtual-FW: syscall emulation + mini-docker</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Full OS 대신 <strong style="font-size:1.1em">lightweight function wrapper로 필요한 system call만 구현</strong>하는 syscall emulation이 핵심이다 — 예를 들어 glibc `open`이 내부적으로 호출하는 `openat`만 구현하면 되고, userland 복귀 시 context switch가 없어 mode boundary 자체를 회피한다. 결과적으로 ISP syscall 비용이 'function management' 수준으로 떨어진다.<br><br><strong style="font-size:1.1em">mini-docker</strong>는 Docker command 106개 중 핵심 <strong style="font-size:1.1em">11개</strong>(`pull/rmi/create/run/start/stop/restart/kill/rm/logs/ps`)만 구현한 streamlined 버전으로, `dockerd`/`containerd`/`runc`의 핵심 기능을 통합해 host `docker-cli`와 HTTP로 통신한다.<br><br>Privileged FW-pool과 ISP-pool을 page 단위로 분리하되, privileged 모드가 ISP-pool에 직접 접근하게 해 data copy·mode-switch 오버헤드를 없앤다.</div><details class="ng-original"><summary>Original <span class="ng-loc">p.2</span></summary>
+<div class="ng-orig-text">Virtual-FW maintains ISP system call execution costs comparable to function management costs. It creates ISP-containers from existing Docker images and executes them without the overhead of a full OS.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">λFS: private/sharable NS + inode lock</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">EXT4 기반이면서 host의 file 구조와 통합되는 backend filesystem. 미디어를 두 NVMe namespace로 분할한다: <strong style="font-size:1.1em">private-NS</strong>(host로부터 격리, `/images/`·`/rootfs/` 등 컨테이너 보호 대상)와 <strong style="font-size:1.1em">sharable-NS</strong>(host와 ISP-container가 공유하는 in/out 데이터).<br><br>동시 접근 충돌은 <strong style="font-size:1.1em">in-memory inode lock</strong>으로 조율한다 — host의 VFS inode에 reference counter를 추가해 open 시 증가·close 시 감소시키고, counter==0일 때만 접근을 허용한다. ISP-container가 접근 권한을 얻으면 VFS가 자신의 inode cache를 무효화해 최신 상태를 참조한다. 이 lock은 <strong style="font-size:1.1em">동기화 전용이라 persistence가 없다</strong> — 전원 장애 시 host가 filesystem을 복원한 뒤 ISP-container를 초기 상태에서 재시작해야 한다.</div></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1360px;min-width:932px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Computing-enabled Storage Pool + 분산 LLM inference</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Ether-oN과 Virtual-FW 덕분에 각 DockerSSD가 독립 IP를 가진 네트워크 노드처럼 동작한다 — 여러 대를 PCIe switch로 묶으면 `docker-compose`/Kubernetes로 오케스트레이션 가능한 <strong style="font-size:1.1em">array pool / computing-enabled storage pool</strong>이 된다.<br><br><strong style="font-size:1.1em">분산 LLM inference</strong>가 대표 use-case다: LLM의 KV cache(재사용으로 $O(n^2)\to O(n)$ 절감)를 host DRAM의 소프트웨어 swap 대신 <strong style="font-size:1.1em">DockerSSD의 flash에 직접 상주</strong>시켜, cache pollution·mode switch·불필요한 data copy를 회피한다. 실행 흐름은 Figure 5처럼 host의 `docker pull`/`run`이 그대로 DockerSSD의 mini-docker로 전달되고, 이후 애플리케이션(예: `mariadb-cli` 쿼리)이 Ether-oN을 통해 직접 처리된다 — host는 컨테이너 배포 시점에만 개입한다.<br><br><span class="ng-img-missing">fig5_execution_example.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">p.5</span></summary>
+<div class="ng-orig-text">Ether-oN supports all essential Ethernet functionalities, allowing storage components to operate as independent nodes within a computing-enabled storage pool, communicating with the host seamlessly and autonomously.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1520px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 통찰: host-independent가 통신 오버헤드를 없앤다</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">이 논문의 모든 설계 결정은 사실 하나의 통찰에서 파생된다: <strong style="font-size:1.1em">ISP를 host-independent·autonomous하게 만들면 통신 오버헤드(Fig.3의 43%) 자체가 성립하지 않는다.</strong> 컨테이너화는 이 목표를 위한 수단이다 — cgroups/namespaces 기반 isolated 환경이라 emulation SW 없이도 SSD의 제한된 자원에 lightweight하게 올릴 수 있고, 동시에 secure·portable sandbox로 동작해 data vulnerability 문제(challenge 5)도 함께 해결한다. 즉 '컨테이너를 쓴다'는 선택 자체가 '통신 병목 제거'와 '보안 격리'라는 두 문제를 하나의 메커니즘으로 동시에 푸는 지점이다.</div></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#9B59B6;border-radius:2px;left:620px;top:1020px;min-width:932px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Overall 성능: 6개 baseline 비교</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">6개 벤치마크(embed/mariadb/rocksdb/pattern/nginx/vsftpd) 13개 워크로드에서 DockerSSD(D-VirtFW)는 P.ISP-R/V를 <strong style="font-size:1.1em">1.6배</strong>, D-Naive를 <strong style="font-size:1.1em">1.8배</strong>, D-FullOS를 <strong style="font-size:1.1em">1.6배</strong> 능가한다. 워크로드별 최대 개선은 약 <strong style="font-size:1.1em">2.1~2.2배</strong>(rocksdb-read, pattern-find).<br><br>$\\lambda$FS가 backend에 직접 접근해 <strong style="font-size:1.1em">LBA-set 핸드셰이크를 제거 $\\rightarrow$ 8.4% 지연 감소</strong>, 실행 파라미터를 rootfs에 pre-package해 <strong style="font-size:1.1em">Kernel-ctx 제거 $\\rightarrow$ P.ISP-R/V 대비 30.9% 향상</strong>. P.ISP-R/V는 host보다도 느린 경우가 있는데, Kernel-ctx·LBA-set 오버헤드 때문이다. D-Naive는 D-FullOS 대비 오히려 12.8% 느린데, processor↔controller complex 간 빈번한 data transfer 탓이다.<br><br><span class="ng-img-missing">fig11_overall_performance.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">p.9</span></summary>
+<div class="ng-orig-text">It delivers significant performance improvements, outperforming P.ISP-R/V, D-Naive, and D-FullOS by 1.6×, 1.8×, and 1.6×, respectively.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:620px;top:1180px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">분산 LLM inference: KV cache 효과</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">8개 LLM(lamda-137B ~ megatron-1T), 16~128대 DockerSSD pool로 평가. <strong style="font-size:1.1em">D-Cache는 H-Cache 대비 7.9배, H-NoCache 대비 3.2K배</strong> 향상된다 — DockerSSD는 host와 달리 flash를 local memory처럼 직접 접근해 소프트웨어 swap이 필요 없기 때문이다.<br><br>KV cache 자체의 효과도 크다: H-Cache가 H-NoCache 대비 <strong style="font-size:1.1em">421배</strong>, D-Cache가 D-NoCache 대비 <strong style="font-size:1.1em">4.6배</strong> 향상 — $O(n^2)\to O(n)$ 절감이 실제로 이만큼 크다는 실측. 분산 inference에서 DockerSSD는 host 대비 단 <strong style="font-size:1.1em">1.7배 열위</strong>에 그치는데, 이는 순수 연산 능력 차이(2.2GHz vs 3.8GHz)에서 오는 것으로, KV cache 접근 방식의 우위가 clock 열세를 상당 부분 상쇄한다는 뜻이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">p.10</span></summary>
+<div class="ng-orig-text">Expanding memory capacity to enable KV caching greatly boosts performance. Specifically, H-Cache achieves a 421× performance gain over H-NoCache, while D-Cache achieves a remarkable 4.6× improvement over D-NoCache.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#E74C3C;border-radius:2px;left:620px;top:1340px;min-width:982px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Sequence length crossover — 언제 host보다 느린가</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DockerSSD가 항상 host보다 빠른 건 아니다. Prototype RISC-V(2.2GHz)는 host(3.8GHz)보다 느려, <strong style="font-size:1.1em">compute-bound인 짧은 sequence·작은 모델에선 host의 약 60% 성능</strong>에 그친다.<br><br><strong style="font-size:1.1em">Crossover 지점</strong>: lamda(137B, 가장 작은 모델)는 sequence length <strong style="font-size:1.1em">256</strong>, megatron(1T, 가장 큰 모델)은 <strong style="font-size:1.1em">1024</strong>에서 DockerSSD가 host를 앞서기 시작한다. 그 이상 길이의 memory-intensive 시나리오에서는 KV cache를 flash에 직접 두는 이점이 연산 능력 열세를 압도해, speedup이 약 <strong style="font-size:1.1em">9.5배</strong>로 수렴한다.<br><br>즉 이 시스템의 이득은 보편적이지 않고 <strong style="font-size:1.1em">'긴 sequence·메모리 용량이 병목인 워크로드'라는 특정 영역에 한정</strong>된다 — 저자들도 이를 숨기지 않고 명시적으로 분석한다.<br><br>Figure 13(b)의 Compute(회색)/Memory(초록) 막대그래프가 이걸 시각적으로 보여준다 — sequence가 짧을 땐 회색(Compute) 비중이 크고, 길어질수록 초록(Memory)이 압도적으로 커진다. (a)(c)(d)는 그 결과로 나타나는 speedup 곡선이 sequence length에 따라 어떻게 꺾이는지를 보여준다.<br><br><span class="ng-img-missing">fig13_sensitivity_test.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">p.10</span></summary>
+<div class="ng-orig-text">This crossover occurs at a sequence length of 256 for lamda and 1,024 for megatron, where DockerSSD begins outperforming the host. With longer sequences, the speedup converges to around 9.5×.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#9B59B6;border-radius:2px;left:620px;top:1500px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Virtual-FW footprint: Linux 대비 83.4배 작음</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Full OS(Linux) 대신 system call emulation + mini-docker로 구성한 Virtual-FW는 바이너리 크기가 Linux 대비 <strong style="font-size:1.1em">83.4배 작다</strong>. Embedded processor(FPGA 기반 multi-core RISC-V, 4코어, 2.2GHz/2GB DRAM)에 올라가야 하는 firmware라는 제약을 감안하면, 이 축소가 곧 실현 가능성의 전제조건이다 — full OS를 그대로 올렸다면애초에 이 정도 자원의 SSD 컨트롤러에서 실행 자체가 어려웠을 것.</div><details class="ng-original"><summary>Original <span class="ng-loc">p.8</span></summary>
+<div class="ng-orig-text">Virtual-FW reduced the Linux binary size by 83.4×, making it suitable for embedded processors.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1620px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">저자가 스스로 인정한 한계</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">- <strong style="font-size:1.1em">연산 능력 열세</strong>: prototype RISC-V(2.2GHz)가 host(3.8GHz)보다 느려, compute-bound 짧은 시퀀스/작은 모델에서는 host보다 느리다(crossover 이전).<br>- <strong style="font-size:1.1em">LLM 평가의 간접성</strong>: $7.9\times$, $3.2K\times$ 같은 큰 수치는 analytical KV cache 모델 + simulator 기반이며, 실제 trillion-scale 모델의 end-to-end 실측이 아니다.<br>- <strong style="font-size:1.1em">inode lock의 비영속성</strong>: 동기화 전용이라 persistence가 없어, 전원 장애 시 ISP-container를 초기 상태에서 재시작해야 한다 — 장기 실행 stateful 작업엔 제약.<br>- <strong style="font-size:1.1em">mini-docker의 제한된 커버리지</strong>: Docker command 106개 중 11개만 지원해, 복잡한 오케스트레이션/이미지 기능에는 제약이 있을 수 있다.</div></div>
+</div>
+<div class="ng-node" id="node-node_020" style="--color:#95A5A6;border-radius:22px;left:620px;top:1780px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">관련 연구 계보: Willow / Biscuit / KAML / Summarizer</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">- <strong style="font-size:1.1em">Willow</strong>[3] (OSDI'14): user-programmable SSD — P.ISP-R 비교 baseline<br>- <strong style="font-size:1.1em">Biscuit</strong>[4] (ISCA'16): near-data processing framework — P.ISP-V 비교 baseline<br>- <strong style="font-size:1.1em">KAML</strong>[7] (HPCA'17): flexible key-value SSD<br>- <strong style="font-size:1.1em">Summarizer</strong>[8] (MICRO'17): communication과 near-storage computing을 trade-off<br>- <strong style="font-size:1.1em">Megatron-LM</strong>[28] (SC'21): 분산 LLM 학습, megatron-1T 모델 출처<br>- <strong style="font-size:1.1em">Calculon</strong>[54] (SC'23): 분산 inference simulator 기반<br><br>이 계보 전반이 '정적 kernel/vendor API 의존'이라는 공통 한계를 가진다는 것이 DockerSSD의 문제의식(§ISP Containerization)의 출발점이다.</div></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#BDC3C7;border-radius:22px;left:950px;top:1620px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향과의 연결: H3 가설의 실제 원형</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문은 내 working hypothesis H3(&quot;GPU 패키지 안에 작은 제어 평면을 넣어 host CPU가 하던 결정을 대신하게 하면 어떨까&quot;)가 명시적으로 유추의 원형으로 삼는 바로 그 선례다 — &quot;DockerSSD가 실행환경(컨테이너)을 데이터가 있는 SSD로 내려보냈듯&quot;이라는 H3의 한 줄 가설 자체가 이 논문을 가리킨다.<br><br>특히 <strong style="font-size:1.1em">Ether-oN의 asynchronous upcall 메커니즘</strong>(PCIe device가 host로 명령을 먼저 발행할 수 없다는 제약을, receive-frame용 NVMe command를 SQ에 미리 pre-submit해두는 방식으로 우회)은, H3가 '실현 경로'에서 고민하던 &quot;FPGA가 CPU 없이 GPU를 dispatch하려면 무엇이 필요한가&quot;라는 질문에 대한 <strong style="font-size:1.1em">storage 도메인의 구체적 선례</strong>다 — device-initiated 통신이 native하게 지원되지 않는 인터커넥트(PCIe/NVMe) 위에서 그걸 우회하는 실제 엔지니어링 패턴을 보여준다.<br><br>다만 스코프 차이는 분명하다: DockerSSD는 저장매체(flash)에 담긴 컨테이너 실행환경을 내려보내는 것이지, H3처럼 GPU의 커널 launch·스케줄링이라는 <strong style="font-size:1.1em">제어 흐름 자체</strong>를 이관하는 것은 아니다 — '무엇을 이관하는가'(실행환경 vs 제어 결정)의 차이가, storage의 근접-연산(near-data compute) 패턴을 GPU로 일반화할 때 정확히 무엇이 달라져야 하는지를 보여주는 지점이다.</div></div>
+</div>
+<div class="ng-node" id="node-node_022" style="--color:#BDC3C7;border-radius:22px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">ISP(In-Storage Processing)는 왜 하는가 — near-data compute의 원리</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">전통적인 모델에서는 데이터가 SSD의 flash에 있어도 <strong style="font-size:1.1em">연산은 항상 host CPU에서</strong> 일어난다. Host가 데이터를 처리하려면 매번 flash $\rightarrow$ PCIe/NVMe $\rightarrow$ host DRAM으로 <strong style="font-size:1.1em">데이터 전체를 옮겨야</strong> 하는데, 문제는 그중 상당 부분이 '쓸모없는' 데이터라는 점이다 — 예를 들어 대용량 로그에서 특정 패턴을 찾는 질의(이 논문의 `pattern-find` 워크로드)는 수백만 줄 중 몇 줄만 필요한데도, 그 판단(필터링)을 host가 하려면 일단 전부 host로 옮겨야 한다.<br><br><strong style="font-size:1.1em">ISP의 아이디어는 이 판단(연산)을 데이터가 있는 곳(flash 옆)으로 내려보내는 것</strong>이다 — host로 가져오기 전에 SSD 안에서 먼저 필터링/집계해, host로는 <strong style="font-size:1.1em">결과(훨씬 작은 데이터)만</strong> 돌려준다. 이는 storage에 국한된 얘기가 아니라, '연산/제어를 데이터 옆으로 옮긴다'는 <strong style="font-size:1.1em">near-data computing</strong>이라는 더 큰 원리의 한 사례다 — 데이터를 옮기는 비용(대역폭·에너지·지연)이 그 데이터에 대한 연산 비용보다 클 때, 이동을 줄이는 쪽이 항상 이긴다는 것.<br><br>이 논문의 Fig.3 실측이 그 근거다: 기존 P.ISP가 Storage 접근 지연을 실제로 <strong style="font-size:1.1em">50% 절감</strong>한다 — ISP라는 아이디어 자체는 유효하다는 뜻. 문제는 그 대신 새로 생긴 host↔ISP 통신 오버헤드(43%)이고, 그게 이 논문 전체가 푸는 문제다.</div></div>
+</div>
+<div class="ng-node" id="node-node_023" style="--color:#BDC3C7;border-radius:22px;left:950px;top:720px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Docker는 왜 필요한가 — 컨테이너의 존재 이유</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">컨테이너가 푸는 문제</strong>: 소프트웨어는 특정 라이브러리 버전·환경설정에 의존하는데, '내 컴퓨터에서는 되는데 저기서는 안 된다'는 문제가 여기서 생긴다. Docker는 애플리케이션을 <strong style="font-size:1.1em">그 실행에 필요한 모든 것(라이브러리, 런타임, 파일시스템)과 함께 하나의 이미지로 묶어서</strong>, 어떤 환경에서도 똑같이 동작하게 만든다.<br><br><strong style="font-size:1.1em">왜 VM이 아니라 컨테이너인가</strong>: VM은 하드웨어까지 통째로 가상화해서(하이퍼바이저 + 별도 OS 커널) 무겁고 느리다. 컨테이너는 host OS 커널을 그대로 공유하면서 <strong style="font-size:1.1em">Linux `cgroups`(자원 제한) + `namespaces`(격리된 시야)</strong>만으로 '별도 환경처럼 보이게' 만든다 — 하드웨어 에뮬레이션이 없어 VM보다 훨씬 가볍고 빠르게 뜬다. SSD처럼 자원이 극히 제한된 embedded processor 위에서 컨테이너화가 그나마 현실적인 선택지가 되는 이유가 여기 있다.<br><br><strong style="font-size:1.1em">이 논문이 굳이 'Docker'를 쓰는 이유</strong>: 컨테이너 개념 자체를 새로 설계할 수도 있었지만, 그러면 사용자가 ISP를 쓰기 위해 새로운 도구를 또 배워야 한다. <strong style="font-size:1.1em">이미 전 세계 개발자가 만들어놓은 Docker Hub의 기존 이미지를 그대로</strong>(소스 수정 없이) `docker pull`/`docker run`으로 SSD 위에서 돌릴 수 있게 만드는 것 — 이게 ISP의 5대 challenge 중 1번(수작업 구현 필요)을 정면으로 없애는 지점이다. 컨테이너라는 기술 자체보다, <strong style="font-size:1.1em">Docker 생태계 재사용</strong>이 이 논문의 실질적 채택 장벽을 낮추는 핵심 전략이다.</div></div>
+</div>
+<div class="ng-node" id="node-node_024" style="--color:#BDC3C7;border-radius:22px;left:1150px;top:720px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">왜 경량 FPGA 로직이 아니라 Docker인가 — 재사용 vs 커스텀 제작</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">경량 FPGA 로직(=기존 P.ISP 방식)이 잘하는 일은 <strong style="font-size:1.1em">미리 정해진 작업 하나를 아주 빠르게</strong> 처리하는 것이다. 하지만 이 논문의 실제 워크로드(`mariadb`, `rocksdb`, `nginx`, `vsftpd`)는 이미 수만~수십만 줄로 만들어진 <strong style="font-size:1.1em">거대하고 복잡한 기존 소프트웨어</strong>다. 이걸 경량 FPGA 로직으로 다시 짜라는 건 사실상 MariaDB 전체를 하드웨어 기술언어로 재구현하라는 것과 같다 — 이게 정확히 ISP 5대 challenge의 1번('manual ISP implementation — 상당한 source-level 수정 필요')이다.<br><br><strong style="font-size:1.1em">Docker의 역할은 연산 가속이 아니라 '이미 존재하는 소프트웨어를 그대로 옮겨오는 통로'다.</strong> 전 세계 개발자가 이미 만들어놓은 Docker Hub의 이미지를 한 줄도 안 고치고 SSD 위로 가져오는 게 목적이라, '새 작업을 처음부터 짠다'는 시나리오와는 아예 문제 정의 자체가 다르다:<br><br>- 새 작업을 위해 최적화된 하드웨어를 새로 만든다 $\\rightarrow$ 경량 FPGA/커스텀 로직이 유리(빠르지만 매번 재구현 필요)<br>- <strong style="font-size:1.1em">이미 있는 복잡한 소프트웨어를 그대로 재사용</strong>하고 싶다 $\\rightarrow$ Docker가 유리(약간 무겁지만 재작성 불필요)<br><br>DockerSSD는 후자를 택했다 — '더 빠른 하드웨어'가 아니라 '재사용 장벽 없는 근접-연산'이 이 논문의 진짜 기여다.</div></div>
+</div>
+<div class="ng-node" id="node-node_025" style="--color:#BDC3C7;border-radius:22px;left:1150px;top:880px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">docker pull / docker run이 실제로 하는 일</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Docker image</strong>란 애플리케이션과 그 실행에 필요한 모든 라이브러리·런타임을 통째로 얼려놓은, 여러 층(layer)이 쌓인 <strong style="font-size:1.1em">읽기 전용 파일시스템 스냅샷</strong>이다.<br><br>- <strong style="font-size:1.1em">`docker pull`</strong>: registry(Docker Hub)에서 그 layer들을 <strong style="font-size:1.1em">로컬로 다운로드만</strong> 한다. 아직 아무것도 실행되지 않는다 — '설치 파일을 받기만 한 상태'.<br>- <strong style="font-size:1.1em">`docker run`</strong>: 로컬 이미지 위에 <strong style="font-size:1.1em">쓰기 가능한 얇은 층 하나</strong>를 추가해서(기존 layer는 읽기 전용으로 그대로 재사용 — 그래서 컨테이너 생성이 즉각적이다) 실제 프로세스를 실행한다.<br><br>이 두 단계가 분리돼 있다는 게 중요하다 — '가져오기'(pull)와 '실행'(run)이 독립적이라, 같은 이미지를 여러 번 run해서 여러 컨테이너를 동시에 띄우거나, 미리 pull만 해두고 필요할 때 run할 수도 있다.</div></div>
+</div>
+<div class="ng-node" id="node-node_026" style="--color:#BDC3C7;border-radius:22px;left:1150px;top:1040px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Docker의 격리 원리 — 가상화가 아니라 namespaces + cgroups, DockerSSD의 경량 재현</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Docker는 VM처럼 하드웨어를 가상화하지 않는다.</strong> 컨테이너 프로세스는 host 커널 위에서 도는 평범한 프로세스이고, 두 가지 리눅스 기능으로 '독립된 것처럼' 보이게 만들 뿐이다:<br><br>- <strong style="font-size:1.1em">namespaces</strong>(무엇을 볼 수 있는가): 자기 프로세스 목록만 보임(PID), 자기만의 네트워크 인터페이스(network), 자기만의 파일시스템 뷰(mount)<br>- <strong style="font-size:1.1em">cgroups</strong>(얼마나 쓸 수 있는가): CPU/메모리/I/O 사용량 상한<br><br>별도 OS 커널을 부팅하지 않아서 컨테이너는 밀리초 단위로 뜬다 — `docker run`은 사실상 namespace/cgroup 몇 개 설정하고 바이너리를 실행하는 몇 번의 시스템 콜에 불과하다.<br><br><strong style="font-size:1.1em">DockerSSD의 mini-docker는 이걸 그대로 이식하지 않는다.</strong> 진짜 리눅스 namespace/cgroup 서브시스템을 통째로 올리면 'Linux 대비 83.4배 작다'는 목표 자체가 무너진다. 대신 $\\lambda$FS의 <strong style="font-size:1.1em">private-NS/sharable-NS</strong>(mount namespace가 하던 파일시스템 격리 역할)와 Virtual-FW의 <strong style="font-size:1.1em">syscall emulation</strong>(실행 컨텍스트 격리 역할)으로, 리눅스 namespace/cgroup의 핵심 효과만 훨씬 가벼운 firmware 메커니즘으로 재현한다 — 겉보기(CLI·이미지 포맷)는 진짜 Docker와 호환되게 유지하면서.</div></div>
+</div>
+<div class="ng-node" id="node-node_027" style="--color:#5C9E6E;border-radius:2px;left:950px;top:1360px;min-width:932px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">DockerSSD 실행 흐름과 Docker를 택하며 기대한 효과</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Figure 5의 4단계가 실제 동작을 보여준다:<br><br><strong style="font-size:1.1em">❶ pull / ❷ download</strong>: 사용자가 host에서 `docker pull`을 치면, Ether-oN이 이를 네트워크 요청으로 번역해 DockerSSD의 mini-docker에 전달하고, 이미지 blob이 <strong style="font-size:1.1em">Docker Hub에서 DockerSSD로 직접</strong> 다운로드된다(host DRAM을 거치지 않음).<br><strong style="font-size:1.1em">❸ run</strong>: `docker run`으로 mini-docker가 ISP-container(예: `mariadb`)를 실행 — 애플리케이션 코드 수정 없이 그대로.<br><strong style="font-size:1.1em">❹ query</strong>: 이후 `mariadb-cli` 같은 non-I/O 요청이 Ether-oN을 통해 Ethernet 프로토콜로 ISP-container에 직접 전달·처리된다.<br><br><span class="ng-img-missing">fig5_execution_example.png</span><br><br><strong style="font-size:1.1em">Docker를 택하며 기대한 효과는 두 가지였다</strong>: (1) 단일 SSD 차원에서는 <strong style="font-size:1.1em">소스 수정 0</strong>으로 기존 애플리케이션 생태계 전체를 근접-연산에 끌어들이는 것(challenge 1 해결). (2) 더 나아가 여러 DockerSSD를 묶는 Resource Disaggregation 단계에서, Docker 표준 이미지 포맷을 쓴 덕분에 <strong style="font-size:1.1em">`docker-compose`/Kubernetes 같은 기존 오케스트레이션 도구를 그대로 재사용</strong>할 수 있게 됐다 — 클러스터 관리 도구를 처음부터 새로 만들 필요가 없어진 것. 즉 Docker 채택은 단일 디바이스의 편의성뿐 아니라, <strong style="font-size:1.1em">나중에 pool 단위로 확장할 때의 생태계 재사용</strong>까지 내다본 전략적 선택이었다.</div><details class="ng-original"><summary>Original <span class="ng-loc">p.4</span></summary>
+<div class="ng-orig-text">Users initiate a blob download from Virtual-FW using docker pull, and launch the corresponding ISP-container via docker run, all without requiring application-level modifications. During ISP-container execution, users can submit non-I/O, ISP-specific requests through Ether-oN.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_028" style="--color:#1ABC9C;border-radius:22px;left:1150px;top:1620px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">실제 하드웨어 프로토타입 vs 시뮬레이션 — 어디까지 검증됐나</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">'만들었다 vs 시뮬레이션이다'는 이분법이 아니라, <strong style="font-size:1.1em">평가 항목마다 검증 수준이 다르다</strong>.<br><br>- <strong style="font-size:1.1em">Fig.11의 I/O 성능(1.6~2.2배)</strong>: 실제 <strong style="font-size:1.1em">16nm FinFET FPGA 프로토타입</strong>(RISC-V 코어 6개가 실제 RTL로 Virtual-FW를 실행) + gem5 풀시스템 시뮬레이터로 평가. 이 시뮬레이터는 프로토타입의 RTL·synthesized backend와 <strong style="font-size:1.1em">cross-validated</strong>되어 있어, 물리 장치가 커버 못하는 설정 공간을 신뢰성 있게 확장한 것.<br>- <strong style="font-size:1.1em">flash 자체</strong>는 진짜 NAND 칩이 아니라 DDR4 컨트롤러로 타이밍만 흉내 낸 <strong style="font-size:1.1em">emulation</strong>(storage 연구에서 흔한 관행).<br>- <strong style="font-size:1.1em">분산 LLM inference의 $7.9\times$/$3.2K\times$</strong>: 별도의 <strong style="font-size:1.1em">open-source simulator + 저자들이 직접 만든 analytical KV cache 모델</strong>로 산출 — 실제 128대 DockerSSD에 trillion-parameter 모델을 올려 잰 수치가 아니다(애초에 그 규모를 실물로 검증하는 건 현실적으로 불가능).<br><br>즉 <strong style="font-size:1.1em">핵심 I/O 주장은 실물 하드웨어에 뿌리를 두고, LLM 관련 큰 수치는 시뮬레이션+수식 기반</strong>이라는 신뢰도 차이를 구분해서 읽어야 한다.</div></div>
+</div>
+<div class="ng-node" id="node-node_029" style="--color:#BDC3C7;border-radius:22px;left:1150px;top:1480px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Application 단위 배치 — 명령어 하이재킹이 아니라 배포 시점의 사람의 선택</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DockerSSD의 '오프로딩'은 <strong style="font-size:1.1em">프로그램 하나가 host에서 돌다가 특정 명령어만 골라 SSD로 가로채는(hijack) 방식이 아니다.</strong> 실제로는 훨씬 단순하다 — <strong style="font-size:1.1em">애플리케이션(프로세스) 통째로, 어디서 실행할지를 배포 시점에 사람이 미리 정한다.</strong><br><br>- Host에서는 `mariadb-cli`(클라이언트) 같은 <strong style="font-size:1.1em">별개의 프로그램</strong>이 돈다.<br>- DockerSSD에서는 `mariadb`(서버) <strong style="font-size:1.1em">전체가 통째로</strong> 자기 RISC-V 코어 위에서 돈다.<br>- 둘 사이는 Ether-oN을 통한 네트워크 요청/응답일 뿐 — 하나의 프로그램 안에서 일부만 골라 보내는 게 아니다.<br><br>일반적인 클라이언트-서버 구조에서 '이 쿼리를 내 노트북이 아니라 원격 DB 서버가 처리한다'를 굳이 '명령어 하이재킹'이라 안 부르는 것과 같은 이치다. Kubernetes가 '어떤 SSD 노드에' 컨테이너를 배치할지는 자동으로 정해주지만, <strong style="font-size:1.1em">'이 프로그램의 어느 부분을 SSD로 보낼지'는 정해주지 않는다</strong> — 그건 컨테이너를 통째로 배포하는 순간 사람이 이미 정한 것이다.<br><br>이건 정확히 H3 가설이 씨름하던 '어디까지 자동으로 나눌지'(컴파일러 문제)를 DockerSSD가 <strong style="font-size:1.1em">아예 풀지 않고 우회</strong>했다는 뜻이다 — 동적·값-의존적·명령어 수준의 자동 분할이 아니라, 정적·애플리케이션 수준의 수동 배치로 문제 자체를 훨씬 쉽게 재정의한 것.</div></div>
+</div>
+<div class="ng-node" id="node-node_030" style="--color:#1ABC9C;border-radius:22px;left:1150px;top:1340px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Application 단위 배치의 부작용 — compute-bound 부분도 통째로 끌려간다</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">애플리케이션을 통째로 배치한다는 것은, <strong style="font-size:1.1em">그 안에 메모리 병목인 부분과 연산 병목인 부분이 섞여 있어도 둘 다 같은 프로세서(DockerSSD의 느린 RISC-V, 2.2GHz)에서 돌아야 한다</strong>는 뜻이다 — 이건 실제로 이 논문의 데이터에 그대로 드러나는 부작용이다.<br><br><strong style="font-size:1.1em">Sequence length crossover가 바로 그 증거</strong>: 짧은 sequence(연산 비중이 큰 구간)에서는 DockerSSD가 host(3.8GHz)의 약 60% 성능에 그친다 — 메모리 지역성 이점을 누리기도 전에, 그 워크로드에 섞여 있는 compute-bound 부분이 느린 코어에 발목 잡히기 때문이다. Sequence가 길어져 메모리 병목이 지배적이 되는 지점(lamda 256, megatron 1024)을 넘어서야 비로소 메모리 이점이 연산 열세를 압도한다.<br><br><strong style="font-size:1.1em">왜 이걸 세밀하게 못 나누는가</strong>: 이 논문의 병렬화 전략(pipeline/tensor/data parallelism)은 '어떤 레이어를 어떤 DockerSSD가 맡을지'를 나누는 것이지, <strong style="font-size:1.1em">하나의 레이어/연산 안에서 '이 부분은 compute-bound니 host로, 이 부분은 memory-bound니 SSD로' 나누는 메커니즘은 제공하지 않는다.</strong> 배치 단위가 '프로세스/레이어'로 고정되어 있어, 그보다 미세한 연산 특성 기반의 분할은 이 논문의 스코프 밖이다 — DistServe(Prefill/Decoding Disaggregation)가 prefill(compute-bound)/decode(memory-bound)를 아예 다른 GPU로 쪼갠 것과 비교하면, DockerSSD는 그 정도의 세밀한 분리는 하지 않는다.</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":260,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":260,"searchText":"killer application 두 개의 독립적으로 remarkable한 기여를 갖는다.\n\n**1. docker 생태계 전체를 소스 수정 없이 ssd 펌웨어 안으로** — 기존 isp(in-storage processing)는 정적 kernel이나 vendor-specific api를 요구해 채택 장벽이 높았는데, dockerssd는 `docker pull`/`docker run`이라는 익숙한 명령만으로 기존 docker 이미지를 그대로 flash 옆에서 실행시킨다.\n\n**2. host↔isp 통신 오버헤드 제거 + 그걸 발판 삼은 분산 컴퓨팅 풀** — isp를 host-independent·autonomous하게 만들어 통신 오버헤드(p.isp 지연의 43%)를 없애고, 이 자율성을 여러 dockerssd를 ip로 엮은 **computing-enabled storage pool**로 확장해 분산 llm inference까지 가속한다(kv cache를 flash에 직접 상주). we propose dockerssd, an isp model leveraging os-level virtualization and lightweight firmware to enable containerized data processing directly on ssds."},{"id":"node_002","lx":100,"ly":560,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":560,"searchText":"필요한 이유 (why it's needed) 기존 isp는 host↔storage 데이터 이동을 줄이지만, 새로운 병목인 **host↔isp 통신/동기화 오버헤드**를 만든다. 저자들은 isp 미채택의 근본 원인을 5대 challenge(수작업 구현, file layout 무지, kernel context switching, device 의존, data 취약성)로 정리하고, 실측(fig.3)으로 '진짜 병목이 무엇인가'를 정량화한다 — 통신 오버헤드를 없애지 않으면 isp 자체의 이득이 통신 비용에 잠식된다는 것. our findings reveal that storage accounts for 38% of the total execution time ... this improvement is offset by a 1.4× increase in overall end-to-end latency, primarily due to communicate, which constitutes 43% of p.isp latency."},{"id":"node_003","lx":100,"ly":860,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":860,"searchText":"해결책 (solution) dockerssd = **ether-on**(system driver, nvme 위에 ethernet 오버레이) + **virtual-fw**(docker 스택을 내장한 lightweight firmware) + **$\\lambda$fs**(backend flash 관리)의 3중 구조. ether-on이 host와 ssd를 독립 네트워크 노드로 묶고, virtual-fw는 full os 없이 system call emulation과 mini-docker로 컨테이너를 실행하며, $\\lambda$fs는 host와 isp-container 간 동시 접근을 안전하게 조율한다. 이 세 요소가 합쳐져 여러 dockerssd를 ip 주소로 엮은 disaggregated computing-enabled storage pool을 형성한다. we believe that, by eliminating communication overhead, isp can achieve better performance. we also believe that virtualizing the isp model can enable it to function as a secure, portable sandbox, paving the way for broader isp adoption."},{"id":"node_004","lx":100,"ly":1160,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1160,"searchText":"결과 (results) | 항목 | 수치 |\n|---|---|\n| vs p.isp-r/v | **1.6배** |\n| vs d-naive | **1.8배** |\n| vs d-fullos | **1.6배** |\n| 워크로드별 최대 | 약 **2.1~2.2배** |\n| 분산 llm inference: d-cache vs h-cache | **7.9배** |\n| 분산 llm inference: d-cache vs h-nocache | **3.2k배** |\n| virtual-fw 바이너리 크기 vs linux | **83.4배** 축소 |\n\n세부 결과는 하위 노드 참고. dockerssd outperforms host system and leading isp models [3, 4, 30] by 1.3× and 1.8×, respectively. in addition, the compute-enabled storage pool enhances llm performance by an average of 7.9×."},{"id":"node_005","lx":100,"ly":1460,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1460,"searchText":"결론 (conclusion) dockerssd는 os-level virtualization을 ssd 펌웨어 안으로 가져와, 소스 수정 없는 컨테이너 실행과 host-independent한 자율 isp를 동시에 달성했다. 다만 저자 스스로 인정하듯, prototype의 risc-v(2.2ghz)가 host(3.8ghz)보다 느려 compute-bound 짧은 워크로드에선 여전히 host가 우세하고, 큰 llm 수치($7.9\\times$, $3.2k\\times$)는 analytical 모델+simulator 기반이라 실제 trillion-scale 모델의 end-to-end 실측은 아니다. 그럼에도 '컨테이너화된 자율 isp를 여러 개 묶어 storage pool 자체를 분산 컴퓨팅 자원으로 쓴다'는 방향은, storage를 넘어 다른 near-data 도메인으로 일반화할 여지를 남긴다. fw-level containerization (dockerssd). d-virtfw combines the advantages of full-fledged application execution while avoiding the software stack overhead of d-fullos and the hardware inefficiencies of d-naive."},{"id":"node_006","lx":620,"ly":320,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":320,"searchText":"isp가 겪는 5대 challenge 기존 isp(willow, biscuit, kaml, summarizer 등)가 정적 kernel/vendor-specific api에 의존하면서 겪는 구조적 한계 다섯 가지:\n\n1. **manual isp implementation** — application을 offload하려면 상당한 source-level 수정 필요\n2. **file layout 무지** — ssd가 file/block 구조를 모른 채 raw 데이터를 처리해 예측 불가능한 결과\n3. **kernel context switching** — os 개입에 따른 오버헤드\n4. **device reliance** — 새 host-side daemon 개발 필요\n5. **data vulnerability** — host user가 처리 중인 데이터를 수정할 수 있는 resource protection 부재\n\n이 다섯 가지가 isp의 산업 채택을 가로막아온 근본 원인이라는 게 저자들의 진단이다. "},{"id":"node_007","lx":620,"ly":480,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":480,"searchText":"fig.3: 진짜 병목은 storage가 아니라 communicate p.isp(programmable-isp)를 실측하면, host 대비 storage 접근 지연을 **50% 절감**한다(storage가 전체 실행시간의 38% 차지). 그런데도 end-to-end 지연은 오히려 **1.4배 증가**한다 — 원인은 host↔isp 간 **communicate(통신/동기화)**가 p.isp 지연의 **43%**를 차지하기 때문이다.\n\n즉 isp가 '데이터를 옆에서 처리한다'는 목표는 이미 달성했지만, 그 처리 결과를 host와 조율하는 비용이 새로운, 더 큰 병목으로 등장한 것 — 이게 dockerssd가 '통신 오버헤드 제거'를 최우선 설계 목표로 삼는 직접적 근거다. our findings reveal that storage accounts for 38% of the total execution time ... this improvement is offset by a 1.4× increase in overall end-to-end latency, primarily due to communicate, which constitutes 43% of p.isp latency."},{"id":"node_008","lx":620,"ly":640,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":640,"searchText":"산업의 disaggregation 시도와 그 한계 산업계는 이미 isp 자원을 storage array/node 단위로 disaggregation해서 server-side 연산 부담을 줄이려 시도해왔다. 하지만 ssd를 다양한 애플리케이션 요구에 맞추기 어렵다는 문제가 남아있었다 — 결국 '통신 방식은 그대로 두고 자원 배치만 분산'하는 접근으로는 근본 병목(communicate 43%)을 건드리지 못한다는 것. dockerssd의 차별점은 자원 배치가 아니라 **통신/실행 모델 자체**(host-independent, containerized)를 바꾼다는 데 있다. "},{"id":"node_009","lx":620,"ly":720,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":720,"searchText":"high-level 아키텍처: ether-on + virtual-fw + λfs dockerssd는 세 기술 challenge에 대응하는 세 컴포넌트로 구성된다: (1) storage/network 스택 모두와 호환되는 통신 인터페이스 $\\\\rightarrow$ **ether-on**, (2) storage pool 전반의 consistency $\\\\rightarrow$ **$\\\\lambda$fs**, (3) 컨테이너 구조를 인식하고 저오버헤드로 실행하는 firmware $\\\\rightarrow$ **virtual-fw**.\n\nhost cpu에는 ip가 부여된 `docker-cli`/async upcall 경로가, dockerssd 쪽에는 대응하는 ip와 virtual-fw(isp-container + mini-docker + system call i/f + os features)가 있다. 미디어는 media mgmt(b)에서 보듯 **sharable-ns**(host와 공유, inode lock으로 동시접근 조율)와 **private-ns**(host로부터 격리, image/rootfs 등 보호 대상)로 나뉜다.\n\n[[img:fig4_architecture.png:900x360]] figure 4a illustrates the architecture of dockerssd. to overcome these challenges, it integrates two key components: i) a system driver introducing a novel isp management interface, ether-on, and ii) a firmware environment equipped with docker stack, virtual-fw."},{"id":"node_010","lx":620,"ly":880,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":880,"searchText":"ether-on: nvme 위에 ethernet 오버레이 + async upcall 소켓 기반 ethernet 통신을 pcie 위에서 구현하는 **kernel driver**. host에 가상 네트워크 어댑터를 만들어 ethernet packet을 nvme command로 번역해 dockerssd로 보낸다. 두 개의 **nvme vendor-specific command**(opcode `0xe0` transmit, `0xe1` receive)로 frame(`struct sk_buff`, 4kb-aligned)을 주고받는다.\n\n핵심 난제는 **pcie device가 host로 명령을 먼저 발행할 수 없다**는 것(inbound 문제) — 이를 **asynchronous upcall**로 해결한다: 커널 초기화 시 receive-frame용 nvme command를 미리 sq에 pre-submit해두고, isp-container가 frame을 보내면 그 outstanding command를 완료시켜 host에 도달하게 한다. 예비 연구 결과 **sq당 4개 pre-allocated command**가 효율/자원의 균형점. pcie devices typically cannot issue nvme commands to the host. isp-containers, however, require such an upcall mechanism for user communication."},{"id":"node_011","lx":620,"ly":1040,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1040,"searchText":"virtual-fw: syscall emulation + mini-docker full os 대신 **lightweight function wrapper로 필요한 system call만 구현**하는 syscall emulation이 핵심이다 — 예를 들어 glibc `open`이 내부적으로 호출하는 `openat`만 구현하면 되고, userland 복귀 시 context switch가 없어 mode boundary 자체를 회피한다. 결과적으로 isp syscall 비용이 'function management' 수준으로 떨어진다.\n\n**mini-docker**는 docker command 106개 중 핵심 **11개**(`pull/rmi/create/run/start/stop/restart/kill/rm/logs/ps`)만 구현한 streamlined 버전으로, `dockerd`/`containerd`/`runc`의 핵심 기능을 통합해 host `docker-cli`와 http로 통신한다.\n\nprivileged fw-pool과 isp-pool을 page 단위로 분리하되, privileged 모드가 isp-pool에 직접 접근하게 해 data copy·mode-switch 오버헤드를 없앤다. virtual-fw maintains isp system call execution costs comparable to function management costs. it creates isp-containers from existing docker images and executes them without the overhead of a full os."},{"id":"node_012","lx":620,"ly":1200,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1200,"searchText":"λfs: private/sharable ns + inode lock ext4 기반이면서 host의 file 구조와 통합되는 backend filesystem. 미디어를 두 nvme namespace로 분할한다: **private-ns**(host로부터 격리, `/images/`·`/rootfs/` 등 컨테이너 보호 대상)와 **sharable-ns**(host와 isp-container가 공유하는 in/out 데이터).\n\n동시 접근 충돌은 **in-memory inode lock**으로 조율한다 — host의 vfs inode에 reference counter를 추가해 open 시 증가·close 시 감소시키고, counter==0일 때만 접근을 허용한다. isp-container가 접근 권한을 얻으면 vfs가 자신의 inode cache를 무효화해 최신 상태를 참조한다. 이 lock은 **동기화 전용이라 persistence가 없다** — 전원 장애 시 host가 filesystem을 복원한 뒤 isp-container를 초기 상태에서 재시작해야 한다. "},{"id":"node_013","lx":620,"ly":1360,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1360,"searchText":"computing-enabled storage pool + 분산 llm inference ether-on과 virtual-fw 덕분에 각 dockerssd가 독립 ip를 가진 네트워크 노드처럼 동작한다 — 여러 대를 pcie switch로 묶으면 `docker-compose`/kubernetes로 오케스트레이션 가능한 **array pool / computing-enabled storage pool**이 된다.\n\n**분산 llm inference**가 대표 use-case다: llm의 kv cache(재사용으로 $o(n^2)\\to o(n)$ 절감)를 host dram의 소프트웨어 swap 대신 **dockerssd의 flash에 직접 상주**시켜, cache pollution·mode switch·불필요한 data copy를 회피한다. 실행 흐름은 figure 5처럼 host의 `docker pull`/`run`이 그대로 dockerssd의 mini-docker로 전달되고, 이후 애플리케이션(예: `mariadb-cli` 쿼리)이 ether-on을 통해 직접 처리된다 — host는 컨테이너 배포 시점에만 개입한다.\n\n[[img:fig5_execution_example.png:900x360]] ether-on supports all essential ethernet functionalities, allowing storage components to operate as independent nodes within a computing-enabled storage pool, communicating with the host seamlessly and autonomously."},{"id":"node_014","lx":620,"ly":1520,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1520,"searchText":"핵심 통찰: host-independent가 통신 오버헤드를 없앤다 이 논문의 모든 설계 결정은 사실 하나의 통찰에서 파생된다: **isp를 host-independent·autonomous하게 만들면 통신 오버헤드(fig.3의 43%) 자체가 성립하지 않는다.** 컨테이너화는 이 목표를 위한 수단이다 — cgroups/namespaces 기반 isolated 환경이라 emulation sw 없이도 ssd의 제한된 자원에 lightweight하게 올릴 수 있고, 동시에 secure·portable sandbox로 동작해 data vulnerability 문제(challenge 5)도 함께 해결한다. 즉 '컨테이너를 쓴다'는 선택 자체가 '통신 병목 제거'와 '보안 격리'라는 두 문제를 하나의 메커니즘으로 동시에 푸는 지점이다. "},{"id":"node_015","lx":620,"ly":1020,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1020,"searchText":"overall 성능: 6개 baseline 비교 6개 벤치마크(embed/mariadb/rocksdb/pattern/nginx/vsftpd) 13개 워크로드에서 dockerssd(d-virtfw)는 p.isp-r/v를 **1.6배**, d-naive를 **1.8배**, d-fullos를 **1.6배** 능가한다. 워크로드별 최대 개선은 약 **2.1~2.2배**(rocksdb-read, pattern-find).\n\n$\\\\lambda$fs가 backend에 직접 접근해 **lba-set 핸드셰이크를 제거 $\\\\rightarrow$ 8.4% 지연 감소**, 실행 파라미터를 rootfs에 pre-package해 **kernel-ctx 제거 $\\\\rightarrow$ p.isp-r/v 대비 30.9% 향상**. p.isp-r/v는 host보다도 느린 경우가 있는데, kernel-ctx·lba-set 오버헤드 때문이다. d-naive는 d-fullos 대비 오히려 12.8% 느린데, processor↔controller complex 간 빈번한 data transfer 탓이다.\n\n[[img:fig11_overall_performance.png:900x260]] it delivers significant performance improvements, outperforming p.isp-r/v, d-naive, and d-fullos by 1.6×, 1.8×, and 1.6×, respectively."},{"id":"node_016","lx":620,"ly":1180,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1180,"searchText":"분산 llm inference: kv cache 효과 8개 llm(lamda-137b ~ megatron-1t), 16~128대 dockerssd pool로 평가. **d-cache는 h-cache 대비 7.9배, h-nocache 대비 3.2k배** 향상된다 — dockerssd는 host와 달리 flash를 local memory처럼 직접 접근해 소프트웨어 swap이 필요 없기 때문이다.\n\nkv cache 자체의 효과도 크다: h-cache가 h-nocache 대비 **421배**, d-cache가 d-nocache 대비 **4.6배** 향상 — $o(n^2)\\to o(n)$ 절감이 실제로 이만큼 크다는 실측. 분산 inference에서 dockerssd는 host 대비 단 **1.7배 열위**에 그치는데, 이는 순수 연산 능력 차이(2.2ghz vs 3.8ghz)에서 오는 것으로, kv cache 접근 방식의 우위가 clock 열세를 상당 부분 상쇄한다는 뜻이다. expanding memory capacity to enable kv caching greatly boosts performance. specifically, h-cache achieves a 421× performance gain over h-nocache, while d-cache achieves a remarkable 4.6× improvement over d-nocache."},{"id":"node_017","lx":620,"ly":1340,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1340,"searchText":"sequence length crossover — 언제 host보다 느린가 dockerssd가 항상 host보다 빠른 건 아니다. prototype risc-v(2.2ghz)는 host(3.8ghz)보다 느려, **compute-bound인 짧은 sequence·작은 모델에선 host의 약 60% 성능**에 그친다.\n\n**crossover 지점**: lamda(137b, 가장 작은 모델)는 sequence length **256**, megatron(1t, 가장 큰 모델)은 **1024**에서 dockerssd가 host를 앞서기 시작한다. 그 이상 길이의 memory-intensive 시나리오에서는 kv cache를 flash에 직접 두는 이점이 연산 능력 열세를 압도해, speedup이 약 **9.5배**로 수렴한다.\n\n즉 이 시스템의 이득은 보편적이지 않고 **'긴 sequence·메모리 용량이 병목인 워크로드'라는 특정 영역에 한정**된다 — 저자들도 이를 숨기지 않고 명시적으로 분석한다.\n\nfigure 13(b)의 compute(회색)/memory(초록) 막대그래프가 이걸 시각적으로 보여준다 — sequence가 짧을 땐 회색(compute) 비중이 크고, 길어질수록 초록(memory)이 압도적으로 커진다. (a)(c)(d)는 그 결과로 나타나는 speedup 곡선이 sequence length에 따라 어떻게 꺾이는지를 보여준다.\n\n[[img:fig13_sensitivity_test.png:950x220]] this crossover occurs at a sequence length of 256 for lamda and 1,024 for megatron, where dockerssd begins outperforming the host. with longer sequences, the speedup converges to around 9.5×."},{"id":"node_018","lx":620,"ly":1500,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1500,"searchText":"virtual-fw footprint: linux 대비 83.4배 작음 full os(linux) 대신 system call emulation + mini-docker로 구성한 virtual-fw는 바이너리 크기가 linux 대비 **83.4배 작다**. embedded processor(fpga 기반 multi-core risc-v, 4코어, 2.2ghz/2gb dram)에 올라가야 하는 firmware라는 제약을 감안하면, 이 축소가 곧 실현 가능성의 전제조건이다 — full os를 그대로 올렸다면애초에 이 정도 자원의 ssd 컨트롤러에서 실행 자체가 어려웠을 것. virtual-fw reduced the linux binary size by 83.4×, making it suitable for embedded processors."},{"id":"node_019","lx":620,"ly":1620,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1620,"searchText":"저자가 스스로 인정한 한계 - **연산 능력 열세**: prototype risc-v(2.2ghz)가 host(3.8ghz)보다 느려, compute-bound 짧은 시퀀스/작은 모델에서는 host보다 느리다(crossover 이전).\n- **llm 평가의 간접성**: $7.9\\times$, $3.2k\\times$ 같은 큰 수치는 analytical kv cache 모델 + simulator 기반이며, 실제 trillion-scale 모델의 end-to-end 실측이 아니다.\n- **inode lock의 비영속성**: 동기화 전용이라 persistence가 없어, 전원 장애 시 isp-container를 초기 상태에서 재시작해야 한다 — 장기 실행 stateful 작업엔 제약.\n- **mini-docker의 제한된 커버리지**: docker command 106개 중 11개만 지원해, 복잡한 오케스트레이션/이미지 기능에는 제약이 있을 수 있다. "},{"id":"node_020","lx":620,"ly":1780,"children":[],"template":"reference","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1780,"searchText":"관련 연구 계보: willow / biscuit / kaml / summarizer - **willow**[3] (osdi'14): user-programmable ssd — p.isp-r 비교 baseline\n- **biscuit**[4] (isca'16): near-data processing framework — p.isp-v 비교 baseline\n- **kaml**[7] (hpca'17): flexible key-value ssd\n- **summarizer**[8] (micro'17): communication과 near-storage computing을 trade-off\n- **megatron-lm**[28] (sc'21): 분산 llm 학습, megatron-1t 모델 출처\n- **calculon**[54] (sc'23): 분산 inference simulator 기반\n\n이 계보 전반이 '정적 kernel/vendor api 의존'이라는 공통 한계를 가진다는 것이 dockerssd의 문제의식(§isp containerization)의 출발점이다. "},{"id":"node_021","lx":950,"ly":1620,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1620,"searchText":"내 연구방향과의 연결: h3 가설의 실제 원형 이 논문은 내 working hypothesis h3(\"gpu 패키지 안에 작은 제어 평면을 넣어 host cpu가 하던 결정을 대신하게 하면 어떨까\")가 명시적으로 유추의 원형으로 삼는 바로 그 선례다 — \"dockerssd가 실행환경(컨테이너)을 데이터가 있는 ssd로 내려보냈듯\"이라는 h3의 한 줄 가설 자체가 이 논문을 가리킨다.\n\n특히 **ether-on의 asynchronous upcall 메커니즘**(pcie device가 host로 명령을 먼저 발행할 수 없다는 제약을, receive-frame용 nvme command를 sq에 미리 pre-submit해두는 방식으로 우회)은, h3가 '실현 경로'에서 고민하던 \"fpga가 cpu 없이 gpu를 dispatch하려면 무엇이 필요한가\"라는 질문에 대한 **storage 도메인의 구체적 선례**다 — device-initiated 통신이 native하게 지원되지 않는 인터커넥트(pcie/nvme) 위에서 그걸 우회하는 실제 엔지니어링 패턴을 보여준다.\n\n다만 스코프 차이는 분명하다: dockerssd는 저장매체(flash)에 담긴 컨테이너 실행환경을 내려보내는 것이지, h3처럼 gpu의 커널 launch·스케줄링이라는 **제어 흐름 자체**를 이관하는 것은 아니다 — '무엇을 이관하는가'(실행환경 vs 제어 결정)의 차이가, storage의 근접-연산(near-data compute) 패턴을 gpu로 일반화할 때 정확히 무엇이 달라져야 하는지를 보여주는 지점이다. "},{"id":"node_022","lx":620,"ly":100,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"searchText":"isp(in-storage processing)는 왜 하는가 — near-data compute의 원리 전통적인 모델에서는 데이터가 ssd의 flash에 있어도 **연산은 항상 host cpu에서** 일어난다. host가 데이터를 처리하려면 매번 flash $\\rightarrow$ pcie/nvme $\\rightarrow$ host dram으로 **데이터 전체를 옮겨야** 하는데, 문제는 그중 상당 부분이 '쓸모없는' 데이터라는 점이다 — 예를 들어 대용량 로그에서 특정 패턴을 찾는 질의(이 논문의 `pattern-find` 워크로드)는 수백만 줄 중 몇 줄만 필요한데도, 그 판단(필터링)을 host가 하려면 일단 전부 host로 옮겨야 한다.\n\n**isp의 아이디어는 이 판단(연산)을 데이터가 있는 곳(flash 옆)으로 내려보내는 것**이다 — host로 가져오기 전에 ssd 안에서 먼저 필터링/집계해, host로는 **결과(훨씬 작은 데이터)만** 돌려준다. 이는 storage에 국한된 얘기가 아니라, '연산/제어를 데이터 옆으로 옮긴다'는 **near-data computing**이라는 더 큰 원리의 한 사례다 — 데이터를 옮기는 비용(대역폭·에너지·지연)이 그 데이터에 대한 연산 비용보다 클 때, 이동을 줄이는 쪽이 항상 이긴다는 것.\n\n이 논문의 fig.3 실측이 그 근거다: 기존 p.isp가 storage 접근 지연을 실제로 **50% 절감**한다 — isp라는 아이디어 자체는 유효하다는 뜻. 문제는 그 대신 새로 생긴 host↔isp 통신 오버헤드(43%)이고, 그게 이 논문 전체가 푸는 문제다. "},{"id":"node_023","lx":950,"ly":720,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":720,"searchText":"docker는 왜 필요한가 — 컨테이너의 존재 이유 **컨테이너가 푸는 문제**: 소프트웨어는 특정 라이브러리 버전·환경설정에 의존하는데, '내 컴퓨터에서는 되는데 저기서는 안 된다'는 문제가 여기서 생긴다. docker는 애플리케이션을 **그 실행에 필요한 모든 것(라이브러리, 런타임, 파일시스템)과 함께 하나의 이미지로 묶어서**, 어떤 환경에서도 똑같이 동작하게 만든다.\n\n**왜 vm이 아니라 컨테이너인가**: vm은 하드웨어까지 통째로 가상화해서(하이퍼바이저 + 별도 os 커널) 무겁고 느리다. 컨테이너는 host os 커널을 그대로 공유하면서 **linux `cgroups`(자원 제한) + `namespaces`(격리된 시야)**만으로 '별도 환경처럼 보이게' 만든다 — 하드웨어 에뮬레이션이 없어 vm보다 훨씬 가볍고 빠르게 뜬다. ssd처럼 자원이 극히 제한된 embedded processor 위에서 컨테이너화가 그나마 현실적인 선택지가 되는 이유가 여기 있다.\n\n**이 논문이 굳이 'docker'를 쓰는 이유**: 컨테이너 개념 자체를 새로 설계할 수도 있었지만, 그러면 사용자가 isp를 쓰기 위해 새로운 도구를 또 배워야 한다. **이미 전 세계 개발자가 만들어놓은 docker hub의 기존 이미지를 그대로**(소스 수정 없이) `docker pull`/`docker run`으로 ssd 위에서 돌릴 수 있게 만드는 것 — 이게 isp의 5대 challenge 중 1번(수작업 구현 필요)을 정면으로 없애는 지점이다. 컨테이너라는 기술 자체보다, **docker 생태계 재사용**이 이 논문의 실질적 채택 장벽을 낮추는 핵심 전략이다. "},{"id":"node_024","lx":1150,"ly":720,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":720,"searchText":"왜 경량 fpga 로직이 아니라 docker인가 — 재사용 vs 커스텀 제작 경량 fpga 로직(=기존 p.isp 방식)이 잘하는 일은 **미리 정해진 작업 하나를 아주 빠르게** 처리하는 것이다. 하지만 이 논문의 실제 워크로드(`mariadb`, `rocksdb`, `nginx`, `vsftpd`)는 이미 수만~수십만 줄로 만들어진 **거대하고 복잡한 기존 소프트웨어**다. 이걸 경량 fpga 로직으로 다시 짜라는 건 사실상 mariadb 전체를 하드웨어 기술언어로 재구현하라는 것과 같다 — 이게 정확히 isp 5대 challenge의 1번('manual isp implementation — 상당한 source-level 수정 필요')이다.\n\n**docker의 역할은 연산 가속이 아니라 '이미 존재하는 소프트웨어를 그대로 옮겨오는 통로'다.** 전 세계 개발자가 이미 만들어놓은 docker hub의 이미지를 한 줄도 안 고치고 ssd 위로 가져오는 게 목적이라, '새 작업을 처음부터 짠다'는 시나리오와는 아예 문제 정의 자체가 다르다:\n\n- 새 작업을 위해 최적화된 하드웨어를 새로 만든다 $\\\\rightarrow$ 경량 fpga/커스텀 로직이 유리(빠르지만 매번 재구현 필요)\n- **이미 있는 복잡한 소프트웨어를 그대로 재사용**하고 싶다 $\\\\rightarrow$ docker가 유리(약간 무겁지만 재작성 불필요)\n\ndockerssd는 후자를 택했다 — '더 빠른 하드웨어'가 아니라 '재사용 장벽 없는 근접-연산'이 이 논문의 진짜 기여다. "},{"id":"node_025","lx":1150,"ly":880,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":880,"searchText":"docker pull / docker run이 실제로 하는 일 **docker image**란 애플리케이션과 그 실행에 필요한 모든 라이브러리·런타임을 통째로 얼려놓은, 여러 층(layer)이 쌓인 **읽기 전용 파일시스템 스냅샷**이다.\n\n- **`docker pull`**: registry(docker hub)에서 그 layer들을 **로컬로 다운로드만** 한다. 아직 아무것도 실행되지 않는다 — '설치 파일을 받기만 한 상태'.\n- **`docker run`**: 로컬 이미지 위에 **쓰기 가능한 얇은 층 하나**를 추가해서(기존 layer는 읽기 전용으로 그대로 재사용 — 그래서 컨테이너 생성이 즉각적이다) 실제 프로세스를 실행한다.\n\n이 두 단계가 분리돼 있다는 게 중요하다 — '가져오기'(pull)와 '실행'(run)이 독립적이라, 같은 이미지를 여러 번 run해서 여러 컨테이너를 동시에 띄우거나, 미리 pull만 해두고 필요할 때 run할 수도 있다. "},{"id":"node_026","lx":1150,"ly":1040,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1040,"searchText":"docker의 격리 원리 — 가상화가 아니라 namespaces + cgroups, dockerssd의 경량 재현 **docker는 vm처럼 하드웨어를 가상화하지 않는다.** 컨테이너 프로세스는 host 커널 위에서 도는 평범한 프로세스이고, 두 가지 리눅스 기능으로 '독립된 것처럼' 보이게 만들 뿐이다:\n\n- **namespaces**(무엇을 볼 수 있는가): 자기 프로세스 목록만 보임(pid), 자기만의 네트워크 인터페이스(network), 자기만의 파일시스템 뷰(mount)\n- **cgroups**(얼마나 쓸 수 있는가): cpu/메모리/i/o 사용량 상한\n\n별도 os 커널을 부팅하지 않아서 컨테이너는 밀리초 단위로 뜬다 — `docker run`은 사실상 namespace/cgroup 몇 개 설정하고 바이너리를 실행하는 몇 번의 시스템 콜에 불과하다.\n\n**dockerssd의 mini-docker는 이걸 그대로 이식하지 않는다.** 진짜 리눅스 namespace/cgroup 서브시스템을 통째로 올리면 'linux 대비 83.4배 작다'는 목표 자체가 무너진다. 대신 $\\\\lambda$fs의 **private-ns/sharable-ns**(mount namespace가 하던 파일시스템 격리 역할)와 virtual-fw의 **syscall emulation**(실행 컨텍스트 격리 역할)으로, 리눅스 namespace/cgroup의 핵심 효과만 훨씬 가벼운 firmware 메커니즘으로 재현한다 — 겉보기(cli·이미지 포맷)는 진짜 docker와 호환되게 유지하면서. "},{"id":"node_027","lx":950,"ly":1360,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1360,"searchText":"dockerssd 실행 흐름과 docker를 택하며 기대한 효과 figure 5의 4단계가 실제 동작을 보여준다:\n\n**❶ pull / ❷ download**: 사용자가 host에서 `docker pull`을 치면, ether-on이 이를 네트워크 요청으로 번역해 dockerssd의 mini-docker에 전달하고, 이미지 blob이 **docker hub에서 dockerssd로 직접** 다운로드된다(host dram을 거치지 않음).\n**❸ run**: `docker run`으로 mini-docker가 isp-container(예: `mariadb`)를 실행 — 애플리케이션 코드 수정 없이 그대로.\n**❹ query**: 이후 `mariadb-cli` 같은 non-i/o 요청이 ether-on을 통해 ethernet 프로토콜로 isp-container에 직접 전달·처리된다.\n\n[[img:fig5_execution_example.png:900x360]]\n\n**docker를 택하며 기대한 효과는 두 가지였다**: (1) 단일 ssd 차원에서는 **소스 수정 0**으로 기존 애플리케이션 생태계 전체를 근접-연산에 끌어들이는 것(challenge 1 해결). (2) 더 나아가 여러 dockerssd를 묶는 resource disaggregation 단계에서, docker 표준 이미지 포맷을 쓴 덕분에 **`docker-compose`/kubernetes 같은 기존 오케스트레이션 도구를 그대로 재사용**할 수 있게 됐다 — 클러스터 관리 도구를 처음부터 새로 만들 필요가 없어진 것. 즉 docker 채택은 단일 디바이스의 편의성뿐 아니라, **나중에 pool 단위로 확장할 때의 생태계 재사용**까지 내다본 전략적 선택이었다. users initiate a blob download from virtual-fw using docker pull, and launch the corresponding isp-container via docker run, all without requiring application-level modifications. during isp-container execution, users can submit non-i/o, isp-specific requests through ether-on."},{"id":"node_028","lx":1150,"ly":1620,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1620,"searchText":"실제 하드웨어 프로토타입 vs 시뮬레이션 — 어디까지 검증됐나 '만들었다 vs 시뮬레이션이다'는 이분법이 아니라, **평가 항목마다 검증 수준이 다르다**.\n\n- **fig.11의 i/o 성능(1.6~2.2배)**: 실제 **16nm finfet fpga 프로토타입**(risc-v 코어 6개가 실제 rtl로 virtual-fw를 실행) + gem5 풀시스템 시뮬레이터로 평가. 이 시뮬레이터는 프로토타입의 rtl·synthesized backend와 **cross-validated**되어 있어, 물리 장치가 커버 못하는 설정 공간을 신뢰성 있게 확장한 것.\n- **flash 자체**는 진짜 nand 칩이 아니라 ddr4 컨트롤러로 타이밍만 흉내 낸 **emulation**(storage 연구에서 흔한 관행).\n- **분산 llm inference의 $7.9\\times$/$3.2k\\times$**: 별도의 **open-source simulator + 저자들이 직접 만든 analytical kv cache 모델**로 산출 — 실제 128대 dockerssd에 trillion-parameter 모델을 올려 잰 수치가 아니다(애초에 그 규모를 실물로 검증하는 건 현실적으로 불가능).\n\n즉 **핵심 i/o 주장은 실물 하드웨어에 뿌리를 두고, llm 관련 큰 수치는 시뮬레이션+수식 기반**이라는 신뢰도 차이를 구분해서 읽어야 한다. "},{"id":"node_029","lx":1150,"ly":1480,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1480,"searchText":"application 단위 배치 — 명령어 하이재킹이 아니라 배포 시점의 사람의 선택 dockerssd의 '오프로딩'은 **프로그램 하나가 host에서 돌다가 특정 명령어만 골라 ssd로 가로채는(hijack) 방식이 아니다.** 실제로는 훨씬 단순하다 — **애플리케이션(프로세스) 통째로, 어디서 실행할지를 배포 시점에 사람이 미리 정한다.**\n\n- host에서는 `mariadb-cli`(클라이언트) 같은 **별개의 프로그램**이 돈다.\n- dockerssd에서는 `mariadb`(서버) **전체가 통째로** 자기 risc-v 코어 위에서 돈다.\n- 둘 사이는 ether-on을 통한 네트워크 요청/응답일 뿐 — 하나의 프로그램 안에서 일부만 골라 보내는 게 아니다.\n\n일반적인 클라이언트-서버 구조에서 '이 쿼리를 내 노트북이 아니라 원격 db 서버가 처리한다'를 굳이 '명령어 하이재킹'이라 안 부르는 것과 같은 이치다. kubernetes가 '어떤 ssd 노드에' 컨테이너를 배치할지는 자동으로 정해주지만, **'이 프로그램의 어느 부분을 ssd로 보낼지'는 정해주지 않는다** — 그건 컨테이너를 통째로 배포하는 순간 사람이 이미 정한 것이다.\n\n이건 정확히 h3 가설이 씨름하던 '어디까지 자동으로 나눌지'(컴파일러 문제)를 dockerssd가 **아예 풀지 않고 우회**했다는 뜻이다 — 동적·값-의존적·명령어 수준의 자동 분할이 아니라, 정적·애플리케이션 수준의 수동 배치로 문제 자체를 훨씬 쉽게 재정의한 것. "},{"id":"node_030","lx":1150,"ly":1340,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1340,"searchText":"application 단위 배치의 부작용 — compute-bound 부분도 통째로 끌려간다 애플리케이션을 통째로 배치한다는 것은, **그 안에 메모리 병목인 부분과 연산 병목인 부분이 섞여 있어도 둘 다 같은 프로세서(dockerssd의 느린 risc-v, 2.2ghz)에서 돌아야 한다**는 뜻이다 — 이건 실제로 이 논문의 데이터에 그대로 드러나는 부작용이다.\n\n**sequence length crossover가 바로 그 증거**: 짧은 sequence(연산 비중이 큰 구간)에서는 dockerssd가 host(3.8ghz)의 약 60% 성능에 그친다 — 메모리 지역성 이점을 누리기도 전에, 그 워크로드에 섞여 있는 compute-bound 부분이 느린 코어에 발목 잡히기 때문이다. sequence가 길어져 메모리 병목이 지배적이 되는 지점(lamda 256, megatron 1024)을 넘어서야 비로소 메모리 이점이 연산 열세를 압도한다.\n\n**왜 이걸 세밀하게 못 나누는가**: 이 논문의 병렬화 전략(pipeline/tensor/data parallelism)은 '어떤 레이어를 어떤 dockerssd가 맡을지'를 나누는 것이지, **하나의 레이어/연산 안에서 '이 부분은 compute-bound니 host로, 이 부분은 memory-bound니 ssd로' 나누는 메커니즘은 제공하지 않는다.** 배치 단위가 '프로세스/레이어'로 고정되어 있어, 그보다 미세한 연산 특성 기반의 분할은 이 논문의 스코프 밖이다 — distserve(prefill/decoding disaggregation)가 prefill(compute-bound)/decode(memory-bound)를 아예 다른 gpu로 쪼갠 것과 비교하면, dockerssd는 그 정도의 세밀한 분리는 하지 않는다. "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_002","target":"node_006","type":"line","label":""},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":""},{"source":"node_003","target":"node_009","type":"line","label":""},{"source":"node_003","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_004","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_016","type":"line","label":""},{"source":"node_004","target":"node_017","type":"line","label":""},{"source":"node_004","target":"node_018","type":"line","label":""},{"source":"node_005","target":"node_019","type":"line","label":""},{"source":"node_005","target":"node_020","type":"line","label":""},{"source":"node_005","target":"node_021","type":"line","label":""},{"source":"node_001","target":"node_022","type":"line","label":""},{"source":"node_003","target":"node_023","type":"line","label":""},{"source":"node_023","target":"node_024","type":"line","label":""},{"source":"node_023","target":"node_025","type":"line","label":""},{"source":"node_023","target":"node_026","type":"line","label":""},{"source":"node_013","target":"node_027","type":"line","label":""},{"source":"node_019","target":"node_028","type":"line","label":""},{"source":"node_021","target":"node_029","type":"line","label":""},{"source":"node_017","target":"node_030","type":"line","label":""}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

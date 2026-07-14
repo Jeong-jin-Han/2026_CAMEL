@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Direct Access, High-Performance Memory Disaggregation with DirectCXL</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">Direct Access, High-Performance Memory Disaggregation with DirectCXL</span>
+    <span id="tb-source">Donghyun Gouk, Sangwon Lee, Miryeong Kwon, Myoungsoo Jung (KAIST CAMELab) · USENIX ATC 2022</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_006" style="--color:#4B8BBE;border-radius:2px;left:100px;top:220px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DirectCXL가 푸는 문제는 <strong style="font-size:1.1em">메모리 분해(memory disaggregation)</strong>를 <strong style="font-size:1.1em">CXL.mem으로 직접</strong> 실현해, RDMA 기반 분해의 데이터 복사·network 개입 오버헤드를 없애는 것이다. 그리고 이걸 <strong style="font-size:1.1em">실제 하드웨어로</strong> 만든 최초 사례다(상용 CXL 2.0 IP가 없어 CXL controller·switch·RISC-V host를 전부 자작).<br><br><strong style="font-size:1.1em">Killer application 1 — 복사 없는 원격 메모리</strong>: host의 `load`/`store`가 LLC에서 곧바로 <strong style="font-size:1.1em">CXL flit</strong>으로 변환돼 원격 HDM에 도달. RDMA처럼 원격→host 데이터 복사가 없어 원격 메모리의 '진짜 성능'이 드러난다.<br><br><strong style="font-size:1.1em">Killer application 2 — CPU cache까지 활용</strong>: 원격 메모리인데도 host CPU cache에 캐시돼, cache hit면 local DRAM과 동일한 4-cycle 지연.<br><br><strong style="font-size:1.1em">Killer application 3 — 실물 CXL 2.0 disaggregation testbed</strong>: FPGA CXL memory blade + CXL switch(fabric manager) + RISC-V host를 묶어 RDMA와 정량 비교한 첫 real-system 분석.<br><br>결과: 64B load 지연이 RDMA 대비 <strong style="font-size:1.1em">8.3×</strong>, 실 워크로드에서 RDMA swap 대비 <strong style="font-size:1.1em">3×</strong> 빠름.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
+<div class="ng-orig-text">DIRECTCXL's latency is shorter than the best latency of RDMA by 6.2x, on average. For real-world applications, DIRECTCXL exhibits 3x better performance than RDMA-based memory disaggregation, on average.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" data-children="node_007,node_008" style="--color:#4B8BBE;border-radius:2px;left:100px;top:520px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">메모리 분해는 메모리 활용률·탄력성·자원관리 효율 때문에 주목받지만, 기존 방식은 전부 <strong style="font-size:1.1em">RDMA(또는 유사 network)</strong>로 원격↔host 데이터를 옮긴다.<br><br><strong style="font-size:1.1em">(1) Page-based (swap)</strong>: kswapd 아래 드라이버가 page fault 시 원격으로 swap. 투명하나 <strong style="font-size:1.1em">page fault 처리·I/O amplification·context switching</strong> 비용.<br><br><strong style="font-size:1.1em">(2) Object-based (KVS)</strong>: KV store로 원격 접근. page swap은 피하나 <strong style="font-size:1.1em">소스 대규모 수정 + 메모리 노드 연산(해싱)</strong> 필요.<br><br>공통 병목: RDMA는 양쪽에 MR 등록, MTT 주소변환, <strong style="font-size:1.1em">RNIC 간 데이터 복사(one-sided도 DMA 2회)</strong>가 필수라, 지연이 local DRAM보다 수 자릿수 커진다. 즉 '원격 메모리를 쓰려면 복사하고 network를 태워야 한다'가 근본 한계.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.2, p.3</span></summary>
+<div class="ng-orig-text">all these approaches use RDMA (or a similar network protocol), which is essential to cache the data and pay the cost of memory operations for network handling.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_009,node_010,node_011,node_012" style="--color:#4B8BBE;border-radius:2px;left:100px;top:820px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DirectCXL는 원격 메모리를 host system bus에 붙은 <strong style="font-size:1.1em">local DRAM처럼</strong> 다룬다.<br><br><strong style="font-size:1.1em">1. HDM을 host 메모리에 매핑</strong>: CXL device 내부 DRAM = <strong style="font-size:1.1em">HDM</strong>. host kernel driver가 BAR·HDM 크기를 PCIe transaction으로 질의해 host 예약 메모리에 매핑. `load`/`store` → <strong style="font-size:1.1em">CXL RP</strong>가 CXL flit으로 변환 → CXL controller가 HDM base를 빼서 주소 변환 → DRAM controller. <strong style="font-size:1.1em">SW 개입·복사 없음</strong>.<br><br><strong style="font-size:1.1em">2. CXL switch + Virtual Hierarchy(VH)</strong>: USP/DSP + <strong style="font-size:1.1em">fabric manager(FM)</strong>가 crossbar를 재구성해 host↔device 경로(VH) 생성. ★ 각 VH는 단일 경로만 제공해 <strong style="font-size:1.1em">어떤 host도 HDM을 공유하지 않도록</strong> 보장(=분할, 공유 아님).<br><br><strong style="font-size:1.1em">3. cxl-namespace runtime</strong>: 상용 CXL OS가 없어 자작. HDM을 segment(<strong style="font-size:1.1em">cxl-namespace</strong>)로 쪼개 <strong style="font-size:1.1em">mmap</strong>으로 app에 노출. `/dev/directcxl` ioctl로 관리.<br><br><strong style="font-size:1.1em">4. FPGA 프로토타입</strong>: 16nm FPGA CXL memory blade(8 DDR4=64GB), 자작 RISC-V 4-core(LLC에 CXL RP), CXL switch — 전부 밑바닥 구현.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.4</span></summary>
+<div class="ng-orig-text">Once a virtual hierarchy is established between a host and CXL device(s), applications running on the host can directly access the CXL device by referring to HDM's memory space.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_004" data-children="node_013,node_014,node_015" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1120px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">Testbed: 4 host × 4 CXL device + CXL switch, RISC-V Linux 5.13. Baseline: <strong style="font-size:1.1em">RDMA</strong>(Mellanox ConnectX-3 56Gbps, FastSwap=page-based, HERD=object-based), <strong style="font-size:1.1em">Local</strong>(DRAM). Workload: DLRM·MemDB·Ligra(MIS/BFS/CC/BC).<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>지표</th><th>결과</th></tr></thead><tbody><tr><td>64B load 지연</td><td>DirectCXL <strong style="font-size:1.1em">328 cyc</strong> vs RDMA <strong style="font-size:1.1em">2705 cyc</strong> = <strong style="font-size:1.1em">8.3×</strong></td></tr><tr><td>Memory hierarchy</td><td>RDMA best 2027 cyc = DirectCXL 대비 <strong style="font-size:1.1em">6.2×</strong>, L1 대비 510.5×</td></tr><tr><td>CPU cache hit</td><td>Local·DirectCXL 모두 <strong style="font-size:1.1em">4 cyc</strong> (RDMA는 못 씀)</td></tr><tr><td>Tail latency</td><td>Local 대비 <strong style="font-size:1.1em">2.8×</strong>(곡선은 유사)</td></tr><tr><td>실 워크로드</td><td>Swap 대비 <strong style="font-size:1.1em">3×</strong>, KVS 대비 <strong style="font-size:1.1em">2.2×</strong></td></tr><tr><td>Swap 오버헤드</td><td>exec의 <strong style="font-size:1.1em">51.8%</strong>가 kswapd+FastSwap</td></tr></tbody></table></div><div class="ng-seg"><br>RDMA 지연의 <strong style="font-size:1.1em">78.7%</strong>가 InfiniBand network. DirectCXL 지연의 <strong style="font-size:1.1em">77.8%</strong>는 CXL IPs(RP/EP/Switch)로, 주파수 올리면 개선 여지.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.6</span></summary>
+<div class="ng-orig-text">DirectCXL only takes 328 cycles for memory load request, which is 8.3x faster than RDMA.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_016,node_017" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1420px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DirectCXL는 host processor complex와 원격 메모리를 <strong style="font-size:1.1em">CXL.mem으로 직접</strong> 연결해, 워크로드가 host cache를 누릴 수 있으면 <strong style="font-size:1.1em">DRAM급 성능</strong>을, 실 워크로드에선 RDMA 대비 평균 <strong style="font-size:1.1em">3×</strong>를 낸다. '원격 메모리를 복사 없이 load/store로'가 실물에서 성립함을 증명했다.<br><br><strong style="font-size:1.1em">의의</strong>: [[SkyByte]] 등 CXL.mem 기반 memory-semantic 설계의 하드웨어 토대. CXL flit·HDM 매핑·RP/switch 구현의 실제 레퍼런스.<br><br><strong style="font-size:1.1em">향후/한계</strong>: (1) 커널의 효율적 CXL 메모리 관리 확장, <strong style="font-size:1.1em">SoC 실리콘화</strong>가 future work. (2) CXL IPs가 지연의 77.8% — 실리콘 전까진 tail이 Local 대비 2.8×. (3) ★ <strong style="font-size:1.1em">VH가 host↔HDM을 1:1 격리</strong>해 coherence 문제를 회피 — 여러 host가 같은 HDM을 공유하는 multi-node coherence는 범위 밖(CXL 2.0 한계). (4) storage 결합(persistence/GC) 없이 순수 DRAM 분해.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.7</span></summary>
+<div class="ng-orig-text">we propose DIRECTCXL that connects host processor complex and remote memory resources over CXL's memory protocol (CXL.mem). ... the disaggregated memory resources of DIRECTCXL can exhibit DRAM-like performance when the workload can enjoy the host-processor's cache.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#E74C3C;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">RDMA vs CXL 근본 차이: 복사 없음 + LLC→flit 직변환</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DirectCXL가 RDMA를 8.3× 이기는 두 근본 이유. <strong style="font-size:1.1em">(1)</strong> DirectCXL는 host↔memory를 <strong style="font-size:1.1em">PCIe로 직결</strong>하는 반면 RDMA는 InfiniBand↔PCIe 프로토콜 변환이 필요. <strong style="font-size:1.1em">(2)</strong> DirectCXL는 <strong style="font-size:1.1em">LLC의 load/store를 곧바로 CXL flit으로 변환</strong>하는 반면 RDMA는 반드시 <strong style="font-size:1.1em">DMA로 메모리를 read/write</strong>한다(one-sided도 DMA 2회 → PCIe transfer·메모리 접근 2배). 그래서 RDMA 지연의 <strong style="font-size:1.1em">78.7%(2129 cyc)</strong>가 InfiniBand network에서 나온다. DirectCXL엔 그 network·복사 계층 자체가 없다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.6</span></summary>
+<div class="ng-orig-text">DirectCXL can translate memory load/store request from LLC into the CXL flits whereas RDMA must use DMA to read/write data from/to memory.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#E74C3C;border-radius:2px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">RDMA 병목 해부: network 78.7%, small payload는 library</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">RDMA 지연을 분해하면(Fig.7a) payload가 1KB보다 작을 땐 <strong style="font-size:1.1em">user-level InfiniBand library(libibverbs/libmlx4)</strong>가 주 병목(평균 4158 cyc), payload가 커지면 <strong style="font-size:1.1em">MR로의 데이터 복사(Copy)</strong>가 실행시간의 28.9%까지 증가. Memory·Network는 RDMA와 유사 추세. 즉 RDMA는 (a) network 왕복, (b) SW library 개입, (c) MR 복사 — 세 겹의 비용을 못 피한다. DirectCXL 분해엔 (Fig.7b) <strong style="font-size:1.1em">SW도 data copy도 없다</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.6</span></summary>
+<div class="ng-orig-text">Library is the primary performance bottleneck in RDMA when the size of payloads is smaller than 1KB (4158 cycles, on average).</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_008" style="--color:#95A5A6;border-radius:22px;left:620px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">분해 두 계열: page-based(swap) vs object-based(KVS)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">기존 분해 런타임의 두 계열과 대표 baseline:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>계열</th><th>방식</th><th>대표</th><th>한계</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">Page-based</strong></td><td>kswapd가 page fault 시 원격 swap</td><td><strong style="font-size:1.1em">FastSwap</strong> (EuroSys'20)</td><td>page fault·I/O amp·context switch</td></tr><tr><td><strong style="font-size:1.1em">Object-based</strong></td><td>KV store로 원격 접근</td><td><strong style="font-size:1.1em">HERD</strong> (SIGCOMM'14)</td><td>소스 수정 + 노드 연산(해싱)</td></tr></tbody></table></div><div class="ng-seg"><br>관련: Clio(ASPLOS'22, HW-SW co-design 분해), Calciu et al.(ASPLOS'21, 분해 런타임 재고). 모두 RDMA/유사 network 기반이라 DirectCXL의 CXL.mem 직접 접근과 대비된다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
+<div class="ng-orig-text">we can broadly classify the existing memory disaggregation runtimes into two different approaches ... i) page-based and ii) object-based.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#5C9E6E;border-radius:2px;left:620px;top:750px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">HDM을 host 시스템 메모리에 매핑 (RP → flit → 주소변환)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">CXL device 내부 DRAM은 <strong style="font-size:1.1em">HDM(host-managed device memory)</strong>으로 노출된다. host kernel driver가 device의 <strong style="font-size:1.1em">BAR·HDM 크기</strong>를 PCIe transaction으로 질의해 host <strong style="font-size:1.1em">예약 시스템 메모리</strong>에 매핑하고, device에 '어디 매핑됐는지'를 알린다.<br><br>host가 HDM을 `load`/`store`하면 → 해당 <strong style="font-size:1.1em">CXL RP</strong>가 요청을 <strong style="font-size:1.1em">CXL flit</strong>으로 변환 → CXL controller가 <strong style="font-size:1.1em">HDM base 주소를 빼서</strong>(deduct) 내부 DRAM 주소로 번역 → DRAM controller가 서비스 → CXL switch·FlexBus 통해 host로 반환. <strong style="font-size:1.1em">SW 개입·메모리 복사가 전혀 없어</strong> 낮은 지연.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.4</span></summary>
+<div class="ng-orig-text">the CXL controller translates the incoming addresses by simply deducting HDM's base address from them ... since HDM accesses have no software intervention or memory data copies, DIRECTCXL can expose the CXL device's memory resources to the host with low access latency.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" data-children="node_018" style="--color:#5C9E6E;border-radius:2px;left:620px;top:900px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">CXL switch + Virtual Hierarchy — ★ no host sharing an HDM</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">CXL switch는 <strong style="font-size:1.1em">USP(upstream)/DSP(downstream)</strong> 포트와 <strong style="font-size:1.1em">fabric manager(FM)</strong>로 구성. FM이 내부 crossbar를 재구성해 각 USP를 다른 DSP에 연결 → <strong style="font-size:1.1em">virtual hierarchy(VH)</strong> 생성(root=host → terminal=CXL device). CXL device는 여러 controller/DRAM으로 <strong style="font-size:1.1em">multiple logical device</strong>를 정의해 각자 HDM을 서로 다른 host에 노출.<br><br>★ 결정적: 각 VH는 <strong style="font-size:1.1em">하나의 경로만</strong> 제공해 <strong style="font-size:1.1em">어떤 host도 HDM을 공유하지 않도록</strong> 보장한다. 즉 여러 host가 붙어도 각 HDM은 <strong style="font-size:1.1em">한 host 전용(분할=pooling)</strong>이지 <strong style="font-size:1.1em">공유(sharing)가 아니다</strong> — coherence 문제가 애초에 발생하지 않는 구조.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.4</span></summary>
+<div class="ng-orig-text">each CXL virtual hierarchy only offers the path from one to another to ensure that no host is sharing an HDM.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_018" style="--color:#BDC3C7;border-radius:22px;left:1150px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">혼동 정리: multi-host(물리 연결) ≠ HDM 공유(논리)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">영상에서 '스위치에 여러 host + 여러 device'를 봤는데 왜 'single host'라 하나? → <strong style="font-size:1.1em">둘 다 참</strong>이다. 'single host'는 host 수가 아니라 <strong style="font-size:1.1em">'한 HDM을 한 host만 본다(공유 없음)'</strong>는 뜻. 세 레벨을 분리하면 명확하다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>레벨</th><th>DirectCXL</th><th>뜻</th></tr></thead><tbody><tr><td>① 물리 연결</td><td><strong style="font-size:1.1em">multi-host, multi-device</strong></td><td>스위치에 여러 host+device (← 영상)</td></tr><tr><td>② 메모리 소유</td><td><strong style="font-size:1.1em">HDM 1조각 = host 1개</strong></td><td>각 host가 전용 슬라이스 (분할=pooling)</td></tr><tr><td>③ coherent 공유</td><td><strong style="font-size:1.1em">없음</strong></td><td>여러 host가 같은 영역 동시 캐싱 = 안 함</td></tr></tbody></table></div><div class="ng-seg"><br><strong style="font-size:1.1em">같은 device가 여러 host에 붙는다</strong>(①)는 것과 <strong style="font-size:1.1em">같은 HDM을 여러 host가 공유한다</strong>(③)는 것은 완전히 다르다. DirectCXL은 device를 <strong style="font-size:1.1em">multiple logical device</strong>로 쪼개 각 조각(HDM)을 서로 다른 host에 주므로 ①은 되지만 ③은 안 된다.<br><br><strong style="font-size:1.1em">주차장 비유</strong>: 차 여러 대(host)가 한 주차장(device/switch)을 쓰지만(①), 한 칸(HDM)엔 한 대만(②). 두 대가 같은 칸에 겹쳐 서로 조율(③)하는 게 진짜 '공유'인데, 그건 CXL 2.0엔 없다(CXL 3.0 back-invalidate 필요).</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.4</span></summary>
+<div class="ng-orig-text">different hosts can be connected to a CXL switch and a CXL device. Note that each CXL virtual hierarchy only offers the path from one to another to ensure that no host is sharing an HDM.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1050px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">cxl-namespace software runtime (mmap)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">상용 CXL OS가 없어 <strong style="font-size:1.1em">DirectCXL runtime</strong>을 자작. HDM 주소공간을 여러 segment(<strong style="font-size:1.1em">cxl-namespace</strong>)로 쪼개, app이 이를 <strong style="font-size:1.1em">memory-mapped file(mmap)</strong>로 접근하게 한다. PCIe enumeration 시 driver가 `/dev/directcxl`를 만들고 <strong style="font-size:1.1em">ioctl</strong>로 namespace를 관리(HDM segment table = offset·size·refcount, spinlock/rwlock 헤더). PMDK(NVMe namespace식, 고정 크기·파일시스템 경유)보다 <strong style="font-size:1.1em">단순·유연</strong> — 전통 memory segment에 가까워 파일시스템 없이 직접 노출.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.4</span></summary>
+<div class="ng-orig-text">we support DIRECTCXL runtime that simply splits the address space of HDM into multiple segments, called cxl-namespace. DIRECTCXL runtime then allows the applications to access each CXL-namespace as memory-mapped files (mmap).</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1200px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">FPGA 프로토타입: 자작 CXL controller·switch·RISC-V RP</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">상용 CXL 2.0 IP가 없어 <strong style="font-size:1.1em">전부 밑바닥부터</strong> 구현. CXL memory blade AIC = <strong style="font-size:1.1em">16nm FPGA + 8 DDR4(64GB)</strong>, CXL controller + 8 DRAM controller. Host = 자작 <strong style="font-size:1.1em">RISC-V 4-core OoO</strong>, <strong style="font-size:1.1em">LLC에 CXL RP</strong> 구현. softcore 100MHz, CXL/PCIe IP(RP/EP/Switch) 250MHz. RISC-V가 ACPI 미지원이라 <strong style="font-size:1.1em">device tree</strong>로 CXL 2.0 enumeration(RP 위치·예약 주소)을 처리. 4 CXL device(32 DRAM)를 PCIe backplane으로 4 host에 노출, switch가 FM으로 VH 생성.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.5</span></summary>
+<div class="ng-orig-text">To the best of our knowledge, there are no commercialized CXL 2.0 IPs for the processor side's CXL engines and CXL switch. Thus, we built all DIRECTCXL IPs from the ground.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#9B59B6;border-radius:2px;left:620px;top:1380px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">64B 8.3× · memory hierarchy 6.2× · cache hit 4-cycle</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">1:1 연결에서 64B read 지연 분해(Fig.6): <strong style="font-size:1.1em">DirectCXL 328 cycles vs RDMA 2705 cycles = 8.3×</strong>. RDMA는 DMA 2회로 PCIe 전송·메모리 접근이 2배, InfiniBand network가 지연의 78.7%.<br><br>Memory hierarchy(Fig.8): Local·DirectCXL는 cache hit 시 <strong style="font-size:1.1em">4 cycles</strong>. RDMA best-case 2027 cycles = DirectCXL 대비 <strong style="font-size:1.1em">6.2×</strong>, L1 대비 <strong style="font-size:1.1em">510.5×</strong> 느림. DirectCXL <strong style="font-size:1.1em">tail latency는 Local 대비 2.8×</strong>지만 곡선은 유사(같은 DRAM + network 없음). RDMA는 CPU cache 이득을 못 받아 Local 대비 평균 36.8× 나쁨.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.6</span></summary>
+<div class="ng-orig-text">The best-case performance of RDMA was 2027 cycles, which is 6.2x and 510.5x slower than that of DirectCXL and L1 cache, respectively.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#9B59B6;border-radius:2px;left:620px;top:1530px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">실 워크로드: Swap 대비 3×, KVS 대비 2.2×</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DLRM·MemDB·Ligra 실행시간(Fig.10, Swap 정규화): DirectCXL가 <strong style="font-size:1.1em">Swap 대비 3×, KVS 대비 2.2×</strong> 빠름.<br><br>- <strong style="font-size:1.1em">Swap</strong>: 실행의 <strong style="font-size:1.1em">51.8%</strong>를 kswapd+FastSwap 드라이버에 소모(LRU 기반 잦은 page 교환). 그래프(Ligra)는 <strong style="font-size:1.1em">4KB page를 옮겨 8B 포인터를 읽어</strong> 2.2× 손해.<br>- <strong style="font-size:1.1em">KVS</strong>: DLRM/MemDB에선 page가 아니라 정확한 embedding/value만 로드해 Swap보다 나으나, <strong style="font-size:1.1em">소스 수정 필요(MIS/BFS/CC/BC는 KVS로 불가)</strong> + 메모리 노드 해싱 비용.<br>- DirectCXL는 소스 수정·원격 연산 없이 둘 다 이김.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.7</span></summary>
+<div class="ng-orig-text">DirectCXL without having a source modification and remote-side resource exhibits 3x and 2.2x better performance than Swap and even KVS, respectively.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1680px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">지연 분해(Table 2): CXL IPs가 77.8% — 실리콘/주파수 여지</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">64B load 지연(328 cyc)의 구성: <strong style="font-size:1.1em">CXL IPs(RP/EP/Switch)</strong>가 지배(추정 239ns), FlexBus(PCIe 물리) ~57ns, DRAM controller 105ns, L1/L2 25ns. PCIe+CXL IP가 총 지연의 <strong style="font-size:1.1em">77.8%</strong>.<br><br>CPU·CXL IP 주파수를 1.2GHz/1GHz로 올린다고 가정하면(Table 2), CPU가 12× 빨라져 cycle 수는 오히려 늘지만 <strong style="font-size:1.1em">시간 지연은 CXL IP에서 크게 개선</strong> 여지. 즉 DirectCXL의 남은 병목은 알고리즘이 아니라 <strong style="font-size:1.1em">IP 성숙도(실리콘화)</strong>다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.6</span></summary>
+<div class="ng-orig-text">the performance bottleneck of DirectCXL is PCIe including CXL IPs (77.8% of the total latency). This can be accelerated by increasing the working frequency.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1860px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">계보/발표축: CXL.mem 직접 접근의 실물 원점</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DirectCXL는 [[SkyByte]]·[[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]]와 같은 KAIST CAMELab 계보다. 이 논문이 <strong style="font-size:1.1em">'CXL.mem으로 device 메모리를 load/store하면 RDMA를 압도한다'를 실물 FPGA로 증명</strong>했고, 그 위에서 CXL-SSD 비전(Type-3)과 SkyByte(memory-semantic co-design)가 자란다.<br><br>내 <strong style="font-size:1.1em">'SSD 이중역할 × transparent co-design'</strong> 발표축에서 DirectCXL은 <strong style="font-size:1.1em">인터커넥트 축의 원점</strong> — storage가 아니라 순수 DRAM 분해지만, 'network·복사를 없애고 load/store로 원격 메모리를'라는 CXL.mem의 본질을 가장 깨끗하게 보여준다. RDMA와의 8.3× 대비는 세미나에서 'CXL이 왜 RDMA가 아닌가'의 정량 근거로 쓰기 좋다.</div></div>
+</div>
+<div class="ng-node" id="node-node_017" data-children="node_019" style="--color:#1ABC9C;border-radius:22px;left:1150px;top:1860px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향: VH의 no-sharing 격리를 풀면?</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">DirectCXL의 VH는 host↔HDM을 <strong style="font-size:1.1em">1:1로 격리</strong>해 'no host is sharing an HDM'을 보장한다 — 그래서 <strong style="font-size:1.1em">coherence 문제가 발생하지 않는다</strong>(회피). 이게 곧 CXL 2.0 disaggregation의 성격이자 한계다: <strong style="font-size:1.1em">pooling(분할)이지 sharing(공유)이 아니다</strong>.<br><br>내 방향(multi-node coherence)은 이 격리를 <strong style="font-size:1.1em">의도적으로 푼다</strong> — 여러 host가 같은 HDM을 동시에 캐싱하며 공유하면, VH의 단일 경로 보장이 깨지고 <strong style="font-size:1.1em">directory + back-invalidate(HDM-DB, CXL 3.0)</strong>가 필요해진다. DirectCXL의 자작 FPGA testbed(CXL controller/switch/RISC-V RP)는 이 multi-host coherence를 실험할 <strong style="font-size:1.1em">실물 플랫폼의 원형</strong>이 될 수 있다. → [[CXL Multi-node Coherence]], [[CXL Overview]]</div></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#E74C3C;border-radius:2px;left:1680px;top:1860px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">sharing coherence는 Type(CXL.cache) coherence와 직교하는 별개 축</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">'Type-1이 device를 host cache처럼 coherent하게 만드는데, 거기에 sharing을 더하면 Type-1과 별개로 coherence 문제가 또 생기지 않나?' → <strong style="font-size:1.1em">정확한 직관.</strong> coherence 축이 둘이고 서로 직교한다.<br><br><strong style="font-size:1.1em">축 A — device 캐싱 coherence (intra-host, 단일 도메인)</strong>: device가 host 메모리를 캐시할 때(CXL.cache=<strong style="font-size:1.1em">Type-1/2</strong>, bias)의 일관성. <strong style="font-size:1.1em">한 host</strong> 안에서 CPU 캐시들 + device 캐시를 맞춘다. single-host에서도 필요.<br><br><strong style="font-size:1.1em">축 B — multi-host sharing coherence (cross-host)</strong>: 여러 host가 <strong style="font-size:1.1em">같은 메모리 영역</strong>을 동시에 캐싱할 때. host 경계를 넘으니 축 A로는 못 풀고 <strong style="font-size:1.1em">device가 directory+back-invalidate</strong>로 처리(<strong style="font-size:1.1em">HDM-DB, CXL 3.0</strong>).<br><br>두 축은 <strong style="font-size:1.1em">합성</strong>된다 — 각 host 내부는 축 A(native+CXL.cache)가, host들 사이는 축 B(back-invalidate)가.<br><br><strong style="font-size:1.1em">그럼 모든 Type이 sharing coherence 필요?</strong> — 정확히는: <strong style="font-size:1.1em">공유되는 건 memory(HDM)</strong>다. HDM은 <strong style="font-size:1.1em">Type-2/3만</strong> 가진다(Type-1은 HDM 없이 host mem을 캐시만 함 → 풀로 공유할 자기 메모리가 없음). 따라서 sharing coherence(축 B)는 <strong style="font-size:1.1em">HDM을 가진 device(Type-2/3)에서 그 device가 back-invalidate로</strong> 담당한다. Type-1의 캐시 사본도 무효화 대상이지만, 그건 <strong style="font-size:1.1em">'그 host'가 back-invalidate 받을 때</strong> 그 host 도메인 안에서 함께 처리된다(device가 Type-1 agent를 따로 추적하지 않음).<br><br>요약: <strong style="font-size:1.1em">sharing이 더해지면 Type과 무관하게 새 coherence(축 B)가 생기는 게 맞다. 단 그 부담은 '공유되는 HDM을 가진 device(Type-2/3)'가 back-invalidate로 진다.</strong></div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":220,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":220,"searchText":"killer application directcxl가 푸는 문제는 **메모리 분해(memory disaggregation)**를 **cxl.mem으로 직접** 실현해, rdma 기반 분해의 데이터 복사·network 개입 오버헤드를 없애는 것이다. 그리고 이걸 **실제 하드웨어로** 만든 최초 사례다(상용 cxl 2.0 ip가 없어 cxl controller·switch·risc-v host를 전부 자작).\n\n**killer application 1 — 복사 없는 원격 메모리**: host의 `load`/`store`가 llc에서 곧바로 **cxl flit**으로 변환돼 원격 hdm에 도달. rdma처럼 원격→host 데이터 복사가 없어 원격 메모리의 '진짜 성능'이 드러난다.\n\n**killer application 2 — cpu cache까지 활용**: 원격 메모리인데도 host cpu cache에 캐시돼, cache hit면 local dram과 동일한 4-cycle 지연.\n\n**killer application 3 — 실물 cxl 2.0 disaggregation testbed**: fpga cxl memory blade + cxl switch(fabric manager) + risc-v host를 묶어 rdma와 정량 비교한 첫 real-system 분석.\n\n결과: 64b load 지연이 rdma 대비 **8.3×**, 실 워크로드에서 rdma swap 대비 **3×** 빠름. directcxl's latency is shorter than the best latency of rdma by 6.2x, on average. for real-world applications, directcxl exhibits 3x better performance than rdma-based memory disaggregation, on average."},{"id":"node_002","lx":100,"ly":520,"children":["node_007","node_008"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":520,"searchText":"필요한 이유 (why it's needed) 메모리 분해는 메모리 활용률·탄력성·자원관리 효율 때문에 주목받지만, 기존 방식은 전부 **rdma(또는 유사 network)**로 원격↔host 데이터를 옮긴다.\n\n**(1) page-based (swap)**: kswapd 아래 드라이버가 page fault 시 원격으로 swap. 투명하나 **page fault 처리·i/o amplification·context switching** 비용.\n\n**(2) object-based (kvs)**: kv store로 원격 접근. page swap은 피하나 **소스 대규모 수정 + 메모리 노드 연산(해싱)** 필요.\n\n공통 병목: rdma는 양쪽에 mr 등록, mtt 주소변환, **rnic 간 데이터 복사(one-sided도 dma 2회)**가 필수라, 지연이 local dram보다 수 자릿수 커진다. 즉 '원격 메모리를 쓰려면 복사하고 network를 태워야 한다'가 근본 한계. all these approaches use rdma (or a similar network protocol), which is essential to cache the data and pay the cost of memory operations for network handling."},{"id":"node_003","lx":100,"ly":820,"children":["node_009","node_010","node_011","node_012"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":820,"searchText":"해결책 (solution) directcxl는 원격 메모리를 host system bus에 붙은 **local dram처럼** 다룬다.\n\n**1. hdm을 host 메모리에 매핑**: cxl device 내부 dram = **hdm**. host kernel driver가 bar·hdm 크기를 pcie transaction으로 질의해 host 예약 메모리에 매핑. `load`/`store` → **cxl rp**가 cxl flit으로 변환 → cxl controller가 hdm base를 빼서 주소 변환 → dram controller. **sw 개입·복사 없음**.\n\n**2. cxl switch + virtual hierarchy(vh)**: usp/dsp + **fabric manager(fm)**가 crossbar를 재구성해 host↔device 경로(vh) 생성. ★ 각 vh는 단일 경로만 제공해 **어떤 host도 hdm을 공유하지 않도록** 보장(=분할, 공유 아님).\n\n**3. cxl-namespace runtime**: 상용 cxl os가 없어 자작. hdm을 segment(**cxl-namespace**)로 쪼개 **mmap**으로 app에 노출. `/dev/directcxl` ioctl로 관리.\n\n**4. fpga 프로토타입**: 16nm fpga cxl memory blade(8 ddr4=64gb), 자작 risc-v 4-core(llc에 cxl rp), cxl switch — 전부 밑바닥 구현. once a virtual hierarchy is established between a host and cxl device(s), applications running on the host can directly access the cxl device by referring to hdm's memory space."},{"id":"node_004","lx":100,"ly":1120,"children":["node_013","node_014","node_015"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1120,"searchText":"결과 (results) testbed: 4 host × 4 cxl device + cxl switch, risc-v linux 5.13. baseline: **rdma**(mellanox connectx-3 56gbps, fastswap=page-based, herd=object-based), **local**(dram). workload: dlrm·memdb·ligra(mis/bfs/cc/bc).\n\n| 지표 | 결과 |\n|---|---|\n| 64b load 지연 | directcxl **328 cyc** vs rdma **2705 cyc** = **8.3×** |\n| memory hierarchy | rdma best 2027 cyc = directcxl 대비 **6.2×**, l1 대비 510.5× |\n| cpu cache hit | local·directcxl 모두 **4 cyc** (rdma는 못 씀) |\n| tail latency | local 대비 **2.8×**(곡선은 유사) |\n| 실 워크로드 | swap 대비 **3×**, kvs 대비 **2.2×** |\n| swap 오버헤드 | exec의 **51.8%**가 kswapd+fastswap |\n\nrdma 지연의 **78.7%**가 infiniband network. directcxl 지연의 **77.8%**는 cxl ips(rp/ep/switch)로, 주파수 올리면 개선 여지. directcxl only takes 328 cycles for memory load request, which is 8.3x faster than rdma."},{"id":"node_005","lx":100,"ly":1420,"children":["node_016","node_017"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1420,"searchText":"결론 (conclusion) directcxl는 host processor complex와 원격 메모리를 **cxl.mem으로 직접** 연결해, 워크로드가 host cache를 누릴 수 있으면 **dram급 성능**을, 실 워크로드에선 rdma 대비 평균 **3×**를 낸다. '원격 메모리를 복사 없이 load/store로'가 실물에서 성립함을 증명했다.\n\n**의의**: [[skybyte]] 등 cxl.mem 기반 memory-semantic 설계의 하드웨어 토대. cxl flit·hdm 매핑·rp/switch 구현의 실제 레퍼런스.\n\n**향후/한계**: (1) 커널의 효율적 cxl 메모리 관리 확장, **soc 실리콘화**가 future work. (2) cxl ips가 지연의 77.8% — 실리콘 전까진 tail이 local 대비 2.8×. (3) ★ **vh가 host↔hdm을 1:1 격리**해 coherence 문제를 회피 — 여러 host가 같은 hdm을 공유하는 multi-node coherence는 범위 밖(cxl 2.0 한계). (4) storage 결합(persistence/gc) 없이 순수 dram 분해. we propose directcxl that connects host processor complex and remote memory resources over cxl's memory protocol (cxl.mem). ... the disaggregated memory resources of directcxl can exhibit dram-like performance when the workload can enjoy the host-processor's cache."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"rdma vs cxl 근본 차이: 복사 없음 + llc→flit 직변환 directcxl가 rdma를 8.3× 이기는 두 근본 이유. **(1)** directcxl는 host↔memory를 **pcie로 직결**하는 반면 rdma는 infiniband↔pcie 프로토콜 변환이 필요. **(2)** directcxl는 **llc의 load/store를 곧바로 cxl flit으로 변환**하는 반면 rdma는 반드시 **dma로 메모리를 read/write**한다(one-sided도 dma 2회 → pcie transfer·메모리 접근 2배). 그래서 rdma 지연의 **78.7%(2129 cyc)**가 infiniband network에서 나온다. directcxl엔 그 network·복사 계층 자체가 없다. directcxl can translate memory load/store request from llc into the cxl flits whereas rdma must use dma to read/write data from/to memory."},{"id":"node_007","lx":620,"ly":400,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"rdma 병목 해부: network 78.7%, small payload는 library rdma 지연을 분해하면(fig.7a) payload가 1kb보다 작을 땐 **user-level infiniband library(libibverbs/libmlx4)**가 주 병목(평균 4158 cyc), payload가 커지면 **mr로의 데이터 복사(copy)**가 실행시간의 28.9%까지 증가. memory·network는 rdma와 유사 추세. 즉 rdma는 (a) network 왕복, (b) sw library 개입, (c) mr 복사 — 세 겹의 비용을 못 피한다. directcxl 분해엔 (fig.7b) **sw도 data copy도 없다**. library is the primary performance bottleneck in rdma when the size of payloads is smaller than 1kb (4158 cycles, on average)."},{"id":"node_008","lx":620,"ly":550,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":550,"searchText":"분해 두 계열: page-based(swap) vs object-based(kvs) 기존 분해 런타임의 두 계열과 대표 baseline:\n\n| 계열 | 방식 | 대표 | 한계 |\n|---|---|---|---|\n| **page-based** | kswapd가 page fault 시 원격 swap | **fastswap** (eurosys'20) | page fault·i/o amp·context switch |\n| **object-based** | kv store로 원격 접근 | **herd** (sigcomm'14) | 소스 수정 + 노드 연산(해싱) |\n\n관련: clio(asplos'22, hw-sw co-design 분해), calciu et al.(asplos'21, 분해 런타임 재고). 모두 rdma/유사 network 기반이라 directcxl의 cxl.mem 직접 접근과 대비된다. we can broadly classify the existing memory disaggregation runtimes into two different approaches ... i) page-based and ii) object-based."},{"id":"node_009","lx":620,"ly":750,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":750,"searchText":"hdm을 host 시스템 메모리에 매핑 (rp → flit → 주소변환) cxl device 내부 dram은 **hdm(host-managed device memory)**으로 노출된다. host kernel driver가 device의 **bar·hdm 크기**를 pcie transaction으로 질의해 host **예약 시스템 메모리**에 매핑하고, device에 '어디 매핑됐는지'를 알린다.\n\nhost가 hdm을 `load`/`store`하면 → 해당 **cxl rp**가 요청을 **cxl flit**으로 변환 → cxl controller가 **hdm base 주소를 빼서**(deduct) 내부 dram 주소로 번역 → dram controller가 서비스 → cxl switch·flexbus 통해 host로 반환. **sw 개입·메모리 복사가 전혀 없어** 낮은 지연. the cxl controller translates the incoming addresses by simply deducting hdm's base address from them ... since hdm accesses have no software intervention or memory data copies, directcxl can expose the cxl device's memory resources to the host with low access latency."},{"id":"node_010","lx":620,"ly":900,"children":["node_018"],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":900,"searchText":"cxl switch + virtual hierarchy — ★ no host sharing an hdm cxl switch는 **usp(upstream)/dsp(downstream)** 포트와 **fabric manager(fm)**로 구성. fm이 내부 crossbar를 재구성해 각 usp를 다른 dsp에 연결 → **virtual hierarchy(vh)** 생성(root=host → terminal=cxl device). cxl device는 여러 controller/dram으로 **multiple logical device**를 정의해 각자 hdm을 서로 다른 host에 노출.\n\n★ 결정적: 각 vh는 **하나의 경로만** 제공해 **어떤 host도 hdm을 공유하지 않도록** 보장한다. 즉 여러 host가 붙어도 각 hdm은 **한 host 전용(분할=pooling)**이지 **공유(sharing)가 아니다** — coherence 문제가 애초에 발생하지 않는 구조. each cxl virtual hierarchy only offers the path from one to another to ensure that no host is sharing an hdm."},{"id":"node_018","lx":1150,"ly":700,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":700,"searchText":"혼동 정리: multi-host(물리 연결) ≠ hdm 공유(논리) 영상에서 '스위치에 여러 host + 여러 device'를 봤는데 왜 'single host'라 하나? → **둘 다 참**이다. 'single host'는 host 수가 아니라 **'한 hdm을 한 host만 본다(공유 없음)'**는 뜻. 세 레벨을 분리하면 명확하다.\n\n| 레벨 | directcxl | 뜻 |\n|---|---|---|\n| ① 물리 연결 | **multi-host, multi-device** | 스위치에 여러 host+device (← 영상) |\n| ② 메모리 소유 | **hdm 1조각 = host 1개** | 각 host가 전용 슬라이스 (분할=pooling) |\n| ③ coherent 공유 | **없음** | 여러 host가 같은 영역 동시 캐싱 = 안 함 |\n\n**같은 device가 여러 host에 붙는다**(①)는 것과 **같은 hdm을 여러 host가 공유한다**(③)는 것은 완전히 다르다. directcxl은 device를 **multiple logical device**로 쪼개 각 조각(hdm)을 서로 다른 host에 주므로 ①은 되지만 ③은 안 된다.\n\n**주차장 비유**: 차 여러 대(host)가 한 주차장(device/switch)을 쓰지만(①), 한 칸(hdm)엔 한 대만(②). 두 대가 같은 칸에 겹쳐 서로 조율(③)하는 게 진짜 '공유'인데, 그건 cxl 2.0엔 없다(cxl 3.0 back-invalidate 필요). different hosts can be connected to a cxl switch and a cxl device. note that each cxl virtual hierarchy only offers the path from one to another to ensure that no host is sharing an hdm."},{"id":"node_011","lx":620,"ly":1050,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1050,"searchText":"cxl-namespace software runtime (mmap) 상용 cxl os가 없어 **directcxl runtime**을 자작. hdm 주소공간을 여러 segment(**cxl-namespace**)로 쪼개, app이 이를 **memory-mapped file(mmap)**로 접근하게 한다. pcie enumeration 시 driver가 `/dev/directcxl`를 만들고 **ioctl**로 namespace를 관리(hdm segment table = offset·size·refcount, spinlock/rwlock 헤더). pmdk(nvme namespace식, 고정 크기·파일시스템 경유)보다 **단순·유연** — 전통 memory segment에 가까워 파일시스템 없이 직접 노출. we support directcxl runtime that simply splits the address space of hdm into multiple segments, called cxl-namespace. directcxl runtime then allows the applications to access each cxl-namespace as memory-mapped files (mmap)."},{"id":"node_012","lx":620,"ly":1200,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1200,"searchText":"fpga 프로토타입: 자작 cxl controller·switch·risc-v rp 상용 cxl 2.0 ip가 없어 **전부 밑바닥부터** 구현. cxl memory blade aic = **16nm fpga + 8 ddr4(64gb)**, cxl controller + 8 dram controller. host = 자작 **risc-v 4-core ooo**, **llc에 cxl rp** 구현. softcore 100mhz, cxl/pcie ip(rp/ep/switch) 250mhz. risc-v가 acpi 미지원이라 **device tree**로 cxl 2.0 enumeration(rp 위치·예약 주소)을 처리. 4 cxl device(32 dram)를 pcie backplane으로 4 host에 노출, switch가 fm으로 vh 생성. to the best of our knowledge, there are no commercialized cxl 2.0 ips for the processor side's cxl engines and cxl switch. thus, we built all directcxl ips from the ground."},{"id":"node_013","lx":620,"ly":1380,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1380,"searchText":"64b 8.3× · memory hierarchy 6.2× · cache hit 4-cycle 1:1 연결에서 64b read 지연 분해(fig.6): **directcxl 328 cycles vs rdma 2705 cycles = 8.3×**. rdma는 dma 2회로 pcie 전송·메모리 접근이 2배, infiniband network가 지연의 78.7%.\n\nmemory hierarchy(fig.8): local·directcxl는 cache hit 시 **4 cycles**. rdma best-case 2027 cycles = directcxl 대비 **6.2×**, l1 대비 **510.5×** 느림. directcxl **tail latency는 local 대비 2.8×**지만 곡선은 유사(같은 dram + network 없음). rdma는 cpu cache 이득을 못 받아 local 대비 평균 36.8× 나쁨. the best-case performance of rdma was 2027 cycles, which is 6.2x and 510.5x slower than that of directcxl and l1 cache, respectively."},{"id":"node_014","lx":620,"ly":1530,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1530,"searchText":"실 워크로드: swap 대비 3×, kvs 대비 2.2× dlrm·memdb·ligra 실행시간(fig.10, swap 정규화): directcxl가 **swap 대비 3×, kvs 대비 2.2×** 빠름.\n\n- **swap**: 실행의 **51.8%**를 kswapd+fastswap 드라이버에 소모(lru 기반 잦은 page 교환). 그래프(ligra)는 **4kb page를 옮겨 8b 포인터를 읽어** 2.2× 손해.\n- **kvs**: dlrm/memdb에선 page가 아니라 정확한 embedding/value만 로드해 swap보다 나으나, **소스 수정 필요(mis/bfs/cc/bc는 kvs로 불가)** + 메모리 노드 해싱 비용.\n- directcxl는 소스 수정·원격 연산 없이 둘 다 이김. directcxl without having a source modification and remote-side resource exhibits 3x and 2.2x better performance than swap and even kvs, respectively."},{"id":"node_015","lx":620,"ly":1680,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1680,"searchText":"지연 분해(table 2): cxl ips가 77.8% — 실리콘/주파수 여지 64b load 지연(328 cyc)의 구성: **cxl ips(rp/ep/switch)**가 지배(추정 239ns), flexbus(pcie 물리) ~57ns, dram controller 105ns, l1/l2 25ns. pcie+cxl ip가 총 지연의 **77.8%**.\n\ncpu·cxl ip 주파수를 1.2ghz/1ghz로 올린다고 가정하면(table 2), cpu가 12× 빨라져 cycle 수는 오히려 늘지만 **시간 지연은 cxl ip에서 크게 개선** 여지. 즉 directcxl의 남은 병목은 알고리즘이 아니라 **ip 성숙도(실리콘화)**다. the performance bottleneck of directcxl is pcie including cxl ips (77.8% of the total latency). this can be accelerated by increasing the working frequency."},{"id":"node_016","lx":620,"ly":1860,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1860,"searchText":"계보/발표축: cxl.mem 직접 접근의 실물 원점 directcxl는 [[skybyte]]·[[hello bytes, bye blocks - pcie storage meets compute express link for memory expansion (cxl-ssd)]]와 같은 kaist camelab 계보다. 이 논문이 **'cxl.mem으로 device 메모리를 load/store하면 rdma를 압도한다'를 실물 fpga로 증명**했고, 그 위에서 cxl-ssd 비전(type-3)과 skybyte(memory-semantic co-design)가 자란다.\n\n내 **'ssd 이중역할 × transparent co-design'** 발표축에서 directcxl은 **인터커넥트 축의 원점** — storage가 아니라 순수 dram 분해지만, 'network·복사를 없애고 load/store로 원격 메모리를'라는 cxl.mem의 본질을 가장 깨끗하게 보여준다. rdma와의 8.3× 대비는 세미나에서 'cxl이 왜 rdma가 아닌가'의 정량 근거로 쓰기 좋다. "},{"id":"node_017","lx":1150,"ly":1860,"children":["node_019"],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1860,"searchText":"내 연구방향: vh의 no-sharing 격리를 풀면? directcxl의 vh는 host↔hdm을 **1:1로 격리**해 'no host is sharing an hdm'을 보장한다 — 그래서 **coherence 문제가 발생하지 않는다**(회피). 이게 곧 cxl 2.0 disaggregation의 성격이자 한계다: **pooling(분할)이지 sharing(공유)이 아니다**.\n\n내 방향(multi-node coherence)은 이 격리를 **의도적으로 푼다** — 여러 host가 같은 hdm을 동시에 캐싱하며 공유하면, vh의 단일 경로 보장이 깨지고 **directory + back-invalidate(hdm-db, cxl 3.0)**가 필요해진다. directcxl의 자작 fpga testbed(cxl controller/switch/risc-v rp)는 이 multi-host coherence를 실험할 **실물 플랫폼의 원형**이 될 수 있다. → [[cxl multi-node coherence]], [[cxl overview]] "},{"id":"node_019","lx":1680,"ly":1860,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1860,"searchText":"sharing coherence는 type(cxl.cache) coherence와 직교하는 별개 축 'type-1이 device를 host cache처럼 coherent하게 만드는데, 거기에 sharing을 더하면 type-1과 별개로 coherence 문제가 또 생기지 않나?' → **정확한 직관.** coherence 축이 둘이고 서로 직교한다.\n\n**축 a — device 캐싱 coherence (intra-host, 단일 도메인)**: device가 host 메모리를 캐시할 때(cxl.cache=**type-1/2**, bias)의 일관성. **한 host** 안에서 cpu 캐시들 + device 캐시를 맞춘다. single-host에서도 필요.\n\n**축 b — multi-host sharing coherence (cross-host)**: 여러 host가 **같은 메모리 영역**을 동시에 캐싱할 때. host 경계를 넘으니 축 a로는 못 풀고 **device가 directory+back-invalidate**로 처리(**hdm-db, cxl 3.0**).\n\n두 축은 **합성**된다 — 각 host 내부는 축 a(native+cxl.cache)가, host들 사이는 축 b(back-invalidate)가.\n\n**그럼 모든 type이 sharing coherence 필요?** — 정확히는: **공유되는 건 memory(hdm)**다. hdm은 **type-2/3만** 가진다(type-1은 hdm 없이 host mem을 캐시만 함 → 풀로 공유할 자기 메모리가 없음). 따라서 sharing coherence(축 b)는 **hdm을 가진 device(type-2/3)에서 그 device가 back-invalidate로** 담당한다. type-1의 캐시 사본도 무효화 대상이지만, 그건 **'그 host'가 back-invalidate 받을 때** 그 host 도메인 안에서 함께 처리된다(device가 type-1 agent를 따로 추적하지 않음).\n\n요약: **sharing이 더해지면 type과 무관하게 새 coherence(축 b)가 생기는 게 맞다. 단 그 부담은 '공유되는 hdm을 가진 device(type-2/3)'가 back-invalidate로 진다.** "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":"근본 차이"},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":"참고"},{"source":"node_003","target":"node_009","type":"line","label":""},{"source":"node_003","target":"node_010","type":"line","label":"핵심"},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_004","target":"node_013","type":"line","label":""},{"source":"node_004","target":"node_014","type":"line","label":""},{"source":"node_004","target":"node_015","type":"line","label":""},{"source":"node_005","target":"node_016","type":"line","label":"발표"},{"source":"node_005","target":"node_017","type":"line","label":"내 연구"},{"source":"node_016","target":"node_017","type":"line","label":"연결"},{"source":"node_010","target":"node_017","type":"line","label":"no-sharing"},{"source":"node_010","target":"node_018","type":"line","label":"혼동 정리"},{"source":"node_017","target":"node_019","type":"line","label":"coherence 축"}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

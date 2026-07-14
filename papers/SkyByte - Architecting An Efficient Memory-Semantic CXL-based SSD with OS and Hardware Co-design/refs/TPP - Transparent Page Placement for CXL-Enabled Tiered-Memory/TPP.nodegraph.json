@@ -1,0 +1,613 @@
+{
+  "version": "1.0.0",
+  "title": "TPP: Transparent Page Placement for CXL-Enabled Tiered-Memory",
+  "created": "2026-07-14T00:00:00.000Z",
+  "modified": "2026-07-14T00:00:00.000Z",
+  "source": {
+    "pdf": "TPP - Transparent Page Placement for CXL-Enabled Tiered-Memory.pdf",
+    "authors": "Hasan Al Maruf, Hao Wang, Abhishek Dhanotia, Johannes Weiner, Niket Agarwal, Pallab Bhattacharya, Chris Petersen, Mosharaf Chowdhury, Shobhit Kanaujia, Prakash Chauhan (Meta / Univ. of Michigan / NVIDIA)",
+    "venue": "ASPLOS 2023",
+    "doi": "arXiv:2206.02878",
+    "pages": 14
+  },
+  "nodeTemplates": {
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#5C9E6E",
+      "icon": "cpu",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#9B59B6",
+      "icon": "bar-chart-2",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#E74C3C",
+      "icon": "alert-circle",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#1ABC9C",
+      "icon": "lightbulb",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Reference",
+      "color": "#95A5A6",
+      "icon": "book-open",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#BDC3C7",
+      "icon": "edit-3",
+      "shape": "rounded"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "TPP가 푸는 문제: CXL-Memory가 OS에 **CPU-less NUMA node**로 보이는 tiered-memory에서, **application 수정·사전지식 없이** hot page는 빠른 local memory에, cold page는 느린 CXL-Memory에 두는 **OS-level 투명 페이지 배치(transparent page placement)**를 kernel 안에서 실현하는 것.\n\n**Killer application 1 — hot page가 느린 tier에 갇히는(trapped) 문제 해결**: 기본 Linux는 page의 active 상태를 안 보고 즉시 promote해 왕복(ping-pong)을 만들고, 동기 reclamation이 새 할당을 CXL로 밀어낸다. TPP는 이 두 병목을 없애 hot을 local에 유지.\n\n**Killer application 2 — 경량·범용 온도 감지**: 무거운 PEBS/IPT 대신 **minor page fault + kernel LRU**로 거의 zero-overhead, **page-size agnostic** 온도 감지.\n\n**Killer application 3 — production 배포 가능성**: Meta 4개 workload를 FPGA CXL 1.1 실기에서 검증, 패치 대부분이 **Linux v5.18에 머지** — 커널 릴리스로 전역 배포 가능.\n\n결과: all-local ideal baseline과 **<1% gap**, default Linux 대비 **최대 18%**, NUMA Balancing·AutoTiering 대비 **5-17%** 개선.",
+      "original": {
+        "text": "We propose a novel OS-level application-transparent page placement mechanism (TPP) for CXL-enabled memory. TPP employs a lightweight mechanism to identify and place hot/cold pages to appropriate memory tiers.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_006"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "메모리는 Meta rack의 **TCO 최대 33.3% · power 37.1%**로 커졌고(Fig.3), homogeneous 서버 설계는 CPU-memory **강결합** 탓에 세대·용량·대역폭이 경직돼 stranded 자원을 낳는다.\n\n**CXL**[7]은 이를 풀어 DRAM-like 대역폭 + cache-line granular 접근의 **중간 지연 tier**(DRAM 대비 $+50\\text{-}100$ns, $\\approx 170\\text{-}250$ns)를 만든다 — SW엔 CPU-less NUMA node로 보인다.\n\n그런데 **Linux 메모리 관리는 동종 DRAM-only 전제**라 CXL tier에서 부진하다. 두 근원:\n\n**(1) 동기 reclamation**: local node가 차면 reclamation(swap page-out)이 critical path에서 돌고, 느린 그 동안 새 allocation이 **CXL-node로 몰려** 영구 정착.\n\n**(2) trapped hot pages / ping-pong**: 기본 NUMA Balancing이 active 상태 확인 없이 **즉시 promote** $\\rightarrow$ hot page가 CXL에 갇히거나 왕복.\n\ndatacenter workload는 2분 내 할당의 **55-80%가 idle**이라 tiering 여지는 충분하다.",
+      "original": {
+        "text": "Linux's memory management mechanism is designed for homogeneous CPU-attached DRAM-only systems and performs poorly on CXL-Memory system.",
+        "location": "§1, p.1-2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "children": [
+        "node_007",
+        "node_008"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "TPP는 'hotter' page를 local에, 'colder' page를 CXL-Memory에 두는 **kernel-space** 메커니즘. 설계공간 **4축**(§5) + 저비용 온도 감지(§4):\n\n**(a) 경량 demotion(§5.1)**: reclamation 후보를 swap 대신 별도 demotion list로 모아 CXL-node로 **비동기 migration**(swapping보다 수 order 빠름). inactive부터 스캔.\n\n**(b) Alloc/Reclaim 분리(§5.2)**: '**reclamation 정지**' watermark와 '**새 allocation**' watermark를 분리 — free가 **demotion_watermark**까지 background reclaim, 새 allocation은 **allocation_watermark**만 넘으면 진행 $\\rightarrow$ local에 **free headroom** 유지.\n\n**(c) Active-LRU promotion(§5.3)**: NUMA Balancing 증강, **CXL-node만 sampling**. faulted page가 **active LRU에 있을 때만** promote $\\rightarrow$ ping-pong에 **hysteresis** 부여.\n\n**(d) Page-type-aware allocation(§5.4)**: **file cache/tmpfs는 CXL 우선**, **anon은 local** 선호.\n\n**온도 감지(§4)**: PEBS/IPT 대신 **minor page fault + LRU**로 page-size agnostic·저오버헤드.",
+      "original": {
+        "text": "TPP places 'hotter' pages in local memory and moves 'colder' pages in CXL-Memory. TPP's design-space can be divided across four main areas – (a) lightweight demotion to CXL-Memory, (b) decoupled allocation and reclamation paths, (c) hot-page promotion to local nodes, and (d) page type-aware memory allocation.",
+        "location": "§5, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 600
+      },
+      "children": [
+        "node_009",
+        "node_010",
+        "node_011",
+        "node_012",
+        "node_013"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "Linux v5.12에 통합. Pre-production x86 + **FPGA CXL 1.1** 확장 카드(CXL-Memory가 CPU-less NUMA node로 노출). Meta 4개 production workload(Web/Cache/DataWarehouse/Ads). 두 config: **2:1**(production 유사), **1:4**(스트레스).\n\n| 항목 | 결과 |\n|---|---|\n| ideal all-local 대비 | **<1% gap** |\n| default Linux 대비 | **최대 18%** |\n| NUMA Balancing·AutoTiering 대비 | **5-17%** |\n| Web1 2:1 default Linux | local 22% $\\rightarrow$ throughput **16.5%↓** (TPP는 0.5%↓) |\n| Cache2 1:4 default Linux | **18% throughput loss** (TPP는 5%↓) |\n| CXL 지연 변동 시 default | avg latency **7×**, loss **2.2-2.8×** vs TPP |\n| active-LRU promotion | promotion rate **11×↓**, 성공률 **48%↑** |\n\ndefault는 hot의 22-25%를 CXL에 가두지만 TPP는 4-5%만. steady-state migration **4-16MB/s**로 CPU 부담 미미.",
+      "original": {
+        "text": "TPP makes a tiered memory system performant as an ideal baseline (<1% gap) that has all the memory in the local tier. It is 18% better than today's Linux, and 5–17% better than existing solutions including NUMA Balancing and AutoTiering.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 900
+      },
+      "children": [
+        "node_014",
+        "node_015",
+        "node_016"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "TPP는 CXL-Memory를 **한 host의 CPU-less NUMA node**로 보는 tiered-memory에서, 사전지식 없이 hot/cold를 투명하게 배치하는 OS-level 메커니즘이다. 경량 demotion·alloc/reclaim 분리·active-LRU promotion·page-type-aware allocation으로 all-local ideal에 근접(<1%), SOTA 대비 5-17% 개선하며 **Linux v5.18에 머지**돼 실전 배포된 첫 end-to-end CXL-Memory 시스템으로 자평.\n\n**의의**: OS/software 쪽 transparent placement의 대표작. [[SkyByte]](HPCA'25)는 같은 hot/cold 배치를 **디바이스 하드웨어**에서 하며, 그 대조군 **SkyByte-CT**가 바로 TPP류 OS baseline.\n\n**한계 / 열린 질문**: (1) **single-host** local↔CXL만 다룸 — CXL tier가 여러 host에 **공유(pooling)**되면 per-host 온도 모델이 깨짐. (2) promotion이 만든 로컬 사본이 공유 시 다른 host에 **stale**를 노출(cross-host invalidation 부재). (3) multi-tenant QoS·bandwidth-expansion은 future로만 언급.",
+      "original": {
+        "text": "we design TPP, an OS-level transparent page placement mechanism that works without any prior knowledge on applications' memory access behavior.",
+        "location": "§9, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1200
+      },
+      "children": [
+        "node_017",
+        "node_018"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "claim",
+      "title": "Chameleon 관측: anon>file 온도 · 55-80% idle (배치의 근거)",
+      "content": "TPP 설계의 실증 토대는 **Chameleon**(경량 user-space 특성화 툴, PEBS 기반, CPU 오버헤드 코어당 **3-5%**)로 얻은 Meta 4-workload 관측이다.\n\n- **55-80% idle**: 2분 interval 안에 할당 메모리의 절반 이상이 놀고 있음 $\\rightarrow$ CXL로 offload 여지 큼.\n- **page type별 온도 차**: **anon page가 file page보다 뜨겁다**(Web: anon 35-60% hot vs file 3-14% hot) $\\rightarrow$ **page-type-aware allocation의 근거**.\n- **시간 안정성**: 접근 패턴이 수분~수시간 안정 $\\rightarrow$ kernel에서 배치 결정 가능.\n- **재접근**: Web은 cold의 80%가 10분 내 재접근 $\\rightarrow$ 무작위 offload 위험 $\\rightarrow$ promotion 필요.\n- **동적성**: (de)alloc으로 hot↔cold가 빠르게 뒤집힘 $\\rightarrow$ **정적 배치는 성능 악화**.",
+      "original": {
+        "text": "a large fraction of anon pages is hot, while file pages are comparatively colder within short intervals.",
+        "location": "§3.3, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": -120
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "claim",
+      "title": "Trapped hot pages · ping-pong: default Linux의 핵심 병목",
+      "content": "TPP 동기의 심장. 기본 Linux의 두 결함:\n\n**(1) 동기 reclamation이 CXL로 밀어냄**: local이 차면 reclamation이 swap page-out을 critical path에서 수행 $\\rightarrow$ 느려서 그 동안 새 allocation이 **CXL-node로 몰려 영구 정착**. Web1에서 default는 local 비우기가 TPP보다 **44× 느림**.\n\n**(2) 상태 무시 promotion $\\rightarrow$ ping-pong**: NUMA hint fault 시 default NUMA Balancing이 page의 **active 상태를 안 보고 즉시 promote** $\\rightarrow$ 드물게 쓰는 page도 올라가 곧 demotion 후보가 되는 왕복. 반대로 promotion이 아예 없으면 hot page가 **CXL에 영영 갇힘(trapped)**.\n\n결과: default Linux는 hot의 22-25%를 CXL에 가둬 avg 지연 **7×**, throughput loss **2.2-2.8×**(vs TPP).",
+      "original": {
+        "text": "When a NUMA hint fault happens on a page, default NUMA balancing instantly promotes the page without checking its active state.",
+        "location": "§5.3, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 180
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "reference",
+      "title": "선행/비교: NUMA Balancing · AutoTiering · TMO · Thermostat",
+      "content": "TPP의 좌표를 정하는 핵심 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **NUMA Balancing (AutoNUMA)** [22] | TPP promotion의 토대 — minor page fault(NUMA hint fault). TPP가 이를 CXL 전용·active-LRU로 증강 |\n| **AutoTiering** (Kim et al., ATC'21) [47] | 주요 비교 대상 — background migration+NUMA balance이나 **alloc/reclaim 미분리**, timer 기반 hot 감지 비효율. 1:4에서 크래시 |\n| **TMO** (Weiner et al., ASPLOS'22) [73] | **orthogonal·complementary** — swap 기반 offload. TPP가 zswap을 demote-then-swap 2단계로 만들어 상호 보강 |\n| **Thermostat** (Agarwal & Wenisch, ASPLOS'17) [31] | 2MB huge-page 전용 transparent 관리 — TPP의 page-size-agnostic 목표와 대비 |\n| **Pond** (Li et al., ASPLOS'23) [52] | multi-host **CXL memory pooling** — 내 multi-node 방향의 인접작 |",
+      "original": {
+        "text": "We compare TPP against Linux's default NUMA Balancing, AutoTiering, and TMO.",
+        "location": "§6.3, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "method",
+      "title": "§5.1 경량 demotion: swap이 아닌 async migration",
+      "content": "local node가 차면 기본 reclamation은 **swap으로 page-out** $\\rightarrow$ 느려서 그 동안 새 allocation이 CXL-node로 몰린다.\n\nTPP는 reclamation 후보를 swap 대신 **별도 demotion list**에 넣어 CXL-node로 **비동기 migration**한다 — NUMA node로의 migration은 swapping보다 **수 order 빠르다**. demoted page는 여전히 in-memory라 load/store로 접근 가능(swap의 major fault 회피).\n\n**inactive page부터** 스캔해 hot page가 실수로 내려갈 확률을 낮춤. migration 실패(예: CXL-node 저메모리) 시 기본 reclamation으로 fallback. 다중 CXL-node면 CPU 거리 기반 **static 선택**으로 충분.",
+      "original": {
+        "text": "instead of invoking swapping mechanism, we put them into a separate demotion list and try to migrate them to the CXL-node asynchronously.",
+        "location": "§5.1, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 500
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "method",
+      "title": "§5.2 Alloc/Reclaim 분리: watermark로 free headroom 유지",
+      "content": "Linux는 zone별 min/low/high watermark를 둔다. free가 low 아래면 reclamation 시작 + 새 allocation은 high 채울 때까지 **정지(halt)** $\\rightarrow$ 고할당률에서 reclamation이 못 따라가 CXL로 page가 몰린다.\n\nTPP는 '**reclamation 정지**'와 '**새 allocation 발생**' 로직을 **분리**:\n\n$$demotion\\_watermark > allocation\\_watermark > low\\_watermark$$\n\n- free가 **demotion_watermark**에 닿을 때까지 background reclamation을 계속 돌린다.\n- 새 allocation은 **allocation_watermark**만 만족하면 진행.\n- 항상 더 많이 reclaim해 local에 **free headroom** 유지 $\\rightarrow$ (1) 짧고 뜨거운 새 할당을 local에 직접, (2) CXL의 trapped hot page promotion 수용.\n\n공격성은 **/proc/sys/vm/demote_scale_factor**(기본 **2%**)로 조절. 효과: local allocation rate 95%tile **1.6×**.",
+      "original": {
+        "text": "we decouple the logic of 'reclamation stop' and 'new allocation happen' mechanism. We continue the asynchronous background reclamation process on local node until its total number of free pages reaches demotion_watermark, while new allocation can happen if the free page count satisfies a different watermark – allocation_watermark.",
+        "location": "§5.2, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 660
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "§5.3 Active-LRU promotion: ping-pong에 hysteresis",
+      "content": "압박으로 CXL에 간 page나 나중에 hot 된 demoted page를 안 올리면 hot이 **CXL에 갇힌다(trapped)**. TPP는 **NUMA Balancing을 증강** — kernel task가 각 node의 일부(기본 256MB)를 샘플, remote 접근 시 NUMA hint fault로 promote. 단 local의 hot을 옮기는 건 무의미하므로 **CXL-node만 sampling**(hint fault 오버헤드 절감).\n\n**Ping-pong 해결**: faulted page의 **LRU age**를 본다 — **active LRU에 있을 때만** promotion 후보(무조건 promote 금지). inactive면 accessed 표시 후 active로 옮기고 **다음** hint fault 때 승격 $\\rightarrow$ **hysteresis** 부여. anon/file 별도 LRU라 type별 promotion rate 차등 $\\rightarrow$ 수렴 가속.\n\n효과: promotion rate **11×↓**, demote-후-재promote **50%↓**, promotion 성공률 **48%↑**(수렴은 5분 더 소요).",
+      "original": {
+        "text": "We consider the faulted page as a promotion candidate only if it is found in the active LRUs. This significantly reduces the promotion traffic.",
+        "location": "§5.3, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 820
+      },
+      "children": [
+        "node_019"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "§5.4 Page-type-aware allocation: file→CXL, anon→local",
+      "content": "관측(Chameleon): **anon이 file보다 뜨겁다**. 그런데 production app은 warmup 중 file I/O로 잘 안 쓰이는 file cache를 많이 만들고, 이게 **local을 점유해 anon을 CXL로 밀어낸다**(나중에 promote 필요).\n\n해결: 선택적 정책으로 **file cache/tmpfs를 CXL-node에 우선 할당**, **anon은 local 정책 유지**. hot 된 file cache는 promotion 후보가 되면 나중에 local로 올림.\n\n효과: 작은 local + 크고 싼 CXL 구성에서도 all-local 성능 유지(Table 2): Web1 2:1 **local 97%/throughput 99.5%**, Cache1 1:4 **85%/99.8%**, Cache2 1:4 **72%/98.5%**.",
+      "original": {
+        "text": "we allow an application allocating caches (e.g., file cache, tmpfs, etc.) to the CXL-nodes preferrably, while preserving the allocation policy for anon pages.",
+        "location": "§5.4, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 980
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "§4 온도 감지: minor page fault + LRU (PEBS 아님)",
+      "content": "설계 3질문의 답 = **kernel-space** 구현 + **경량 온도 감지** + CXL을 **main memory tier**로(swap 아님).\n\n왜 PEBS/IPT가 아닌가:\n- **PEBS**: CPU 벤더 간 **비표준**, counter 제한, 상시 구동 부담 $\\rightarrow$ TPP의 always-on 컴포넌트로 부적합.\n- **IPT/poisoning**: accessed bit clear + TLB flush로 고빈도 감시 시 심한 slowdown.\n- **Thermostat**[31]: 2MB huge-page 전용 $\\rightarrow$ TPP 목표(**page-size agnostic**)에 안 맞음.\n\nTPP의 선택:\n- **CXL-node의 hot 감지** = NUMA Balancing의 **minor page fault(NUMA hint fault)**만 활용 $\\rightarrow$ 오버헤드 낮게.\n- **local node의 cold 감지** = Linux 기존 **LRU**로 충분(가상 zero-overhead).\n\n(프로파일링 툴 Chameleon은 PEBS 기반이지만 이는 **오프라인 특성화용**이지 TPP의 런타임 경로가 아님.)",
+      "original": {
+        "text": "when designing TPP, we chose to only leverage minor page fault as a temperature detection mechanism for CXL-Memory. As CXL-Memory is expected to hold warm and cold pages, this will keep the overhead of temperature detection low.",
+        "location": "§4, p.6-7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1140
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "method",
+      "title": "평가 셋업: FPGA CXL 1.1 + 2:1/1:4 config",
+      "content": "Linux v5.12에 TPP 통합. **Pre-production x86 CPU + FPGA 기반 CXL 1.1** 확장 카드 — CXL-Memory가 OS에 **CPU-less NUMA node**로 노출(현 FPGA 카드는 목표보다 ~250ns 높은 지연이라 기능 검증용). 성능 평가는 CXL 특성을 흉내낸 **dual-socket**(한 socket을 CPU-less memory node로)으로도 수행. baseline은 한 socket에 전 메모리를 몰아 **all-local ideal** 구성.\n\n두 메모리 config (local:CXL 용량):\n- **2:1**: 현 production 유사 — local이 hot working set 담당.\n- **1:4**: 스트레스 — hot의 **일부만** local에 들어가 hot이 CXL로 강제됨.\n\nmetric = app throughput(주) + **local node 트래픽 비율**(보조). Meta 4 workload(Web/Cache/DataWarehouse/Ads). 실험에 disk swap 없음.",
+      "original": {
+        "text": "We deploy a number of pre-production x86 CPUs with FPGA-based CXL-Memory expansion card that support CXL 1.1 specification. Memory attached to the expansion card shows up to the OS as a CPU-less NUMA node.",
+        "location": "§6, p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1300
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "result",
+      "title": "성과: ideal <1%, Linux 18%, trapped hot의 대가 7×",
+      "content": "TPP는 hot을 local에 유지해 all-local ideal에 근접.\n\n- **Web1 (2:1)**: default Linux는 local 비우기가 **44× 느려** 새 allocation이 CXL에 영구 정착 $\\rightarrow$ local 트래픽 22%, throughput **16.5%↓**. TPP는 local 90%, 드롭 **0.5%**.\n- **Cache1/Cache2 (2:1)**: default 3%·2% 드롭을 TPP가 99.9%·99.6%로 회복.\n- **Cache1 (1:4)**: local 용량 20%로도 TPP는 hot anon 97%를 local로 $\\rightarrow$ 트래픽 85%, 드롭 **0.5%**.\n- **Cache2 (1:4)**: default **18% loss**(anon 14%만 local). TPP는 hot anon 80% 회복, CXL 트래픽 41%여도 드롭 **5%**.\n- **CXL 지연 변동**: default는 hot의 22-25%가 CXL에 갇혀 avg 지연 **7×**, throughput loss **2.2-2.8×**(vs TPP). TPP는 4-5%만 CXL.\n\nsteady-state migration **4-16MB/s(1-4K pages/s)** — CXL 링크 대역폭보다 훨씬 낮음.",
+      "original": {
+        "text": "This increases the average memory access latency by 7× for default Linux. This, eventually, impact the application-level performance, default Linux experiences 2.2−2.8× higher throughput loss over TPP.",
+        "location": "§6.1.3, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1460
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "result",
+      "title": "SOTA 비교 + 컴포넌트 기여 (NUMA/AutoTiering/TMO)",
+      "content": "**vs NUMA Balancing**: local 압박 시 promotion 정지 $\\rightarrow$ Web1 throughput **17.2%↓**(reclamation 42×·promotion 11× 느림, local 20%만); Cache1 1:4 local 46%, 10%↓.\n\n**vs AutoTiering**: 1:4에서 **크래시**(warmup 후 쿼리 시). 2:1에서도 TPP가 46% 작은 local로도 **7% 우위**.\n\n**vs / with TMO**: **orthogonal·complementary**. TPP가 zswap을 **demote-then-swap 2단계**로 만들어 semi-hot에 second chance $\\rightarrow$ TMO의 process stall **30%↓**, memory saving **3%↑**. 반대로 TMO는 free headroom을 만들어 TPP migration 실패율 **20$\\rightarrow$5 pages/s**.\n\n**컴포넌트 기여**(Cache1 1:4 case study):\n- **decoupling 없으면** promotion 거의 정지(CXL trapped page 55% 트래픽 $\\rightarrow$ 12%↓).\n- **active-LRU** promotion: rate 11×↓, 성공률 48%↑.\n- **page-type-aware**: Table 2대로 local 트래픽↑.",
+      "original": {
+        "text": "TPP outperforms both of them by 5–17%.",
+        "location": "§1, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1620
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "memo",
+      "title": "TPP vs SkyByte: software 배치 vs hardware 마이그레이션",
+      "content": "TPP와 [[SkyByte]]는 **같은 문제(hot/cold 배치)를 다른 층에서** 푼다.\n\n| | TPP (ASPLOS'23) | SkyByte (HPCA'25) |\n|---|---|---|\n| 배치 주체 | **OS/software** (kernel) | **하드웨어** (디바이스 내부) |\n| 온도 감지 | minor page fault + LRU | HW counter |\n| 대상 | CXL tiered-memory(Type-3) | memory-semantic **CXL-SSD** |\n| 마이그레이션 | async demotion + NUMA-balance promote | HW-assisted adaptive migration |\n| 비교 관계 | — | **SkyByte-CT = TPP류 OS baseline** |\n\n★ SkyByte는 자신의 adaptive migration을 **TPP-style OS baseline(SkyByte-CT)**과 겨룬다. 즉 TPP는 SkyByte가 \"왜 마이그레이션을 HW로 내렸나\"의 **반대편 극단** — OS가 온도·이주를 전담하고 디바이스는 dumb memory. 내 발표축 \"SSD 이중역할 × transparent co-design\"에서 **software 끝**을 표시하는 좌표.",
+      "original": {
+        "text": "TPP works transparently without any application-specific knowledge and can be deployed globally as a kernel release.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1780
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "gap",
+      "title": "내 연구방향: single-host 전제 — multi-node coherence가 빈칸",
+      "content": "TPP는 **single-host** tiered memory(한 host의 local↔CXL NUMA node)만 다룬다. page-temperature도, LRU도, watermark도, PG_demoted도 전부 **단일 host 물리주소 공간** 안 이야기다.\n\n내 방향(**multi-node CXL coherence**)이 채울 빈칸: CXL tier가 **여러 host에 공유(pooling)**되는 순간 —\n- **온도 모델 붕괴**: page 온도가 host마다 달라 배치 결정이 충돌. minor page fault는 **remote host의 접근을 못 봄**.\n- **promotion의 stale 문제**: host A가 hot page를 자기 local로 promote(사본 생성)하면 host B는 **stale**를 봄 $\\rightarrow$ cross-host invalidation 필요(**CXL 3.0 back-invalidate / HDM-DB**). TPP엔 없음.\n- **소유권**: 공유 page의 demote/promote 권한을 누가 갖나?\n\n즉 TPP의 '기법'(demotion·watermark·active-LRU)은 재사용하되 '문제 정의'를 **single$\\rightarrow$multi host**로 다시 세우는 게 gap.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1940
+      },
+      "children": [
+        "node_020"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "question",
+      "title": "왜 'trap이 hot page를 가두는가': instant promotion의 함정",
+      "content": "default NUMA Balancing이 CXL 시스템에서 실패하는 근본 이유를 한 겹 더 파면:\n\n기본 정책은 NUMA hint fault가 나면 **active 상태 확인 없이 즉시 promote**한다. CXL-node는 항상 압박 상태가 아니라, faulted page가 **inactive LRU**에 머물러 있어도 promotion 필터를 그냥 통과한다 $\\rightarrow$ 드물게 쓰는 page까지 올라간다. 올라간 page는 곧 demotion 후보가 돼 다시 내려가는 **ping-pong**을 만들고, 이 불필요 트래픽이 local free space를 잠식해 진짜 hot page를 밀어낸다.\n\n반대로 promotion을 아예 끄면 **hot page가 CXL에 영영 갇힌다(trapped)**. 두 실패 사이의 좁은 길을 TPP는 **active-LRU 필터 + inactive→active 승격 후 지연 promote**(hysteresis)로 통과한다. 이 tension이 TPP §5.3의 존재 이유.",
+      "original": {
+        "text": "Without any promotion mechanism, hot pages will always be trapped in CXL-nodes and hurt application performance.",
+        "location": "§5.3, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 820
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "gap",
+      "title": "공유 CXL tier에서 TPP의 온도/배치가 깨지는 지점",
+      "content": "구체 시나리오로 gap을 못박으면 — host A·B가 같은 CXL memory pool을 공유한다.\n\n1. **온도의 지역성 붕괴**: A에겐 cold인 page가 B에겐 hot일 수 있다. TPP는 각 host가 자기 minor page fault로 온도를 재므로 **한 host의 view만** 반영 $\\rightarrow$ A가 demote한 page를 B가 즉시 재접근.\n2. **promotion = 사본 = coherence 부담**: A가 pool의 hot page를 자기 local DRAM으로 promote하면 물리 사본이 생긴다. 공유 전제에선 B가 그 page를 어떻게 보나? $\\rightarrow$ **directory/back-invalidate**(CXL 3.0 HDM-DB)가 필요.\n3. **watermark의 무의미화**: local free headroom은 host-local 개념 — pool 차원 압박 조율은 미정의.\n\n$\\rightarrow$ TPP의 kernel 메커니즘을 **pool-aware coherent placement**로 승격하는 것이 [[SkyByte]] 대비 내 차별점. (→ [[CXL Multi-node Coherence]], [[CXL Overview]])",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 1940
+      },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_001",
+      "target": "node_006",
+      "type": "line",
+      "label": "근거"
+    },
+    {
+      "id": "edge_006",
+      "source": "node_002",
+      "target": "node_007",
+      "type": "line",
+      "label": "병목"
+    },
+    {
+      "id": "edge_007",
+      "source": "node_002",
+      "target": "node_008",
+      "type": "line",
+      "label": "참고"
+    },
+    {
+      "id": "edge_008",
+      "source": "node_003",
+      "target": "node_009",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_009",
+      "source": "node_003",
+      "target": "node_010",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_010",
+      "source": "node_003",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_003",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_012",
+      "source": "node_003",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_013",
+      "source": "node_004",
+      "target": "node_014",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_014",
+      "source": "node_004",
+      "target": "node_015",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_015",
+      "source": "node_004",
+      "target": "node_016",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_016",
+      "source": "node_005",
+      "target": "node_017",
+      "type": "line",
+      "label": "계보"
+    },
+    {
+      "id": "edge_017",
+      "source": "node_005",
+      "target": "node_018",
+      "type": "line",
+      "label": "내 연구"
+    },
+    {
+      "id": "edge_018",
+      "source": "node_011",
+      "target": "node_019",
+      "type": "line",
+      "label": "심화"
+    },
+    {
+      "id": "edge_019",
+      "source": "node_018",
+      "target": "node_020",
+      "type": "line",
+      "label": "심화"
+    },
+    {
+      "id": "edge_020",
+      "source": "node_007",
+      "target": "node_011",
+      "type": "line",
+      "label": "해결"
+    },
+    {
+      "id": "edge_021",
+      "source": "node_017",
+      "target": "node_018",
+      "type": "line",
+      "label": "연결"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

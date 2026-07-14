@@ -34,6 +34,7 @@ tags:
 | **Type 3** | .io + .mem | ✓ | **메모리 확장기 / 메모리 풀** (가장 흔한 CXL 용도) |
 
 > SSD를 CXL 메모리처럼 붙이는 [[SkyByte]]·[[XHarvest]]는 **Type 3 (memory-semantic)** 계열로 이해하면 된다.
+> ⚠️ **Type은 host/device 개수를 정하지 않는다** — 개수·멀티호스트·일관성 관계는 아래 [[CXL Overview#⭐ Type × host/device 개수 × 일관성 — "언제 multi-host가 되나"|Type × 개수 × 일관성]] 참고.
 
 ## ⭐ 버전 진화 — 한 눈에 (핵심 표)
 | 버전 | 발표 | PCIe 기반 | 새로 생긴 핵심 | 새 용어 |
@@ -49,9 +50,68 @@ tags:
 > 최신 동향·배포 시점·경쟁기술(UALink/NVLink)은 [[CXL SOTA & Roadmap]].
 > **pooling vs sharing** 차이가 2.0↔3.0의 분수령 → 헷갈리면 [[CXL Glossary#memory-pooling-vs-sharing]].
 
-## 일관성 모델의 진화 (왜 3.0이 중요한가)
-- **1.1 / 2.0 — bias 기반**: Type 2 장치 메모리를 **Host Bias**(호스트가 주로 접근) / **Device Bias**(장치가 주로 접근) 모드로 전환해 일관성 오버헤드를 줄임.
-- **3.0 — Back-Invalidation(BI)**: 하드웨어가 캐시 사본을 무효화하는 snoop을 추가 → 여러 호스트가 **같은 메모리를 동시에 일관성 있게 공유**(true sharing) 가능. (`HDM-DB`)
+## ⭐ Type × host/device 개수 × 일관성 — "언제 multi-host가 되나"
+> [[SkyByte]] 읽다 판 질문 정리. **핵심: Type(1/2/3)은 host/device 개수를 정하지 않는다.** 개수를 정하는 건 ① device가 **CXL.cache를 쓰냐**(→ 한 host의 coherency domain에 묶임) ② **버전 + logical 구성**(`SLD`/`MLD`/`MHD`)이다.
+
+**① 타입이 태생적으로 거는 제약 (cache vs mem)**
+| Type | 프로토콜 | coherency domain 소속 | 태생적 host 수 |
+|---|---|---|---|
+| **Type 1** | .io + **.cache** | 한 host 도메인의 caching agent | **1** |
+| **Type 2** | .io + .cache + .mem | 위 + 자체 메모리(bias) | **1** |
+| **Type 3** | .io + **.mem** | 없음 (순수 메모리, 캐싱 안 함) | **1 → 다수** |
+
+→ **.cache를 쓰는 Type 1/2는 태생적 single-host**(한 coherency domain에 묶임). **Type 3만** 풀링/공유로 멀티호스트 확장. (device 개수는 어느 타입이든 `1 host : 여러 device` 가능 — root port + switch fan-out.)
+
+**② 버전이 얹는 topology (개수·공유가 실제로 갈리는 곳)**
+| 버전 | host : device | Type 3 확장 | 여러 host면 coherence? |
+|---|---|---|---|
+| **1.1** | 1 : 1 (직결, `SLD`) | — | (single host) `HDM-H` |
+| **2.0** | N : M (switch) | **`MLD`**: 1 device를 최대 **16 host에 분할** | ❌ 불필요 — **분할(pooling)이라 공유 아님** |
+| **3.0+** | 다 : 다 (fabric) | **`MHD`/`GFAM`**: 같은 영역을 다수 host가 **공유** | ✅ 필요 — **`HDM-DB` Back-Invalidate** |
+
+**③ 일관성 모델 3형 (`HDM-*`)** — 관리 주체가 host냐 device냐, 그리고 host 수
+| 모델 | 관리 주체 | host 수 | 등장 |
+|---|---|---|---|
+| **HDM-H** (Host-only) | host가 전담, device 무개입 | 1 | 1.1~ (bias), 용어 정식화 3.2 |
+| **HDM-D** (Device, bias) | device (Type 2 Host/Device Bias) | 1 | 1.1~ |
+| **HDM-DB** (Device + Back-Invalidate) | device `DCOH`가 snoop filter로 **다수 host 캐시 무효화** | 다수 | **3.0~** |
+
+> [!warning] "왜 기존 coherence로 multi-host가 안 되나" — domain 경계 때문
+> coherence domain은 **host 경계에서 끊긴다.** host A의 home agent는 A의 캐시들만 알고 B는 존재조차 모른다 — A·B의 캐시 계층을 잇는 선도 프로토콜도 원래 없다. 그래서 A가 공유 라인을 고쳐도 **B에게 알릴 주체가 없어** B는 stale copy를 본다. 이 다리를 device가 놓는 게 **`HDM-DB` back-invalidate**(3.0). → single-host Type 3가 coherence를 "고려 안 하는" 건 기존 coherence가 **커버해서가 아니라 domain이 하나뿐이라 문제 자체가 안 생겨서**다. (경계가 깨지는 4지점: [[CXL Multi-node Coherence]])
+
+> [!tip] "Type 2 쓰면 멀티호스트 되지 않나?" — 안 됨
+> Type 2의 bias coherence는 **host ↔ device(가속기) 사이 single-host** 문제를 푼다(방향도 device→host 캐싱으로 오히려 반대). 두 host를 놓아도 A↔B 경계는 그대로. 멀티호스트 공유는 축이 다른 **`HDM-DB`(back-invalidate)**가 담당한다. (프로토콜 방향은 [[CXL Coherence]])
+
+**우리 좌표**
+- [[SkyByte]] = **Type 3 + `SLD` + `1 host : 1 device` + `HDM-H`** → 위 표 맨 왼쪽(1.1/2.0 single-host).
+- 내 연구방향(multi-node coherence) = **Type 3 + `MHD`/`GFAM` + `HDM-DB`** → 맨 오른쪽(3.0). 개수로는 **"여러 host : 공유된 하나의 memory 영역"**이 무대이고 device가 coherence agent가 되는 지점. → [[CXL Multi-node Coherence]]
+- **표준은 이미 있다**(3.0 Back-Invalidate) — 안 여문 건 **실리콘·directory 구현·정확성 증명** → 그게 연구 자리. (방어 포인트: "표준 없는 걸 한다"가 아니라 "표준 메커니즘 위 미해결을 판다")
+
+### ④ "여러 host가 붙는다" ≠ "공유한다" — 3 레벨 분리
+[[DirectCXL]] 영상에서 **스위치에 여러 host + 여러 device**가 붙은 걸 보고 "single host라며?" 헷갈리기 쉽다. **물리 연결**과 **논리 공유**를 섞어서 그렇다. 세 레벨로 쪼개면 명확하다.
+
+| 레벨 | 내용 | CXL 2.0(DirectCXL) |
+|---|---|---|
+| ① **물리 연결** | switch에 multi-host, multi-device | ✅ (영상에서 본 것) |
+| ② **메모리 소유** | HDM 1조각 = host 1개 (`MLD` 분할) | ✅ pooling |
+| ③ **coherent 공유** | 여러 host가 **같은 영역**을 동시 캐싱 | ❌ (3.0에서만) |
+
+> 🔑 **"여러 host가 같은 device에 붙는다"(①) ≠ "여러 host가 같은 HDM을 공유한다"(③).** CXL 2.0은 device를 `MLD`로 쪼개 각 조각을 다른 host에 주므로 ①·②는 되지만 ③은 안 된다. DirectCXL 원문: *"different hosts can be connected to a CXL switch and a CXL device ... **no host is sharing an HDM**"*. → 즉 "single host"는 **host 수가 아니라 'HDM 1조각당 host 1개(공유 없음)'** 라는 뜻.
+> **주차장 비유**: 차 여러 대(host)가 한 주차장(device/switch)을 쓰지만(①) 한 칸(HDM)엔 한 대(②). 두 대가 같은 칸에 겹쳐 조율(③)하는 게 진짜 '공유' — 그건 3.0 back-invalidate가 있어야 한다.
+
+### ⑤ coherence는 두 축 — 직교 + 합성
+"Type-1이 device를 host cache처럼 만드는데, 거기에 sharing을 더하면 별개 coherence가 또 생기지 않나?" → **맞다. 축이 둘이고 직교한다.**
+
+| 축 | 언제 | 범위 | 누가 관리 | 등장 |
+|---|---|---|---|---|
+| **축 A — device 캐싱** | device가 host mem을 캐시 | **intra-host**(한 도메인) | **Type-1/2** (CXL.cache, bias) | 1.1~ |
+| **축 B — multi-host sharing** | 여러 host가 같은 영역 캐시 | **cross-host** | **device** directory + back-invalidate | **3.0** |
+
+- **축 A는 sharing을 못 푼다** — "이 device ↔ 이 host" 일관성이지 "host A ↔ host B"가 아니다. 그래서 sharing을 더하면 **Type과 무관하게 새 coherence(축 B)**가 생긴다.
+- **공유되는 건 memory(HDM)** → 축 B의 *원천*은 **HDM을 가진 Type-2/3**. Type-1은 HDM이 없어(host mem을 캐시만) 풀로 공유할 자기 메모리가 없다. 단 Type-1의 캐시 사본도 무효화 대상 — 그건 **자기 host가 back-invalidate 받을 때** 그 host 도메인 안(축 A)에서 함께 처리된다(device가 Type-1 agent를 따로 추적 안 함).
+- **두 축은 합성**된다: **host 내부 = 축 A**(native + CXL.cache), **host 사이 = 축 B**(back-invalidate). B가 A 위에 얹힌 2층 구조.
+
+> 🔑 **coherence = 사본이 있으면 필요.** 사본 주체가 (a) 한 host 안의 CPU/Type-1·2 캐시 → 축 A, (b) 다른 host들 → 축 B. **sharing은 축 B를 켜는 스위치**이고, 그 스위치는 **공유되는 HDM을 가진 device(Type-2/3)**에 달려 있다. → 방향·본질은 [[CXL Coherence]], 축 B의 난관(directory 폭발 등)은 [[CXL Multi-node Coherence]].
 
 ## 우리 위키와의 연결
 - 토픽 허브: [[CXL]] (CXL 관련 발표 논문 모음)

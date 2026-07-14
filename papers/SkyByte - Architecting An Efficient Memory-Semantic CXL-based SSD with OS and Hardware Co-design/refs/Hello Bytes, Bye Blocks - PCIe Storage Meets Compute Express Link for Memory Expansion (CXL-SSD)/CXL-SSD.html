@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hello Bytes, Bye Blocks: PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">Hello Bytes, Bye Blocks: PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)</span>
+    <span id="tb-source">Myoungsoo Jung (KAIST CAMELab) · HotStorage 2022</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" data-children="node_006" style="--color:#4B8BBE;border-radius:2px;left:100px;top:220px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문은 <strong style="font-size:1.1em">'CXL-SSD'라는 개념을 정립한 비전/포지션 논문</strong>이다. 값싸고 대용량인 <strong style="font-size:1.1em">PCIe block storage를, CXL로 host CPU에 붙여 byte-addressable working memory로</strong> 바꾸자고 논증한다.<br><br><strong style="font-size:1.1em">Killer application 1 — block을 byte로, non-cacheable을 cacheable로</strong>: PCIe로 SSD 내부 DRAM을 BAR로 노출해도 x86이 그 접근을 <strong style="font-size:1.1em">non-cacheable로 강제</strong>해 성능이 무너진다. CXL은 cache-coherent라 이 접근을 <strong style="font-size:1.1em">cacheable</strong>로 만들어 storage를 메모리 계층에 편입시킨다.<br><br><strong style="font-size:1.1em">Killer application 2 — 왜 Type-3인가의 논거</strong>: 세 device type 중 <strong style="font-size:1.1em">Type-3가 storage-integrated memory expander에 최적</strong>임을 3가지 이유(확장성·CXL.cache 오버헤드·host 허가)로 논증 → SkyByte류 CXL-SSD가 Type-3인 근거.<br><br><strong style="font-size:1.1em">Killer application 3 — storage 물성을 위한 프로토콜 힌트</strong>: GC 지연·persistence를 다루도록 CXL.mem 예약 필드에 <strong style="font-size:1.1em">determinism/bufferability</strong> 힌트를 달자고 제안.<br><br>FPGA 투영: 고locality에서 CXL가 PCIe 대비 <strong style="font-size:1.1em">129.5×</strong>, 평균 <strong style="font-size:1.1em">3×</strong> 빠르고 DRAM에 근접.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
+<div class="ng-orig-text">we advocate that CXL can open a new door that changes PCIe storage's block interface to a memory-like, byte interface.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" data-children="node_007" style="--color:#4B8BBE;border-radius:2px;left:100px;top:520px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">PCIe storage가 byte-addressable memory가 되는 건 <strong style="font-size:1.1em">오랜 꿈</strong>이다(2B-SSD·NVMe가 SSD 내부 DRAM을 BAR로 노출; 내부 DRAM을 backend flash의 write-back cache로 써 긴 지연 은닉).<br><br>그런데 <strong style="font-size:1.1em">결정적 벽</strong>: PCIe 대역폭은 far memory로 충분(Gen5/6 16× = 63~121 GB/s)한데도, PCIe는 storage를 <strong style="font-size:1.1em">peripheral</strong>로 취급해 CPU가 BAR로의 `load`/`store`를 <strong style="font-size:1.1em">non-cacheable</strong>로 해야 한다. x86(Intel/AMD)은 PCIe 메모리 요청을 캐시하면 <strong style="font-size:1.1em">시스템 실패·storage 단절</strong> 위험이 있어 아예 금지한다.<br><br>결과: non-cacheable 접근이 성능을 크게 떨어뜨리고, <strong style="font-size:1.1em">storage-integrated memory expander가 메모리 계층에서 배제</strong>되며 CPU cache를 못 쓴다. 이게 CXL이 필요한 이유 — cache-coherent라 이 접근을 cacheable로 만든다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
+<div class="ng-orig-text">this non-cacheable characteristic severely degrades the performance of all memory accesses targeting the BARs ... enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" data-children="node_008,node_009,node_010,node_011,node_013,node_014" style="--color:#4B8BBE;border-radius:2px;left:100px;top:820px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">PCIe storage를 CXL로 host 메모리에 편입시키되, <strong style="font-size:1.1em">Type-3</strong>로 하고 storage 물성을 힌트로 다룬다.<br><br><strong style="font-size:1.1em">1. 세 protocol / 세 type</strong>: CXL.io(기본, PCIe·FlexBus), CXL.cache(device가 host mem 캐시), CXL.mem(host가 HDM 접근) → Type-1/2/3 정의.<br><br><strong style="font-size:1.1em">2. ★ Type-3 옹호</strong>: Type-2 대비 (i) RP당 device 1개 제한 없이 <strong style="font-size:1.1em">확장</strong> 가능, (ii) CXL.cache 풀피처의 <strong style="font-size:1.1em">매 I/O cache-state 확인 오버헤드</strong> 없음, (iii) storage-side 연산의 <strong style="font-size:1.1em">host 허가</strong> 불필요.<br><br><strong style="font-size:1.1em">3. storage-side 최소 수정</strong>: 기존 PCIe endpoint 로직 재활용 + NVMe controller를 CXL.mem read/write로 단순화 → 대부분 SSD가 minor 수정으로 Type-3 지원.<br><br><strong style="font-size:1.1em">4. 시스템 통합</strong>: 부팅 시 BAR/HDM을 <strong style="font-size:1.1em">cacheable 시스템 메모리</strong>에 매핑, RP가 remap offset 동기화. load/store → CXL flit → controller가 firmware와 협력 서비스.<br><br><strong style="font-size:1.1em">5. disaggregation &amp; storage 힌트</strong>: switch/multi-switch/VH + MLD(16)로 multi-host 분해, <strong style="font-size:1.1em">determinism/bufferability</strong>로 GC·persistence 제어.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.3</span></summary>
+<div class="ng-orig-text">we advocate Type 3 for a storage-integrated memory expander in CXL. There are three reasons why we believe that Type 3 devices are better than Type 2 devices for the storage-integrated memory expander.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_004" data-children="node_012" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1120px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">상용 CXL가 없어 <strong style="font-size:1.1em">FPGA 프로토타입</strong>으로 투영: 자작 <strong style="font-size:1.1em">RISC-V O3 dual-core</strong>(128KB L1, 4MB L2) host + <strong style="font-size:1.1em">OpenExpress 32GB NVMe</strong>(16nm FPGA, backend=Z-NAND emul) storage, PCIe backplane. 비교: DRAM-only / PCIe expander / CXL. Workload = <strong style="font-size:1.1em">Apex-Map</strong>(locality param $\alpha$, 64B, 512M inst).<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>케이스</th><th>결과</th></tr></thead><tbody><tr><td>Best ($\alpha=0.001$, 고locality)</td><td>CXL가 PCIe 대비 <strong style="font-size:1.1em">129.5×</strong>↓, DRAM에 근접</td></tr><tr><td>Average</td><td>CXL가 PCIe 대비 <strong style="font-size:1.1em">3×</strong>↓ (DRAM 대비 9.3× 나쁨)</td></tr><tr><td>Worst ($\alpha=1$, 완전 랜덤)</td><td>CXL가 DRAM 대비 84.1× 나쁨, PCIe 대비 <strong style="font-size:1.1em">1.6×</strong>↑</td></tr></tbody></table></div><div class="ng-seg"><br>핵심 메시지: <strong style="font-size:1.1em">non-cacheable을 극복한 CXL은 고locality에서 DRAM급</strong>, 랜덤에서만 flash 지연이 노출. 대부분 워크로드는 고locality라 대용량 이득이 크다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.4</span></summary>
+<div class="ng-orig-text">While most memory requests in this test are hit from the CPU caches, PCIe cannot take any advantage of the host CPU caches, thereby exhibiting 129.5x longer latency than CXL.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" data-children="node_015,node_016" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1420px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">CXL을 <strong style="font-size:1.1em">memory expander 관점</strong>에서 보고, block semantic을 byte semantic으로 옮기는 여러 구성을 탐색한 논문. 결론: CXL은 PCIe storage를 값싼 대용량 working memory로 편입시키는 실용적 길이며, <strong style="font-size:1.1em">Type-3 + storage-aware 힌트(determinism/bufferability)</strong>가 그 핵심.<br><br><strong style="font-size:1.1em">의의</strong>: <strong style="font-size:1.1em">'CXL-SSD' 개념의 정립</strong> — [[SkyByte]](Type-3 memory-semantic CXL-SSD)가 이 비전을 실제 co-design으로 구현한다. determinism/bufferability(storage 물성을 host에 힌트로 노출)는 SkyByte의 coordinated context switch(긴 flash 지연을 host에 알림)와 같은 transparent co-design 사고.<br><br><strong style="font-size:1.1em">한계</strong>: (1) 성능 투영이 Apex-Map 합성 + FPGA emul(실 워크로드·실 CXL 실리콘 부재). (2) determinism/bufferability는 <strong style="font-size:1.1em">제안</strong>일 뿐 표준·구현 미완. (3) ★ MLD는 storage를 <strong style="font-size:1.1em">분할</strong>해 각 host에 줄 뿐, <strong style="font-size:1.1em">여러 host가 같은 영역을 coherent하게 공유</strong>하는 것은 다루지 않음(pooling≠sharing). (4) MLD 분할이 backend/internal DRAM 병렬성을 깎아 per-MLD 대역폭 저하.</div><details class="ng-original"><summary>Original <span class="ng-loc">§8, p.6</span></summary>
+<div class="ng-orig-text">This paper examines CXL from a memory expander viewpoint and explores different configurations to transfer PCIe's block semantic to memory-compatible byte semantic.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#E74C3C;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">non-cacheable BAR의 벽 → CXL로 cacheable</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">PCIe로도 SSD 내부 DRAM을 BAR로 노출하면 byte `load`/`store`는 된다. 그러나 x86(Intel/AMD)은 PCIe 주소공간으로의 메모리 요청을 캐시하면 <strong style="font-size:1.1em">시스템 실패·storage 단절</strong> 위험이 있어 <strong style="font-size:1.1em">non-cacheable로 강제</strong>한다(BAR는 host가 storage에 '무엇을 요청/제어'하는지 알리는 인터페이스라, 캐시되면 storage가 요청 도착을 못 잡음).<br><br>결과: BAR 접근 성능이 크게 무너지고 storage-integrated expander가 <strong style="font-size:1.1em">메모리 계층에서 배제</strong>된다. <strong style="font-size:1.1em">CXL은 cache-coherent interconnect라 PCIe 주소공간으로의 load/store를 cacheable로</strong> 만들어 이 벽을 정확히 없앤다 — 이게 'CXL이 storage에 필요한' 단 하나의 핵심 이유.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
+<div class="ng-orig-text">If CPU can cache/buffer the memory requests targeting the PCIe address space, there is no way for the PCIe storage to catch their arrivals. This can introduce an unexpected situation such as a system failure or storage disconnection.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#E74C3C;border-radius:2px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">byte-addressability는 오랜 꿈 + 내부 DRAM = write-back cache</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">PCIe storage에 byte-addressability를 주는 건 오랜 목표다 — 2B-SSD·NVMe 표준이 SSD <strong style="font-size:1.1em">내부 DRAM/buffer를 BAR로</strong> 노출해 host가 local memory처럼 load/store하게 한다. 그리고 그 내부 DRAM을 backend block media(<strong style="font-size:1.1em">Z-NAND/Flash/Optane</strong>)의 <strong style="font-size:1.1em">write-back inclusive cache</strong>로 써서 긴 backend 지연을 숨긴다.<br><br>즉 하드웨어적 재료(byte 인터페이스 + 내부 DRAM cache)는 이미 있다. 빠진 것은 그 접근을 <strong style="font-size:1.1em">CPU cache에 태우는 것</strong>인데, 그게 바로 non-cacheable 벽(왼쪽 노드) 때문에 막혀 있었다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
+<div class="ng-orig-text">It is a long-standing dream for PCIe storage to have byte-addressability and be a part of working memory devices ... they can use the internal memory/buffer as a write-back inclusive cache of the backend.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_008" style="--color:#5C9E6E;border-radius:2px;left:620px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">세 protocol과 세 device type</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><div class="ng-seg">CXL의 세 sub-protocol과 그 조합으로 정의되는 세 type:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Protocol</th><th>역할</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">CXL.io</strong></td><td>기본(모든 device 필수). PCIe 기능·FlexBus, 비coherent I/O</td></tr><tr><td><strong style="font-size:1.1em">CXL.cache</strong></td><td>device가 host 메모리를 coherent 캐시</td></tr><tr><td><strong style="font-size:1.1em">CXL.mem</strong></td><td>host가 device HDM을 load/store</td></tr></tbody></table></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Type</th><th>프로토콜</th><th>성격</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">1</strong></td><td>.io+.cache</td><td>로컬 캐시만(내부 DRAM 없음), TPU류</td></tr><tr><td><strong style="font-size:1.1em">2</strong></td><td>.io+.cache+.mem</td><td>HDM+연산, host↔device 양방향 coherent</td></tr><tr><td><strong style="font-size:1.1em">3</strong></td><td>.io+.mem</td><td>HDM만(연산 없음), 순수 memory expander</td></tr></tbody></table></div><div class="ng-seg"><br>Type-3는 CXL.cache를 안 쓰지만 CXL.mem의 read/write로 HDM 확장이 된다. CXL.io는 device-side에서 관리해 다양한 I/O 수요 수용.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.2</span></summary>
+<div class="ng-orig-text">CXL provides three different sub-protocols, i) CXL.io, ii) CXL.mem, and iii) CXL.cache, which can also define three different types of CXL devices (Type 1 ~ Type 3).</div></details></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#E74C3C;border-radius:2px;left:620px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">★ 왜 Type-3인가 — 3가지 이유 (vs Type-2)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">저자가 storage-integrated memory expander로 <strong style="font-size:1.1em">Type-3를 옹호</strong>하는 3가지 근거:<br><br><strong style="font-size:1.1em">(1) 확장성</strong>: Type-2는 연산집약 가속용이라 <strong style="font-size:1.1em">CXL RP당 device 1개</strong>만 연결 가능 → Type-3만큼 scalable하지 않다.<br><br><strong style="font-size:1.1em">(2) CXL.cache 오버헤드</strong>: Type-2의 풀피처(CXL.cache+.mem)는 매 `load`/`store`가 PCIe storage 연산복합체의 <strong style="font-size:1.1em">cache 상태를 확인</strong>해야 해서, I/O마다 여러 CXL transaction 발생 → 성능 저하.<br><br><strong style="font-size:1.1em">(3) host 허가 비용</strong>: Type-2의 CXL.cache는 host local memory와 HDM을 <strong style="font-size:1.1em">모두 coherent 관리</strong>하므로, storage-side 연산이 자기 메모리를 접근할 때마다 <strong style="font-size:1.1em">host 허가</strong>가 필요 → device I/O 성능이 오히려 악화.<br><br>→ 이게 SkyByte를 비롯한 CXL-SSD가 <strong style="font-size:1.1em">Type-3인 1차 논거</strong>. (우리가 대화로 정리한 'Type-2는 왜 안 되나'의 원출처.)</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.3</span></summary>
+<div class="ng-orig-text">only one device (per CXL RP) can be connected to a host system, which makes Type 2 devices not scalable as Type 3 devices can do.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1000px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Storage-side 최소 수정으로 Type-3 지원</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">PCIe storage는 이미 <strong style="font-size:1.1em">PCIe endpoint + NVMe controller</strong>로 요청을 파싱하고 데이터를 옮긴다. 따라서 Type-3 지원의 HW 변경은 작다: (a) 기존 <strong style="font-size:1.1em">PCIe endpoint 로직을 재활용</strong>해 CXL transaction packet formatting·CXL.io 제어, (b) 기존 <strong style="font-size:1.1em">NVMe controller의 command parsing·page copy 기능을 단순화</strong>해 CXL.mem read/write 인터페이스 구현, (c) <strong style="font-size:1.1em">firmware가 내부 DRAM + backend block media 관리</strong>. NVMe 스펙은 controller를 firmware/hardware 어느 쪽으로도 구현 가능케 하므로, CXL.mem read/write는 hardware로 자동화하고 내부 DRAM 관리는 firmware로 두는 게 낫다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.3</span></summary>
+<div class="ng-orig-text">a hardware change at the storage side can be simple, which in turn makes most storage devices easily support Type 3 with a minor modification.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1180px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">시스템 통합 흐름 (BAR/HDM 매핑 → flit)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">부팅 시 host가 RP에 연결된 CXL device를 enumerate하고, CXL <strong style="font-size:1.1em">BAR + HDM</strong> 크기를 받아 <strong style="font-size:1.1em">cacheable 시스템 메모리</strong>에 매핑한다. HDM이 device가 원래 관리하던 주소와 다른 곳에 매핑되므로, <strong style="font-size:1.1em">CXL RP가 CXL controller에 remap offset을 동기화</strong>한다(target storage의 CXL capability/config 영역에 기록).<br><br>app이 HDM(=시스템 메모리)에 load/store → <strong style="font-size:1.1em">CXL RP가 CXL flit 생성</strong> → CXL.mem으로 storage controller에 전달 → endpoint+CXL controller가 flit 파싱해 command·target address 추출 → <strong style="font-size:1.1em">firmware와 협력해 데이터 서비스</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4, p.4</span></summary>
+<div class="ng-orig-text">When an application loads or stores data on the system memory (mapped to HDM), CXL RP generates a message, called CXL flit, and sends it to the target's CXL storage controller via CXL.mem.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1330px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Disaggregation 3토폴로지 + MLD(16) + multi-host</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">storage를 컴퓨팅에서 분해하는 세 구성(Fig.3): <strong style="font-size:1.1em">(a) Switch</strong>(DSP→각 storage, USP→host RP; switch 레인 64~128 → 16-lane storage 4~8개), <strong style="font-size:1.1em">(b) Multi-switch</strong>(top switch가 host RP+하위 브리지, leaf switch가 다수 storage; network 최대 <strong style="font-size:1.1em">4PB</strong>), <strong style="font-size:1.1em">(c) Virtual Hierarchy(VH)</strong>(FM crossbar가 host↔storage 경로 기억 → 완전 분해).<br><br><strong style="font-size:1.1em">Multi-host + storage 가상화</strong>: 각 storage를 <strong style="font-size:1.1em">MLD(multiple logical device, 최대 16)</strong>로 논리 분할, 각 MLD가 자기 HDM을 서로 다른 host에 매핑(물리 storage처럼). <strong style="font-size:1.1em">단점</strong>: 대역폭 공유·트래픽 혼잡, backend/internal DRAM 분할로 <strong style="font-size:1.1em">병렬성·per-MLD 대역폭 저하</strong>. (우리가 정리한 MLD 논의의 원출처.)</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.5</span></summary>
+<div class="ng-orig-text">CXL allows a system to logically split each endpoint into multiple Type 3 devices (up to 16), called multiple logical device (MLD). Thus, we can make each MLD define its own HDM, which can be mapped to a different place of any host of system memory.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1480px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Storage 힌트: determinism / bufferability (+ GPF)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Type-3는 memory pooling용이라 storage 특유의 <strong style="font-size:1.1em">(i) latency fluctuation(GC 등 internal task)</strong>, <strong style="font-size:1.1em">(ii) data persistence</strong> 문제가 남는다. 저자는 CXL.mem <strong style="font-size:1.1em">예약 필드</strong>에 두 힌트를 달자고 제안:<br><br>- <strong style="font-size:1.1em">Determinism</strong>: `DT`(internal task 개입 없이 즉시 서비스) / `ND`(fire-and-forget → storage가 GC 등 스케줄 가능).<br>- <strong style="font-size:1.1em">Bufferability</strong>: `BF`(SSD 내부 DRAM에 캐시/버퍼 허용) / `NB`(persistence first-class → block media 기록).<br><br>조합(BF+DT/BF+ND/NB+DT/NB+ND) + <strong style="font-size:1.1em">GPF(global persistent flush)</strong>로 DB 로깅·트랜잭션·lock 시나리오 최적화(예: 로그는 BF+ND로 버퍼링, commit 시 GPF+NB+DT). loads는 대개 DT, prefetch엔 BF. <strong style="font-size:1.1em">storage 물성을 host가 힌트로 조종</strong>하는 co-design 사고 — SkyByte의 방향과 통한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7, p.6</span></summary>
+<div class="ng-orig-text">we suggest two simple features, i) determinism and ii) bufferability, which can be annotated to CXL messages and hint the host semantic to the underlying CXL controllers.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#9B59B6;border-radius:2px;left:620px;top:1660px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Apex-Map 투영: PCIe 대비 129.5×(best)/3×(avg), DRAM 근접</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Apex-Map(locality $\alpha$)으로 DRAM/PCIe/CXL 비교(Fig.2):<br><br>- <strong style="font-size:1.1em">Best($\alpha=0.001$)</strong>: 대부분 CPU cache hit → PCIe는 cache를 못 써 CXL 대비 <strong style="font-size:1.1em">129.5×</strong> 긴 지연. CXL ≈ DRAM.<br>- <strong style="font-size:1.1em">Average</strong>: CXL가 PCIe 대비 <strong style="font-size:1.1em">3×</strong> 빠름. DRAM 대비 9.3× 나쁘지만 block storage 감안 시 합리적.<br>- <strong style="font-size:1.1em">Worst($\alpha=1$, 완전 랜덤)</strong>: CXL가 Z-NAND 지연을 못 숨겨 DRAM 대비 84.1× 나쁨. 그래도 PCIe 대비 <strong style="font-size:1.1em">1.6×</strong>(PCIe는 BAR 요청을 동기 처리).<br><br>결론: non-cacheable을 극복한 CXL은 <strong style="font-size:1.1em">고locality에서 DRAM급</strong>, 랜덤에서만 flash 지연 노출. §7의 힌트로 이 긴 지연을 완화할 수 있다고 주장.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.4</span></summary>
+<div class="ng-orig-text">CXL is also better than PCIe by 3x for the average case. Note that, even though the performance of CXL is 9.3x worse than that of DRAM, we believe it is still in a reasonable range by considering the fact that CXL leverages the block storage.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_015" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1840px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">계보/발표축: 'CXL-SSD' 개념의 정립 → SkyByte 구현</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문은 <strong style="font-size:1.1em">'CXL-SSD'라는 개념과 그 설계 좌표(Type-3, storage 힌트)를 처음 세운</strong> 글이고, [[SkyByte]]는 그 비전을 <strong style="font-size:1.1em">실제 co-design으로 구현</strong>한 관계다.<br><br>- <strong style="font-size:1.1em">개념(여기)</strong>: Type-3가 옳다 + determinism/bufferability로 storage 물성을 host에 힌트.<br>- <strong style="font-size:1.1em">구현(SkyByte)</strong>: Type-3 CXL-SSD + coordinated context switch(긴 flash 지연을 host에 알림) + cacheline write log.<br><br>determinism/bufferability와 SkyByte의 context switch는 <strong style="font-size:1.1em">같은 transparent co-design 사고</strong>(storage 내부 상태를 host에 노출해 함께 최적화). 내 <strong style="font-size:1.1em">'SSD 이중역할 × transparent co-design'</strong> 발표축의 <strong style="font-size:1.1em">개념적 원점</strong> — 그리고 우리가 대화로 정리한 Type 1/2/3·MLD·pooling 논의가 전부 여기서 출발한다([[CXL Overview]]에 정리).</div></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#1ABC9C;border-radius:22px;left:1150px;top:1840px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향: MLD 분할(pooling) → 공유(sharing) coherence</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">이 논문의 multi-host는 <strong style="font-size:1.1em">MLD로 storage를 분할</strong>해 각 조각을 다른 host에 주는 것 — 즉 <strong style="font-size:1.1em">pooling(분할)</strong>이지 <strong style="font-size:1.1em">sharing(공유)</strong>이 아니다. 여러 host가 <strong style="font-size:1.1em">같은 HDM 영역을 동시에</strong> coherent하게 쓰는 시나리오는 다루지 않는다(각 MLD는 한 host 전용).<br><br>내 방향(multi-node coherence)은 정확히 그 다음 — MLD 분할을 넘어 <strong style="font-size:1.1em">공유된 CXL-SSD 영역</strong>에서 host 간 캐시 일관성을 어떻게 보장할지(<strong style="font-size:1.1em">directory + back-invalidate, HDM-DB, CXL 3.0</strong>). determinism/bufferability 같은 storage 힌트도 <strong style="font-size:1.1em">공유 상황에서 누가 어떤 힌트를 세우나</strong>로 재정의된다. 즉 이 논문의 개념 프레임(Type-3·힌트·MLD)을 multi-host coherent 공유로 확장하는 게 gap. → [[CXL Multi-node Coherence]], [[CXL Overview]]</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":220,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":220,"searchText":"killer application 이 논문은 **'cxl-ssd'라는 개념을 정립한 비전/포지션 논문**이다. 값싸고 대용량인 **pcie block storage를, cxl로 host cpu에 붙여 byte-addressable working memory로** 바꾸자고 논증한다.\n\n**killer application 1 — block을 byte로, non-cacheable을 cacheable로**: pcie로 ssd 내부 dram을 bar로 노출해도 x86이 그 접근을 **non-cacheable로 강제**해 성능이 무너진다. cxl은 cache-coherent라 이 접근을 **cacheable**로 만들어 storage를 메모리 계층에 편입시킨다.\n\n**killer application 2 — 왜 type-3인가의 논거**: 세 device type 중 **type-3가 storage-integrated memory expander에 최적**임을 3가지 이유(확장성·cxl.cache 오버헤드·host 허가)로 논증 → skybyte류 cxl-ssd가 type-3인 근거.\n\n**killer application 3 — storage 물성을 위한 프로토콜 힌트**: gc 지연·persistence를 다루도록 cxl.mem 예약 필드에 **determinism/bufferability** 힌트를 달자고 제안.\n\nfpga 투영: 고locality에서 cxl가 pcie 대비 **129.5×**, 평균 **3×** 빠르고 dram에 근접. we advocate that cxl can open a new door that changes pcie storage's block interface to a memory-like, byte interface."},{"id":"node_002","lx":100,"ly":520,"children":["node_007"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":520,"searchText":"필요한 이유 (why it's needed) pcie storage가 byte-addressable memory가 되는 건 **오랜 꿈**이다(2b-ssd·nvme가 ssd 내부 dram을 bar로 노출; 내부 dram을 backend flash의 write-back cache로 써 긴 지연 은닉).\n\n그런데 **결정적 벽**: pcie 대역폭은 far memory로 충분(gen5/6 16× = 63~121 gb/s)한데도, pcie는 storage를 **peripheral**로 취급해 cpu가 bar로의 `load`/`store`를 **non-cacheable**로 해야 한다. x86(intel/amd)은 pcie 메모리 요청을 캐시하면 **시스템 실패·storage 단절** 위험이 있어 아예 금지한다.\n\n결과: non-cacheable 접근이 성능을 크게 떨어뜨리고, **storage-integrated memory expander가 메모리 계층에서 배제**되며 cpu cache를 못 쓴다. 이게 cxl이 필요한 이유 — cache-coherent라 이 접근을 cacheable로 만든다. this non-cacheable characteristic severely degrades the performance of all memory accesses targeting the bars ... enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy."},{"id":"node_003","lx":100,"ly":820,"children":["node_008","node_009","node_010","node_011","node_013","node_014"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":820,"searchText":"해결책 (solution) pcie storage를 cxl로 host 메모리에 편입시키되, **type-3**로 하고 storage 물성을 힌트로 다룬다.\n\n**1. 세 protocol / 세 type**: cxl.io(기본, pcie·flexbus), cxl.cache(device가 host mem 캐시), cxl.mem(host가 hdm 접근) → type-1/2/3 정의.\n\n**2. ★ type-3 옹호**: type-2 대비 (i) rp당 device 1개 제한 없이 **확장** 가능, (ii) cxl.cache 풀피처의 **매 i/o cache-state 확인 오버헤드** 없음, (iii) storage-side 연산의 **host 허가** 불필요.\n\n**3. storage-side 최소 수정**: 기존 pcie endpoint 로직 재활용 + nvme controller를 cxl.mem read/write로 단순화 → 대부분 ssd가 minor 수정으로 type-3 지원.\n\n**4. 시스템 통합**: 부팅 시 bar/hdm을 **cacheable 시스템 메모리**에 매핑, rp가 remap offset 동기화. load/store → cxl flit → controller가 firmware와 협력 서비스.\n\n**5. disaggregation & storage 힌트**: switch/multi-switch/vh + mld(16)로 multi-host 분해, **determinism/bufferability**로 gc·persistence 제어. we advocate type 3 for a storage-integrated memory expander in cxl. there are three reasons why we believe that type 3 devices are better than type 2 devices for the storage-integrated memory expander."},{"id":"node_004","lx":100,"ly":1120,"children":["node_012"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1120,"searchText":"결과 (results) 상용 cxl가 없어 **fpga 프로토타입**으로 투영: 자작 **risc-v o3 dual-core**(128kb l1, 4mb l2) host + **openexpress 32gb nvme**(16nm fpga, backend=z-nand emul) storage, pcie backplane. 비교: dram-only / pcie expander / cxl. workload = **apex-map**(locality param $\\alpha$, 64b, 512m inst).\n\n| 케이스 | 결과 |\n|---|---|\n| best ($\\alpha=0.001$, 고locality) | cxl가 pcie 대비 **129.5×**↓, dram에 근접 |\n| average | cxl가 pcie 대비 **3×**↓ (dram 대비 9.3× 나쁨) |\n| worst ($\\alpha=1$, 완전 랜덤) | cxl가 dram 대비 84.1× 나쁨, pcie 대비 **1.6×**↑ |\n\n핵심 메시지: **non-cacheable을 극복한 cxl은 고locality에서 dram급**, 랜덤에서만 flash 지연이 노출. 대부분 워크로드는 고locality라 대용량 이득이 크다. while most memory requests in this test are hit from the cpu caches, pcie cannot take any advantage of the host cpu caches, thereby exhibiting 129.5x longer latency than cxl."},{"id":"node_005","lx":100,"ly":1420,"children":["node_015","node_016"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1420,"searchText":"결론 (conclusion) cxl을 **memory expander 관점**에서 보고, block semantic을 byte semantic으로 옮기는 여러 구성을 탐색한 논문. 결론: cxl은 pcie storage를 값싼 대용량 working memory로 편입시키는 실용적 길이며, **type-3 + storage-aware 힌트(determinism/bufferability)**가 그 핵심.\n\n**의의**: **'cxl-ssd' 개념의 정립** — [[skybyte]](type-3 memory-semantic cxl-ssd)가 이 비전을 실제 co-design으로 구현한다. determinism/bufferability(storage 물성을 host에 힌트로 노출)는 skybyte의 coordinated context switch(긴 flash 지연을 host에 알림)와 같은 transparent co-design 사고.\n\n**한계**: (1) 성능 투영이 apex-map 합성 + fpga emul(실 워크로드·실 cxl 실리콘 부재). (2) determinism/bufferability는 **제안**일 뿐 표준·구현 미완. (3) ★ mld는 storage를 **분할**해 각 host에 줄 뿐, **여러 host가 같은 영역을 coherent하게 공유**하는 것은 다루지 않음(pooling≠sharing). (4) mld 분할이 backend/internal dram 병렬성을 깎아 per-mld 대역폭 저하. this paper examines cxl from a memory expander viewpoint and explores different configurations to transfer pcie's block semantic to memory-compatible byte semantic."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"non-cacheable bar의 벽 → cxl로 cacheable pcie로도 ssd 내부 dram을 bar로 노출하면 byte `load`/`store`는 된다. 그러나 x86(intel/amd)은 pcie 주소공간으로의 메모리 요청을 캐시하면 **시스템 실패·storage 단절** 위험이 있어 **non-cacheable로 강제**한다(bar는 host가 storage에 '무엇을 요청/제어'하는지 알리는 인터페이스라, 캐시되면 storage가 요청 도착을 못 잡음).\n\n결과: bar 접근 성능이 크게 무너지고 storage-integrated expander가 **메모리 계층에서 배제**된다. **cxl은 cache-coherent interconnect라 pcie 주소공간으로의 load/store를 cacheable로** 만들어 이 벽을 정확히 없앤다 — 이게 'cxl이 storage에 필요한' 단 하나의 핵심 이유. if cpu can cache/buffer the memory requests targeting the pcie address space, there is no way for the pcie storage to catch their arrivals. this can introduce an unexpected situation such as a system failure or storage disconnection."},{"id":"node_007","lx":620,"ly":400,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"byte-addressability는 오랜 꿈 + 내부 dram = write-back cache pcie storage에 byte-addressability를 주는 건 오랜 목표다 — 2b-ssd·nvme 표준이 ssd **내부 dram/buffer를 bar로** 노출해 host가 local memory처럼 load/store하게 한다. 그리고 그 내부 dram을 backend block media(**z-nand/flash/optane**)의 **write-back inclusive cache**로 써서 긴 backend 지연을 숨긴다.\n\n즉 하드웨어적 재료(byte 인터페이스 + 내부 dram cache)는 이미 있다. 빠진 것은 그 접근을 **cpu cache에 태우는 것**인데, 그게 바로 non-cacheable 벽(왼쪽 노드) 때문에 막혀 있었다. it is a long-standing dream for pcie storage to have byte-addressability and be a part of working memory devices ... they can use the internal memory/buffer as a write-back inclusive cache of the backend."},{"id":"node_008","lx":620,"ly":700,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":700,"searchText":"세 protocol과 세 device type cxl의 세 sub-protocol과 그 조합으로 정의되는 세 type:\n\n| protocol | 역할 |\n|---|---|\n| **cxl.io** | 기본(모든 device 필수). pcie 기능·flexbus, 비coherent i/o |\n| **cxl.cache** | device가 host 메모리를 coherent 캐시 |\n| **cxl.mem** | host가 device hdm을 load/store |\n\n| type | 프로토콜 | 성격 |\n|---|---|---|\n| **1** | .io+.cache | 로컬 캐시만(내부 dram 없음), tpu류 |\n| **2** | .io+.cache+.mem | hdm+연산, host↔device 양방향 coherent |\n| **3** | .io+.mem | hdm만(연산 없음), 순수 memory expander |\n\ntype-3는 cxl.cache를 안 쓰지만 cxl.mem의 read/write로 hdm 확장이 된다. cxl.io는 device-side에서 관리해 다양한 i/o 수요 수용. cxl provides three different sub-protocols, i) cxl.io, ii) cxl.mem, and iii) cxl.cache, which can also define three different types of cxl devices (type 1 ~ type 3)."},{"id":"node_009","lx":620,"ly":850,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":850,"searchText":"★ 왜 type-3인가 — 3가지 이유 (vs type-2) 저자가 storage-integrated memory expander로 **type-3를 옹호**하는 3가지 근거:\n\n**(1) 확장성**: type-2는 연산집약 가속용이라 **cxl rp당 device 1개**만 연결 가능 → type-3만큼 scalable하지 않다.\n\n**(2) cxl.cache 오버헤드**: type-2의 풀피처(cxl.cache+.mem)는 매 `load`/`store`가 pcie storage 연산복합체의 **cache 상태를 확인**해야 해서, i/o마다 여러 cxl transaction 발생 → 성능 저하.\n\n**(3) host 허가 비용**: type-2의 cxl.cache는 host local memory와 hdm을 **모두 coherent 관리**하므로, storage-side 연산이 자기 메모리를 접근할 때마다 **host 허가**가 필요 → device i/o 성능이 오히려 악화.\n\n→ 이게 skybyte를 비롯한 cxl-ssd가 **type-3인 1차 논거**. (우리가 대화로 정리한 'type-2는 왜 안 되나'의 원출처.) only one device (per cxl rp) can be connected to a host system, which makes type 2 devices not scalable as type 3 devices can do."},{"id":"node_010","lx":620,"ly":1000,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1000,"searchText":"storage-side 최소 수정으로 type-3 지원 pcie storage는 이미 **pcie endpoint + nvme controller**로 요청을 파싱하고 데이터를 옮긴다. 따라서 type-3 지원의 hw 변경은 작다: (a) 기존 **pcie endpoint 로직을 재활용**해 cxl transaction packet formatting·cxl.io 제어, (b) 기존 **nvme controller의 command parsing·page copy 기능을 단순화**해 cxl.mem read/write 인터페이스 구현, (c) **firmware가 내부 dram + backend block media 관리**. nvme 스펙은 controller를 firmware/hardware 어느 쪽으로도 구현 가능케 하므로, cxl.mem read/write는 hardware로 자동화하고 내부 dram 관리는 firmware로 두는 게 낫다. a hardware change at the storage side can be simple, which in turn makes most storage devices easily support type 3 with a minor modification."},{"id":"node_011","lx":620,"ly":1180,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1180,"searchText":"시스템 통합 흐름 (bar/hdm 매핑 → flit) 부팅 시 host가 rp에 연결된 cxl device를 enumerate하고, cxl **bar + hdm** 크기를 받아 **cacheable 시스템 메모리**에 매핑한다. hdm이 device가 원래 관리하던 주소와 다른 곳에 매핑되므로, **cxl rp가 cxl controller에 remap offset을 동기화**한다(target storage의 cxl capability/config 영역에 기록).\n\napp이 hdm(=시스템 메모리)에 load/store → **cxl rp가 cxl flit 생성** → cxl.mem으로 storage controller에 전달 → endpoint+cxl controller가 flit 파싱해 command·target address 추출 → **firmware와 협력해 데이터 서비스**. when an application loads or stores data on the system memory (mapped to hdm), cxl rp generates a message, called cxl flit, and sends it to the target's cxl storage controller via cxl.mem."},{"id":"node_013","lx":620,"ly":1330,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1330,"searchText":"disaggregation 3토폴로지 + mld(16) + multi-host storage를 컴퓨팅에서 분해하는 세 구성(fig.3): **(a) switch**(dsp→각 storage, usp→host rp; switch 레인 64~128 → 16-lane storage 4~8개), **(b) multi-switch**(top switch가 host rp+하위 브리지, leaf switch가 다수 storage; network 최대 **4pb**), **(c) virtual hierarchy(vh)**(fm crossbar가 host↔storage 경로 기억 → 완전 분해).\n\n**multi-host + storage 가상화**: 각 storage를 **mld(multiple logical device, 최대 16)**로 논리 분할, 각 mld가 자기 hdm을 서로 다른 host에 매핑(물리 storage처럼). **단점**: 대역폭 공유·트래픽 혼잡, backend/internal dram 분할로 **병렬성·per-mld 대역폭 저하**. (우리가 정리한 mld 논의의 원출처.) cxl allows a system to logically split each endpoint into multiple type 3 devices (up to 16), called multiple logical device (mld). thus, we can make each mld define its own hdm, which can be mapped to a different place of any host of system memory."},{"id":"node_014","lx":620,"ly":1480,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1480,"searchText":"storage 힌트: determinism / bufferability (+ gpf) type-3는 memory pooling용이라 storage 특유의 **(i) latency fluctuation(gc 등 internal task)**, **(ii) data persistence** 문제가 남는다. 저자는 cxl.mem **예약 필드**에 두 힌트를 달자고 제안:\n\n- **determinism**: `dt`(internal task 개입 없이 즉시 서비스) / `nd`(fire-and-forget → storage가 gc 등 스케줄 가능).\n- **bufferability**: `bf`(ssd 내부 dram에 캐시/버퍼 허용) / `nb`(persistence first-class → block media 기록).\n\n조합(bf+dt/bf+nd/nb+dt/nb+nd) + **gpf(global persistent flush)**로 db 로깅·트랜잭션·lock 시나리오 최적화(예: 로그는 bf+nd로 버퍼링, commit 시 gpf+nb+dt). loads는 대개 dt, prefetch엔 bf. **storage 물성을 host가 힌트로 조종**하는 co-design 사고 — skybyte의 방향과 통한다. we suggest two simple features, i) determinism and ii) bufferability, which can be annotated to cxl messages and hint the host semantic to the underlying cxl controllers."},{"id":"node_012","lx":620,"ly":1660,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1660,"searchText":"apex-map 투영: pcie 대비 129.5×(best)/3×(avg), dram 근접 apex-map(locality $\\alpha$)으로 dram/pcie/cxl 비교(fig.2):\n\n- **best($\\alpha=0.001$)**: 대부분 cpu cache hit → pcie는 cache를 못 써 cxl 대비 **129.5×** 긴 지연. cxl ≈ dram.\n- **average**: cxl가 pcie 대비 **3×** 빠름. dram 대비 9.3× 나쁘지만 block storage 감안 시 합리적.\n- **worst($\\alpha=1$, 완전 랜덤)**: cxl가 z-nand 지연을 못 숨겨 dram 대비 84.1× 나쁨. 그래도 pcie 대비 **1.6×**(pcie는 bar 요청을 동기 처리).\n\n결론: non-cacheable을 극복한 cxl은 **고locality에서 dram급**, 랜덤에서만 flash 지연 노출. §7의 힌트로 이 긴 지연을 완화할 수 있다고 주장. cxl is also better than pcie by 3x for the average case. note that, even though the performance of cxl is 9.3x worse than that of dram, we believe it is still in a reasonable range by considering the fact that cxl leverages the block storage."},{"id":"node_015","lx":620,"ly":1840,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1840,"searchText":"계보/발표축: 'cxl-ssd' 개념의 정립 → skybyte 구현 이 논문은 **'cxl-ssd'라는 개념과 그 설계 좌표(type-3, storage 힌트)를 처음 세운** 글이고, [[skybyte]]는 그 비전을 **실제 co-design으로 구현**한 관계다.\n\n- **개념(여기)**: type-3가 옳다 + determinism/bufferability로 storage 물성을 host에 힌트.\n- **구현(skybyte)**: type-3 cxl-ssd + coordinated context switch(긴 flash 지연을 host에 알림) + cacheline write log.\n\ndeterminism/bufferability와 skybyte의 context switch는 **같은 transparent co-design 사고**(storage 내부 상태를 host에 노출해 함께 최적화). 내 **'ssd 이중역할 × transparent co-design'** 발표축의 **개념적 원점** — 그리고 우리가 대화로 정리한 type 1/2/3·mld·pooling 논의가 전부 여기서 출발한다([[cxl overview]]에 정리). "},{"id":"node_016","lx":1150,"ly":1840,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1840,"searchText":"내 연구방향: mld 분할(pooling) → 공유(sharing) coherence 이 논문의 multi-host는 **mld로 storage를 분할**해 각 조각을 다른 host에 주는 것 — 즉 **pooling(분할)**이지 **sharing(공유)**이 아니다. 여러 host가 **같은 hdm 영역을 동시에** coherent하게 쓰는 시나리오는 다루지 않는다(각 mld는 한 host 전용).\n\n내 방향(multi-node coherence)은 정확히 그 다음 — mld 분할을 넘어 **공유된 cxl-ssd 영역**에서 host 간 캐시 일관성을 어떻게 보장할지(**directory + back-invalidate, hdm-db, cxl 3.0**). determinism/bufferability 같은 storage 힌트도 **공유 상황에서 누가 어떤 힌트를 세우나**로 재정의된다. 즉 이 논문의 개념 프레임(type-3·힌트·mld)을 multi-host coherent 공유로 확장하는 게 gap. → [[cxl multi-node coherence]], [[cxl overview]] "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":"핵심 벽"},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_003","target":"node_008","type":"line","label":""},{"source":"node_003","target":"node_009","type":"line","label":"핵심"},{"source":"node_003","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_004","target":"node_012","type":"line","label":""},{"source":"node_005","target":"node_015","type":"line","label":"발표"},{"source":"node_005","target":"node_016","type":"line","label":"내 연구"},{"source":"node_015","target":"node_016","type":"line","label":"연결"},{"source":"node_013","target":"node_016","type":"line","label":"MLD→공유"}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

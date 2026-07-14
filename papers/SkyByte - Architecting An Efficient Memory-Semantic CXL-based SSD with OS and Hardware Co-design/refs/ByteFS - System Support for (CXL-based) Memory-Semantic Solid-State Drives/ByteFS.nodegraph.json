@@ -1,0 +1,632 @@
+{
+  "version": "1.0.0",
+  "title": "ByteFS: System Support for (CXL-based) Memory-Semantic Solid-State Drives",
+  "created": "2026-07-14T00:00:00.000Z",
+  "modified": "2026-07-14T00:00:00.000Z",
+  "source": {
+    "pdf": "ByteFS - System Support for (CXL-based) Memory-Semantic Solid-State Drives.pdf",
+    "authors": "Shaobo Li, Yirui Eric Zhou, Hao Ren, Jian Huang (UIUC)",
+    "venue": "ASPLOS 2025",
+    "doi": "arXiv:2501.04993",
+    "pages": 17
+  },
+  "nodeTemplates": {
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#5C9E6E",
+      "icon": "cpu",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#9B59B6",
+      "icon": "bar-chart-2",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#E74C3C",
+      "icon": "alert-circle",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#1ABC9C",
+      "icon": "lightbulb",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Reference",
+      "color": "#95A5A6",
+      "icon": "book-open",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#BDC3C7",
+      "icon": "edit-3",
+      "shape": "rounded"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "ByteFS가 푸는 문제는 **memory-semantic SSD(M-SSD)** — PCIe/CXL의 byte-addressability로 **byte와 block 둘 다** 접근되는 저가 NAND flash SSD($\\approx \\$0.22\\text{/GB}$) — 를 위한 **파일시스템이 없다**는 것이다. 기존 block FS(Ext4/F2FS)는 128B inode 갱신에도 4KB write를 강제하고(I/O amplification), NVM FS(PMFS/NOVA)는 순수 byte라 flash의 page 특성·locality를 못 살린다.\n\n**Killer application 1 — 자료구조별 byte/block 적응 선택**: FS 핵심 구조를 정량 분석(§3)해 metadata write는 **byte**·read는 **block**으로 transparent하게 선택 $\\rightarrow$ I/O amplification 대폭 감소.\n\n**Killer application 2 — SSD DRAM을 log-structured write buffer로**: 내부 DRAM을 cacheline 단위 로그로 재조직해 작은 write를 **coalescing**(3-layer skip list, 89ns lookup) $\\rightarrow$ flash traffic 감소.\n\n**Killer application 3 — firmware redo log로 crash consistency**: write log를 redo log로 재사용해 **double-write 없이** atomic·crash-consistent, 빠른 recovery(4.2s).\n\n결과: SOTA(Ext4/F2FS/NOVA/PMFS) 대비 성능 **최대 2.7×**, SSD write traffic **최대 5.1×** 감소. host FS(SW)+SSD firmware(HW) **co-design**.",
+      "original": {
+        "text": "ByteFS outperforms them by up to 2.7x, while preserving the essential properties of a file system. ByteFS also reduces the write traffic to SSDs by up to 5.1x by alleviating unnecessary writes caused by both metadata and data updates in file systems.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_006"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "M-SSD는 byte와 block을 **동시에** 노출하지만, 수십 년간 FS는 둘 중 하나만 가정해 설계됐다 $\\rightarrow$ **어느 것도 M-SSD에 자연스럽게 맞지 않는다**.\n\n**(1) block FS(Ext4/F2FS)**: 고정 block(512B/4KB) 관리라 byte 접근 불가. 작은 metadata 갱신에도 page 전체 write $\\rightarrow$ **write amplification 최대 6.2×**(Table 2). 128B inode 하나 갱신 = 4KB write.\n\n**(2) NVM FS(PMFS/NOVA/SplitFS)**: byte load/store·DAX로 SW overhead 최소화에 집중했지만, M-SSD는 **높은 PCIe latency + 불가피한 flash 접근**이 병목이라 그대로 얹으면 부적합. flash의 spatial locality도 못 살림.\n\n그래서 ByteFS는 먼저 **FS 자료구조별 접근 granularity 선호**를 정량 분석(§3, Table 3)해 설계 지침을 얻는다 — metadata write는 byte, locality 있는 read는 block.",
+      "original": {
+        "text": "without changing the inherent design, it is hard to fully exploit the performance benefits of M-SSDs with existing file systems, as they all lack the support for both byte and block interface, and the consideration of the unique performance characteristics.",
+        "location": "§2.2, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "children": [
+        "node_007",
+        "node_008",
+        "node_009"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "ByteFS는 host FS(SW)+SSD firmware(HW) **co-design**으로 dual byte/block을 transparent하게 지원한다(§4). 4대 도전: granularity mismatch, 유연한 인터페이스 선택, 최소 overhead consistency, essential FS property 보존.\n\n**§4.2 Byte access/persistence**: BAR로 SSD 전체를 host memory에 매핑, MMIO 접근. **cache-coherency 불필요**(host가 최신본 소유). CXL.mem로도 실현 가능. persistence = clflush/clwb + write-verify read.\n\n**§4.3 Log-structured SSD DRAM**: 내부 DRAM을 cacheline 단위 log로 재조직, small write append+coalescing. **3-layer skip list** 인덱스. write log를 **redo log로 재사용**(double-logging 회피). SSD엔 page cache 안 둠(coordinated caching).\n\n**§4.4 Dual r/w**: byte(64B log entry)·block(4KB NVMe, log와 merge/invalidate).\n\n**§4.5 Metadata**: inode 64B 분할, dentry/bitmap/data-pointer byte-write + host caching.\n\n**§4.6 Data I/O**: CoW+XOR로 **modified ratio $R$** 계산해 byte/block 선택.\n\n**§4.7 Crash consistency**: TxID/TxTable/TxLog + battery-backed DRAM, custom NVMe COMMIT/RECOVER.",
+      "original": {
+        "text": "We present ByteFS, an efficient file system for M-SSDs with a co-design of software (host file system) and hardware (SSD firmware).",
+        "location": "§4.1, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 600
+      },
+      "children": [
+        "node_010",
+        "node_011",
+        "node_012",
+        "node_013",
+        "node_014",
+        "node_015"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "28-core Intel E5 + 128GB. **OpenSSD FPGA 실물 프로토타입**(1TB, 16채널, 1GB DRAM, ARM firmware) + **FEMU 기반 에뮬레이터**(32GB, flash 40/60µs, cacheline 4.8/0.6µs). Baseline: Ext4·F2FS(block), NOVA·PMFS(byte NVM FS를 M-SSD에 매핑). 모두 256MB SSD DRAM 캐싱.\n\n| 항목 | 결과 |\n|---|---|\n| micro 평균 (vs Ext4 / F2FS) | **2.5×** / 1.48× |\n| file create (vs Ext4 / F2FS) | **6.0×** / 2.4× |\n| OLTP (vs Ext4) | **4.1×** |\n| YCSB throughput (vs F2FS) | 2.4× |\n| metadata traffic (vs Ext4) | 최대 **25.3×**↓ |\n| flash traffic (vs Ext4/F2FS/NOVA/PMFS) | 2.9×/2.1×/3.2×/2.2×↓ |\n| write traffic | 최대 **5.1×**↓ |\n| crash recovery | 평균 **4.2s** |\n\nNOVA/PMFS는 flash용 설계가 아니라 spatial locality를 못 살려 오히려 Ext4/F2FS보다 나쁜 경우 많음.",
+      "original": {
+        "text": "ByteFS outperforms Ext4 by 2.5x and F2FS by 1.48x on average across all micro-benchmarks. On file creation especially, ByteFS achieves 6.0x and 2.4x performance improvement compared to Ext4 and F2FS.",
+        "location": "§5.2, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 900
+      },
+      "children": [
+        "node_017",
+        "node_018",
+        "node_019"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "ByteFS는 memory-semantic SSD를 위한 **커널 레벨 파일시스템**으로, dual byte/block interface를 지원하며 FS 핵심 구조를 재설계해 **스택 전체의 I/O amplification**을 줄이고 crash consistency를 보존한다. OpenSSD FPGA 실물 + 에뮬레이터로 실증.\n\n**의의 — memory-semantic SSD 스택의 FS 층**: FlatFlash[10](SW 기반 M-SSD, unified address translation)·Jung의 CXL-SSD 에뮬레이터[26]는 device를 어떻게 **system software가 관리**할지 거의 안 다뤘는데, ByteFS가 그 공백을 채운다. 같은 UIUC Jian Huang 그룹의 [[SkyByte]](device 층)와 **다른 층(FS/OS 층)**을 이룬다.\n\n**한계 / 열린 질문**: (1) \"host가 최신본 소유 $\\rightarrow$ cache-coherency 불필요\"는 명시적 **single-host 전제**. (2) write log·TxTable이 단일 host FS 소속. (3) coordinated caching이 한 host page cache 최신 가정. (4) CXL.mem realize 언급하나 실제 CXL coherence 위 FS 재설계는 future work. $\\rightarrow$ multi-host가 빈칸.",
+      "original": {
+        "text": "We present ByteFS, a new kernel-level file system for memory-semantic SSDs that support dual byte/block interface. ByteFS significantly reduces the I/O amplification across the entire storage stack with various optimizations in the core components of file systems.",
+        "location": "§7, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1200
+      },
+      "children": [
+        "node_020",
+        "node_021"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "claim",
+      "title": "M-SSD가 byte+block 이중 접근을 주는 하드웨어 근거 (BAR/MMIO, battery-backed DRAM, CXL)",
+      "content": "ByteFS의 전제: **memory-semantic SSD(M-SSD)**는 byte와 block 둘 다 접근된다. 근거는 PCIe **BAR(Base Address Register)** — BIOS/OS가 device buffer를 host memory space에 매핑해 host가 **load/store(MMIO)**로 접근. 내부 DRAM이 byte-granular 요청의 data buffer, **battery-backed DRAM**이 power loss 시 persistence 보장. **normal NVMe block interface도 유지** $\\rightarrow$ dual.\n\nNVM(Optane, processor memory bus)과 달리 M-SSD는 **PCIe/CXL attached + 성숙한 NAND**라 TB급·저가($\\$0.22\\text{/GB}$). Samsung의 CXL-based SSD(CMM-H)[40]가 실물 사례. **Table 1**: M-SSD cacheline R/W **4.8/0.6µs**, 3.5/2.5GB/s, 영속.",
+      "original": {
+        "text": "By registering the device buffer address with the base address register (BAR), the BIOS and OS discover and map the device buffer into the host memory space ... The M-SSD still keeps the normal block interface with conventional NVMe I/O commands, allowing the host to operate on dual byte and block interfaces.",
+        "location": "§2.1, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": -60
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "claim",
+      "title": "block interface의 I/O amplification (Table 2): write 최대 6.2×",
+      "content": "block FS(Ext4/F2FS)를 Filebench+OLTP로 프로파일한 **정량 근거**.\n\n| Ext4 | Varmail | Fileserver | Webproxy | Webserver | OLTP |\n|---|---|---|---|---|---|\n| Write | 3.85× | **6.21×** | 1.43× | 1.66× | 2.17× |\n| Read | 1.21× | 1.15× | 1.25× | 1.71× | 1.52× |\n\n주범은 metadata: **inode**가 write의 35%(Ext4)/24.4%(F2FS), 128B inode 갱신에 4KB write. Ext4 **journaling**이 전체 traffic의 30.7%(ordered mode double-write). bitmap은 몇 byte만 flip. $\\rightarrow$ 작은 metadata write에 byte interface가 결정적.",
+      "original": {
+        "text": "Persisting one 128B inode update requires a 4KB write to the disk, further amplifying the write traffic. Therefore, the byte interface can greatly reduce the inode write traffic.",
+        "location": "§3.2, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "method",
+      "title": "§3 특성 분석 (Table 3): 자료구조별 byte/block 선호",
+      "content": "ByteFS 설계의 토대 — FS 핵심 구조마다 read/write의 preferred interface를 정리.\n\n| 자료구조 | Read | Write |\n|---|---|---|\n| Superblock | Block | Block |\n| Block/Inode List(bitmap) | Block | **Byte** |\n| Inode | Block | **Byte** |\n| Data Pointer | Block | **Byte** |\n| Directory Entry | Block | **Byte** |\n| Page Cache | Block | Block/Byte |\n| Data Block | Block/Byte | Block/Byte |\n| Data Journal | Block | Block/Byte |\n\n**규칙**: 대부분 metadata update는 작다 $\\rightarrow$ **write는 byte**. 그 read는 block으로 로드해 **locality 활용 + host 캐싱**. file data/journal은 크기·locality에 따라 runtime에 유연 선택.",
+      "original": {
+        "text": "some data structures like inode prefer byte-granular data access, and some structures like page cache prefer dual byte/block-granular data access depending on the data access pattern at runtime (see Table 3).",
+        "location": "§1, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "reference",
+      "title": "왜 NVM FS(PMFS/NOVA)를 그대로 못 쓰나 + M-SSD 선행",
+      "content": "ByteFS의 좌표를 정하는 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **FlatFlash** (ASPLOS'19) [10] | SW 기반 M-SSD 원형 — unified virtual memory space + unified address translation. device의 **system software 관리**는 미해결로 남김 ($\\rightarrow$ ByteFS가 채움) |\n| **Jung, CXL-SSD** (HotStorage'22) [26] | CXL-SSD FPGA 에뮬레이터, memory expansion |\n| **NOVA** (FAST'16) [48] | per-inode log-structured NVM FS — baseline. flash 미최적화라 M-SSD에서 열세 |\n| **PMFS** (EuroSys'14) [19] | DAX 기반 PM FS — baseline |\n| **SplitFS** (SOSP'19) [27] | user/kernel 분리 PM FS |\n\n핵심: NVM FS는 **near-DRAM NVM** 전제라 M-SSD의 높은 PCIe/flash latency에서 부적합.",
+      "original": {
+        "text": "naively applying NVM file systems to M-SSDs is inadequate. The performance characteristics of M-SSDs differ from NVMs, as the high PCIe latency and inevitable flash accesses are still the bottleneck.",
+        "location": "§2.2, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 520
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "method",
+      "title": "§4.2 Byte-granular access/persistence — coherency 불필요, CXL.mem",
+      "content": "BAR로 **SSD 전체를 memory region으로** 매핑 $\\rightarrow$ MMIO(byte)로 임의 SSD 주소 접근.\n\n**핵심 주장**: ByteFS는 **SSD DRAM↔host CPU cache coherency를 요구하지 않는다** — host가 항상 최신본을 갖고 firmware가 host-written 데이터를 수정하지 않기 때문. byte interface는 **CXL.mem**로도 realize 가능(cacheable load/store). (★ 이 문장이 single-host 전제를 드러냄.)\n\n**Persistence**: battery-backed DRAM. 단 host CPU의 **Write Combining(WC)**이 small write를 버퍼링 $\\rightarrow$ dirty cacheline/pending PCIe 남김. 2단계: (1) MMIO write 후 **clflush/clwb**; (2) **write-verify read**(zero-byte read)로 posted PCIe 완료 강제(root complex serialize).",
+      "original": {
+        "text": "ByteFS do not require cache-coherency between the SSD DRAM and the host CPU cache because the host always contains the latest data and the M-SSD firmware does not modify the data written by the host. The byte interface can also be realized with CXL.mem protocol.",
+        "location": "§4.2, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 680
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "§4.3 SSD DRAM = log-structured memory + coalescing + coordinated caching",
+      "content": "Flash는 page-granular만 가능한데 host는 byte 접근 $\\rightarrow$ mismatch. ByteFS는 SSD DRAM cache를 **cacheline 단위 log-structured region**으로 재조직 $\\rightarrow$ 모든 byte write를 log에 append(critical path의 flash 접근 회피), background cleaning이 **coalescing** 후 flash flush(log utilization **85%** 초과 시).\n\n**Coordinated caching**: SSD 안엔 **page cache를 두지 않음** $\\rightarrow$ loaded page는 host DRAM에만 캐싱 $\\rightarrow$ 귀한 SSD DRAM을 **persistent write**에 몰아줌.\n\n**Firmware-level logging = redo log**: 모든 metadata update를 log에 append하므로 write log를 **redo log로 직접 재사용** $\\rightarrow$ **double logging 회피**, atomic·crash-consistent.\n\n(인덱스 구조는 자식 노드 「3-layer skip list」 참고.)",
+      "original": {
+        "text": "Instead of caching flash pages in both SSD DRAM and host page cache, ByteFS caches flash pages only in the host page cache for best utilizing the precious SSD DRAM for persistent writes.",
+        "location": "§2, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 840
+      },
+      "children": [
+        "node_016"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "method",
+      "title": "§4.3 write log 구조: circular buffer + 3-layer skip list (89ns lookup)",
+      "content": "**Global log region**: circular buffer(**256MB** 기본, head/tail), 데이터를 **64B-aligned entry**로 log tail에 append.\n\n**3-layer skip list 인덱스**:\n- **L1 partition table**: SSD 주소공간을 **16MB partition**으로 분할. LPA/partition-size로 partition index 즉시 계산.\n- **L2 skip list**: partition별, flash page의 데이터가 log에 있으면 LPA로 인덱싱된 entry.\n- **L3 chunk list**: block offset 순 정렬. chunk entry = block offset(**1B**) + log offset(**4B**) + data length(**4B**).\n\n$$O(\\log n)\\ \\text{lookup / insert / delete}$$\n\nhash table 대비 **임의 chunk size + range lookup** 우수(FS의 다양한 크기 접근에 적합). 256MB log fully-utilized 시 평균 lookup **89ns**(flash µs급이라 무시 가능), 인덱스는 SSD DRAM **21MB** 차지.",
+      "original": {
+        "text": "The skip list offers O(log(n)) lookup, insertion, and deletion time ... Our experiments with an embedded ARM processor show that the average lookup latency of a fully utilized 256MB log is 89ns.",
+        "location": "§4.3, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 840
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "§4.4 Dual byte/block read/write",
+      "content": "**Byte read**: host가 MMIO load $\\rightarrow$ firmware가 write log lookup. 있으면 직접 반환, 없으면 flash에서 page fetch 후 **요청 cacheline만** 반환.\n**Byte write**: 64B entry 정렬. 단일 64B는 직접 write + clflush/clwb. 다중 cacheline atomic은 **FS transaction**으로 wrap, concurrent write는 chunk entry로 최신 버전 추적.\n\n**Block read**: flash $\\rightarrow$ transfer buffer 로드 후 skip list 조회. log에 dirty cacheline 있으면 loaded page와 **merge** 후 반환.\n**Block write**: 4KB를 FTL write buffer로, flash write 후 firmware가 skip list 스캔해 해당 page의 log entry **invalidate**(host page cache write-back이 최신이라 즉시 무효화 가능).\n\n**Log cleaning(Algorithm 1)**: modified page 순회 $\\rightarrow$ 최신 committed 버전 merge $\\rightarrow$ buffer 차면 flash write. **double buffering**으로 background 수행(정상 IO 비차단).",
+      "original": {
+        "text": "As the data reaches the SSD, the SSD firmware first appends the data into the write log. It then inserts the chunk entry for the data to the log index. If the same data is written by two transactions through the byte interface concurrently, we update the chunk entry to track the newest version.",
+        "location": "§4.4, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1000
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "§4.5 Metadata 관리: inode 64B 분할 + host-side caching",
+      "content": "host-side metadata caching, miss 시 block interface로 로드.\n\n- **Inode**: 128B entry를 4KB page로 그룹화. 각 inode를 **upper/lower 64B로 분할** — lower = 자주 갱신(file size, mtime, access rights). inode update를 **64B byte write**로 atomic 처리. host radix tree 캐싱.\n- **Directory entry**: inode number(4B)+type(2B)+name len(2B)+filename(최대 256B). lookup은 dir block 전체 block-load, hashed name radix tree 캐싱. create/rename은 단일 entry(64-320B) byte write.\n- **Block/Inode bitmap**: **64B group** 단위 갱신, boot 시 block-load. per-CPU free list + extent 할당.\n- **Data pointer**: Ext4-like **extent**. leaf node(16B)=offset(8B)+LBA(4B)+len(4B). in-place update, byte-granular persistent write.",
+      "original": {
+        "text": "we split each inode into the upper and lower regions (64B each). The lower region contains frequently updated information, such as file size, modification times, and access rights ... each inode update takes as low as 64B via the byte interface, which can be done atomically.",
+        "location": "§4.5, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1160
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "method",
+      "title": "§4.6 Data I/O: CoW + XOR로 modified ratio 계산해 byte/block 선택",
+      "content": "- **Direct I/O**(O_DIRECT): 접근 $\\leq$ 512B면 byte, 아니면 block(512B 미만은 cacheline write가 4KB persist보다 빠름).\n- **Buffered I/O**: host page cache 흡수. write-back 시 **CoW**로 원본을 duplicate에 복사(XArray 추적, per-inode `address_space`). 원본$\\oplus$duplicate **XOR**로 수정 64B chunk 식별 후 **modified ratio**:\n\n$$R = \\frac{N_{Modified}}{N_{Total}}$$\n\n$R < \\frac{1}{8}$(4KB 중 512B)이면 **byte**, 아니면 **block**. **avx2** 256-bit XOR(평균 936 cycle, 14GB/s). duplicate page는 page cache의 평균 **16%**.\n- **mmap I/O**: M-SSD를 memory expander로, cached DRAM page를 user space 매핑.\n- **Data journaling**: metadata logging(Ext4 ordered mode 수준) + data journaling. 큰 write는 **JBD2 + ByteFS transaction** 결합.",
+      "original": {
+        "text": "ByteFS calculates the modified ratio by R = N_Modified / N_total where N_Modified is the number of dirty cachelines and N_total is the total number of cachelines in the page. If R is less than 1/8 (512B of a 4KB page), we use the byte interface to persist small accesses and vice versa.",
+        "location": "§4.6, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1320
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "method",
+      "title": "§4.7 Crash consistency & recovery (redo log · TxLog · RECOVER)",
+      "content": "**Crash consistency**: transaction으로 metadata/data의 atomicity·write ordering 강제. firmware-level log + battery-backed DRAM이 commit 가속. 4B **TxID**(monotonic), host **TxTable**로 ongoing tx 추적 + transaction-level lock. commit = custom NVMe **COMMIT(TxID)** $\\rightarrow$ firmware가 2MB **TxLog**에 4B commit entry append.\n\n**Data recovery**: battery-backed SSD DRAM이 내용 보존. custom NVMe **RECOVER()** $\\rightarrow$ firmware가 log region 스캔, 각 entry 끝 4B TxID가 TxLog에 **없으면 uncommitted로 폐기**, 있으면 TxID 순서로 flash flush. 이후 data journal 복구.\n\n**구현(§4.9)**: ByteFS 3.9K LoC(Ext4 기반, Linux 5.1), SSD firmware 1.5K LoC(HW 변경 없음). OpenSSD FPGA(1TB, 16채널, 1GB DRAM) + FEMU 에뮬레이터 2.1K LoC.",
+      "original": {
+        "text": "we can avoid writing to flash memory twice (double logging) by directly using the write log as a redo log for metadata updates. This enables ByteFS to support atomic and crash-consistent updates.",
+        "location": "§4.3, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "result",
+      "title": "성능: create 6.0×, OLTP 4.1×, YCSB 2.4× (Fig.6-7)",
+      "content": "byte/block 적응 선택 + firmware log의 종합 효과.\n\n- **Micro**: Ext4 대비 **2.5×**, F2FS 대비 1.48× 평균. **file create 6.0×**(vs Ext4). mkdir/rmdir 1.2-1.5×(vs F2FS). delete는 즉시 sync 없어 비슷.\n- **Macro**: Varmail **1.9×**(vs F2FS, 작은 sync I/O 많음), Fileserver 2.2×(vs Ext4), Webproxy 1.3×(vs Ext4, dir op 많음), read-heavy Webserver/Webproxy는 block+host caching으로 비슷, **OLTP 4.1×**(vs Ext4, 200 thread write-intensive).\n- **YCSB(RocksDB)**: F2FS 대비 2.4× throughput. YCSB-A/F(50/50): read avg/tail **2.3×/2.0×**, write 1.3×/1.6×(vs F2FS). YCSB-C(100% read)는 비슷.\n\nNOVA/PMFS는 pure byte라 flash spatial locality를 못 살려 열세.",
+      "original": {
+        "text": "Finally, ByteFS outperforms Ext4 by 4.1x on write-intensive workload OLTP. It creates over 200 threads creating, appending, and overwriting files with frequent fdatasync.",
+        "location": "§5.2, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1660
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "result",
+      "title": "I/O traffic: metadata 25.3×↓, flash 2.9×↓, write 5.1×↓ (Fig.8-11)",
+      "content": "ByteFS friendliness to SSD의 핵심 증거.\n\n- **Metadata traffic**(vs block FS): Ext4 대비 **최대 25.3×**, F2FS 17.2×↓(평균 11.4×/6.1×). byte interface로 double-write 제거.\n- **vs NOVA/PMFS**: byte인데도 ByteFS가 더 적음 — NOVA는 out-of-place, PMFS는 data journaling으로 double-write, ByteFS는 **in-place update + firmware redo log**. NOVA 대비 metadata read ~43%↓.\n- **Flash traffic**: 평균 Ext4/F2FS/NOVA/PMFS 대비 **2.9×/2.1×/3.2×/2.2×↓** — small write coalescing. abstract의 **write traffic 5.1×↓**가 여기서 옴.\n- 가끔 log-cleaning의 read-modify-write로 flash traffic이 늘 수 있으나 **background라 성능 영향 없음**.\n\n**Breakdown(Fig.12)**: Varmail/Fileserver는 dual interface+log 둘 다, Webproxy는 dual interface, OLTP는 둘 다에서 이득.",
+      "original": {
+        "text": "ByteFS reduces the metadata traffic by up to 25.3x and 17.2x (11.4x and 6.1x on average) with the byte interface ... On average, ByteFS reduces the flash traffic by 2.9x, 2.1x, 3.2x, and 2.2x compared to Ext4, F2FS, NOVA, and PMFS.",
+        "location": "§5.3, p.11-12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1820
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "result",
+      "title": "Recovery 4.2s + CXL sensitivity (cacheline 175ns)",
+      "content": "- **Crash recovery(§5.5)**: 평균 **4.2s** — SSD DRAM 내용 로드 0.9s + global log/TxLog 스캔·committed entry flash flush 2.7s.\n- **Flash latency sensitivity(§5.6)**: 25/200 ~ 3/80µs 전 구간에서 F2FS/NOVA 우위. **flash write latency가 높을수록 ByteFS 이득 큼**(background flush로 은닉).\n- **CXL-based SSD 에뮬레이션**: cacheline latency **175ns**(3/80* 설정). CXL이 byte latency를 줄여 ByteFS·NOVA 모두 개선되지만 NOVA는 여전히 느림(높은 flash latency 미최적화).\n- **Log size(§5.6)**: 64M$\\rightarrow$512M로 키우면 coalescing↑ $\\rightarrow$ 성능 scale(flush는 background). OLTP처럼 이미 write locality 좋으면 이득 marginal.",
+      "original": {
+        "text": "We also emulate a CXL-based SSD with less cacheline access latency (175ns) and high-end flash media (marked as 3/80*). The benefit of ByteFS is larger with higher flash write latency, as ByteFS hides the flash write latency by flushing the in-device write log in the background.",
+        "location": "§5.6, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1980
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "memo",
+      "title": "스택 관계: ByteFS(FS 층) ↔ SkyByte(device 층) ↔ FlatFlash(원형)",
+      "content": "ByteFS·[[SkyByte]]는 같은 UIUC Jian Huang 그룹이고, memory-semantic SSD 스택의 **다른 층**을 맡는다.\n\n| | ByteFS (ASPLOS'25) | SkyByte (HPCA'25) |\n|---|---|---|\n| 층 | **filesystem / OS support** | **device (HW/OS co-design)** |\n| 무엇 | M-SSD 위 byte+block FS | memory-semantic SSD device 자체 |\n| SSD DRAM | log-structured write buffer + coalescing | promotion cache(PLB 계승) |\n| 인터페이스 | dual byte+block | pure memory-semantic |\n| 일관성 | firmware redo log·TxLog | PLB/promotion consistency |\n\n둘 다 [[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]](ASPLOS'19, ByteFS ref [10])를 M-SSD 원형으로 인용. ★ SkyByte가 device를 만들면, ByteFS가 그 device 위에 파일시스템을 얹는다 — **같은 이중역할(byte↔block)을 device층·FS층 두 곳에서 transparent co-design**.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 2140
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "gap",
+      "title": "내 연구방향: ByteFS의 \"coherency 불필요\"는 single-host — multi-host FS coherence가 빈칸",
+      "content": "ByteFS는 §4.2에서 **\"host가 항상 최신본 소유 $\\rightarrow$ cache-coherency 불필요\"**를 명시한다. 이건 곧 **single-host 불변식**이다. crash consistency(TxTable/TxLog), coordinated caching(SSD엔 page cache 없음, host DRAM만 최신), redo log 전부 이 위에 서 있다.\n\n내 방향(**multi-node CXL coherence**)은 이 불변식이 깨지는 곳을 잡는다. 여러 host가 같은 CXL-SSD 파일시스템을 공유하면:\n- **최신본 소유권**: host A의 page cache와 host B의 page cache 중 누가 최신? $\\rightarrow$ CXL 3.0 **back-invalidate/HDM-DB** 필요.\n- **cross-host transaction/commit**: TxTable·TxLog가 단일 host 소속 — 공유 namespace의 commit ordering·flush 권한 미정의.\n- **byte interface를 CXL.mem로** realize한다고 했으니(§4.2), 실제 coherent CXL 위에서 write log·metadata caching을 재설계하는 게 자연스러운 다음 걸음.\n\n즉 ByteFS의 '기법'(dual interface·log·coalescing)은 재사용하되 '문제 정의'를 **single$\\rightarrow$multi host**로 다시 세우는 게 gap. $\\rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]], [[CXL Overview]]",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 2140
+      },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_001",
+      "target": "node_006",
+      "type": "line",
+      "label": "근거"
+    },
+    {
+      "id": "edge_006",
+      "source": "node_002",
+      "target": "node_007",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_007",
+      "source": "node_002",
+      "target": "node_008",
+      "type": "line",
+      "label": "핵심 분석"
+    },
+    {
+      "id": "edge_008",
+      "source": "node_002",
+      "target": "node_009",
+      "type": "line",
+      "label": "참고"
+    },
+    {
+      "id": "edge_009",
+      "source": "node_003",
+      "target": "node_010",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_010",
+      "source": "node_003",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_011",
+      "target": "node_016",
+      "type": "line",
+      "label": "인덱스"
+    },
+    {
+      "id": "edge_012",
+      "source": "node_003",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_013",
+      "source": "node_003",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_014",
+      "source": "node_003",
+      "target": "node_014",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_015",
+      "source": "node_003",
+      "target": "node_015",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_016",
+      "source": "node_004",
+      "target": "node_017",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_017",
+      "source": "node_004",
+      "target": "node_018",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_018",
+      "source": "node_004",
+      "target": "node_019",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_019",
+      "source": "node_005",
+      "target": "node_020",
+      "type": "line",
+      "label": "스택 관계"
+    },
+    {
+      "id": "edge_020",
+      "source": "node_005",
+      "target": "node_021",
+      "type": "line",
+      "label": "내 연구"
+    },
+    {
+      "id": "edge_021",
+      "source": "node_020",
+      "target": "node_021",
+      "type": "line",
+      "label": "연결"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

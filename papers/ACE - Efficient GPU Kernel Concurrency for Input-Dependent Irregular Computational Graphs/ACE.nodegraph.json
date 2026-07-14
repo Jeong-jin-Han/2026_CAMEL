@@ -1,0 +1,411 @@
+{
+  "version": "1.0.0",
+  "title": "ACE: Efficient GPU Kernel Concurrency for Input-Dependent Irregular Computational Graphs",
+  "created": "2026-07-13T00:00:00.000Z",
+  "modified": "2026-07-13T00:00:00.000Z",
+  "source": {
+    "pdf": "ACE.pdf",
+    "authors": "Sankeerth Durvasula, Adrian Zhao, Raymond Kiguru, Yushi Guan, Zhonghan Chen, Nandita Vijaykumar",
+    "venue": "PACT '24",
+    "doi": "10.1145/3656019.3676897",
+    "pages": 13
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic",  "color": "#4B8BBE", "icon": "file-text",    "shape": "sharp"   },
+    "method":     { "label": "Method",      "color": "#5C9E6E", "icon": "cpu",           "shape": "sharp"   },
+    "result":     { "label": "Result",      "color": "#9B59B6", "icon": "bar-chart-2",   "shape": "sharp"   },
+    "claim":      { "label": "Claim",       "color": "#E74C3C", "icon": "alert-circle",  "shape": "sharp"   },
+    "question":   { "label": "Question",    "color": "#E5A835", "icon": "help-circle",   "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea",  "color": "#1ABC9C", "icon": "lightbulb",     "shape": "rounded" },
+    "reference":  { "label": "Reference",   "color": "#95A5A6", "icon": "book-open",     "shape": "rounded" },
+    "memo":       { "label": "Memo",        "color": "#BDC3C7", "icon": "edit-3",        "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "**작은 커널(small kernel)들로 인한 GPU underutilization**\n\n딥 강화학습(deep RL) 물리 시뮬레이션 엔진과 dynamic DNN(입력에 따라 실행 경로가 달라지는 신경망)은 thread/thread block 수가 매우 적은 **작은 커널**들로 구성된다. 각 CTA가 서로 다른 시나리오를 시뮬레이션하기 때문에 큰 커널로 합치면 thread divergence가 커져서, 애플리케이션은 대신 짧고 많은 커널로 프로그래밍된다. 그 결과 achieved occupancy(활성 warp 비율)가 평균 34~39%에 불과해 GPU 컴퓨트 자원의 상당 부분(최대 65%)이 놀게 된다.\n\n이 커널들 중 다수는 서로 **독립적**이어서 concurrent(동시) 실행이 가능하지만, 문제는 그 의존관계(computational graph)가 **입력마다 runtime에만 결정**된다는 점이다.",
+      "original": {
+        "text": "GPUs are widely used to accelerate many important classes of workloads today. However, in this work, we observe that several important emerging classes of workloads, including simulation engines for deep reinforcement learning and dynamic neural networks, are unable to fully utilize the massive parallelism that GPUs offer.",
+        "location": "Abstract, p.258"
+      },
+      "toggleItems": [],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "**기존 방법들은 input-dependent + irregular 의존성을 다루지 못한다**\n\nCUDA Graph / AMD ATMI 같은 DAG(directed acyclic graph) 프레임워크는 커널 간 의존성을 미리 정의된 그래프로 표현해 동시 실행을 가능케 하지만, 입력마다 **전체 그래프를 새로 구축**해야 하므로 준비 오버헤드(preparation overhead)가 크다. Multi-stream 방식은 그래프를 여러 스트림으로 수동 분할해야 하는데, 불규칙(irregular)한 의존성은 stream 경계에서 빈번한 동기화(synchronization)를 요구해 오버헤드가 크다. Persistent threads(PT)는 동질적 커널에서만 효과적이고, CUDA Dynamic Parallelism(CDP)/Device Enqueue(DE)는 부모-자식 1:1 의존성만 지원해 다중 부모 의존성을 표현하지 못한다.",
+      "original": {
+        "text": "The challenge with this approach is that the DAG needs to be constructed in full (with dependencies, kernel launches, and barriers determined) before the application is executed on the GPU, for each input.",
+        "location": "§1, p.259"
+      },
+      "toggleItems": [],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "**Scheduling window 안에서만 의존성을 검사하는 out-of-order kernel scheduling**\n\nACE의 핵심 아이디어는 CPU의 out-of-order 명령어 스케줄링(instruction scheduling)에서 착안해, 전체 computational graph 대신 이미 launch된 커널들 중 **작은 고정 크기의 창(scheduling window)** 안에서만 의존성 검사를 수행하는 것이다. 프로그래머/라이브러리 작성자가 각 커널의 read/write 메모리 세그먼트를 annotation으로 제공하면(ACE_wrapper), 런타임은 새 커널이 window에 들어올 때 겹침(overlap) 검사를 통해 upstream(선행) 커널을 식별하고, 그 upstream 리스트가 비면 즉시 ready로 표시해 동시 launch한다.\n\n두 가지 구현: **ACE-SW**(순수 소프트웨어, CUDA stream 다중 스레드 런타임)와 **ACE-HW**(scheduling window 관리를 GPU 하드웨어 SRAM으로 옮겨 CPU-GPU 동기화를 줄이는 하드웨어-소프트웨어 협력 방식).",
+      "original": {
+        "text": "With ACE, the key idea is to instead perform the dependence checking and scheduling within a small window of kernels at runtime similar to out-of-order instruction scheduling.",
+        "location": "§3.2, p.262"
+      },
+      "toggleItems": [],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "**실제 하드웨어 + GPU 시뮬레이터에서 최대 2.19배 속도 향상**\n\nIntel 11700K + RTX3060(ACE-SW 실측)과 Accel-Sim 기반 RTX3070/RTX4090급 시뮬레이션(ACE-HW)으로 평가했다. Deep RL 물리 시뮬레이션(Brax), dynamic DNN(InstaNAS 등), static DNN(NASNet 등) 세 부류 모두에서 achieved occupancy와 실행 속도가 유의미하게 향상되었고, ACE-HW가 ACE-SW보다 일관되게 더 큰 이득을 보였다(커널 완료마다의 CPU 동기화가 없기 때문). CUDA Graph는 동적 워크로드에서는 그래프 구성 오버헤드로 오히려 slowdown, 정적 워크로드에서는 ACE와 대등했다.",
+      "original": {
+        "text": "We demonstrate speedups of up to 2.19× (1.56× on average) by improving GPU utilization with concurrent kernel execution.",
+        "location": "Abstract, p.258"
+      },
+      "toggleItems": [],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "**Host 개입을 \"줄이지만\" 완전히 없애지는 않는다**\n\nACE는 low-overhead runtime scheduling과 dependency check를 결합한 최초의 automatic concurrent execution 프레임워크라고 저자들은 주장한다. ACE-HW는 커널 완료-이벤트 단위의 CPU-GPU 동기화를 제거해 host 개입을 크게 줄이지만, CPU 소프트웨어 런타임(입력 FIFO 큐 관리, `scheduled_list` 대비 의존성 체크)은 여전히 필요하다. 또한 ACE가 다루는 의존성은 커널 간 **메모리 read/write 겹침**이라는 정적으로 판별 가능한 관계이며, 커널이 만들어낸 **값 자체**에 따라 분기하는 제어(예: LLM decode 루프의 EOS 판정)는 다루지 않는다 — 저자들도 dynamic batching/kernel fusion 등은 \"orthogonal to our approach\"라고 명시한다.",
+      "original": {
+        "text": "We introduce ACE, the first framework that enables automatic concurrent kernel execution with low overhead runtime scheduling and dependency checks.",
+        "location": "§8, p.269"
+      },
+      "toggleItems": [],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "method",
+      "title": "커널 크기 분포 (Case Study 1: Deep RL)",
+      "content": "Brax 시뮬레이션 엔진(ant, human, ct, w2d, grasp 환경)에서 각 훈련 스텝은 물리 시뮬레이션 커널 수백만 번 launch를 필요로 한다(Fig.2). ant 환경 기준 커널의 약 **40%가 CTA 9개 이하**의 매우 작은 크기(Fig.4). 이는 각 thread가 서로 다른 시나리오를 담당해 divergence가 커서 큰 커널로 합칠 수 없는 \"fundamental problem\"이라고 저자들은 명시한다.\n\n딥 RL 훈련 시간의 **30~70%**가 이 시뮬레이션(데이터 수집) 단계다.",
+      "original": {
+        "text": "This is a fundamental problem, because each thread cannot be efficiently mapped into large kernels, since each thread simulates a different scenario, which leads to high thread divergence.",
+        "location": "§2.1, p.260"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": -150 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "result",
+      "title": "Achieved Occupancy 수치",
+      "content": "| Case | 평균 achieved occupancy | 최대 underutilization |\n|---|---|---|\n| Deep RL 시뮬레이션 (Brax) | 34% | 최대 65%의 GPU 코어가 idle |\n| Dynamic DNN (InstaNAS-A, RTX3060) | 39% | 신형 GPU(RTX4090, SM 수 多)일수록 더 심함 |\n\nAchieved occupancy = 클럭 사이클 평균 활성 warp 수 / 최대 지원 가능 활성 warp 수. 작은 커널은 CTA가 소수 SM에만 매핑되어 나머지 SM이 유휴 상태가 된다.",
+      "original": {
+        "text": "we find that as much as 65% of the GPU cores are underutilized on average.",
+        "location": "§2.1, p.260"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 0 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "method",
+      "title": "Dynamic DNN도 동일 문제 (Case Study 2)",
+      "content": "InstaNAS 같은 **dynamic inference model**은 입력 이미지에 따라 실행 경로(operation 조합)가 달라진다(Fig.5b, MBConv 블록). NAS(neural architecture search)로 FLOPs를 줄이도록 최적화된 conv 레이어는 필터가 작아 커널 자체가 작아진다. 이 서브셋 커널들 중 병렬화 가능한 것들이 존재하지만, 실행 경로가 입력마다 다르므로 어떤 커널들이 독립인지도 입력마다 다시 판단해야 한다.",
+      "original": {
+        "text": "With these dynamic inference models, the path of execution through the network is determined by the input. Thus, the computational graph is not known ahead of time.",
+        "location": "§2.2, p.260",
+        "title": "Original"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 150 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "method",
+      "title": "기존 스케줄링 기법 비교 (Table 1)",
+      "content": "| Method | Applicability (input-dep. 지원) | Sync+Launch Overhead | Preparation Overhead |\n|---|---|---|---|\n| Multi-Stream | ✓ | ✗ 큼 | ✓ 작음 |\n| DAG Frameworks (CUDA Graph/ATMI) | ✓ | ✓ 작음 | ✗ 큼 |\n| Persistent Threads (PT) | ✗ (동질적 커널만) | ✓ | ✓ |\n| CDP / Device Enqueue | ✗ (1:1 부모-자식만) | ✗ | ✓ |\n| **ACE-SW** | ✓ | ✗ (CPU sync 여전) | ✓ 작음 |\n| **ACE-HW** | ✓ | ✓ 작음 | ✓ 작음 |\n\nACE-HW만 세 축 모두에서 우수 — 이것이 저자들이 두 구현을 모두 제시한 이유.",
+      "original": {
+        "text": "We summarize different approaches for parallel kernel scheduling in Table 1, in terms of applicability (whether input-dependent irregular workloads can be effectively mapped), synchronization/launch overheads and preparation overhead.",
+        "location": "§3.1, p.262"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 150 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "claim",
+      "title": "DAG 구성 / 동기화 오버헤드가 지배적",
+      "content": "Brax 시뮬레이션에서 CUDA Graph 방식의 **DAG 구성 시간이 전체 실행시간의 평균 47%**(Fig.8)에 달한다 — 즉 매 입력마다 그래프를 새로 만드는 비용이 실제 계산 시간에 맞먹는다. Multi-stream + 이벤트 동기화 방식은 커널 launch + CPU 실행 + sync 오버헤드가 **커널당 5~20µs**(Fig.9) 수준으로, 커널 자체가 작을수록(수 µs) 상대적으로 더 치명적이다.",
+      "original": {
+        "text": "We observe that the time taken to construct the graph is exceedingly high (average of 47% of overall execution time).",
+        "location": "§2.3, p.261"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "reference",
+      "title": "Baseline: CUDA Graph / ATMI / CDP",
+      "content": "**CUDA Graph[1] / AMD ATMI[2]**: 커널 의존성을 DAG로 명시, ATMI는 64바이트 barrier packet을 command queue에 삽입해 의존 커널의 launch를 블록. 그러나 barrier packet은 GPU 내 실행 중인 커널의 현재 상태 정보를 담지 않아 추가적인 runtime reordering을 못한다.\n\n**CDP[3] / Device Enqueue[7]**: 부모 커널이 자식 커널을 device에서 직접 launch — 부모-자식 1:1 의존성만 표현 가능해, 다중 선행 커널에 의존하는 워크로드(RL sim, dynamic DNN)에는 부적합.",
+      "original": {
+        "text": "CUDA dynamic parallelism [3] (CDP) or AMD's device enqueue [7] (DE) enables parent kernels to launch child kernels, only allowing data dependencies between one parent and its children.",
+        "location": "§1, p.259"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 450 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "Scheduling Window 컨셉",
+      "content": "고정 개수(N)의 최근 launch된 커널만 window에 유지하며, 각 커널의 상태를 **pending / ready / executing** 세 가지로 추적한다. 새 커널이 window에 들어올 때 write segment를 window 내 다른 커널들의 read/write segment와 비교해 겹치면 upstream(선행) 리스트에 추가한다. 어떤 executing 커널이 완료되면 그 커널을 upstream으로 갖던 모든 커널의 리스트를 갱신하고, 리스트가 비면 ready로 표시해 즉시 concurrent launch한다.\n\n[[IMG:fig11_scheduling_window.png:580x226]]",
+      "original": {
+        "text": "A fixed number of kernels in the original stream (scheduling window) are evaluated for dependencies. When a kernel completes execution, we evaluate which kernels within the scheduling window are now ready for execution.",
+        "location": "§3.2, p.262"
+      },
+      "toggleItems": [],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 450 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "ACE-SW: 소프트웨어 전용 구현",
+      "content": "애플리케이션 레벨 런타임으로, 두 모듈로 구성:\n\n1. **Window 모듈**: 입력 FIFO 큐 관리 + Algorithm 1(read/write segment 겹침으로 의존성 판정) + 상태(pending/ready/executing) 갱신.\n2. **Scheduler 모듈**: 설정 가능한 수의 스레드가 각각 독립 CUDA stream을 갖고, ready 커널을 poll해 launch한 뒤 `StreamSync`로 완료를 기다림(Algorithm 2, Fig.17).\n\n프로그래머는 `ACE_wrapper`의 `get_addresses` 함수로 read/write segment만 정의하면 되고, CUDA 런타임이 kernel launch 직전에 이를 호출해 가상주소를 populate한다.\n\n**한계**: `StreamSync`가 스케줄러 스레드를 블로킹 — 즉 CPU가 커널 완료마다 여전히 개입.",
+      "original": {
+        "text": "ACE-SW is implemented as a user-level runtime that is called by the application. ... ACE-SW however still incurs synchronization overheads from communication between the CPU and kernel launch.",
+        "location": "§1, §4.2, p.259/264"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "method",
+      "title": "ACE-HW: 하드웨어 협력 구현",
+      "content": "Scheduling window 관리 자체를 GPU 하드웨어(SRAM, N개 슬롯, 슬롯당 8-bit kernel id + (N-1)개 upstream id + 2-bit 상태)로 옮긴다. CPU 소프트웨어 런타임은 여전히 입력 FIFO 큐 + `scheduled_list`(GPU 상태의 stale할 수 있는 CPU측 캐시)를 유지하며 의존성을 미리 계산해 GPU로 보내지만, **GPU 내 upstream load module**이 이 stale 정보를 스스로 정제(완료된 커널 제거, 최신 커널 반영)하고 ready 커널을 dispatch — 커널 완료 이벤트마다의 CPU 동기화가 사라진다.\n\n[[IMG:fig18_acehw_overview.png:580x258]]\n\n[[IMG:fig19_acehw_scheduling_module.png:580x272]]",
+      "original": {
+        "text": "Our approach is specifically designed to mitigate this scheduling cost by avoiding direct communication from the GPU to the CPU, thereby reducing potential overheads.",
+        "location": "§3.1, p.262"
+      },
+      "toggleItems": [],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 780 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "memo",
+      "title": "오버헤드 분석 (§4.4)",
+      "content": "- **하드웨어 면적**: window=32 기준 SRAM **1KB**(GPU 전체)\n- **메타데이터**: read/write segment당 48비트(start address + size)\n- **메커니즘 지연**: 슬롯 갱신 N-1 사이클, 커널 삽입 N 사이클 — window=64 기준 약 50~100ns, baseline kernel launch 오버헤드(수 µs)에 비해 무시할 만함\n- **CPU 측 의존성 체크**: $T/P$ 이내에 처리되어야 유효 — 논문 추정치 $T/P \\\\approx 4\\\\mu s$\n\n| Window size | RW-segments | Dependency check time |\n|---|---|---|\n| 16 | 6 | 410ns |\n| 16 | 10 | 700ns |\n| 32 | 6 | 510ns |\n| 32 | 10 | 1640ns |",
+      "original": {
+        "text": "Thus, ACE-HW adds negligible runtime to the application compared to the baseline kernel launch overhead (in the order of a few microseconds).",
+        "location": "§4.4, p.265"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 930 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "result",
+      "title": "Deep RL 시뮬레이션 결과 (§6.1)",
+      "content": "- ACE-SW(실측 RTX3060): 최대 **1.87배**\n- ACE-HW(시뮬레이션): 최대 **2.19배**\n- CUDA Graph는 그래프 구성/전송 오버헤드로 오히려 **slowdown**\n- Window 크기를 16에서 32로 늘리면 Brax는 평균 4.5% 추가 향상(Fig.27) — RL 시뮬레이션은 inter-kernel parallelism이 풍부해 더 큰 window에서 이득을 계속 봄\n\n[[IMG:fig27_speedup_summary.png:580x233]]",
+      "original": {
+        "text": "Second, ACE-HW is able to further improve performance compared to the software-only approach by alleviating the synchronization and kernel launch overheads.",
+        "location": "§6.1, p.266"
+      },
+      "toggleItems": [],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 780 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "result",
+      "title": "Dynamic / Static DNN 결과 (§6.2–6.3)",
+      "content": "**Dynamic DNN**: ACE-HW 최대 1.39배, 평균 1.3배 / ACE-SW 평균 1.05배. I-NAS는 ACE-SW에서 오히려 느려짐 — 병렬화 시 커널 launch 오버헤드가 baseline(단일 스트림 순차 실행)에서는 숨겨져 있었기 때문.\n\n**Static DNN**: ACE-HW 평균 1.31배, ACE-SW 평균 1.16배. CUDA Graph와 거의 동일(정적 그래프라 DAG 구성 비용이 문제되지 않음) — 단 하나의 워크로드에서만 CUDA Graph가 근소 우위(전체 커널 범위 의존성 정보 활용 가능).\n\n**민감도(§6.4)**: window를 16에서 32로 확대해도 DNN에는 영향이 거의 없음 — DNN은 애초에 노출 가능한 inter-kernel parallelism 자체가 부족.",
+      "original": {
+        "text": "I-NAS suffers a slowdown with ACE-SW because this workload has significant kernel launch overheads when parallelized but are hidden in the baseline case where the kernels are simply launched serially into a single stream without synchronization.",
+        "location": "§6.2, p.267"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 930 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "result",
+      "title": "에너지 소비 (§6.5)",
+      "content": "실행시간 단축의 부산물로 에너지 절감도 관찰:\n\n- ACE-HW: 평균 **21.6%** 절감\n- ACE-SW: 평균 **6.1%** 절감\n\n(모든 평가 워크로드 - Brax, Dynamic DNN, Static CNN - 평균)",
+      "original": {
+        "text": "We observe energy savings of 21.6% on average on all workloads with ACE-HW, and 6.1% with ACE-SW as a result of the reduction in execution time.",
+        "location": "§6.5, p.267"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1080 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "gap",
+      "title": "Host 개입이 완전히 사라지지 않음",
+      "content": "ACE-HW조차 CPU 소프트웨어 런타임(입력 FIFO 큐 관리, `scheduled_list` 유지·의존성 사전계산)을 완전히 없애지 않는다. 사라지는 것은 **\"커널 완료마다의 동기화\"**뿐이고, **\"커널을 큐에 넣고 의존성을 체크하는 주체로서의 host\"**는 계속 CPU에 남아있다.\n\n또한 ACE의 의존성 판정은 메모리 read/write **주소 범위 겹침**이라는 정적으로 결정 가능한(deterministic) 함수다 — 커널이 만들어낸 **값** 자체(예: 스칼라 결과)에 따라 분기하는 제어는 이 프레임으로 표현되지 않는다.",
+      "original": {
+        "text": "the software runtime performs dependency checks with the scheduled_list to determine the upstream kernels. Note that since the scheduled_list may be stale, this upstream list needs to be further updated before insertion into the scheduling window",
+        "location": "§4.3, p.265"
+      },
+      "toggleItems": [],
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1080 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "memo",
+      "title": "H3 연결 메모",
+      "content": "내 H3(GPU 옆 FPGA 제어 평면이 host의 kernel 스케줄링/launch 결정을 대신)와의 관계:\n\n- **align되는 부분**: \"host-GPU 통신을 줄여 input-dependent 상황에서 GPU 활용도를 높인다\"는 큰 방향. ACE-HW가 scheduling window를 GPU 하드웨어로 옮긴 설계는 FPGA 제어 평면의 축소판처럼 보임.\n- **align되지 않는 부분**: ACE의 의존성은 정적으로 판별 가능한 메모리 겹침 관계. 내가 표적으로 삼는 LLM **decode 루프의 EOS 판정/continuous batching**은 커널 실행 **결과값**에 따른 조건부 제어로, ACE의 프레임(read/write segment overlap)으로는 표현 불가능.\n- 이 논문은 \"host 개입을 줄이는\" 사례이지 \"없애는\" 사례가 아님 — 정직하게 구분해서 인용할 것.",
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1230 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "reference",
+      "title": "Related Work: \"orthogonal\"한 기법들",
+      "content": "저자들은 §7에서 dynamic batching, kernel fusion 등을 **\"orthogonal to our approach\"**라고 명시적으로 구분한다 — 즉 ACE는 이런 기법들과 결합 가능하지만 그 자체를 대체하지는 않는다는 뜻. 내 연구가 다루려는 LLM decode 제어(continuous batching 편입/이탈, KV 배치)가 바로 이 \"orthogonal\" 영역에 위치한다는 점이 흥미로운 근거가 될 수 있음.\n\n또한 CPU task-based 스케줄링(task superscalar 등)과 비교하며 저자들은 \"CPU의 병목은 의존성 체크 지연, GPU의 병목은 launch/완료 신호 지연\"이라고 명확히 구분한다 — 이 구분이 H3에서 FPGA가 정확히 어떤 지연을 줄여야 하는지 설계할 때 참고할 만하다.",
+      "original": {
+        "text": "The primary bottleneck in these applications is the long latency for dependency checks. ... The primary bottleneck with GPUs is the latency for launch/signal completion of kernels rather than dependence checking.",
+        "location": "§7 / §1, p.269 / p.259"
+      },
+      "toggleItems": [],
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1380 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+
+    { "id": "edge_005", "source": "node_001", "target": "node_006", "type": "line", "label": "" },
+    { "id": "edge_006", "source": "node_001", "target": "node_007", "type": "line", "label": "" },
+    { "id": "edge_007", "source": "node_001", "target": "node_008", "type": "line", "label": "" },
+
+    { "id": "edge_008", "source": "node_002", "target": "node_009", "type": "line", "label": "" },
+    { "id": "edge_009", "source": "node_002", "target": "node_010", "type": "line", "label": "" },
+    { "id": "edge_010", "source": "node_002", "target": "node_011", "type": "line", "label": "" },
+
+    { "id": "edge_011", "source": "node_003", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_003", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_003", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_003", "target": "node_015", "type": "line", "label": "" },
+
+    { "id": "edge_015", "source": "node_004", "target": "node_016", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_004", "target": "node_017", "type": "line", "label": "" },
+    { "id": "edge_017", "source": "node_004", "target": "node_018", "type": "line", "label": "" },
+
+    { "id": "edge_018", "source": "node_005", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_019", "source": "node_005", "target": "node_020", "type": "line", "label": "" },
+    { "id": "edge_020", "source": "node_005", "target": "node_021", "type": "line", "label": "" },
+
+    { "id": "edge_021", "source": "node_013", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_022", "source": "node_014", "target": "node_019", "type": "line", "label": "" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "canvasImages": []
+}

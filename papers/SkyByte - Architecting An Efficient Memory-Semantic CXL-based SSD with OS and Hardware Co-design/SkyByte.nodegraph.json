@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "SkyByte: Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design",
   "created": "2026-07-13T00:00:00.000Z",
-  "modified": "2026-07-13T03:00:00.000Z",
+  "modified": "2026-07-14T01:00:00.000Z",
   "source": {
     "pdf": "SkyByte - Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design.pdf",
     "authors": "Haoyang Zhang*, Yuqi Xue*, Yirui Eric Zhou, Shaobo Li, Jian Huang (UIUC; *co-primary)",
@@ -389,6 +389,44 @@
         "x": 520,
         "y": 1500
       },
+      "children": [
+        "node_033"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_033",
+      "template": "claim",
+      "title": "왜 'DRAM 복사'를 필수로 안 하나 — 필수 paging vs 선택적 promotion",
+      "content": "'SSD가 느리니 접근할 때 DRAM에 복사'가 자연스러워 보이는데, SkyByte는 이 복사를 **없앤 게 아니라 '필수'에서 '조건부'로** 바꾼다.\n\n**'복사(=paging/swap)'의 정체**: 접근하려면 (1) **반드시** page를 DRAM에 복사(필수), (2) 복사 끝까지 접근이 **stall**(동기·critical path), (3) 64B만 필요해도 **4KB 통째**(page 단위).\n\n**왜 필수 복사를 버리나 — 복사는 '재사용될 때만' 이득이다**\n- **I/O amplification**: 대부분 워크로드가 page의 **40% 미만 cacheline**만 접근 → 4KB 옮겨 절반 이상 버림.\n- **thrashing**: working set > DRAM이면 재사용 전에 축출 → 복사·축출 무한반복.\n- **복사 비용**: page promote $\\approx 12.1\\,\\mu\\text{s}$(FlatFlash 실측) vs cacheline 직접 read $\\approx 4.8\\,\\mu\\text{s}$. **한 번 쓸 데이터면 직접 접근이 압도적 이득**.\n\n→ 그래서 cold/sparse는 **SSD를 직접 load/store**(딱 필요한 64B만), hot page에만 복사를 건다.\n\n**promotion(hot/cold migration) vs '필수 복사' — 동작은 같고 정책이 다르다**\n\n| 축 | paging 필수 복사 | promotion 선택적 복사 |\n|---|---|---|\n| 필수? | **모든 접근**이 복사 거침 | **hot page만** |\n| critical path | 복사까지 **stall**(동기) | **background**, 접근은 지금 SSD 직접 |\n| 대상 | 접근된 **모든 page**(cold 포함) | **threshold 넘은 hot만** |\n| 판단 기준 | 없음('접근했으니 복사') | **재사용 빈도**(access count) 보고 |\n| 동시 접근 | 없음(fault로 thread 블록) | 있음 → **PLB**로 일관성 |\n\n**핵심**: 둘 다 'page→DRAM 복사'지만, paging은 복사가 접근을 **가로막고(gate)**, promotion은 **지금은 SSD 직접 접근 + 복사는 미래 재사용에 대한 백그라운드 베팅**이다. 복사 중에도 직접 접근이 들어오므로(page fault 경계가 없음) **PLB**로 '이 cacheline이 이미 DRAM에 올라갔나'를 추적해 일관성을 지킨다 — paging은 thread가 블록돼 그 걱정 자체가 없다.",
+      "original": {
+        "text": "most workloads access less than 40% of cachelines in more than 75% of pages. Caching the entire page in the SSD DRAM significantly wastes precious SSD DRAM space.",
+        "location": "§II, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 1500
+      },
+      "children": [
+        "node_034"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_034",
+      "template": "claim",
+      "title": "Thrashing은 왜 생기나 — 직접 접근이 정말 없애나?",
+      "content": "**Thrashing(스래싱)의 원리**: fast memory(DRAM) 용량보다 **working set(활발히 쓰는 page 집합)**이 커서, page를 하나 올리면 **곧 다시 쓸 page를 쫓아내는** 악순환.\n\n사이클:\n1. page A 접근(DRAM에 없음) → fault → A 복사, B 축출(LRU)\n2. 곧 B 접근 → fault → B 다시 복사, A(또는 C) 축출\n3. WS가 안 들어가니 **올린 page가 재사용 전에 축출** → fault율 거의 100%\n4. 시스템이 copy-in/out 트래픽에 잡아먹혀 CPU 대기, throughput **절벽처럼 붕괴**\n\n세 조건이 겹칠 때 터진다: (a) **footprint > DRAM**, (b) **낮은 locality**(접근이 재사용보다 빨리 흩어짐), (c) **강제·page 단위 복사**. HPCC-GUPS류 대용량 random access가 전형.\n\n**swap 안 쓰면 해결되나 — 반은 맞다**\n- **용량 부족(footprint > DRAM) 자체는 그대로**. 데이터는 여전히 느린 SSD에 있음.\n- 그러나 thrashing은 '용량 부족'이 아니라 **'강제 복사·축출 churn'이라는 메커니즘**이다. **직접 byte 접근**(복사 없이 64B read)은 올릴 page도 쫓아낼 page도 없어 **악순환 자체가 성립 안 함** → thrashing 소멸.\n- 성격이 바뀐다: **catastrophic churn → bounded per-access SSD latency**. cold/sparse는 한 cacheline 지연만 내면 됨(4KB 복사+되돌려지는 축출보다 압도적 이득).\n\n**단, promotion을 naive하게 하면 재발**: hot/cold 안 가리고 접근 page를 다 promote = paging과 동일(DRAM 오염+축출 storm). FlatFlash도 *'naive ... promotes every accessed page ... can pollute the DRAM as many of these pages have low reuse'*라 명시. 그래서 **adaptive threshold**(재사용 빈도로 promote 결정)가 곧 **anti-thrashing 장치**.\n\n**한 줄**: thrashing = 강제·전체page·용량초과 복사의 병리. 강제 복사를 없애면 병리의 *메커니즘*이 사라져 소멸(용량 부족은 남되 SSD 접근 지연으로 완만히 드러남). promotion은 threshold로 재발을 막는다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1580,
+        "y": 1500
+      },
       "children": [],
       "links": []
     },
@@ -640,6 +678,27 @@
         "x": 1050,
         "y": 600
       },
+      "children": [
+        "node_032"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_032",
+      "template": "claim",
+      "title": "SSD 전체가 HDM 하나로 매핑 — block/mem 경계 없음 (vs FlatFlash)",
+      "content": "자주 나오는 오해 정리: SkyByte는 '일부는 원래 SSD(block storage), 일부는 memory'로 쪼개는 게 아니라 **연결된 SSD 전체를 통째로 memory로** 노출한다.\n\n**호스트 관점 — 경계 없음**: 부팅 시 SSD 전 용량이 한 덩어리 flat byte-addressable 영역으로 host physical address space에 매핑된다(Fig.1a). `load`/`store`로만 접근하고, 별도 block 인터페이스로 남겨두는 부분이 없다. 즉 '전부 memory'.\n\n**내부엔 투명한 3-tier 캐시 계층**(파티션 아님):\n\n| 계층 | 역할 | 크기 |\n|---|---|---|\n| host DRAM | hot page promotion 대상 | 작음·빠름 |\n| SSD 내부 DRAM | write log + data cache | 수 GB |\n| SSD flash | **HDM 전체 용량의 backing store** | 큼·느림 |\n\nflash가 전체 메모리 용량이고 SSD DRAM은 그 위 **캐시**일 뿐 — 호스트가 따로 주소로 보지 않는다. hot page를 host DRAM으로 올리는 것도 **같은 주소의 물리 위치만 옮기는 최적화**(PTE remap)지 storage/memory 구분이 아니다.\n\n**vs FlatFlash [7]**: '일부 block + 일부 byte'로 **두 인터페이스를 동시에** 노출하는 unified memory-storage 모델은 FlatFlash 쪽이다. SkyByte는 그게 아니라 **순수 memory-semantic**(전체를 memory로만) — flash의 page/GC 물성은 write log·context switch로 host와 협력해 숨긴다.\n\n**persistence 뉘앙스**: 기본은 persistence 미가정. 필요 시 `clwb`+page pin을 주는데, pin된 page도 여전히 memory(promote만 안 됨) — storage 영역으로 떼는 게 아니라 migration 정책의 예외.",
+      "original": {
+        "text": "In this paper, we use SSD as a Type-3 CXL device. The entire SSD is exposed as host-managed device memory (HDM). The SSD memory space is mapped to the host's physical space.",
+        "location": "§V, p.9 (Fig.1a)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1580,
+        "y": 600
+      },
       "children": [],
       "links": []
     }
@@ -875,6 +934,34 @@
       "target": "node_031",
       "type": "line",
       "label": "CXL 기반"
+    },
+    {
+      "id": "edge_034",
+      "source": "node_031",
+      "target": "node_032",
+      "type": "line",
+      "label": "전체 매핑"
+    },
+    {
+      "id": "edge_035",
+      "source": "node_016",
+      "target": "node_033",
+      "type": "line",
+      "label": "복사 정책"
+    },
+    {
+      "id": "edge_036",
+      "source": "node_030",
+      "target": "node_033",
+      "type": "line",
+      "label": "swap 복사"
+    },
+    {
+      "id": "edge_037",
+      "source": "node_033",
+      "target": "node_034",
+      "type": "line",
+      "label": "thrashing"
     }
   ],
   "viewport": {

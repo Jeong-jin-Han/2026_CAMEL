@@ -13,6 +13,7 @@ tags: [paper, cluster/isc, topic/in-storage-computing, topic/virtualization, top
 # DockerSSD: Containerized In-Storage Processing and Hardware Acceleration for Computational SSDs
 
 > **HPCA 2024** · cluster/isc · Source: [DockerSSD - Containerized In-Storage Processing and Hardware Acceleration for Computational SSDs.pdf](<DockerSSD - Containerized In-Storage Processing and Hardware Acceleration for Computational SSDs.pdf>)
+> 🕸️ NodeGraph: [DockerSSD.html (새 탭에서 렌더링)](https://raw.githack.com/Jeong-jin-Han/2026_CAMEL/main/papers/DockerSSD%20-%20Containerized%20In-Storage%20Processing%20and%20Hardware%20Acceleration%20for%20Computational%20SSDs/DockerSSD.html)
 
 **저자**: Miryeong Kwon, Donghyun Gouk, Eunjee Na, Jiseon Kim, Junhee Kim, Hyein Woo, Eojin Ryu, Hyunkyu Choi, Jinwoo Baek, Hanyeoreum Bae (Panmnesia, Inc.), Mahmut Kandemir (Penn State), Myoungsoo Jung (Panmnesia / KAIST)
 

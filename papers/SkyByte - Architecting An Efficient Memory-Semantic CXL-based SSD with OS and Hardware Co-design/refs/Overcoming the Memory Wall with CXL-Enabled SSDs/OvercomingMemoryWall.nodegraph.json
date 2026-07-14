@@ -1,0 +1,657 @@
+{
+  "version": "1.0.0",
+  "title": "Overcoming the Memory Wall with CXL-Enabled SSDs",
+  "created": "2026-07-14T00:00:00.000Z",
+  "modified": "2026-07-14T00:00:00.000Z",
+  "source": {
+    "pdf": "Overcoming the Memory Wall with CXL-Enabled SSDs.pdf",
+    "authors": "Shao-Peng Yang, Minjae Kim, Sanghyun Nam, Juhyung Park, Jin-yong Choi, Eyee Hyun Nam, Eunji Lee, Sungjin Lee, Bryan S. Kim (Syracuse / DGIST / Soongsil / FADU)",
+    "venue": "USENIX ATC 2023",
+    "doi": "usenix.org/conference/atc23/presentation/yang-shao-peng",
+    "pages": 18
+  },
+  "nodeTemplates": {
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#5C9E6E",
+      "icon": "cpu",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#9B59B6",
+      "icon": "bar-chart-2",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#E74C3C",
+      "icon": "alert-circle",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#1ABC9C",
+      "icon": "lightbulb",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Reference",
+      "color": "#95A5A6",
+      "icon": "book-open",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#BDC3C7",
+      "icon": "edit-3",
+      "shape": "rounded"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "이 논문이 푸는 문제: **NLP 모델은 연 14.1×로 커지는데 GPU 메모리는 연 1.3×밖에 안 느는 memory wall**을, DRAM보다 훨씬 싸고 TB급으로 스케일하는 **flash를 CXL Type-3 메모리 확장 장치(CXL-flash)**로 넘을 수 있는지 처음으로 open-source로 깊게 검증한다.\n\n**Killer application 1 — flash를 CXL memory로 쓰는 feasibility 특성화**: 자체 제작한 **physical memory tracing tool** + **MQSim 기반 CXL-flash 시뮬레이터**(둘 다 공개)로, flash 3대 난관(granularity mismatch · µs latency · endurance)을 장치 내부 **DRAM cache · MSHR · prefetcher**로 얼마나 가릴 수 있는지 정량화.\n\n**Killer application 2 — \"된다, 단 조건부\"라는 명확한 답**: real-application trace에서 메모리 요청의 **68–91%를 sub-µs**로 서비스, 수명 **최소 3.1년**, DRAM-only 대비 **11–91× 성능/비용**.\n\n**Killer application 3 — 한계 진단과 co-design 제안**: caching만으론 부족(MSHR 필수), **V2P 주소변환이 prefetch를 무력화**, 그래서 **kernel이 access-pattern hint를 장치에 넘기는 OS 협력**을 제안 — 정확히 [[SkyByte]]가 밀어붙이는 방향의 출발선.",
+      "original": {
+        "text": "This paper investigates the feasibility of using inexpensive flash memory on new interconnect technologies such as CXL ... We demonstrate using real-world application traces that these techniques enable the CXL device to have an estimated lifetime of at least 3.1 years and serve 68-91% of the memory requests under a microsecond.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_006"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "**memory wall**: NLP 모델 파라미터는 **연 14.1×**로 폭증하지만 GPU 메모리 용량은 **연 1.3×**에 그친다(Figure 1). DRAM은 GB급으로만·비싸게 스케일하는 반면, flash SSD는 3D 적층·multi-bit cell로 **TB급**으로 싸게 스케일한다. CXL·Gen-Z·CCIX·OpenCAPI 같은 coherent 인터커넥트가 PCIe 장치를 CPU의 load/store로 직접 접근하게 해주면서 **flash를 main memory로** 쓰는 길이 열렸다.\n\n그러나 flash를 memory로 쓰는 데는 **3대 난관**이 있다.\n\n**(1) Granularity mismatch**: 64B cacheline flush 하나가 16KiB page read $\\rightarrow$ 64B update $\\rightarrow$ 16KiB program으로 폭발(write amplification).\n\n**(2) µs-level latency**: flash read 수십 µs vs DRAM 수십 ns — load/store로 직접 접근하면 이 µs가 그대로 노출된다.\n\n**(3) Limited endurance**: program/erase가 cell을 마모 — memory로 쓰면 잦은 write로 금방 소진.\n\nstorage에선 firmware가 이 문제를 흡수하지만 CXL-flash는 timescale이 훨씬 짧아 **hardware가 처리**해야 한다.",
+      "original": {
+        "text": "First, there is a granularity mismatch between memory requests and flash memory ... Second, flash memory is still orders of magnitude slower than DRAM (tens of microseconds vs. tens of nanoseconds) ... Lastly, flash memory has limited endurance and wears out after repeated writes.",
+        "location": "§1, p.2-3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "children": [
+        "node_007",
+        "node_008",
+        "node_009"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "이 논문의 '해결책'은 새 하드웨어가 아니라 **CXL-flash 설계 공간을 체계적으로 탐색하는 방법론과 시뮬레이터**다.\n\n**1. Physical memory tracing tool(§3)**: main memory·CXL-flash는 physical address로 접근되는데 이를 잡는 공개 도구가 없었다. **Valgrind/Cachegrind**(LLC miss/eviction 필터) + **page-fault 후킹**(V2P 매핑 수집)으로 physical trace 생성. virtual trace는 과대낙관이라 physical이 필수.\n\n**2. CXL-flash 시뮬레이터(§4)**: MQSim[68]+MQSim-E[49] 기반. 아키텍처 = CXL interface $\\rightarrow$ indexing $\\rightarrow$ prefetcher $\\rightarrow$ **DRAM cache** $\\rightarrow$ **MSHR** $\\rightarrow$ FTL $\\rightarrow$ flash channel.\n\n**3. 설계옵션 탐색(§4)**: caching, traffic 감축(MSHR), prefetching, flash tech/parallelism.\n\n**4. 정책 평가(§5)**: real workload 5종으로 cache replacement(CFLRU 등)·prefetcher 5종(NL/FD/BO/LP) 비교 $\\rightarrow$ **7 Observations** + **kernel hint co-design** 제안.\n\n도구·아티팩트 전부 open-source(`github.com/spypaul/MQSim_CXL`).",
+      "original": {
+        "text": "We build a physical memory tracing tool using page fault events (§3.1) ... To model the hardware, we build a CXL-flash simulator based on MQSim and its extension MQSim-E, and use the physical memory traces of the five synthetic applications to evaluate the effects of design options.",
+        "location": "§3, §4, p.4-6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 600
+      },
+      "children": [
+        "node_010",
+        "node_011",
+        "node_012",
+        "node_013",
+        "node_014"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "Real workload 5종(BERT/PageRank/Radiosity/XZ/YCSB), 일부러 작은 64MiB cache + ULL flash + 8×8 parallelism으로 큰 workload를 대변.\n\n| 결과 | 값 |\n|---|---|\n| sub-µs 메모리 요청 비율 | **68–91%** |\n| 장치 수명(worst=PageRank) | **≥3.1년** (Radiosity 최대 403년) |\n| DRAM-only 대비 성능/비용 | **11–91×** |\n| flash read 중 repeated read | **90%↑** (hashmap/matmul/heap) |\n| ULL vs SLC (cache 有) | 차이 **미미** |\n| kernel hint 효과 (BERT sub-µs) | **86 $\\rightarrow$ 91%** |\n\n핵심: (1) **caching만으론 부족** — MSHR로 repeated read를 막아야 tail latency가 잡힘. (2) **CFLRU**가 write 줄여 성능·수명 최고. (3) **prefetcher는 양날의 검** — accuracy 높으면 도움, 낮으면 pollution으로 오히려 악화. (4) **V2P 변환이 prefetch를 무력화**(PageRank accuracy virtual 99%→physical 42%).",
+      "original": {
+        "text": "Although 68-91% of requests have a latency of under a microsecond, using a prefetcher can be detrimental to the performance of real-world applications ... Even under high-intensity workloads, a CXL-flash has a lifetime of at least 3.1 years.",
+        "location": "§5, Obs#1-#2, p.10-11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 900
+      },
+      "children": [
+        "node_015",
+        "node_016",
+        "node_017",
+        "node_018"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "CXL-flash는 flash 특유의 3대 난관에도 불구하고 **caching·MSHR·prefetching**을 잘 조합하면 real workload의 **68–91%를 sub-µs**로 서비스하고 **≥3.1년** 버티는, DRAM-only 대비 **cost-effective**한 memory 확장 장치가 될 수 있다. 그러나 **hardware 기법만으론 DRAM-급에 못 미친다** — 특히 **virtual→physical 주소 변환이 prefetcher를 무력화**하므로, 저자들은 **kernel이 access-pattern hint를 장치에 넘기는 system-level 변경**을 제안한다.\n\n**의의 (SkyByte baseline)**: 이 논문은 [[SkyByte]]가 baseline으로 삼는 **레퍼런스 CXL-SSD 아키텍처(Base-CSSD 계보)**다. \"flash-CXL memory는 된다, 단 OS 협력이 필요하다\"는 진단을 SkyByte가 **coordinated context switch + cacheline write log + OS/HW co-design**으로 이어받아 공격적으로 실현한다. 또한 [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]]의 CXL-SSD vision을 실증적으로 검증한 첫 in-depth study.\n\n**한계**: flash 내부 task(GC·wear leveling) 미고려, real HW가 아닌 시뮬레이션, 전부 **single-host** 전제.",
+      "original": {
+        "text": "We discover that the address translation for virtual memory makes it particularly difficult for the CXL-flash's prefetcher to be effective and suggest passing kernel-level access pattern hints to further improve the performance ... our work can be a platform on which future research can build upon.",
+        "location": "§7, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1200
+      },
+      "children": [
+        "node_019",
+        "node_020"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "claim",
+      "title": "핵심 질문 + 기여: 최초의 open-source CXL-flash in-depth study",
+      "content": "이 논문의 전제이자 기여: prior work가 CXL-SSD의 **확장성·인터커넥트**를 논했다면(예: [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]]), 이 논문은 **장치 내부(device-internal) 설계 결정과 기존 최적화 기법의 실효성**을 처음으로 open-source로 깊게 판다.\n\n세 기여:\n**(1)** page-fault 이벤트로 **physical memory trace**를 수집하는 도구 + **CXL-flash 시뮬레이터**(`github.com/spypaul/MQSim_CXL`).\n**(2)** 합성 workload로 caching·prefetching의 latency 감축 잠재력 정량화(§4).\n**(3)** real workload로 현 prefetcher 한계 분석 + **kernel hint** system-level 변경 제안(§5).",
+      "original": {
+        "text": "to the best of our knowledge, we are the first open-sourced in-depth study on the design choices of a CXL-flash device and on the effectiveness of existing optimization techniques.",
+        "location": "§1, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": -120
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "claim",
+      "title": "Memory wall: NLP 14.1×/yr vs 메모리 1.3×/yr",
+      "content": "동기의 핵심 수치. NLP 모델 파라미터는 **연 14.1×**로 커지는데 GPU 메모리 용량은 **연 1.3×**밖에 안 늘어(Figure 1), 격차가 memory wall로 벌어진다. DRAM은 DIMM당 GB급으로만 스케일하고 비싸지만, flash SSD는 3D 적층·multi-bit cell 덕에 **TB급**으로 싸게 스케일 — memory wall을 메울 충분한 용량. CXL의 coherent load/store가 이 flash를 memory로 노출할 하드웨어적 인에이블러다.",
+      "original": {
+        "text": "the rapid growth in NLP (natural language processing) models (14.1x per year), which far outpaces that of memory capacity (1.3x per year).",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 150
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "claim",
+      "title": "flash 3대 난관 + Table 1 latency",
+      "content": "flash를 memory로 쓸 때의 세 병목:\n\n**(1) Granularity mismatch** — flash는 KB page 단위 read/write, overwrite 불가(block erase 선행). 64B flush 하나가 16KiB read + 64B update + 16KiB program으로 폭발.\n**(2) µs latency** — DRAM보다 orders of magnitude 느림, cell 기술별 심화.\n**(3) Endurance** — program/erase 마모, memory로 쓰면 잦은 write로 금방 소진.\n\n| Tech | Read | Program | Erase | Endurance |\n|---|---|---|---|---|\n| DRAM | 46ns | 46ns | N/A | N/A |\n| ULL | 3µs | 100µs | 10ms | 100K |\n| SLC | 25µs | 200µs | 10ms | 100K |\n| MLC | 50µs | 600µs | 3000µs | 10K |\n| TLC | 75µs | 900µs | 4500µs | 3K |\n\nstorage에선 firmware가 흡수하지만, CXL-flash는 timescale이 짧아 **hardware가 처리**해야 한다.",
+      "original": {
+        "text": "As outlined in Table 1 as an example, as more bits are stored per cell, the latency increases, from SLC (single-level cell) to TLC (triple-level cell) ... they should be addressed by hardware due to the much finer timescale.",
+        "location": "§2.2, p.3-4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 330
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "reference",
+      "title": "CXL Type-3 HDM 기회 + 관련 CXL 연구 좌표",
+      "content": "**CXL Type-3(§2.1)**: host-managed device memory(**HDM**)를 노출하고 CPU가 load/store로 직접 조작. coherent access로 동기화 오버헤드 감소 + switch로 손쉬운 scale-out. CXL은 현재 DRAM/PMEM만 주 확장 매체로 보지만 **SSD도 coherent access 덕에 가능**.\n\n| 연구 | 관계 |\n|---|---|\n| **CXL-SSD / Hello Bytes** (Jung, HotStorage'22) [42] | CXL+SSD 결합 vision — 이 논문이 실증 검증 |\n| **DirectCXL** (Gouk, ATC'22) [36] | real HW로 외부 DRAM을 CXL로 disaggregation |\n| **Pond** (Li, ASPLOS'23) [50] | CXL DRAM pooling(클라우드) — 이 논문은 flash로 구현 |\n| **FlatFlash** (ASPLOS'19) [23] · **FlashMap** [40] | SSD 주소변환을 page table에 통합 |\n\n차별점: 앞 연구들이 OS-level·host-device 상호작용에 집중한 반면, 이 논문은 **memory 확장 장치 내부의 설계 결정**을 판다.",
+      "original": {
+        "text": "CXL-SSD advocates combining CXL and SSD to expand host memory. While we share the same goal with this work, it mainly discusses the CXL interconnect and scalability potentials of CXL-SSDs.",
+        "location": "§6, p.13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 500
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "method",
+      "title": "§3 Physical memory tracing tool (virtual은 과대낙관)",
+      "content": "main memory·CXL-flash는 **physical address**로 접근되는데, LLC↔memory controller 사이 physical transaction을 HW 수정 없이 잡는 공개 도구가 없었다. 해법:\n\n- **Valgrind/Cachegrind**로 LLC miss/eviction을 걸러낸 memory access(가상주소)를 수집.\n- 동시에 **page-fault 시 kernel PTE 설치 함수**(`do_anonymous_page()`, `do_set_pte()`)를 후킹해 대상 PID의 **V2P 매핑**을 `/proc`에 기록.\n- 둘을 합쳐 physical trace 생성(Figure 2).\n\n결정적 관찰: **virtual 접근 패턴은 규칙적이지만 physical은 V2P 변환 때문에 전혀 다르다**(Figure 3). virtual trace로 시뮬레이션하면 sub-µs 비율이 과대낙관(matmul 오차 25%↑). 그래서 physical trace가 필수 — 이게 §5 Obs#6(prefetch 방해)의 뿌리.",
+      "original": {
+        "text": "the corresponding physical frame number (PFN) does not resemble the VPN ... Using virtual memory traces generates an overly optimistic result with far more requests completing under a microsecond compared to the result from running physical memory traces.",
+        "location": "§3.2, p.5-6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 620
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "§4.1 Caching — 하지만 caching만으론 부족",
+      "content": "flash 앞단 **DRAM cache**는 두 역할: (1) hot data를 빠른 DRAM에서 서빙, (2) hit 시 flash traffic 감소. cache 크기를 0~8GiB로 바꾸며 평균 latency와 flash inter-arrival time을 측정(Figure 5).\n\n**핵심 반전**: 충분히 큰 cache(workload footprint보다 커도)에서조차 평균 latency가 DRAM보다 훨씬 높다. 이유는 **짧은 inter-arrival time**이 flash backend를 압도해 queuing delay가 쌓이기 때문. 32×32의 넉넉한 parallelism으로도 부족.\n\n$\\Rightarrow$ \"cache 하나로는 CXL-flash latency를 못 줄인다. traffic 자체를 줄이는 **보조 구조(MSHR)**가 필요하다.\"",
+      "original": {
+        "text": "This experiment shows that caching alone is insufficient in reducing the latency of a CXL-flash, and we need additional auxiliary structures to reduce the traffic to flash memory.",
+        "location": "§4.1, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 790
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "§4.2 MSHR — repeated reads가 90%↑",
+      "content": "cache miss 시 **4KiB**를 fetch하는데, 그 fetch가 진행 중일 때 같은 4KiB 안의 후속 64B miss가 **또 flash read를 발행**한다. 이를 **repeated reads**라 부르며, hashmap/matrix-mult/heap에선 flash read의 **90%↑가 repeat**(Figure 6)!\n\n해법: CPU cache에서 빌려온 **MSHR(miss status holding register)**로 outstanding flash read를 추적해, **한 번의 flash read로 여러 64B 요청을 서비스**한다. Figure 7: MSHR이 긴 tail latency를 대폭 감소.\n\n주목: SSD엔 MSHR이 드물다 — storage stack이 겹치는 block I/O를 software로 merge하기 때문. 그러나 CXL-flash엔 그 software layer가 없어(LLC에서 직접 transaction 수신) **HW가 MSHR을 구현해야** 한다. (단 MSHR은 traffic만 줄일 뿐 hit rate를 능동적으로 올리진 않음 → prefetch 필요.)",
+      "original": {
+        "text": "over 90% of flash memory reads are repeats! ... We observe in Figure 7 that MSHRs significantly reduce long tail latencies, particularly for the three workloads with a significant number of repeated reads.",
+        "location": "§4.2, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 960
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "§4.3-4.4 Prefetching + flash tech/parallelism",
+      "content": "**Prefetching(§4.3)**: Next-N-line prefetcher, 두 파라미터 — **degree**(공격성, 얼마나 많이)·**offset**(얼마나 앞서). degree↑는 대체로 성능↑(matmul sub-µs 64→76%, prefetch 필요성 입증). 단 **best config은 workload 의존**, offset 64는 너무 멀리 fetch해 오히려 악화.\n\n**Flash tech & parallelism(§4.4)**:\n- **cache가 있으면 ULL(3µs) vs SLC(25µs) 차이 미미** — cache 없을 때만 ULL이 압도적.\n- MLC/TLC는 성능·수명 모두 크게 악화(1GiB cache로는 1년도 못 감). ULL/SLC+cache면 수명 4년↑.\n- parallelism은 cache가 크면 8×4로 줄여도 무방, 작으면 중요. random은 cache 크기에, stride는 parallelism에 민감.",
+      "original": {
+        "text": "Even a small degree of 1 increases the portion of sub-microsecond requests from 64% to 76% for the matrix multiply workload, highlighting the necessity of prefetching for CXL-flash. However, the improvement plateaus and further increasing the degree may only pollute the cache.",
+        "location": "§4.3, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1130
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "method",
+      "title": "§5.1-5.2 정책 평가: CFLRU + prefetcher 5종",
+      "content": "Real workload 5종(BERT/PageRank/Radiosity/XZ/YCSB, Table 5), 일부러 작은 **64MiB** cache + ULL + 8×8.\n\n**Cache replacement(§5.1)**: FIFO/Random/LRU/**CFLRU**(clean을 modified보다 먼저 evict). associativity↑ → hit rate↑ → 성능↑(miss penalty가 커서 hit rate가 hit time보다 중요). **CFLRU가 최고**(write traffic·flash 마모 감소). read-dominant > write-heavy. 고locality(Radiosity)는 정책에 둔감.\n\n**Prefetcher(§5.2)**: NP/NL(Next-N-line)/FD(feedback-directed)/BO(best-offset)/LP(Leap) 비교. accuracy·coverage·lateness·pollution 4지표로 분석. 이 비교가 아래 **7 Observations**의 무대.",
+      "original": {
+        "text": "CFLRU outperforms the other replacement policies, particularly in BERT, XZ, and YCSB ... This is supported by the significant reduction in write traffic.",
+        "location": "§5.1, p.9-10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1300
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "result",
+      "title": "Feasibility headline: 68–91% sub-µs, 수명 ≥3.1년",
+      "content": "이 논문의 대표 결과(Obs#1, #2).\n\n| 지표 | 값 |\n|---|---|\n| sub-µs 요청 비율 | **68–91%** |\n| 수명 (worst=PageRank) | **≥3.1년** |\n| 수명 (best=Radiosity) | 최대 **403년** |\n\n수명을 좌우하는 3요소: **workload 강도 · read/write 비율 · locality**. PageRank가 최악(고강도·고write·저locality)이지만 그래도 3.1년 — 즉 **durability는 memory 요청 강도를 감당할 수 있다**. 68–91%가 sub-µs이므로 flash가 DRAM-급은 아니어도 memory-intensive 앱엔 충분히 실용적.",
+      "original": {
+        "text": "we observe, in the worst case, the device would last 3.1 years under PageRank, but under workloads such as Radiosity, it would be as much as 403 years ... the durability of the CXL-flash can sustain the intensity of memory requests.",
+        "location": "§5.2, Obs#2, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1470
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "result",
+      "title": "7 Observations: prefetcher는 양날의 검, V2P가 핵심 장애",
+      "content": "§5.2의 7개 관찰 — 이 논문의 지적 핵심.\n\n- **#1** 68–91% sub-µs지만 prefetcher가 real workload엔 **해로울 수 있음**(BERT/XZ/YCSB 악화, Radiosity +36%).\n- **#2** 고강도에서도 수명 **≥3.1년**.\n- **#3** DRAM-only 대비 **11–91× 성능/비용**(DRAM이 NAND보다 17–100× 비쌈).\n- **#4** prefetcher가 도움될 땐 **높은 accuracy** 때문(Leap: Radiosity 85% vs BERT 27%).\n- **#5** accuracy 낮을 때 성능저하 주범은 **cache pollution**(BERT/YCSB).\n- **#6** **V2P 주소변환이 prefetch를 무력화**(BO on PageRank accuracy virtual 99%→physical 42%; BERT coverage 76→26%).\n- **#7** **kernel hint**로 hit-under-miss를 cache hit으로 전환 → 성능↑(BERT sub-µs 86→91%).\n\n$\\Rightarrow$ hardware caching/prefetching만으론 한계, **OS 협력(hint)**이 돌파구.",
+      "original": {
+        "text": "The BO prefetcher under Page Rank is 99% accurate for the virtual memory trace, but with the physical trace, accuracy drops to 42% ... The drop in both accuracy and coverage for physical traces shows that the CXL-flash would perform better if it were addressed virtually.",
+        "location": "§5.2, Obs#6, p.12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1640
+      },
+      "children": [
+        "node_021"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "result",
+      "title": "Cost & tech: 11–91× perf/cost, ULL vs SLC marginal",
+      "content": "**Cost-effectiveness(Obs#3)**: DRAM이 NAND flash보다 **17–100× 비싸다**(DRAM $5/GB, NAND $0.05–0.30/GB). CXL-flash가 68–91%를 sub-µs로 서비스하므로 DRAM-only 대비 **11–91× 성능/비용** 이득(Figure 14). 최고 성능이 절대적으로 필요한 경우가 아니면 **cost-effective한 memory 확장 옵션**.\n\n**Tech 선택**: cache가 있으면 값싼 SLC로도 고가 ULL과 성능 대등 — 즉 **적절한 cache가 flash 매체 등급의 열세를 상쇄**한다. MLC/TLC는 endurance·성능 둘 다 실용성 낮음.",
+      "original": {
+        "text": "the recent price point of DRAM is 17-100x higher than that of NAND flash, we expect an 11-91x performance-per-cost benefit from a CXL-flash over a DRAM-only device.",
+        "location": "§5.2, Obs#3, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1810
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "gap",
+      "title": "설계 지침: OS 협력 없이는 near-DRAM 불가",
+      "content": "논문이 데이터로 도출한 **설계 가이드라인**(SkyByte로 이어지는 지점):\n\n1. **MSHR은 필수** — caching만으론 repeated read를 못 막는다.\n2. **CFLRU + 높은 associativity** — write 줄여 성능·수명 동시 개선.\n3. **prefetcher는 accuracy 기반으로 켜고 꺼야** — pollution이 역효과.\n4. **V2P가 근본 장애** — 장치가 physical만 보므로 virtual 규칙성이 소실. huge page는 부분 완화일 뿐.\n5. **kernel hint(co-design)가 돌파구** — host의 workload 지식을 장치에 전달해야 near-DRAM.\n\n$\\Rightarrow$ \"device-internal HW 최적화만으론 벽에 부딪힌다\"는 것이 이 논문의 최종 진단. **OS+HW co-design 필요성**을 실증한 것.",
+      "original": {
+        "text": "we analyze the limitations of the current prefetchers and suggest system-level changes for future CXL-flash to achieve near-DRAM performance, specifically sub-µs latencies for the device.",
+        "location": "§1, p.3",
+        "title": "설계 지침 (원문)"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1980
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "memo",
+      "title": "SkyByte와의 관계: 이 논문 = 실증 baseline, SkyByte = 공격적 co-design",
+      "content": "이 논문은 [[SkyByte]]의 **직계 baseline(Base-CSSD 계보)**이다. 이 논문이 세운 판(flash-backed CXL-SSD를 memory로) 위에서, SkyByte는 여기서 \"부족하다\"고 진단한 지점을 넘어선다.\n\n| | ATC'23 (이 논문) | SkyByte (HPCA'25) |\n|---|---|---|\n| 성격 | **특성화**(characterization) | **설계**(co-designed architecture) |\n| 지연 은닉 | HW caching/prefetching/MSHR | +coordinated **context switch**, cacheline **write log** |\n| OS 협력 | kernel **hint** 제안(방향만) | OS+HW **co-design** 구현 |\n| 결론 | \"OS 협력이 필요하다\" | \"OS 협력을 이렇게 한다\" |\n\n★ 이 논문의 **Obs#6(V2P 방해) + Obs#7(hint 효과)**이 SkyByte가 왜 OS를 끌어들였는지의 실증적 근거. 관련 vision: [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]].",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 2150
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "gap",
+      "title": "내 연구방향: single-host 특성화 → multi-host 공유의 빈칸",
+      "content": "이 논문은 CXL-flash를 **한 host가 보는** memory 확장 장치로 특성화한다. cache·MSHR·prefetch·kernel-hint 전부 **단일 host address space·단일 page table·단일 V2P 관계** 위에서 성립한다.\n\n내 방향(**multi-node CXL coherence**)은 이 특성화를 **multi-host로 재수행**하는 것이 gap:\n- **cross-host 간섭**: 여러 host의 요청이 섞이면 inter-arrival time·cache pollution·prefetch accuracy 계산이 전부 재정의된다.\n- **coherence**: host A가 캐싱/promote한 page를 host B가 stale로 봄 → CXL 3.0 **back-invalidate/HDM-DB** 필요.\n- **hint 소유권**: kernel hint(Obs#7)를 multi-host에선 누가 생성·조정하나?\n\n즉 이 논문의 \"무엇이 필요한가\"를 **공유 CXL-SSD 맥락에서 다시 묻는** 것이 내 자리. $\\Rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]], [[CXL Overview]]",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 2320
+      },
+      "children": [
+        "node_022"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "question",
+      "title": "clairvoyant kernel hint — co-design의 씨앗 (Obs#7)",
+      "content": "Obs#7의 실험: **자주 접근되는 top physical frame** 정보를 아는 가상의 clairvoyant kernel이 접근 전에 장치에 hint를 준다. hint 대상 주소를 늘리면 BERT의 sub-µs가 **86→91%**로, hit-under-miss가 cache hit으로 전환되며 개선(Figure 18). data-intensive 앱은 반복 iterate하므로 profiling으로 실현 가능하다는 논리.\n\n이건 \"장치가 physical만 봐서 못 푸는 문제를, host의 workload 지식으로 푼다\"는 **OS+HW co-design의 씨앗**이다. [[SkyByte]]가 OS를 co-design에 끌어들이는 정당화가 정확히 여기서 실증됐다. 단 이 논문은 **hint를 제안**했을 뿐, hint 생성 오버헤드·정확한 인터페이스·multi-host 소유권은 열어둠 → 후속 co-design의 몫.",
+      "original": {
+        "text": "We consider a hypothetically clairvoyant kernel that knows the physical memory access pattern ... the percentage of sub-microsecond latencies increases from 86% to 91% by converting hit-under-misses into cache hits.",
+        "location": "§5.2, Obs#7, p.12-13"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 1640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "gap",
+      "title": "multi-host coherence: 이 논문 전제가 붕괴하는 지점",
+      "content": "이 논문의 모든 결과가 **한 host = 한 page table = 하나의 V2P 매핑**에 의존한다. 여러 host가 같은 CXL-SSD를 공유하면:\n\n- **prefetch accuracy 지표 무의미화**: physical trace가 host마다 다르고 시간에 따라 섞여, Obs#4~#6의 accuracy/coverage 분석 틀이 깨진다.\n- **cache/promotion coherence**: 장치 내부 DRAM cache의 한 line을 여러 host가 공유 시 write ordering·invalidation 필요 → CXL 3.0 **back-invalidate**, **HDM-DB**.\n- **CFLRU/MSHR의 재정의**: clean/dirty 판정과 outstanding-read 병합이 host 경계를 넘으면 달라진다.\n\n$\\Rightarrow$ FlatFlash·SkyByte가 계승한 PLB류 single-host 일관성처럼, 이 논문의 device-internal 최적화도 **multi-host에서 문제 정의부터 다시** 세워야 한다 — 이게 내 field(공유 memory coherence/consistency 원리)의 정확한 좌표.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 2320
+      },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_001",
+      "target": "node_006",
+      "type": "line",
+      "label": "기여"
+    },
+    {
+      "id": "edge_006",
+      "source": "node_002",
+      "target": "node_007",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_007",
+      "source": "node_002",
+      "target": "node_008",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_008",
+      "source": "node_002",
+      "target": "node_009",
+      "type": "line",
+      "label": "기회"
+    },
+    {
+      "id": "edge_009",
+      "source": "node_003",
+      "target": "node_010",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_010",
+      "source": "node_003",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_003",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_012",
+      "source": "node_003",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_013",
+      "source": "node_003",
+      "target": "node_014",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_014",
+      "source": "node_004",
+      "target": "node_015",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_015",
+      "source": "node_004",
+      "target": "node_016",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_016",
+      "source": "node_004",
+      "target": "node_017",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_017",
+      "source": "node_004",
+      "target": "node_018",
+      "type": "line",
+      "label": "지침"
+    },
+    {
+      "id": "edge_018",
+      "source": "node_016",
+      "target": "node_021",
+      "type": "line",
+      "label": "co-design 씨앗"
+    },
+    {
+      "id": "edge_019",
+      "source": "node_005",
+      "target": "node_019",
+      "type": "line",
+      "label": "SkyByte"
+    },
+    {
+      "id": "edge_020",
+      "source": "node_005",
+      "target": "node_020",
+      "type": "line",
+      "label": "내 연구"
+    },
+    {
+      "id": "edge_021",
+      "source": "node_020",
+      "target": "node_022",
+      "type": "line",
+      "label": "심화"
+    },
+    {
+      "id": "edge_022",
+      "source": "node_019",
+      "target": "node_020",
+      "type": "line",
+      "label": "연결"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

@@ -34,6 +34,8 @@ tags:
 | **[[BaM]]** (ASPLOS'23) | GPU가 CPU 없이 스스로 storage 접근 | 데이터 평면 자율화 (제어 평면은 아님) |
 | persistent kernels / CUDA Graphs | launch 왕복을 SW로 절감 | HW 구조는 그대로 |
 | [[DockerSSD]] (HPCA'24) | SSD에 컨테이너 실행환경 | 대상이 storage (본 가설의 원형) |
+| [[ACE]] (PACT'24) | CPU OoO 명령어 스케줄링을 본떠, 전체 그래프가 아니라 최근 launch된 커널들의 작은 "scheduling window" 안에서 read/write 메모리 겹침만 검사해 input-dependent 그래프를 host 재구성 없이 동시 실행. ACE-HW는 완료-이벤트 동기화를 GPU 하드웨어로 이전 | 의존성이 **정적으로 판별 가능한 메모리 겹침**에 국한 — 커널 "출력값"에 따른 조건부 제어(EOS 판정 등, 본 가설의 표적)는 못 다룸. 저자도 dynamic batching을 "orthogonal"이라 명시. ACE-HW조차 CPU 런타임(입력 큐·의존성 체크)은 존속 |
+| [[DeviceSideExecModel\|MUSTARD]] (ICS'25) | 멀티-GPU/멀티노드 task graph 실행에서 "graph enrichment"(의존성·부하분산·데이터공유를 그래프 정점으로 흡수)로 host를 그래프 초기화 1회에만 관여시킴. GPU마다 독립 스케줄러 커널 + NVSHMEM D2D 통신 | 저자 스스로 "This work focuses on **static** task graphs"로 스코프 한정(Table 1: Dynamic graphs ✗) — 그래프 구조가 런타임 값에 따라 바뀌는 동적 제어는 명시적으로 범위 밖. 제어 루프도 GPU 자신의 SM/스레드를 점유하는 SW 커널(전용 FPGA 아님) |
 
 → **"CPU↔GPU 왕복 제거" 자체는 산업·학계 총력전 중** = raw 아이디어로는 novelty 없음. 검증된 문제라는 뜻이기도.
 
@@ -59,6 +61,7 @@ tags:
 ## 실현 경로 (2026-07-10 3차 문답 — "직접 만들어야 하나 / 왜 없나 / 코드 다 다시 짜나")
 - **칩 제조 불필요**: [[Smart-Infinity]]가 CSD를 제조하지 않고 시판 SmartSSD로 증명했듯, **시판 FPGA 카드(Alveo) + GPU를 같은 PCIe switch에서 P2P**(GPUDirect/DirectGMA)로 묶어 원리를 증명. "같은 패키지"는 비전, PCIe 프로토타입이 feasibility 증거. 이 장비 구성 = CAMEL 기존 인프라 그대로.
 - **왜 여태 없었나 = 자물쇠**: ① NVIDIA 제어 평면(command buffer·doorbell)이 proprietary — CPU 아닌 장치의 launch가 막혀 있었음 ② 통합 시도는 전부 범용 CPU 코어를 넣음(MI300A·GH200·DPU) — "왜 FPGA인가"를 아무도 주장 안 함 ③ SW 우회(CUDA Graphs·persistent kernels)가 그럭저럭 버팀.
+- **저수준 배관의 선례**: [[FpgaNIC]] (ATC'22)이 이 가설의 필요조건(① PCIe endpoint + bus mastering ② GPU와 같은 switch 아래 P2P ③ 성숙한 스택)을 상용 Xilinx Alveo U50/U280으로 실증 — FPGA가 GPUDirect P2P로 GPU 메모리를 CPU 없이 직접 DMA하고, GPU도 CUDA 커널 안에서 FPGA doorbell을 CPU 없이 직접 트리거함(FPGA↔GPU P2P DMA 자체는 Bittner & Ruf 2012부터 알려진 개별 메커니즘이었고, FpgaNIC은 이를 양방향 결합). 단 트리거 방향이 이 가설과 **반대**(GPU가 FPGA에 네트워크 작업을 요청 — FPGA가 GPU 실행을 지시하는 방향 아님)이고, 스코프도 원격 GPU-to-GPU 네트워킹(AllReduce 등)이라 "FPGA가 GPU 커널 스케줄링을 지시"하는 사례는 이 논문에도 없음 — 배관은 증명됐지만 "누가 누구를 제어하는가"의 방향은 여전히 열린 질문.
 - ★ **Why now (timing argument)**: AMD **ROCm/HSA는 공개** — kernel dispatch = 메모리에 AQL packet 쓰기 + doorbell (공개 스펙) → P2P 가능한 FPGA가 CPU 없이 dispatch 가능. [[BaM]]이 역방향(GPU가 NVMe doorbell로 SSD 조종)을 이미 실증 = 장치가 장치를 제어하는 선례. "이제야 가능해졌다"는 intro 논거가 됨.
 - **라이브러리 재작성 불필요 — interception**: PyTorch 수정 0. 런타임 shim이 launch를 가로채 1 iteration의 kernel 시퀀스를 캡처(CUDA Graphs식) → FPGA에 스케줄 업로드 → FPGA가 AQL queue에 재생 dispatch. **학습 루프 = 반복 동일**이라 "한 번 캡처, 무한 재생"과 정확히 맞음. Smart-Infinity의 DeepSpeed drop-in과 같은 통합 철학.
 - **단계**: Phase 0 제어 트래픽·launch 오버헤드 실측(코딩만, Fig 3 역할) → Phase 1 별도 CPU 코어가 FPGA 에뮬레이션(분리 이득 선증명, 코딩만) → Phase 2 Alveo 직접 doorbell → Phase 3 multi-GPU(GPU당 dispatcher).
@@ -71,12 +74,16 @@ tags:
 - **Training**: 큰 kernel(ms) ≫ launch(μs) → 오버헤드 묻힘 + 정적 반복이라 CUDA Graphs로 이미 해결 → **H3 이득 작음** (multi-GPU 제어 집중 정도만 남음). 학습의 진짜 병목은 메모리 용량·GPU간 통신 (Smart-Infinity 영역).
 - **Inference (LLM decode) = 진짜 표적**: 토큰 1개씩 → kernel이 작고 짧음(수십 μs) → **launch-bound** (CPU가 병목, 실존 현상). 결정타 = **동적 제어**: EOS 판정·continuous batching·KV 배치·spec-decode accept/reject를 매 토큰 CPU가 판단 → 왕복+정지 반복. **CUDA Graphs는 정적 반복만 캡처 — 데이터 의존적 동적 제어는 못 담음** ← 기존 SW 해법의 빈틈 = H3의 좁고 정확한 표적.
 - **재조준**: ~~"학습의 데이터 왕복 제거"~~(잘못된 전제) → **"LLM inference decode의 동적 제어 평면을 GPU 옆(FPGA)으로"**. [[SwiftSpec]](async spec-decoding, CPU 제어 오버헤드와의 싸움)과 접속 — 시대 흐름(LLM serving)과 자연 접점.
+- **표적 재확인 (2026-07-13, [[ACE]]·[[DeviceSideExecModel|MUSTARD]] 정독)**: 2024~2025년 최신 GPU 커널 스케줄링 연구 두 편이 독립적으로 같은 지점에서 멈춘다 — ACE(PACT'24)는 커널 간 의존성을 **정적으로 판별 가능한 메모리 read/write 겹침**으로만 정의하고 dynamic batching을 "orthogonal"이라 명시적으로 제외했고, MUSTARD(ICS'25)는 host를 거의 완전히 배제하면서도 스스로 "focuses on **static** task graphs"라 못박았다. 즉 "그래프/의존성이 고정된 경우 host를 빼는 문제"는 최근 2년 사이 활발히 풀리고 있지만, **"그래프 구조 자체가 커널 출력값에 따라 런타임에 갈라지는 경우"(EOS 판정, continuous batching 편입/이탈 같은 값-조건부 제어)는 두 논문 모두 명시적으로 범위 밖에 남겨뒀다** — 표적이 틀리지 않았다는 정황 증거.
 
 ## 열린 질문 (다음에 답할 것)
 - [ ] FPGA 재구성이 고정 CPU 코어 대비 이기는 워크로드 시나리오 구체화 (H1의 "특화가 이기는 지점" 질문과 동형)
 - [ ] MI300A·GH200 아키텍처 자료 정독 → 이들이 *못* 하는 것 목록화
 - [ ] host 코드 분할 가능성 분석: 실제 학습 루프에서 "FPGA로 내릴 수 있는 제어"의 비율 측정 (컴파일러 각도)
+- [ ] [[ACE]]의 scheduling-window/read-write-segment 방식을 "커널 출력값" 기반 조건부 제어(값-의존적 분기)로 확장할 수 있는가 — annotation 프레임 자체가 값을 못 보는 구조인지, 확장 여지가 있는지
+- [ ] [[DeviceSideExecModel|MUSTARD]]의 graph enrichment가 정적 그래프를 넘어 동적 그래프로 일반화될 수 있는가, 아니면 근본적으로 다른 메커니즘이 필요한가
+- [ ] [[FpgaNIC]]의 doorbell/GTLB 인프라를 "네트워크 요청 트리거" 대신 "GPU 커널 launch 트리거"로 재사용할 수 있는가 — 방향을 뒤집는(FPGA→GPU 제어) 데 필요한 것이 정확히 무엇인지
 - [ ] 읽기: [[DockerSSD]] · [[BaM]] (vault) → CUDA Dynamic Parallelism·Graphs·NVSHMEM 문헌
 
 ---
-**관련**: [[DockerSSD]] · [[BaM]] · [[Smart-Infinity]] · [[H1 — 워크로드 특화로 multi-node coherence 줄이기]] · [[Communication Tax]]
+**관련**: [[DockerSSD]] · [[BaM]] · [[Smart-Infinity]] · [[H1 — 워크로드 특화로 multi-node coherence 줄이기]] · [[Communication Tax]] · [[ACE]] · [[DeviceSideExecModel|MUSTARD]] · [[FpgaNIC]]

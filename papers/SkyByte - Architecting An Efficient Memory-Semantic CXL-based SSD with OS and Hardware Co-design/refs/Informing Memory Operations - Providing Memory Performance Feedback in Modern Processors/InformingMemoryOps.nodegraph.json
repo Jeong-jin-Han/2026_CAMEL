@@ -1,0 +1,552 @@
+{
+  "version": "1.0.0",
+  "title": "Informing Memory Operations: Providing Memory Performance Feedback in Modern Processors",
+  "created": "2026-07-14T00:00:00.000Z",
+  "modified": "2026-07-14T00:00:00.000Z",
+  "source": {
+    "pdf": "Informing Memory Operations - Providing Memory Performance Feedback in Modern Processors.pdf",
+    "authors": "Mark Horowitz (Stanford), Margaret Martonosi (Princeton), Todd C. Mowry (Univ. of Toronto), Michael D. Smith (Harvard)",
+    "venue": "ISCA 1996",
+    "doi": "10.1145/232973.233000",
+    "pages": 11
+  },
+  "nodeTemplates": {
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#5C9E6E",
+      "icon": "cpu",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#9B59B6",
+      "icon": "bar-chart-2",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#E74C3C",
+      "icon": "alert-circle",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#1ABC9C",
+      "icon": "lightbulb",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Reference",
+      "color": "#95A5A6",
+      "icon": "book-open",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#BDC3C7",
+      "icon": "edit-3",
+      "shape": "rounded"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "이 논문이 세운 것은 **정보 제공 메모리 연산(informing memory operations)** 이라는 새로운 primitive다 — 메모리 연산에, 그 연산이 **cache miss일 때만 taken되는 conditional branch-and-link**를 (암묵적/명시적으로) 결합한 것.\n\n**핵심 아이디어**: branch는 어느 경로를 갔는지 소프트웨어가 관측 가능하지만 load/store는 hit/miss를 알 수 없다. informing operation은 **miss를 관측·반응 가능한 이벤트로 승격**시켜, 프로세서가 원래 stall할 miss 구간에 소프트웨어 handler를 실행하게 한다.\n\n**무엇이 remarkable한가**:\n1. hit case 오버헤드가 (조건에 따라) **0 또는 명령 1개**로 극히 작다 — fine-grained 관측을 실용 가능하게 만듦.\n2. 필요한 하드웨어가 현대 superscalar에 **이미 있는 branch·exception 메커니즘**으로 대부분 충족된다.\n3. 하나의 primitive가 prefetching·performance monitoring·**context-switch-on-a-miss multithreading**·cache coherence를 전부 지원한다.\n\n★ 이 primitive가 30년 뒤 [[SkyByte]]의 \"SSD long stall을 CPU/OS에 알려 context switch\"로 부활한다.",
+      "original": {
+        "text": "we propose a new class of memory operations called informing memory operations, which essentially consist of a memory operation combined (either implicitly or explicitly) with a conditional branch-and-link operation that is taken only if the reference suffers a cache miss.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_006"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "processor$\\leftrightarrow$memory 속도 격차로 메모리 latency가 지배적 병목이 됐다 — uniprocessor에서 main memory 참조가 **50+ cycle**, multiprocessor는 더 크다.\n\n소프트웨어 기법(compiler prefetching, cache blocking, page migration)이 상황별로 성공했지만 **일반성이 제한**됐다. 근본 원인:\n\n**소프트웨어가 자기 자신의 메모리 동작을 직접 관측할 수 없다.** load/store 명령은 메모리 계층이 flat하던 시절 정의되어, branch와 달리 hit/miss를 알려주는 메커니즘이 없다.\n\n기존 하드웨어 모니터링은 둘 다 부적합:\n- **heavyweight**: 모니터링 정보 접근이 프로그램 동작을 크게 교란.\n- **coarse-grained**: 실제 동작의 요약만 제공(loop-level 등).\n\nPentium/R10000/Alpha의 performance counter조차 특정 참조 hit/miss를 알려면 참조 전후로 miss counter를 읽어야 해 극도로 느리고, out-of-order(R10000)에선 counter 접근이 **pipeline을 serialize**한다.",
+      "original": {
+        "text": "load and store instructions were defined when memory hierarchies were flat, and the abstraction they present to software is one of a uniform high-speed memory. Unlike branch instructions ... loads and stores offer no direct mechanism for software to determine if a particular reference was a hit or a miss.",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "children": [
+        "node_007",
+        "node_008"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "informing memory operation = **메모리 연산 + 그 hit/miss 신호에 predicate된 conditional branch-and-link**. hit이면 transfer-of-control이 nullify, miss이면 해당 참조 전용 코드로 제어 이동.\n\n세 가지 구현(§2):\n\n**1. Cache outcome condition code(§2.1)**: miss를 하나의 condition code로 만들고, 새 conditional branch-and-link 명령으로 직전 연산 결과를 검사. common case(hit)에 맞춰 **not-taken 예측**.\n\n**2. Squashed slot(§2.2 서두)**: hit이면 뒤따르는 slot 명령을 squash(delay-slot 방식) $\\rightarrow$ branch-and-link-if-miss. delay-slot 기피·복잡성으로 본문에선 제외.\n\n**3. Low-overhead cache miss trap(§2.2)**: primary data cache miss 시 OS를 거치지 않는 가벼운 user-space trap. 레지스터 둘 추가 — **MHAR**(handler 주소), **MHRR**(return 주소).\n\n구현(§3): in-order(Alpha 21164)는 기존 **replay trap** 재활용, out-of-order(MIPS R10000)는 **branch/exception 메커니즘** 재활용. 즉 필요한 HW가 대부분 이미 존재.",
+      "original": {
+        "text": "We can essentially decompose the informing memory mechanism into a memory operation and a conditional branch-and-link operation whose execution is predicated on the outcome of the memory operation's hit/miss signal.",
+        "location": "§2, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 600
+      },
+      "children": [
+        "node_009",
+        "node_010",
+        "node_011",
+        "node_012"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "14개 SPEC92 벤치마크를 cycle 단위로 시뮬레이션(MIPS R10000 out-of-order · Alpha 21164 in-order 기반).\n\n**오버헤드(§4.2)**: 1·10-instruction generic miss handler에서 tomcatv 제외 **12/13 벤치마크가 두 모델 모두 오버헤드 40% 미만**. 놀라운 점: 명령 수가 30%+ 늘어도(mdljsp2, alvinn) 실행시간은 **+1%**뿐 $\\rightarrow$ MHAR를 자주 바꾸는 기법(prefetching·multithreading·coherence)도 페널티 작음. su2cor만 예외(8KB direct-mapped cache의 심한 conflict). branch-처리 방식 > exception-처리 방식.\n\n**Coherence case study(§4.3)**: fine-grained access control로 cache coherence 구현. informing 방식이 두 baseline을 **항상** 능가 — ECC-based 대비 평균 **11%**, reference-checking 대비 **24%** 빠름.\n\n응용 스펙트럼(§4.1): software-controlled prefetching, performance monitoring, **context-switch-on-a-miss multithreading**, enforcing cache coherence.",
+      "original": {
+        "text": "for twelve of these thirteen benchmarks (all but tomcatv), the execution overhead of using informing memory operations is less than 40% under both processor models.",
+        "location": "§4.2.2, p.7-8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 900
+      },
+      "children": [
+        "node_013",
+        "node_014",
+        "node_015"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "informing memory operations = 소프트웨어가 자기 메모리 참조 동작을 **관측·반응하는 general primitive**. 두 구현(cache outcome condition code, low-overhead cache miss trap) 모두 현대 프로세서가 branch·exception 지원을 위해 **이미 가진 HW**로 대부분 충족된다.\n\n- **condition code**: HW 최소(miss 시 set되는 bit 하나)지만 실행파일 재컴파일/instrument 필요.\n- **low-overhead trap**: HW 약간 복잡하나 특수 컴파일러·에디터 없이 whole-system 모니터링 가능(소스 없는 상용 SW·OS 코드까지).\n\n**의의**: 성능 모니터링을 넘어 prefetching·multithreading·access control을 **하나의 primitive로** 지원 $\\rightarrow$ 기능마다 전용 HW를 넣는 것보다 경제적. 이 generality가 미래 프로세서의 매력이며 실제 HW에 등장하면 더 혁신적 사용을 촉발.\n\n★ **계보**: \"HW가 long-latency 이벤트를 SW에 알려 스케줄링으로 은닉\"이라는 co-design 원리가 여기서 시작해 [[SkyByte]]로 이어진다. 매체만 cache miss $\\rightarrow$ CXL-SSD stall로 바뀌었을 뿐 원리는 불변.",
+      "original": {
+        "text": "Informing memory operations are a general primitive for allowing software to observe and react to its own memory referencing behavior ... modern processors already contain the bulk of the necessary hardware support; it is used to support branches and exceptions.",
+        "location": "§5, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1200
+      },
+      "children": [
+        "node_016"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "claim",
+      "title": "관측성의 비대칭: branch는 관측 가능, load/store는 불가",
+      "content": "이 논문의 출발 통찰: **branch는 소프트웨어가 어느 경로를 갔는지 관측 가능**하지만, **load/store는 hit이었는지 miss였는지 알 방법이 없다**.\n\nload/store 명령의 추상화는 \"균일한 고속 메모리(uniform high-speed memory)\"라, 계층(cache$\\rightarrow$L2$\\rightarrow$DRAM)의 실제 동작이 소프트웨어에게 숨겨진다. informing operation은 이 비대칭을 없애 miss를 branch처럼 **관측·반응 가능**하게 만든다.\n\n결과적으로 소프트웨어는 \"프로세서가 원래 stall할 unexpected miss 구간\"에 handler 코드를 끼워 넣을 수 있다.",
+      "original": {
+        "text": "An informing memory operation lets software react differently to the unexpected case of the reference missing in the cache and execute handler code under the miss, when the processor could normally stall.",
+        "location": "§1, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": -60
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "claim",
+      "title": "기존 counter는 slow하고 pipeline을 serialize",
+      "content": "Pentium/R10000/Alpha 21064·21164는 reference·cache miss counter를 갖지만, **특정 참조**의 hit/miss를 알려면 그 참조 실행 전후로 miss counter 값을 읽어야 한다 $\\rightarrow$ 극도로 느리다.\n\n게다가 out-of-order 머신(R10000)에서는 counter 접근을 load/store 주위로 reorder하면 안 되고, 실제로 **counter 접근이 pipeline을 serialize**한다.\n\n즉 on-chip counter는 coarse-grained 요약엔 쓸 수 있어도, prefetching·context-switch 결정을 위한 **참조 단위(on-the-fly) 관측엔 부적합**하다. 이것이 informing operation의 직접 동기.",
+      "original": {
+        "text": "counter accesses in the R10000 serialize the pipeline.",
+        "location": "§1, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 240
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "reference",
+      "title": "선행/비교: Blizzard(access control) · HEP(multithreading) · 이전 TR",
+      "content": "이 논문의 좌표를 정하는 핵심 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **Informing Loads** [HMMS95] (Stanford TR, 1995) | 이 논문의 직전 technical report — squashed-slot 방식·monitoring 평가의 원출처 |\n| **Blizzard-S/E** [SFL+94] (ASPLOS'94) | fine-grained access control(ECC fault·per-reference check) — coherence case study의 baseline |\n| **HEP** [Smi81] | cache miss 시 context 전환하는 multithreading의 원류 |\n| **Non-Blocking Loads** [FJ94] (ISCA'94) | MSHR·lockup-free cache — cache-as-visible-state 구현 토대 |\n| **Compiler Prefetching** [MLG92] (ASPLOS'92) | software-controlled prefetching 표준(같은 저자 Mowry) |",
+      "original": {
+        "text": "Wisconsin's Blizzard systems implement fine-grained access control in parallel programs by instrumenting all shared data references or by modifying ECC fault handlers to detect when data is potentially shared by multiple processors.",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 400
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "method",
+      "title": "§2.1 Cache Outcome Condition Code",
+      "content": "모든 메모리 연산이 기본으로 informing이 되고, 하드웨어는 각 연산의 hit/miss를 **user-visible state에 기록**. 소프트웨어는 새 **conditional branch-and-link 명령**으로 직전 메모리 연산의 결과를 검사해, miss면 인코딩된 target 주소로 제어 이동.\n\n**HW 비용**: 대부분 base machine에 이미 있음(특히 condition code 지원 머신) — miss가 그냥 또 하나의 condition code가 되고, 그것을 저장할 HW + 적절한 bypassing/renaming만 추가.\n\n**오버헤드**: informing 연산마다 명령 1개(branch-and-link) 추가. common case(hit)에 최적화하려면 이 branch를 **not-taken으로 예측** $\\rightarrow$ mispredict 페널티는 miss case에만 적용. 강점은 단순함과, static 참조별로 고유 target을 줄 수 있는 유연성.",
+      "original": {
+        "text": "In our first method, all memory operations become informing memory operations by default. The hardware simply records hit/miss results of each data memory operation in user-visible state ... the cache miss simply becomes another condition code.",
+        "location": "§2.1, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "method",
+      "title": "§2.2 Low-Overhead Cache Miss Trap (MHAR / MHRR)",
+      "content": "explicit check 명령의 오버헤드마저 제거한다. primary data cache miss 시 **user space로 가는 저오버헤드 trap**을 유발 — hit case 오버헤드 잠재적 0.\n\n전통적 trap(OS로 context switch, 수백 cycle)을 피하고 conditional branch에 가깝게 설계: running application의 **PC만 바꾸고 OS 코드를 호출하지 않으며 user-visible 레지스터 하나만 저장**.\n\n두 레지스터 추가:\n- **MHAR (Miss Handler Address Register)**: miss 시 호출할 handler 명령 주소.\n- **MHRR (Miss Handler Return Register)**: trap 시 return 주소(miss난 연산 다음 명령) 기록.\n\nMHAR=0이면 trapping 비활성. 장점: MHAR를 모든 프로세스의 general handler로 default 설정하면 **컴파일러·에디터 없이 whole-system 모니터링**(소스 없는 SW·OS 코드까지).\n\n★ 이 MHAR/MHRR 기반 \"miss $\\rightarrow$ user handler\"가 [[SkyByte]]의 Long Delay Exception의 원형.",
+      "original": {
+        "text": "One register is the Miss Handler Address Register (MHAR), which contains the instruction address of the handler to invoke on an informing memory operation cache miss. The other register is the Miss Handler Return Register (MHRR), into which the return address is written when the trap occurs.",
+        "location": "§2.2, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 630
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "§3.1-3.2 구현: in-order replay trap · out-of-order branch/exception 재활용",
+      "content": "핵심 메시지: informing operation 구현에 필요한 HW는 **대부분 이미 있는 branch·exception 메커니즘**이다.\n\n**In-order (Alpha 21164)**: 4-issue, issue된 명령은 stall 불가라 어려운 상황을 **replay trap**으로 처리. 그중 하나가 이미 cache 관련(load가 hit 타이밍에 dependent 명령을 issue했는데 miss). 이 **동일 replay trap을 재활용** — informing 연산 직후 명령을 hit/miss 신호에 dependent로 표시하고 hit으로 예측, miss면 replay trap $\\rightarrow$ 재issue 대신 implicit branch-and-link issue(MHRR에 return 주소).\n\n**Out-of-order (MIPS R10000)**: branch(renaming shadow state) 또는 exception(graduation queue 최상단 대기)으로 구현 가능. branch 방식은 miss 오버헤드 낮지만 각 참조가 잠재적 branch가 되어 **shadow state $\\sim 3\\times$** 필요. exception 방식은 느리지만 HW는 매우 modest(reorder buffer가 miss 기록).",
+      "original": {
+        "text": "most of the necessary hardware mechanisms are the branch and exception mechanisms already present in current machines.",
+        "location": "§3.2, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 780
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "§3.3 Cache as Visible State (speculative load + MSHR 수명 연장)",
+      "content": "informing operation이 cache 상태를 소프트웨어에 노출하니 새 문제 발생: coherence 같은 응용은 \"새 line이 cache로 들어올 때마다 miss를 감지해 **access rights**를 검사\"해야 하므로 이 검사가 우회되면 안 된다.\n\n그런데 out-of-order 머신은 first-level cache를 **speculative**하게 갱신한다. squash된 speculative informing load가 조용히 cache를 갱신하면 안 됨.\n\n**해법**: speculative informing load가 miss로 cache를 갱신하는 건 허용(common case 최적화, 사실상 L2로 prefetch 효과)하되, load가 squash되면 그 line을 **invalidate**. 이를 위해 lockup-free cache의 **MSHR(Miss Status Handling Register) 수명을 연장**(명령이 squash 또는 graduate될 때까지 register 해제 지연). 시뮬레이션상 register 개수(8개)는 그대로 충분.",
+      "original": {
+        "text": "we must guarantee that the data updates the first-level cache only when the informing load operation commits ... we extend the lifetime of the Miss Status Handling Registers (MSHR).",
+        "location": "§3.3, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 930
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "result",
+      "title": "오버헤드: 12/13 벤치마크 <40%, 명령 30%↑에도 실행시간 1%↑",
+      "content": "14개 SPEC92, MIPS R10000·Alpha 21164 기반 cycle 단위 시뮬. 1·10-instruction generic handler.\n\n- tomcatv 제외 **12/13 벤치마크가 두 모델 모두 오버헤드 40% 미만**.\n- out-of-order에서 mdljsp2·alvinn은 **명령 수 30%+ 증가에도 실행시간 +1%**뿐 $\\rightarrow$ instruction-level parallelism이 추가 명령을 흡수. MHAR를 자주 바꾸는 기법도 페널티 작다는 뜻.\n- **su2cor** 예외: 8KB direct-mapped primary cache의 심한 conflict로 handler 빈발 $\\rightarrow$ 명령 수 5배, 실행시간 3배.\n- **branch-처리 > exception-처리**: compress에서 exception 방식이 1·10-instr handler 실행시간을 9%·7% 더 늘림.\n- out-of-order가 큰 handler(10 instr)에서 in-order보다 훨씬 유리(handler를 miss와 overlap).",
+      "original": {
+        "text": "the instruction count for both mdljsp2 and alvinn under the out-of-order model increases by over 30%, but the execution time only increases by 1%. This means that techniques that need to modify the MHAR frequently ... will not suffer much of a performance penalty.",
+        "location": "§4.2.2, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1030
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "result",
+      "title": "Case study: coherence — informing이 ECC 대비 11%, ref-check 대비 24% 빠름",
+      "content": "**fine-grained access control로 cache coherence** 구현(Blizzard-E 유사, ECC fault 대신 informing operation으로 block-level handler 호출). handler가 per-cache-line 보호 상태(INVALID/READONLY/READWRITE)를 조회해 read/write에 적절한지 판정.\n\n16-processor 시뮬. informing 방식이 두 baseline을 **항상 능가**:\n- **ECC-based(Blizzard-E) 대비 평균 11%** 빠름 $\\rightarrow$ coherence action time 개선(handler가 cache에 tightly-coupled).\n- **reference-checking(Blizzard-S) 대비 24%** 빠름 $\\rightarrow$ (no-coherence-action case에서) 모든 참조가 아니라 **cache miss에서만** lookup.\n\nTable 2: Informing = **33-cycle lookup**(6 pipe + 9 handler) / 25-cycle state change vs ECC = 250-cycle read-to-invalid. 더 작은 network latency·더 큰 primary cache일수록 informing 유리.",
+      "original": {
+        "text": "the informing memory scheme is an average of 11% faster than the ECC-based scheme, and 24% faster than the reference-checking scheme.",
+        "location": "§4.3.2, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1180
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "method",
+      "title": "§4.1.3 Context-Switch-on-a-Miss Multithreading (★ SkyByte의 조상)",
+      "content": "★ **SkyByte의 직계 조상 노드.** multithreading은 **cache miss 시점에 한 thread(context)에서 다른 context로 전환**해 memory latency를 은닉한다.\n\n기존 구현은 HW로 thread를 관리·전환했지만, informing operation은 **단일 miss handler가 (전부 소프트웨어 제어로) thread를 save/restart**하는 소프트웨어 기반 접근을 가능케 한다.\n\n두 최적화:\n1. primary가 아니라 **secondary cache miss에서만** switch 유발(static 예측 + dynamic 관측 조합으로 secondary miss 격리) — 짧은 miss엔 전환 안 함.\n2. register save/restore 오버헤드를 컴파일러 최적화(live register만 저장, thread별 register 정적 분할)나 HW 지원(SPARC register window류)으로 최소화.\n\n$\\rightarrow$ \"long-latency 이벤트를 SW에 알려 context를 전환\"이라는 이 아이디어가 [[SkyByte]]에서 \"SSD long stall $\\rightarrow$ context switch\"로 재현된다.",
+      "original": {
+        "text": "Multithreading tolerates memory latency by switching from one thread (or \"context\") to another at the start of a cache miss ... informing memory operations enable a software-based approach where a single miss handler could save and restart threads (all under software control) upon cache misses.",
+        "location": "§4.1.3, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1330
+      },
+      "children": [
+        "node_017"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "memo",
+      "title": "왜 general primitive가 전용 HW보다 나은가",
+      "content": "논문의 결론적 주장: commodity 프로세서마다 memory reference counting·multithreading·access control 각각을 위한 **별도 전용 HW를 넣는 것은 비경제적**이다.\n\ninforming memory operations는 branch·exception 지원용으로 이미 존재하는 HW 위에 얹혀, **하나의 basic primitive로 그 모든 응용을 지원**한다. 이 generality가 미래 프로세서에 매력적인 이유이며, 실제 HW에 등장하면 예상 못 한 innovative use를 촉발할 것.\n\n두 구현의 SW-side tradeoff:\n- **condition code**: HW 단순, 하지만 branch-on-cache-miss로 재컴파일/edit 필요.\n- **low-overhead trap**: HW 약간 복잡, 하지만 특수 컴파일러·에디터 없이(소스 없는 상용 SW·OS 코드까지) 모니터링.",
+      "original": {
+        "text": "While it may not be cost-effective for all commodity microprocessors to include separate support for memory reference counting, multithreading, access control mechanisms, etc., informing memory operations as proposed here provide basic hardware support that is general enough to apply to many such uniprocessor and multiprocessor applications.",
+        "location": "§5, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 520,
+        "y": 1500
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "memo",
+      "title": "계보: informing memory ops (1996) → SkyByte (2025)",
+      "content": "이 논문은 **\"하드웨어가 long-latency 이벤트를 소프트웨어에 알려, 소프트웨어가 스케줄링으로 대응한다\"**는 co-design primitive의 지적 뿌리다. [[SkyByte]]는 이 primitive를 CXL-SSD 시대로 옮겼다.\n\n| | Informing Memory Ops (ISCA'96) | SkyByte (HPCA'25) |\n|---|---|---|\n| 노출 이벤트 | primary **cache miss** | **SSD long stall**(NAND까지) |\n| 알림 메커니즘 | MHAR/MHRR low-overhead trap | NDR `SkyByte-Delay` opcode + **Long Delay Exception** |\n| SW 반응 | context-switch-on-a-miss(SW 스레드) | OS **context switch**로 stall 은닉 |\n| 목적 | µs 이하 miss 은닉 | µs급 SSD stall 은닉 |\n\n★ 매체만 cache miss $\\rightarrow$ CXL-SSD stall로 바뀌었을 뿐, **\"HW가 stall 이벤트를 노출 $\\rightarrow$ SW가 context를 전환\"** 원리는 30년간 불변. 내 \"SSD 이중역할 $\\times$ transparent co-design\" 축의 co-design 계보 출발점.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 1330
+      },
+      "children": [
+        "node_018"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "gap",
+      "title": "내 연구방향: informing을 multi-host coherence 이벤트로 확장",
+      "content": "이 논문의 informing 이벤트는 전부 **local**(자기 core의 cache miss)이고, coherence case study조차 각 node가 **자기 miss**를 informing할 뿐이다. MHAR/MHRR도 single address space·single core context 전제.\n\n내 방향(multi-node CXL coherence)은 이 primitive를 **multi-host**로 들어올린다. 여러 host가 공유 메모리를 coherent하게 볼 때:\n- **remote back-invalidation**(CXL 3.0 BI / HDM-DB): 다른 host의 write로 내 line이 무효화되는 것도 하나의 long-latency 이벤트다. 이를 어느 host의 스케줄러에 informing해야 하나?\n- **cross-host miss**: 원격 host의 cache/메모리로 내려가는 miss는 local miss보다 훨씬 길다 $\\rightarrow$ SkyByte식 context switch가 더 이득. 하지만 **누가 그 이벤트를 관측·통지**하나 (fabric? home agent?).\n- **MHAR의 multi-host화**: 단일 core 레지스터를 어떻게 directory/fabric 수준으로 일반화?\n\n즉 1996 \"miss $\\rightarrow$ local thread switch\", SkyByte \"SSD stall $\\rightarrow$ local context switch\"를, **\"remote invalidation/cross-host miss $\\rightarrow$ 원격 host 스케줄링 조정\"**으로 확장하는 것이 gap. $\\rightarrow$ [[CXL Multi-node Coherence]], [[CXL Overview]]",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1050,
+        "y": 1500
+      },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_001",
+      "target": "node_006",
+      "type": "line",
+      "label": "통찰"
+    },
+    {
+      "id": "edge_006",
+      "source": "node_002",
+      "target": "node_007",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_007",
+      "source": "node_002",
+      "target": "node_008",
+      "type": "line",
+      "label": "참고"
+    },
+    {
+      "id": "edge_008",
+      "source": "node_003",
+      "target": "node_009",
+      "type": "line",
+      "label": "구현1"
+    },
+    {
+      "id": "edge_009",
+      "source": "node_003",
+      "target": "node_010",
+      "type": "line",
+      "label": "구현3"
+    },
+    {
+      "id": "edge_010",
+      "source": "node_003",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_003",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_012",
+      "source": "node_004",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_013",
+      "source": "node_004",
+      "target": "node_014",
+      "type": "line",
+      "label": "case study"
+    },
+    {
+      "id": "edge_014",
+      "source": "node_004",
+      "target": "node_015",
+      "type": "line",
+      "label": "응용"
+    },
+    {
+      "id": "edge_015",
+      "source": "node_005",
+      "target": "node_016",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_016",
+      "source": "node_015",
+      "target": "node_017",
+      "type": "line",
+      "label": "계승"
+    },
+    {
+      "id": "edge_017",
+      "source": "node_005",
+      "target": "node_017",
+      "type": "line",
+      "label": "계보"
+    },
+    {
+      "id": "edge_018",
+      "source": "node_017",
+      "target": "node_018",
+      "type": "line",
+      "label": "내 연구"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

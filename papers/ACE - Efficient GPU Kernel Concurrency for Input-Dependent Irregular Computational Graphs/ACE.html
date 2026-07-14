@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACE: Efficient GPU Kernel Concurrency for Input-Dependent Irregular Computational Graphs</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">ACE: Efficient GPU Kernel Concurrency for Input-Dependent Irregular Computational Graphs</span>
+    <span id="tb-source">Sankeerth Durvasula, Adrian Zhao, Raymond Kiguru, Yushi Guan, Zhonghan Chen, Nandita Vijaykumar · PACT '24</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" style="--color:#4B8BBE;border-radius:2px;left:100px;top:250px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">작은 커널(small kernel)들로 인한 GPU underutilization</strong><br><br>딥 강화학습(deep RL) 물리 시뮬레이션 엔진과 dynamic DNN(입력에 따라 실행 경로가 달라지는 신경망)은 thread/thread block 수가 매우 적은 <strong style="font-size:1.1em">작은 커널</strong>들로 구성된다. 각 CTA가 서로 다른 시나리오를 시뮬레이션하기 때문에 큰 커널로 합치면 thread divergence가 커져서, 애플리케이션은 대신 짧고 많은 커널로 프로그래밍된다. 그 결과 achieved occupancy(활성 warp 비율)가 평균 34~39%에 불과해 GPU 컴퓨트 자원의 상당 부분(최대 65%)이 놀게 된다.<br><br>이 커널들 중 다수는 서로 <strong style="font-size:1.1em">독립적</strong>이어서 concurrent(동시) 실행이 가능하지만, 문제는 그 의존관계(computational graph)가 <strong style="font-size:1.1em">입력마다 runtime에만 결정</strong>된다는 점이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.258</span></summary>
+<div class="ng-orig-text">GPUs are widely used to accelerate many important classes of workloads today. However, in this work, we observe that several important emerging classes of workloads, including simulation engines for deep reinforcement learning and dynamic neural networks, are unable to fully utilize the massive parallelism that GPUs offer.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" style="--color:#4B8BBE;border-radius:2px;left:100px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">기존 방법들은 input-dependent + irregular 의존성을 다루지 못한다</strong><br><br>CUDA Graph / AMD ATMI 같은 DAG(directed acyclic graph) 프레임워크는 커널 간 의존성을 미리 정의된 그래프로 표현해 동시 실행을 가능케 하지만, 입력마다 <strong style="font-size:1.1em">전체 그래프를 새로 구축</strong>해야 하므로 준비 오버헤드(preparation overhead)가 크다. Multi-stream 방식은 그래프를 여러 스트림으로 수동 분할해야 하는데, 불규칙(irregular)한 의존성은 stream 경계에서 빈번한 동기화(synchronization)를 요구해 오버헤드가 크다. Persistent threads(PT)는 동질적 커널에서만 효과적이고, CUDA Dynamic Parallelism(CDP)/Device Enqueue(DE)는 부모-자식 1:1 의존성만 지원해 다중 부모 의존성을 표현하지 못한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.259</span></summary>
+<div class="ng-orig-text">The challenge with this approach is that the DAG needs to be constructed in full (with dependencies, kernel launches, and barriers determined) before the application is executed on the GPU, for each input.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" style="--color:#4B8BBE;border-radius:2px;left:100px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Scheduling window 안에서만 의존성을 검사하는 out-of-order kernel scheduling</strong><br><br>ACE의 핵심 아이디어는 CPU의 out-of-order 명령어 스케줄링(instruction scheduling)에서 착안해, 전체 computational graph 대신 이미 launch된 커널들 중 <strong style="font-size:1.1em">작은 고정 크기의 창(scheduling window)</strong> 안에서만 의존성 검사를 수행하는 것이다. 프로그래머/라이브러리 작성자가 각 커널의 read/write 메모리 세그먼트를 annotation으로 제공하면(ACE_wrapper), 런타임은 새 커널이 window에 들어올 때 겹침(overlap) 검사를 통해 upstream(선행) 커널을 식별하고, 그 upstream 리스트가 비면 즉시 ready로 표시해 동시 launch한다.<br><br>두 가지 구현: <strong style="font-size:1.1em">ACE-SW</strong>(순수 소프트웨어, CUDA stream 다중 스레드 런타임)와 <strong style="font-size:1.1em">ACE-HW</strong>(scheduling window 관리를 GPU 하드웨어 SRAM으로 옮겨 CPU-GPU 동기화를 줄이는 하드웨어-소프트웨어 협력 방식).</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.262</span></summary>
+<div class="ng-orig-text">With ACE, the key idea is to instead perform the dependence checking and scheduling within a small window of kernels at runtime similar to out-of-order instruction scheduling.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_004" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1150px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">실제 하드웨어 + GPU 시뮬레이터에서 최대 2.19배 속도 향상</strong><br><br>Intel 11700K + RTX3060(ACE-SW 실측)과 Accel-Sim 기반 RTX3070/RTX4090급 시뮬레이션(ACE-HW)으로 평가했다. Deep RL 물리 시뮬레이션(Brax), dynamic DNN(InstaNAS 등), static DNN(NASNet 등) 세 부류 모두에서 achieved occupancy와 실행 속도가 유의미하게 향상되었고, ACE-HW가 ACE-SW보다 일관되게 더 큰 이득을 보였다(커널 완료마다의 CPU 동기화가 없기 때문). CUDA Graph는 동적 워크로드에서는 그래프 구성 오버헤드로 오히려 slowdown, 정적 워크로드에서는 ACE와 대등했다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.258</span></summary>
+<div class="ng-orig-text">We demonstrate speedups of up to 2.19× (1.56× on average) by improving GPU utilization with concurrent kernel execution.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Host 개입을 &quot;줄이지만&quot; 완전히 없애지는 않는다</strong><br><br>ACE는 low-overhead runtime scheduling과 dependency check를 결합한 최초의 automatic concurrent execution 프레임워크라고 저자들은 주장한다. ACE-HW는 커널 완료-이벤트 단위의 CPU-GPU 동기화를 제거해 host 개입을 크게 줄이지만, CPU 소프트웨어 런타임(입력 FIFO 큐 관리, `scheduled_list` 대비 의존성 체크)은 여전히 필요하다. 또한 ACE가 다루는 의존성은 커널 간 <strong style="font-size:1.1em">메모리 read/write 겹침</strong>이라는 정적으로 판별 가능한 관계이며, 커널이 만들어낸 <strong style="font-size:1.1em">값 자체</strong>에 따라 분기하는 제어(예: LLM decode 루프의 EOS 판정)는 다루지 않는다 — 저자들도 dynamic batching/kernel fusion 등은 &quot;orthogonal to our approach&quot;라고 명시한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§8, p.269</span></summary>
+<div class="ng-orig-text">We introduce ACE, the first framework that enables automatic concurrent kernel execution with low overhead runtime scheduling and dependency checks.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#5C9E6E;border-radius:2px;left:620px;top:100px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">커널 크기 분포 (Case Study 1: Deep RL)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Brax 시뮬레이션 엔진(ant, human, ct, w2d, grasp 환경)에서 각 훈련 스텝은 물리 시뮬레이션 커널 수백만 번 launch를 필요로 한다(Fig.2). ant 환경 기준 커널의 약 <strong style="font-size:1.1em">40%가 CTA 9개 이하</strong>의 매우 작은 크기(Fig.4). 이는 각 thread가 서로 다른 시나리오를 담당해 divergence가 커서 큰 커널로 합칠 수 없는 &quot;fundamental problem&quot;이라고 저자들은 명시한다.<br><br>딥 RL 훈련 시간의 <strong style="font-size:1.1em">30~70%</strong>가 이 시뮬레이션(데이터 수집) 단계다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.1, p.260</span></summary>
+<div class="ng-orig-text">This is a fundamental problem, because each thread cannot be efficiently mapped into large kernels, since each thread simulates a different scenario, which leads to high thread divergence.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_007" style="--color:#9B59B6;border-radius:2px;left:620px;top:250px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Achieved Occupancy 수치</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Case</th><th>평균 achieved occupancy</th><th>최대 underutilization</th></tr></thead><tbody><tr><td>Deep RL 시뮬레이션 (Brax)</td><td>34%</td><td>최대 65%의 GPU 코어가 idle</td></tr><tr><td>Dynamic DNN (InstaNAS-A, RTX3060)</td><td>39%</td><td>신형 GPU(RTX4090, SM 수 多)일수록 더 심함</td></tr></tbody></table></div><div class="ng-seg"><br>Achieved occupancy = 클럭 사이클 평균 활성 warp 수 / 최대 지원 가능 활성 warp 수. 작은 커널은 CTA가 소수 SM에만 매핑되어 나머지 SM이 유휴 상태가 된다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§2.1, p.260</span></summary>
+<div class="ng-orig-text">we find that as much as 65% of the GPU cores are underutilized on average.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_008" style="--color:#5C9E6E;border-radius:2px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Dynamic DNN도 동일 문제 (Case Study 2)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">InstaNAS 같은 <strong style="font-size:1.1em">dynamic inference model</strong>은 입력 이미지에 따라 실행 경로(operation 조합)가 달라진다(Fig.5b, MBConv 블록). NAS(neural architecture search)로 FLOPs를 줄이도록 최적화된 conv 레이어는 필터가 작아 커널 자체가 작아진다. 이 서브셋 커널들 중 병렬화 가능한 것들이 존재하지만, 실행 경로가 입력마다 다르므로 어떤 커널들이 독립인지도 입력마다 다시 판단해야 한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.2, p.260</span></summary>
+<div class="ng-orig-text">With these dynamic inference models, the path of execution through the network is determined by the input. Thus, the computational graph is not known ahead of time.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_009" style="--color:#5C9E6E;border-radius:2px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">기존 스케줄링 기법 비교 (Table 1)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Method</th><th>Applicability (input-dep. 지원)</th><th>Sync+Launch Overhead</th><th>Preparation Overhead</th></tr></thead><tbody><tr><td>Multi-Stream</td><td>✓</td><td>✗ 큼</td><td>✓ 작음</td></tr><tr><td>DAG Frameworks (CUDA Graph/ATMI)</td><td>✓</td><td>✓ 작음</td><td>✗ 큼</td></tr><tr><td>Persistent Threads (PT)</td><td>✗ (동질적 커널만)</td><td>✓</td><td>✓</td></tr><tr><td>CDP / Device Enqueue</td><td>✗ (1:1 부모-자식만)</td><td>✗</td><td>✓</td></tr><tr><td><strong style="font-size:1.1em">ACE-SW</strong></td><td>✓</td><td>✗ (CPU sync 여전)</td><td>✓ 작음</td></tr><tr><td><strong style="font-size:1.1em">ACE-HW</strong></td><td>✓</td><td>✓ 작음</td><td>✓ 작음</td></tr></tbody></table></div><div class="ng-seg"><br>ACE-HW만 세 축 모두에서 우수 — 이것이 저자들이 두 구현을 모두 제시한 이유.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.262</span></summary>
+<div class="ng-orig-text">We summarize different approaches for parallel kernel scheduling in Table 1, in terms of applicability (whether input-dependent irregular workloads can be effectively mapped), synchronization/launch overheads and preparation overhead.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#E74C3C;border-radius:2px;left:620px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">DAG 구성 / 동기화 오버헤드가 지배적</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Brax 시뮬레이션에서 CUDA Graph 방식의 <strong style="font-size:1.1em">DAG 구성 시간이 전체 실행시간의 평균 47%</strong>(Fig.8)에 달한다 — 즉 매 입력마다 그래프를 새로 만드는 비용이 실제 계산 시간에 맞먹는다. Multi-stream + 이벤트 동기화 방식은 커널 launch + CPU 실행 + sync 오버헤드가 <strong style="font-size:1.1em">커널당 5~20µs</strong>(Fig.9) 수준으로, 커널 자체가 작을수록(수 µs) 상대적으로 더 치명적이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.3, p.261</span></summary>
+<div class="ng-orig-text">We observe that the time taken to construct the graph is exceedingly high (average of 47% of overall execution time).</div></details></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#95A5A6;border-radius:22px;left:620px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Baseline: CUDA Graph / ATMI / CDP</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">CUDA Graph[1] / AMD ATMI[2]</strong>: 커널 의존성을 DAG로 명시, ATMI는 64바이트 barrier packet을 command queue에 삽입해 의존 커널의 launch를 블록. 그러나 barrier packet은 GPU 내 실행 중인 커널의 현재 상태 정보를 담지 않아 추가적인 runtime reordering을 못한다.<br><br><strong style="font-size:1.1em">CDP[3] / Device Enqueue[7]</strong>: 부모 커널이 자식 커널을 device에서 직접 launch — 부모-자식 1:1 의존성만 표현 가능해, 다중 선행 커널에 의존하는 워크로드(RL sim, dynamic DNN)에는 부적합.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.259</span></summary>
+<div class="ng-orig-text">CUDA dynamic parallelism [3] (CDP) or AMD's device enqueue [7] (DE) enables parent kernels to launch child kernels, only allowing data dependencies between one parent and its children.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:700px;min-width:612px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Scheduling Window 컨셉</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">고정 개수(N)의 최근 launch된 커널만 window에 유지하며, 각 커널의 상태를 <strong style="font-size:1.1em">pending / ready / executing</strong> 세 가지로 추적한다. 새 커널이 window에 들어올 때 write segment를 window 내 다른 커널들의 read/write segment와 비교해 겹치면 upstream(선행) 리스트에 추가한다. 어떤 executing 커널이 완료되면 그 커널을 upstream으로 갖던 모든 커널의 리스트를 갱신하고, 리스트가 비면 ready로 표시해 즉시 concurrent launch한다.<br><br><span class="ng-img-missing">fig11_scheduling_window.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.262</span></summary>
+<div class="ng-orig-text">A fixed number of kernels in the original stream (scheduling window) are evaluated for dependencies. When a kernel completes execution, we evaluate which kernels within the scheduling window are now ready for execution.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:850px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">ACE-SW: 소프트웨어 전용 구현</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">애플리케이션 레벨 런타임으로, 두 모듈로 구성:<br><br>1. <strong style="font-size:1.1em">Window 모듈</strong>: 입력 FIFO 큐 관리 + Algorithm 1(read/write segment 겹침으로 의존성 판정) + 상태(pending/ready/executing) 갱신.<br>2. <strong style="font-size:1.1em">Scheduler 모듈</strong>: 설정 가능한 수의 스레드가 각각 독립 CUDA stream을 갖고, ready 커널을 poll해 launch한 뒤 `StreamSync`로 완료를 기다림(Algorithm 2, Fig.17).<br><br>프로그래머는 `ACE_wrapper`의 `get_addresses` 함수로 read/write segment만 정의하면 되고, CUDA 런타임이 kernel launch 직전에 이를 호출해 가상주소를 populate한다.<br><br><strong style="font-size:1.1em">한계</strong>: `StreamSync`가 스케줄러 스레드를 블로킹 — 즉 CPU가 커널 완료마다 여전히 개입.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, §4.2, p.259/264</span></summary>
+<div class="ng-orig-text">ACE-SW is implemented as a user-level runtime that is called by the application. ... ACE-SW however still incurs synchronization overheads from communication between the CPU and kernel launch.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1030px;min-width:612px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">ACE-HW: 하드웨어 협력 구현</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">Scheduling window 관리 자체를 GPU 하드웨어(SRAM, N개 슬롯, 슬롯당 8-bit kernel id + (N-1)개 upstream id + 2-bit 상태)로 옮긴다. CPU 소프트웨어 런타임은 여전히 입력 FIFO 큐 + `scheduled_list`(GPU 상태의 stale할 수 있는 CPU측 캐시)를 유지하며 의존성을 미리 계산해 GPU로 보내지만, <strong style="font-size:1.1em">GPU 내 upstream load module</strong>이 이 stale 정보를 스스로 정제(완료된 커널 제거, 최신 커널 반영)하고 ready 커널을 dispatch — 커널 완료 이벤트마다의 CPU 동기화가 사라진다.<br><br><span class="ng-img-missing">fig18_acehw_overview.png</span><br><br><span class="ng-img-missing">fig19_acehw_scheduling_module.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.262</span></summary>
+<div class="ng-orig-text">Our approach is specifically designed to mitigate this scheduling cost by avoiding direct communication from the GPU to the CPU, thereby reducing potential overheads.</div></details></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_015" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1180px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">오버헤드 분석 (§4.4)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-seg">- <strong style="font-size:1.1em">하드웨어 면적</strong>: window=32 기준 SRAM <strong style="font-size:1.1em">1KB</strong>(GPU 전체)<br>- <strong style="font-size:1.1em">메타데이터</strong>: read/write segment당 48비트(start address + size)<br>- <strong style="font-size:1.1em">메커니즘 지연</strong>: 슬롯 갱신 N-1 사이클, 커널 삽입 N 사이클 — window=64 기준 약 50~100ns, baseline kernel launch 오버헤드(수 µs)에 비해 무시할 만함<br>- <strong style="font-size:1.1em">CPU 측 의존성 체크</strong>: $T/P$ 이내에 처리되어야 유효 — 논문 추정치 $T/P \\approx 4\\mu s$<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Window size</th><th>RW-segments</th><th>Dependency check time</th></tr></thead><tbody><tr><td>16</td><td>6</td><td>410ns</td></tr><tr><td>16</td><td>10</td><td>700ns</td></tr><tr><td>32</td><td>6</td><td>510ns</td></tr><tr><td>32</td><td>10</td><td>1640ns</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§4.4, p.265</span></summary>
+<div class="ng-orig-text">Thus, ACE-HW adds negligible runtime to the application compared to the baseline kernel launch overhead (in the order of a few microseconds).</div></details></div>
+</div>
+<div class="ng-node" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:620px;top:1030px;min-width:612px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Deep RL 시뮬레이션 결과 (§6.1)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">- ACE-SW(실측 RTX3060): 최대 <strong style="font-size:1.1em">1.87배</strong><br>- ACE-HW(시뮬레이션): 최대 <strong style="font-size:1.1em">2.19배</strong><br>- CUDA Graph는 그래프 구성/전송 오버헤드로 오히려 <strong style="font-size:1.1em">slowdown</strong><br>- Window 크기를 16에서 32로 늘리면 Brax는 평균 4.5% 추가 향상(Fig.27) — RL 시뮬레이션은 inter-kernel parallelism이 풍부해 더 큰 window에서 이득을 계속 봄<br><br><span class="ng-img-missing">fig27_speedup_summary.png</span></div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1, p.266</span></summary>
+<div class="ng-orig-text">Second, ACE-HW is able to further improve performance compared to the software-only approach by alleviating the synchronization and kernel launch overheads.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_017" style="--color:#9B59B6;border-radius:2px;left:620px;top:1180px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Dynamic / Static DNN 결과 (§6.2–6.3)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">Dynamic DNN</strong>: ACE-HW 최대 1.39배, 평균 1.3배 / ACE-SW 평균 1.05배. I-NAS는 ACE-SW에서 오히려 느려짐 — 병렬화 시 커널 launch 오버헤드가 baseline(단일 스트림 순차 실행)에서는 숨겨져 있었기 때문.<br><br><strong style="font-size:1.1em">Static DNN</strong>: ACE-HW 평균 1.31배, ACE-SW 평균 1.16배. CUDA Graph와 거의 동일(정적 그래프라 DAG 구성 비용이 문제되지 않음) — 단 하나의 워크로드에서만 CUDA Graph가 근소 우위(전체 커널 범위 의존성 정보 활용 가능).<br><br><strong style="font-size:1.1em">민감도(§6.4)</strong>: window를 16에서 32로 확대해도 DNN에는 영향이 거의 없음 — DNN은 애초에 노출 가능한 inter-kernel parallelism 자체가 부족.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.2, p.267</span></summary>
+<div class="ng-orig-text">I-NAS suffers a slowdown with ACE-SW because this workload has significant kernel launch overheads when parallelized but are hidden in the baseline case where the kernels are simply launched serially into a single stream without synchronization.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#9B59B6;border-radius:2px;left:620px;top:1330px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">에너지 소비 (§6.5)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">실행시간 단축의 부산물로 에너지 절감도 관찰:<br><br>- ACE-HW: 평균 <strong style="font-size:1.1em">21.6%</strong> 절감<br>- ACE-SW: 평균 <strong style="font-size:1.1em">6.1%</strong> 절감<br><br>(모든 평가 워크로드 - Brax, Dynamic DNN, Static CNN - 평균)</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.5, p.267</span></summary>
+<div class="ng-orig-text">We observe energy savings of 21.6% on average on all workloads with ACE-HW, and 6.1% with ACE-SW as a result of the reduction in execution time.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1330px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Host 개입이 완전히 사라지지 않음</span>
+  </div>
+  <div class="ng-body"><div class="ng-content">ACE-HW조차 CPU 소프트웨어 런타임(입력 FIFO 큐 관리, `scheduled_list` 유지·의존성 사전계산)을 완전히 없애지 않는다. 사라지는 것은 <strong style="font-size:1.1em">&quot;커널 완료마다의 동기화&quot;</strong>뿐이고, <strong style="font-size:1.1em">&quot;커널을 큐에 넣고 의존성을 체크하는 주체로서의 host&quot;</strong>는 계속 CPU에 남아있다.<br><br>또한 ACE의 의존성 판정은 메모리 read/write <strong style="font-size:1.1em">주소 범위 겹침</strong>이라는 정적으로 결정 가능한(deterministic) 함수다 — 커널이 만들어낸 <strong style="font-size:1.1em">값</strong> 자체(예: 스칼라 결과)에 따라 분기하는 제어는 이 프레임으로 표현되지 않는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.265</span></summary>
+<div class="ng-orig-text">the software runtime performs dependency checks with the scheduled_list to determine the upstream kernels. Note that since the scheduled_list may be stale, this upstream list needs to be further updated before insertion into the scheduling window</div></details></div>
+</div>
+<div class="ng-node" id="node-node_020" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1480px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">H3 연결 메모</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">내 H3(GPU 옆 FPGA 제어 평면이 host의 kernel 스케줄링/launch 결정을 대신)와의 관계:<br><br>- <strong style="font-size:1.1em">align되는 부분</strong>: &quot;host-GPU 통신을 줄여 input-dependent 상황에서 GPU 활용도를 높인다&quot;는 큰 방향. ACE-HW가 scheduling window를 GPU 하드웨어로 옮긴 설계는 FPGA 제어 평면의 축소판처럼 보임.<br>- <strong style="font-size:1.1em">align되지 않는 부분</strong>: ACE의 의존성은 정적으로 판별 가능한 메모리 겹침 관계. 내가 표적으로 삼는 LLM <strong style="font-size:1.1em">decode 루프의 EOS 판정/continuous batching</strong>은 커널 실행 <strong style="font-size:1.1em">결과값</strong>에 따른 조건부 제어로, ACE의 프레임(read/write segment overlap)으로는 표현 불가능.<br>- 이 논문은 &quot;host 개입을 줄이는&quot; 사례이지 &quot;없애는&quot; 사례가 아님 — 정직하게 구분해서 인용할 것.</div></div>
+</div>
+<div class="ng-node" id="node-node_021" style="--color:#95A5A6;border-radius:22px;left:620px;top:1630px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Related Work: &quot;orthogonal&quot;한 기법들</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">저자들은 §7에서 dynamic batching, kernel fusion 등을 <strong style="font-size:1.1em">&quot;orthogonal to our approach&quot;</strong>라고 명시적으로 구분한다 — 즉 ACE는 이런 기법들과 결합 가능하지만 그 자체를 대체하지는 않는다는 뜻. 내 연구가 다루려는 LLM decode 제어(continuous batching 편입/이탈, KV 배치)가 바로 이 &quot;orthogonal&quot; 영역에 위치한다는 점이 흥미로운 근거가 될 수 있음.<br><br>또한 CPU task-based 스케줄링(task superscalar 등)과 비교하며 저자들은 &quot;CPU의 병목은 의존성 체크 지연, GPU의 병목은 launch/완료 신호 지연&quot;이라고 명확히 구분한다 — 이 구분이 H3에서 FPGA가 정확히 어떤 지연을 줄여야 하는지 설계할 때 참고할 만하다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7 / §1, p.269 / p.259</span></summary>
+<div class="ng-orig-text">The primary bottleneck in these applications is the long latency for dependency checks. ... The primary bottleneck with GPUs is the latency for launch/signal completion of kernels rather than dependence checking.</div></details></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":250,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":250,"searchText":"killer application **작은 커널(small kernel)들로 인한 gpu underutilization**\n\n딥 강화학습(deep rl) 물리 시뮬레이션 엔진과 dynamic dnn(입력에 따라 실행 경로가 달라지는 신경망)은 thread/thread block 수가 매우 적은 **작은 커널**들로 구성된다. 각 cta가 서로 다른 시나리오를 시뮬레이션하기 때문에 큰 커널로 합치면 thread divergence가 커져서, 애플리케이션은 대신 짧고 많은 커널로 프로그래밍된다. 그 결과 achieved occupancy(활성 warp 비율)가 평균 34~39%에 불과해 gpu 컴퓨트 자원의 상당 부분(최대 65%)이 놀게 된다.\n\n이 커널들 중 다수는 서로 **독립적**이어서 concurrent(동시) 실행이 가능하지만, 문제는 그 의존관계(computational graph)가 **입력마다 runtime에만 결정**된다는 점이다. gpus are widely used to accelerate many important classes of workloads today. however, in this work, we observe that several important emerging classes of workloads, including simulation engines for deep reinforcement learning and dynamic neural networks, are unable to fully utilize the massive parallelism that gpus offer."},{"id":"node_002","lx":100,"ly":550,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":550,"searchText":"필요한 이유 (why it's needed) **기존 방법들은 input-dependent + irregular 의존성을 다루지 못한다**\n\ncuda graph / amd atmi 같은 dag(directed acyclic graph) 프레임워크는 커널 간 의존성을 미리 정의된 그래프로 표현해 동시 실행을 가능케 하지만, 입력마다 **전체 그래프를 새로 구축**해야 하므로 준비 오버헤드(preparation overhead)가 크다. multi-stream 방식은 그래프를 여러 스트림으로 수동 분할해야 하는데, 불규칙(irregular)한 의존성은 stream 경계에서 빈번한 동기화(synchronization)를 요구해 오버헤드가 크다. persistent threads(pt)는 동질적 커널에서만 효과적이고, cuda dynamic parallelism(cdp)/device enqueue(de)는 부모-자식 1:1 의존성만 지원해 다중 부모 의존성을 표현하지 못한다. the challenge with this approach is that the dag needs to be constructed in full (with dependencies, kernel launches, and barriers determined) before the application is executed on the gpu, for each input."},{"id":"node_003","lx":100,"ly":850,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":850,"searchText":"해결책 (solution) **scheduling window 안에서만 의존성을 검사하는 out-of-order kernel scheduling**\n\nace의 핵심 아이디어는 cpu의 out-of-order 명령어 스케줄링(instruction scheduling)에서 착안해, 전체 computational graph 대신 이미 launch된 커널들 중 **작은 고정 크기의 창(scheduling window)** 안에서만 의존성 검사를 수행하는 것이다. 프로그래머/라이브러리 작성자가 각 커널의 read/write 메모리 세그먼트를 annotation으로 제공하면(ace_wrapper), 런타임은 새 커널이 window에 들어올 때 겹침(overlap) 검사를 통해 upstream(선행) 커널을 식별하고, 그 upstream 리스트가 비면 즉시 ready로 표시해 동시 launch한다.\n\n두 가지 구현: **ace-sw**(순수 소프트웨어, cuda stream 다중 스레드 런타임)와 **ace-hw**(scheduling window 관리를 gpu 하드웨어 sram으로 옮겨 cpu-gpu 동기화를 줄이는 하드웨어-소프트웨어 협력 방식). with ace, the key idea is to instead perform the dependence checking and scheduling within a small window of kernels at runtime similar to out-of-order instruction scheduling."},{"id":"node_004","lx":100,"ly":1150,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1150,"searchText":"결과 (results) **실제 하드웨어 + gpu 시뮬레이터에서 최대 2.19배 속도 향상**\n\nintel 11700k + rtx3060(ace-sw 실측)과 accel-sim 기반 rtx3070/rtx4090급 시뮬레이션(ace-hw)으로 평가했다. deep rl 물리 시뮬레이션(brax), dynamic dnn(instanas 등), static dnn(nasnet 등) 세 부류 모두에서 achieved occupancy와 실행 속도가 유의미하게 향상되었고, ace-hw가 ace-sw보다 일관되게 더 큰 이득을 보였다(커널 완료마다의 cpu 동기화가 없기 때문). cuda graph는 동적 워크로드에서는 그래프 구성 오버헤드로 오히려 slowdown, 정적 워크로드에서는 ace와 대등했다. we demonstrate speedups of up to 2.19× (1.56× on average) by improving gpu utilization with concurrent kernel execution."},{"id":"node_005","lx":100,"ly":1450,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1450,"searchText":"결론 (conclusion) **host 개입을 \"줄이지만\" 완전히 없애지는 않는다**\n\nace는 low-overhead runtime scheduling과 dependency check를 결합한 최초의 automatic concurrent execution 프레임워크라고 저자들은 주장한다. ace-hw는 커널 완료-이벤트 단위의 cpu-gpu 동기화를 제거해 host 개입을 크게 줄이지만, cpu 소프트웨어 런타임(입력 fifo 큐 관리, `scheduled_list` 대비 의존성 체크)은 여전히 필요하다. 또한 ace가 다루는 의존성은 커널 간 **메모리 read/write 겹침**이라는 정적으로 판별 가능한 관계이며, 커널이 만들어낸 **값 자체**에 따라 분기하는 제어(예: llm decode 루프의 eos 판정)는 다루지 않는다 — 저자들도 dynamic batching/kernel fusion 등은 \"orthogonal to our approach\"라고 명시한다. we introduce ace, the first framework that enables automatic concurrent kernel execution with low overhead runtime scheduling and dependency checks."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"커널 크기 분포 (case study 1: deep rl) brax 시뮬레이션 엔진(ant, human, ct, w2d, grasp 환경)에서 각 훈련 스텝은 물리 시뮬레이션 커널 수백만 번 launch를 필요로 한다(fig.2). ant 환경 기준 커널의 약 **40%가 cta 9개 이하**의 매우 작은 크기(fig.4). 이는 각 thread가 서로 다른 시나리오를 담당해 divergence가 커서 큰 커널로 합칠 수 없는 \"fundamental problem\"이라고 저자들은 명시한다.\n\n딥 rl 훈련 시간의 **30~70%**가 이 시뮬레이션(데이터 수집) 단계다. this is a fundamental problem, because each thread cannot be efficiently mapped into large kernels, since each thread simulates a different scenario, which leads to high thread divergence."},{"id":"node_007","lx":620,"ly":250,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":250,"searchText":"achieved occupancy 수치 | case | 평균 achieved occupancy | 최대 underutilization |\n|---|---|---|\n| deep rl 시뮬레이션 (brax) | 34% | 최대 65%의 gpu 코어가 idle |\n| dynamic dnn (instanas-a, rtx3060) | 39% | 신형 gpu(rtx4090, sm 수 多)일수록 더 심함 |\n\nachieved occupancy = 클럭 사이클 평균 활성 warp 수 / 최대 지원 가능 활성 warp 수. 작은 커널은 cta가 소수 sm에만 매핑되어 나머지 sm이 유휴 상태가 된다. we find that as much as 65% of the gpu cores are underutilized on average."},{"id":"node_008","lx":620,"ly":400,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"dynamic dnn도 동일 문제 (case study 2) instanas 같은 **dynamic inference model**은 입력 이미지에 따라 실행 경로(operation 조합)가 달라진다(fig.5b, mbconv 블록). nas(neural architecture search)로 flops를 줄이도록 최적화된 conv 레이어는 필터가 작아 커널 자체가 작아진다. 이 서브셋 커널들 중 병렬화 가능한 것들이 존재하지만, 실행 경로가 입력마다 다르므로 어떤 커널들이 독립인지도 입력마다 다시 판단해야 한다. with these dynamic inference models, the path of execution through the network is determined by the input. thus, the computational graph is not known ahead of time."},{"id":"node_009","lx":620,"ly":400,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"기존 스케줄링 기법 비교 (table 1) | method | applicability (input-dep. 지원) | sync+launch overhead | preparation overhead |\n|---|---|---|---|\n| multi-stream | ✓ | ✗ 큼 | ✓ 작음 |\n| dag frameworks (cuda graph/atmi) | ✓ | ✓ 작음 | ✗ 큼 |\n| persistent threads (pt) | ✗ (동질적 커널만) | ✓ | ✓ |\n| cdp / device enqueue | ✗ (1:1 부모-자식만) | ✗ | ✓ |\n| **ace-sw** | ✓ | ✗ (cpu sync 여전) | ✓ 작음 |\n| **ace-hw** | ✓ | ✓ 작음 | ✓ 작음 |\n\nace-hw만 세 축 모두에서 우수 — 이것이 저자들이 두 구현을 모두 제시한 이유. we summarize different approaches for parallel kernel scheduling in table 1, in terms of applicability (whether input-dependent irregular workloads can be effectively mapped), synchronization/launch overheads and preparation overhead."},{"id":"node_010","lx":620,"ly":550,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":550,"searchText":"dag 구성 / 동기화 오버헤드가 지배적 brax 시뮬레이션에서 cuda graph 방식의 **dag 구성 시간이 전체 실행시간의 평균 47%**(fig.8)에 달한다 — 즉 매 입력마다 그래프를 새로 만드는 비용이 실제 계산 시간에 맞먹는다. multi-stream + 이벤트 동기화 방식은 커널 launch + cpu 실행 + sync 오버헤드가 **커널당 5~20µs**(fig.9) 수준으로, 커널 자체가 작을수록(수 µs) 상대적으로 더 치명적이다. we observe that the time taken to construct the graph is exceedingly high (average of 47% of overall execution time)."},{"id":"node_011","lx":620,"ly":700,"children":[],"template":"reference","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":700,"searchText":"baseline: cuda graph / atmi / cdp **cuda graph[1] / amd atmi[2]**: 커널 의존성을 dag로 명시, atmi는 64바이트 barrier packet을 command queue에 삽입해 의존 커널의 launch를 블록. 그러나 barrier packet은 gpu 내 실행 중인 커널의 현재 상태 정보를 담지 않아 추가적인 runtime reordering을 못한다.\n\n**cdp[3] / device enqueue[7]**: 부모 커널이 자식 커널을 device에서 직접 launch — 부모-자식 1:1 의존성만 표현 가능해, 다중 선행 커널에 의존하는 워크로드(rl sim, dynamic dnn)에는 부적합. cuda dynamic parallelism [3] (cdp) or amd's device enqueue [7] (de) enables parent kernels to launch child kernels, only allowing data dependencies between one parent and its children."},{"id":"node_012","lx":620,"ly":700,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":700,"searchText":"scheduling window 컨셉 고정 개수(n)의 최근 launch된 커널만 window에 유지하며, 각 커널의 상태를 **pending / ready / executing** 세 가지로 추적한다. 새 커널이 window에 들어올 때 write segment를 window 내 다른 커널들의 read/write segment와 비교해 겹치면 upstream(선행) 리스트에 추가한다. 어떤 executing 커널이 완료되면 그 커널을 upstream으로 갖던 모든 커널의 리스트를 갱신하고, 리스트가 비면 ready로 표시해 즉시 concurrent launch한다.\n\n[[img:fig11_scheduling_window.png:580x226]] a fixed number of kernels in the original stream (scheduling window) are evaluated for dependencies. when a kernel completes execution, we evaluate which kernels within the scheduling window are now ready for execution."},{"id":"node_013","lx":620,"ly":850,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":850,"searchText":"ace-sw: 소프트웨어 전용 구현 애플리케이션 레벨 런타임으로, 두 모듈로 구성:\n\n1. **window 모듈**: 입력 fifo 큐 관리 + algorithm 1(read/write segment 겹침으로 의존성 판정) + 상태(pending/ready/executing) 갱신.\n2. **scheduler 모듈**: 설정 가능한 수의 스레드가 각각 독립 cuda stream을 갖고, ready 커널을 poll해 launch한 뒤 `streamsync`로 완료를 기다림(algorithm 2, fig.17).\n\n프로그래머는 `ace_wrapper`의 `get_addresses` 함수로 read/write segment만 정의하면 되고, cuda 런타임이 kernel launch 직전에 이를 호출해 가상주소를 populate한다.\n\n**한계**: `streamsync`가 스케줄러 스레드를 블로킹 — 즉 cpu가 커널 완료마다 여전히 개입. ace-sw is implemented as a user-level runtime that is called by the application. ... ace-sw however still incurs synchronization overheads from communication between the cpu and kernel launch."},{"id":"node_014","lx":620,"ly":1030,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1030,"searchText":"ace-hw: 하드웨어 협력 구현 scheduling window 관리 자체를 gpu 하드웨어(sram, n개 슬롯, 슬롯당 8-bit kernel id + (n-1)개 upstream id + 2-bit 상태)로 옮긴다. cpu 소프트웨어 런타임은 여전히 입력 fifo 큐 + `scheduled_list`(gpu 상태의 stale할 수 있는 cpu측 캐시)를 유지하며 의존성을 미리 계산해 gpu로 보내지만, **gpu 내 upstream load module**이 이 stale 정보를 스스로 정제(완료된 커널 제거, 최신 커널 반영)하고 ready 커널을 dispatch — 커널 완료 이벤트마다의 cpu 동기화가 사라진다.\n\n[[img:fig18_acehw_overview.png:580x258]]\n\n[[img:fig19_acehw_scheduling_module.png:580x272]] our approach is specifically designed to mitigate this scheduling cost by avoiding direct communication from the gpu to the cpu, thereby reducing potential overheads."},{"id":"node_015","lx":620,"ly":1180,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1180,"searchText":"오버헤드 분석 (§4.4) - **하드웨어 면적**: window=32 기준 sram **1kb**(gpu 전체)\n- **메타데이터**: read/write segment당 48비트(start address + size)\n- **메커니즘 지연**: 슬롯 갱신 n-1 사이클, 커널 삽입 n 사이클 — window=64 기준 약 50~100ns, baseline kernel launch 오버헤드(수 µs)에 비해 무시할 만함\n- **cpu 측 의존성 체크**: $t/p$ 이내에 처리되어야 유효 — 논문 추정치 $t/p \\\\approx 4\\\\mu s$\n\n| window size | rw-segments | dependency check time |\n|---|---|---|\n| 16 | 6 | 410ns |\n| 16 | 10 | 700ns |\n| 32 | 6 | 510ns |\n| 32 | 10 | 1640ns | thus, ace-hw adds negligible runtime to the application compared to the baseline kernel launch overhead (in the order of a few microseconds)."},{"id":"node_016","lx":620,"ly":1030,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1030,"searchText":"deep rl 시뮬레이션 결과 (§6.1) - ace-sw(실측 rtx3060): 최대 **1.87배**\n- ace-hw(시뮬레이션): 최대 **2.19배**\n- cuda graph는 그래프 구성/전송 오버헤드로 오히려 **slowdown**\n- window 크기를 16에서 32로 늘리면 brax는 평균 4.5% 추가 향상(fig.27) — rl 시뮬레이션은 inter-kernel parallelism이 풍부해 더 큰 window에서 이득을 계속 봄\n\n[[img:fig27_speedup_summary.png:580x233]] second, ace-hw is able to further improve performance compared to the software-only approach by alleviating the synchronization and kernel launch overheads."},{"id":"node_017","lx":620,"ly":1180,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1180,"searchText":"dynamic / static dnn 결과 (§6.2–6.3) **dynamic dnn**: ace-hw 최대 1.39배, 평균 1.3배 / ace-sw 평균 1.05배. i-nas는 ace-sw에서 오히려 느려짐 — 병렬화 시 커널 launch 오버헤드가 baseline(단일 스트림 순차 실행)에서는 숨겨져 있었기 때문.\n\n**static dnn**: ace-hw 평균 1.31배, ace-sw 평균 1.16배. cuda graph와 거의 동일(정적 그래프라 dag 구성 비용이 문제되지 않음) — 단 하나의 워크로드에서만 cuda graph가 근소 우위(전체 커널 범위 의존성 정보 활용 가능).\n\n**민감도(§6.4)**: window를 16에서 32로 확대해도 dnn에는 영향이 거의 없음 — dnn은 애초에 노출 가능한 inter-kernel parallelism 자체가 부족. i-nas suffers a slowdown with ace-sw because this workload has significant kernel launch overheads when parallelized but are hidden in the baseline case where the kernels are simply launched serially into a single stream without synchronization."},{"id":"node_018","lx":620,"ly":1330,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1330,"searchText":"에너지 소비 (§6.5) 실행시간 단축의 부산물로 에너지 절감도 관찰:\n\n- ace-hw: 평균 **21.6%** 절감\n- ace-sw: 평균 **6.1%** 절감\n\n(모든 평가 워크로드 - brax, dynamic dnn, static cnn - 평균) we observe energy savings of 21.6% on average on all workloads with ace-hw, and 6.1% with ace-sw as a result of the reduction in execution time."},{"id":"node_019","lx":620,"ly":1330,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1330,"searchText":"host 개입이 완전히 사라지지 않음 ace-hw조차 cpu 소프트웨어 런타임(입력 fifo 큐 관리, `scheduled_list` 유지·의존성 사전계산)을 완전히 없애지 않는다. 사라지는 것은 **\"커널 완료마다의 동기화\"**뿐이고, **\"커널을 큐에 넣고 의존성을 체크하는 주체로서의 host\"**는 계속 cpu에 남아있다.\n\n또한 ace의 의존성 판정은 메모리 read/write **주소 범위 겹침**이라는 정적으로 결정 가능한(deterministic) 함수다 — 커널이 만들어낸 **값** 자체(예: 스칼라 결과)에 따라 분기하는 제어는 이 프레임으로 표현되지 않는다. the software runtime performs dependency checks with the scheduled_list to determine the upstream kernels. note that since the scheduled_list may be stale, this upstream list needs to be further updated before insertion into the scheduling window"},{"id":"node_020","lx":620,"ly":1480,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1480,"searchText":"h3 연결 메모 내 h3(gpu 옆 fpga 제어 평면이 host의 kernel 스케줄링/launch 결정을 대신)와의 관계:\n\n- **align되는 부분**: \"host-gpu 통신을 줄여 input-dependent 상황에서 gpu 활용도를 높인다\"는 큰 방향. ace-hw가 scheduling window를 gpu 하드웨어로 옮긴 설계는 fpga 제어 평면의 축소판처럼 보임.\n- **align되지 않는 부분**: ace의 의존성은 정적으로 판별 가능한 메모리 겹침 관계. 내가 표적으로 삼는 llm **decode 루프의 eos 판정/continuous batching**은 커널 실행 **결과값**에 따른 조건부 제어로, ace의 프레임(read/write segment overlap)으로는 표현 불가능.\n- 이 논문은 \"host 개입을 줄이는\" 사례이지 \"없애는\" 사례가 아님 — 정직하게 구분해서 인용할 것. "},{"id":"node_021","lx":620,"ly":1630,"children":[],"template":"reference","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1630,"searchText":"related work: \"orthogonal\"한 기법들 저자들은 §7에서 dynamic batching, kernel fusion 등을 **\"orthogonal to our approach\"**라고 명시적으로 구분한다 — 즉 ace는 이런 기법들과 결합 가능하지만 그 자체를 대체하지는 않는다는 뜻. 내 연구가 다루려는 llm decode 제어(continuous batching 편입/이탈, kv 배치)가 바로 이 \"orthogonal\" 영역에 위치한다는 점이 흥미로운 근거가 될 수 있음.\n\n또한 cpu task-based 스케줄링(task superscalar 등)과 비교하며 저자들은 \"cpu의 병목은 의존성 체크 지연, gpu의 병목은 launch/완료 신호 지연\"이라고 명확히 구분한다 — 이 구분이 h3에서 fpga가 정확히 어떤 지연을 줄여야 하는지 설계할 때 참고할 만하다. the primary bottleneck in these applications is the long latency for dependency checks. ... the primary bottleneck with gpus is the latency for launch/signal completion of kernels rather than dependence checking."}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":""},{"source":"node_001","target":"node_007","type":"line","label":""},{"source":"node_001","target":"node_008","type":"line","label":""},{"source":"node_002","target":"node_009","type":"line","label":""},{"source":"node_002","target":"node_010","type":"line","label":""},{"source":"node_002","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_003","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_016","type":"line","label":""},{"source":"node_004","target":"node_017","type":"line","label":""},{"source":"node_004","target":"node_018","type":"line","label":""},{"source":"node_005","target":"node_019","type":"line","label":""},{"source":"node_005","target":"node_020","type":"line","label":""},{"source":"node_005","target":"node_021","type":"line","label":""},{"source":"node_013","target":"node_019","type":"line","label":""},{"source":"node_014","target":"node_019","type":"line","label":""}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

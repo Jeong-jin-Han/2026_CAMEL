@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Device-Side Execution Model for Multi-GPU Task Graphs</title>
+<!-- KaTeX for LaTeX rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+  onload="initKatex()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh}
+#toolbar{position:fixed;top:0;left:0;right:0;background:#ffffff;border-bottom:1px solid #d4d4d4;z-index:200;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#tb-row1{display:flex;align-items:baseline;gap:10px;padding:6px 12px 4px;border-bottom:1px solid #ececec;min-height:0}
+#tb-row2{display:flex;align-items:center;gap:6px;padding:3px 12px 4px}
+#tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
+button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
+button:hover{background:#e8e8e8;border-color:#aaa}
+.tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
+#viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
+#viewport.pan-drag{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+#wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
+.ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header:hover{background:rgba(0,0,0,.04)}
+.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
+.ng-img-wrap{margin:4px 0}
+.ng-table-wrap{overflow-x:auto;margin:6px 0}
+.ng-table{border-collapse:collapse;background:#fff;font-size:inherit;white-space:normal}
+.ng-table th{padding:5px 10px;border:1px solid #ddd;background:#f8f9fa;font-weight:600;text-align:left;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-table td{padding:5px 10px;border:1px solid #ddd;vertical-align:top;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+.ng-images{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.ng-img{max-width:100%;border-radius:3px;border:1px solid rgba(0,0,0,.1);display:block;cursor:zoom-in}
+.ng-img-sized{max-width:none}
+.ng-img-missing{font-size:10px;opacity:.4;padding:3px 6px;background:rgba(0,0,0,.05);border-radius:3px}
+details.ng-original{margin-top:6px}
+details.ng-original summary{cursor:pointer;opacity:.6;list-style:none;padding:2px 0;user-select:none;color:#555}
+details.ng-original summary::-webkit-details-marker{display:none}
+.ng-loc{opacity:.55;font-size:10px;margin-left:4px}
+.ng-orig-text{margin-top:4px;padding:5px 7px;background:rgba(0,0,0,.04);border-radius:3px;font-style:italic;line-height:1.5;color:#555;white-space:pre-wrap;word-break:break-word;font-size:11px}
+details.ng-toggle{margin-top:3px}
+details.ng-toggle summary{cursor:pointer;list-style:none;padding:2px 0;user-select:none;color:#444}
+details.ng-toggle summary::-webkit-details-marker{display:none}
+.ng-toggle-body{padding-left:12px;padding-top:3px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}
+.ng-links{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.ng-link{color:#0066cc;text-decoration:none;font-size:11px;opacity:.85}
+.ng-link:hover{opacity:1;text-decoration:underline}
+/* KaTeX */
+.katex{color:inherit}.katex-display{overflow-x:auto;overflow-y:hidden}.katex-html{white-space:nowrap}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.active{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;box-shadow:0 4px 32px rgba(0,0,0,.4);cursor:default}
+#lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:22px;opacity:.8;cursor:pointer;user-select:none}
+/* Search */
+#search-wrap{position:absolute;top:10px;right:14px;z-index:500;display:none}
+#search-wrap.open{display:block}
+#search-row{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+#search-row.dropdown-open{border-radius:6px 6px 0 0}
+#search-input{border:none;outline:none;font-size:13px;width:200px;background:transparent;color:#111}
+#search-count{font-size:11px;color:#6b7280;white-space:nowrap;min-width:60px;text-align:right}
+#search-drop{position:absolute;top:100%;right:0;min-width:100%;max-height:280px;overflow-y:auto;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 8px 16px rgba(0,0,0,0.15);z-index:501;display:none}
+#search-drop.open{display:block}
+.ng-drop-item{padding:6px 12px;font-size:12px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.ng-drop-item:last-child{border-bottom:none}
+.ng-drop-item:hover{background:#f3f4f6}
+.ng-node.ng-search-match{border:2px solid #fcd34d !important}
+.ng-node.ng-search-active{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,.18) !important}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="tb-row1">
+    <span id="tb-title">A Device-Side Execution Model for Multi-GPU Task Graphs</span>
+    <span id="tb-source">Ilyas Turimbetov, Mohamed Wahib, Didem Unat · ICS '25 (International Conference on Supercomputing)</span>
+  </div>
+  <div id="tb-row2">
+    <button onclick="fitView()">Fit View</button>
+    <div class="tb-sep"></div>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
+    <div class="tb-sep"></div>
+    <div class="tb-sep"></div>
+    <span id="tb-sel" style="opacity:.35">Click a node to select</span>
+  </div>
+</div>
+<div id="viewport">
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" placeholder="Search nodes… (Ctrl+F)" oninput="doSearch(this.value)" onkeydown="onSearchKey(event)" onclick="onSearchInputClick()">
+      <span id="search-count"></span>
+      <div style="width:1px;height:16px;background:#e5e7eb;margin:0 2px;flex-shrink:0"></div>
+      <button onclick="closeSearch()" title="Close (Escape)" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:13px;color:#6b7280;border-radius:3px;line-height:1">✕</button>
+    </div>
+    <div id="search-drop"></div>
+  </div>
+  <div id="canvas">
+    <svg id="wire-svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <div class="ng-node" id="node-node_001" style="--color:#4B8BBE;border-radius:2px;left:100px;top:220px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">핵심 성과</strong>: MUSTARD는 멀티-GPU·멀티노드에 걸친 <strong style="font-size:1.1em">정적(static) task graph</strong>를 실행할 때, host CPU를 그래프 <strong style="font-size:1.1em">초기화 1회</strong>에만 관여시키고 이후의 의존성 추적·데이터 전송·부하분산·커널 스케줄링을 전부 GPU 디바이스 측에서 수행하는 최초의 device-side 멀티노드 실행 모델이다.<br><br>기존 CUDA Graph 기반 접근은 프로그래머가 태스크를 수동으로 디바이스에 배정해야 했고(런타임 지식 없이), 그 결과 유휴 GPU가 있어도 특정 GPU에 부하가 몰리는 문제(Figure 1의 Task 7 사례)가 있었다. MUSTARD는 온라인 스케줄링으로 이 문제를 해결하면서도 CUDA Graphs 수준의 저오버헤드를 유지한다.<br><br><strong style="font-size:1.1em">결과</strong>: 64-GPU 멀티노드에서 SLATE 대비 평균 <strong style="font-size:1.1em">5.83배</strong>, 단일노드에서 LU 평균 <strong style="font-size:1.1em">1.66배</strong> / Cholesky 평균 <strong style="font-size:1.1em">1.29배</strong> 속도향상.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.384</span></summary>
+<div class="ng-orig-text">Mustard offers a clean solution for executing CUDA graphs across multiple GPUs on multiple nodes without requiring modifications to GPU kernel code or the adoption of new runtime mechanisms or APIs.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_002" style="--color:#4B8BBE;border-radius:2px;left:100px;top:520px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">기존 접근들의 한계</strong><br><br>1. <strong style="font-size:1.1em">CPU-managed 런타임</strong> (StarPU, PaRSEC, Legion): work-stealing 등으로 부하분산은 잘 하지만, host가 커널을 launch하고 런타임 컴포넌트를 계속 orchestrate해야 해서 오버헤드가 큼. StarPU는 GPU 전용 실행 대비 최대 13배 느림(§2.1 인용, 실측은 §5.1.2 Fig.5a: 4-GPU에서 16.95x slowdown).<br>2. <strong style="font-size:1.1em">CUDA Graphs / hipGraph</strong>: launch 오버헤드는 낮지만, <strong style="font-size:1.1em">부하분산과 GPU 간 통신 orchestration이 프로그래머 책임</strong>이고 <strong style="font-size:1.1em">단일 노드 내에서만 동작</strong>함.<br>3. <strong style="font-size:1.1em">Persistent megakernel</strong> (Juggler 등): device-side 실행이긴 하나 register pressure·thread divergence·하드웨어 스케줄러 미지원 문제가 있고, 멀티-GPU megakernel 구현은 존재하지 않음.<br><br><strong style="font-size:1.1em">핵심 스코프 선언</strong>: 이 논문은 처음부터 <strong style="font-size:1.1em">정적 그래프</strong>로 범위를 한정한다 — 그래프 구조 자체가 런타임에 바뀌는 동적(dynamic) 그래프는 다루지 않는다.</div><details class="ng-original" open><summary>Original <span class="ng-loc">§2, p.385</span></summary>
+<div class="ng-orig-text">This work focuses on static task graphs. Although dynamic graphs offer more flexibility by allowing changes in graph structure, most scientific, linear algebra and graph analytics applications can be expressed in form of a static graph.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_003" style="--color:#4B8BBE;border-radius:2px;left:100px;top:820px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">핵심 기법: Graph Enrichment</strong><br><br>&gt; &quot;The idea behind graph enrichment is to incorporate all the functionality required for task graph scheduling into the graph itself.&quot; (§3.1.1, p.387)<br><br>CUDA Graph의 원래 계산 정점 사이에 런타임 기능을 담당하는 보조 정점을 삽입한다:<br>- <strong style="font-size:1.1em">DU (Dependency Update)</strong>: 원격 디바이스의 의존성 카운터를 NVSHMEM atomic으로 감소<br>- <strong style="font-size:1.1em">DW (Dependency Wait)</strong>: busy-waiting으로 카운터가 0이 될 때까지 대기<br>- <strong style="font-size:1.1em">SP (Share Pointer) / RD (Read Data)</strong>: 디바이스 간 데이터 포인터 공유·읽기<br>- <strong style="font-size:1.1em">⊕/⊖ (Occupancy Increase/Decrease)</strong>: 디바이스 점유량(스레드/블록 수) 추적<br><br>이렇게 하면 런타임 로직이 <strong style="font-size:1.1em">그래프 구조 자체</strong>에 인코딩되어, host 없이 GPU가 자기 그래프를 그대로 실행하는 것만으로 스케줄링·통신·부하분산이 이뤄진다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1.1, p.387</span></summary>
+<div class="ng-orig-text">The idea behind graph enrichment is to incorporate all the functionality required for task graph scheduling into the graph itself.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_004" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1120px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">정량적 근거</strong><br><br>A100 GPU 8장 x 노드(최대 8노드=64 GPU), EPYC 7742 듀얼소켓, NVLink 3.0 환경에서:<br><br>- 스케줄링 오버헤드: 무연산 랜덤 그래프에서 멀티-GPU CUDA Graph 대비 최대 $50.48\times$ 개선(작은 그래프), 큰 그래프에서도 $1.69\times$<br>- 단일노드 LU/Cholesky: StarPU·SLATE를 항상 능가, cuSOLVER와 대등하거나 우세<br>- 멀티노드(최대 64 GPU): SLATE 대비 $2.81$–$8.28\times$, StarPU 대비 $4.75$–$75.2\times$<br><br>&gt; &quot;In the multi-node case, MUSTARD reaches performance close to the hardware's theoretical peak even on smaller matrices.&quot; (§1, p.385)</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.385</span></summary>
+<div class="ng-orig-text">In the multi-node case, MUSTARD reaches performance close to the hardware's theoretical peak even on smaller matrices.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_005" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1420px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">결론</strong>: MUSTARD는 host CPU의 개입 없이 부하분산과 통신 관리를 수행하는 최초의 device-side 멀티-GPU/멀티노드 task graph 실행 모델이다. 다만 이 모든 성과는 <strong style="font-size:1.1em">정적 그래프</strong>라는 명시적 스코프 안에서만 성립하며, 저자들도 미래 과제로 AMD ROCm 지원과 더 많은 응용 사례 확장만 언급할 뿐, <strong style="font-size:1.1em">동적 그래프 구조</strong>로의 확장은 논의하지 않는다.<br><br>이는 device-side 실행이 host 제어를 완전히 대체하는 시점이 '그래프 구조가 고정되어 있다'는 조건에 강하게 의존한다는 것을 보여준다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.395</span></summary>
+<div class="ng-orig-text">MUSTARD is designed for executing task graphs on multi-GPU systems, prioritizing load balancing and communication management without relying on host CPU control.</div></details></div>
+</div>
+<div class="ng-node" id="node-node_006" style="--color:#9B59B6;border-radius:2px;left:620px;top:100px;min-width:632px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Execution Timeline Comparison (Fig.1)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content">Figure 1: 같은 8-태스크 그래프를 3-GPU에 스케줄링하는 세 가지 방식의 실행 타임라인 비교.<br><br>1. <strong style="font-size:1.1em">런타임 시스템</strong>: 성능 모델/동적 할당으로 Task 7을 유휴 GPU에 배정할 수 있지만 오버헤드(진회색) 큼<br>2. <strong style="font-size:1.1em">CUDA Graph</strong>: 오버헤드는 적지만 프로그래머가 태스크 길이를 몰라 Task 7을 이미 바쁜 GPU0에 배정 $\rightarrow$ 최적이 아님<br>3. <strong style="font-size:1.1em">MUSTARD</strong>: 저오버헤드 + 온라인 스케줄링으로 Task 7을 유휴 GPU2에 배정 $\rightarrow$ 총 실행시간이 8~9에서 6~7 timestep으로 단축<br><br><span class="ng-img-missing">fig1_timelines.png</span></div></div>
+</div>
+<div class="ng-node" id="node-node_007" style="--color:#E74C3C;border-radius:2px;left:620px;top:340px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Headline Speedups</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">Headline 수치</strong><br><br>- 64-GPU 멀티노드: SLATE 대비 평균 $5.83\times$ 속도향상<br>- 단일노드 LU: 최고 baseline 대비 평균 $1.66\times$<br>- 단일노드 Cholesky: 최고 baseline 대비 평균 $1.29\times$<br>- 4-GPU 오버헤드 실험: StarPU 대비 $4.25\times$ 빠름 (StarPU 16.95x slowdown vs MUSTARD 6.17x)<br><br>&gt; &quot;MUSTARD reaches performance close to the hardware's theoretical peak even on smaller matrices.&quot; (§1, p.385)</div></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_008" style="--color:#5C9E6E;border-radius:2px;left:620px;top:400px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Landscape of Prior Approaches (Table 1)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-seg"><strong style="font-size:1.1em">Table 1 요약</strong> (p.386) — 기존 접근과 MUSTARD 비교<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Approach</th><th>Multi-GPU</th><th>Multi-node</th><th>CPU-free</th><th>Dynamic load balancing</th><th>Dynamic graphs</th><th>Static graphs</th></tr></thead><tbody><tr><td>StarPU</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>N</td></tr><tr><td>PaRSEC</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>N</td></tr><tr><td>Legion</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>N</td></tr><tr><td>CUDA Graphs</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>NA</td><td>Y</td></tr><tr><td>partitioned CUDA Graphs</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>NA</td><td>Y</td></tr><tr><td>Juggler (Megakernel)</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td>NA</td><td>N</td></tr><tr><td><strong style="font-size:1.1em">MUSTARD (ours)</strong></td><td>Y</td><td>Y</td><td>Y (small overhead)</td><td>Y</td><td>N</td><td>Y</td></tr></tbody></table></div><div class="ng-seg"><br>MUSTARD는 Multi-GPU/Multi-node/CPU-free/Dynamic load balancing을 모두 만족하는 유일한 행이지만, <strong style="font-size:1.1em">Dynamic graphs 열은 여전히 N</strong>.</div></div></div>
+</div>
+<div class="ng-node" id="node-node_009" style="--color:#1ABC9C;border-radius:22px;left:620px;top:550px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">CUDA Graphs' Single-Node Ceiling</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">CUDA Graphs의 근본적 한계</strong><br><br>&gt; &quot;load balancing and management of inter-GPU communications between multiple devices remains contingent on the programmer's decisions and is only possible within a single node&quot; (§2.2, p.386)<br><br>즉 CUDA Graph 자체가:<br>- 멀티노드를 지원하지 않음<br>- cudaSetDevice로 정점을 디바이스에 <strong style="font-size:1.1em">수동</strong> 배정해야 함<br>- 태스크 실행시간을 모른 채 정적으로 배정 $\rightarrow$ suboptimal scheduling (Figure 1의 Task 7 사례)<br><br>MUSTARD가 채우는 빈틈은 정확히 이 지점 — 하지만 <strong style="font-size:1.1em">그래프 구조가 아니라 그래프 위의 스케줄링</strong>만 동적으로 만든다.</div></div>
+</div>
+<div class="ng-node" id="node-node_010" style="--color:#BDC3C7;border-radius:22px;left:620px;top:700px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">StarPU Overhead Data Point</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">StarPU 오버헤드 실측치</strong><br><br>4-GPU 시스템에서:<br>- StarPU: single-GPU cudaGraph 대비 $16.95\times$ slowdown<br>- MUSTARD: $6.17\times$ slowdown<br>- $\rightarrow$ MUSTARD가 StarPU보다 $4.25\times$ 빠름<br><br>(Figure 5a, §5.1.2, p.392 — 무연산 랜덤 그래프에 대한 순수 스케줄링 오버헤드 실험)</div></div>
+</div>
+<div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:620px;top:640px;min-width:592px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Graph Enrichment: DU/DW/SP/RD Vertices (Fig.4)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">Enriched Graph 예시 (Figure 4, p.389)</strong><br><br>Figure 1의 8-태스크 그래프에 dependency/occupancy 추적용 정점을 삽입한 모습. 태스크들은 subgraph 단위(A~E)로 병합되어 device-side launch 대상이 된다.<br><br>- 각 계산 정점(0,2,3,5,6,8 등)은 ⊕(점유 증가) $\rightarrow$ 실행 $\rightarrow$ ⊖(점유 감소)로 감싸짐<br>- DU/SP가 붙은 정점은 원격 디바이스에 완료를 알리고 데이터 포인터를 공유<br>- RD 정점이 원격에서 공유된 데이터를 읽어옴<br><br><span class="ng-img-missing">fig4_enriched_graph.png</span></div></div>
+</div>
+<div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:620px;top:820px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Device-Side Graph Launch &amp; 120-Subgraph Limit</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">Device-Side Kernel Launch</strong><br><br>기존 방법들의 문제:<br>- <strong style="font-size:1.1em">Dynamic parallelism</strong>: 오버헤드 크고 divide-and-conquer 전용, CUDA 12에서야 재도입<br>- <strong style="font-size:1.1em">Persistent kernel / megakernel</strong>: 하드웨어 스케줄러 미사용, register pressure 가중<br><br>MUSTARD의 해법: <strong style="font-size:1.1em">device-side CUDA Graph launch</strong> — 이미 초기화된 cudaGraph를 실행 중인 GPU 커널(정점)에서 직접 launch.<br><br>&gt; &quot;device-side graph launch comes with a limitation, which requires the number of graphs submitted to a device to be no more than 120.&quot; (§3.2.2, p.389-390)<br><br>120개 미만이면 정점 하나하나가 별도 subgraph가 될 수 있지만, 초과 시 직렬/강결합 정점을 병합해야 하며 이 과정에서 병렬성이 줄어든다(§4 Limitations).</div></div>
+</div>
+<div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:620px;top:1000px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">GPU-Side Scheduler (Algorithm 2) + NVSHMEM</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">GPU-Side Scheduler (Algorithm 2, p.391)</strong><br><br>```<br>function SCHEDULER(Queue q, Subgraph[] S, Occupancy[] O, deviceID)<br>  while q.itemsDequeued != S.size:<br>    if !O[deviceID].isBusy():<br>      sID = q.dequeue()<br>      cudaGraphLaunch(S[sID])<br>```<br><br>각 디바이스가 자신의 큐에서 준비된 subgraph를 dequeue해 device-side launch로 실행하는 초경량 스케줄러. 큐는 Broker queue를 NVSHMEM atomic으로 재구현해 멀티-GPU에서도 consistent하게 유지.<br><br><strong style="font-size:1.1em">멀티노드 통신</strong>: 노드 내에서는 cudaMemcpy, 노드 간에는 <strong style="font-size:1.1em">NVSHMEM</strong>을 사용해 GPU가 host 개입 없이 직접 D2D 전송.</div></div>
+</div>
+<div class="ng-node" id="node-node_014" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1150px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Why NVSHMEM Atomics for Cross-Node Deps</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">설계 결정: 왜 NVSHMEM atomic인가</strong><br><br>의존성 카운터 갱신이 여러 컴퓨트 노드에 걸쳐 정확한 순서로 이뤄져야 함. CUDA Cooperative Groups는 커널 내부(단일 디바이스) 동기화만 지원하고, cudaDeviceSynchronize()는 host 측에서만 호출 가능해 device-side 스케줄링과 맞지 않음.<br><br>NVSHMEM은 <strong style="font-size:1.1em">디바이스 코드 안에서</strong> 원격 GPU 메모리에 원자적으로 접근할 수 있게 해줘서, host 왕복 없이 멀티노드 의존성 갱신(DU$\rightarrow$DW)을 가능하게 하는 유일한 실용적 선택이었음(§3.1.2, p.388).</div></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_015" style="--color:#9B59B6;border-radius:2px;left:620px;top:970px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Overhead Reduction vs CUDA Graph (Table 2 / Fig.5)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-seg"><strong style="font-size:1.1em">오버헤드 비교 (Table 2, Figure 5, p.392)</strong><br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th># vertices</th><th>Single-GPU CUDA Graph (ms)</th><th>Multi-GPU CUDA Graph (ms)</th><th>MUSTARD (ms)</th><th>Improvement</th></tr></thead><tbody><tr><td>$2^8$</td><td>0.204</td><td>25.026</td><td>0.501</td><td>$50.48\times$</td></tr><tr><td>$2^{10}$</td><td>0.877</td><td>57.214</td><td>2.641</td><td>$21.63\times$</td></tr><tr><td>$2^{12}$</td><td>3.703</td><td>145.966</td><td>17.273</td><td>$8.45\times$</td></tr><tr><td>$2^{14}$</td><td>18.639</td><td>453.530</td><td>269.057</td><td>$1.69\times$</td></tr></tbody></table></div><div class="ng-seg"><br>그래프가 커질수록 개선폭이 줄어드는데, 이는 dependency wait 정점이 warp의 상당 비율을 차지하게 되기 때문(본문 설명).</div></div></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:620px;top:1120px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Multi-Node Scaling: up to 64 GPUs (Table 5 / Fig.8)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-seg"><strong style="font-size:1.1em">멀티노드 스케일링 (Table 5, Figure 8, p.394-395)</strong><br><br>120,000x120,000 행렬, 최대 8노드(64 A100 GPU):<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>노드 수</th><th>StarPU (TFLOPS)</th><th>SLATE (TFLOPS)</th><th>MUSTARD (TFLOPS)</th></tr></thead><tbody><tr><td>1x8GPU</td><td>4.9</td><td>24.5</td><td>96.3</td></tr><tr><td>2x8GPU</td><td>4.5</td><td>37.9</td><td>194.3</td></tr><tr><td>4x8GPU</td><td>4.7</td><td>46.6</td><td>327.3</td></tr><tr><td>8x8GPU</td><td>6.1</td><td>55.7</td><td>461.6</td></tr></tbody></table></div><div class="ng-seg"><br>SLATE 대비 $2.81$–$8.28\times$, StarPU 대비 $4.75$–$75.2\times$ 속도향상. 단, 이 멀티노드 결과는 <strong style="font-size:1.1em">정적 파티셔닝</strong>이며 동적 부하분산은 포함하지 않음(§4).</div></div></div>
+</div>
+<div class="ng-node ng-has-table" id="node-node_017" style="--color:#9B59B6;border-radius:2px;left:620px;top:1270px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Single-Node LU/Cholesky vs cuSOLVER/SLATE/StarPU (Table 3-4)</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><div class="ng-seg"><strong style="font-size:1.1em">단일노드 LU/Cholesky (Table 3-4, p.393-394)</strong><br><br>LU 분해: $$A = LU$$ (하삼각 $L$과 상삼각 $U$의 곱)<br><br>Cholesky 분해: $$A = LL^T$$ ($A$가 대칭일 때)<br><br>8-GPU, 60000x60000 행렬 기준 (단일-GPU cuSolverGetrf/Potrf 대비 speedup):<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th></th><th>LU</th><th>Cholesky</th></tr></thead><tbody><tr><td>MUSTARD</td><td>$4.164\times$</td><td>$2.728\times$</td></tr><tr><td>cuSmGF (fine-tiled)</td><td>$3.856\times$</td><td>$3.185\times$ (최고)</td></tr><tr><td>SLATE</td><td>$0.049\times$</td><td>$1.657\times$</td></tr><tr><td>StarPU</td><td>$0.278\times$</td><td>$0.386\times$</td></tr></tbody></table></div><div class="ng-seg"><br>LU에서는 MUSTARD가 최고 성능, Cholesky에서는 세밀 타일링된 cuSOLVER(cuSmGF)가 근소하게 앞섬 — MUSTARD는 성능 모델·수동 타일링 없이도 대등한 성능을 낸다는 것이 핵심 주장.</div></div></div>
+</div>
+<div class="ng-node" id="node-node_018" style="--color:#E74C3C;border-radius:2px;left:620px;top:1300px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Near Theoretical Peak, Host-Free</span>
+  </div>
+  <div class="ng-body" style="display:none"><div class="ng-content"><strong style="font-size:1.1em">&quot;Host-free, near-peak&quot; 주장</strong><br><br>&gt; &quot;MUSTARD is designed for executing task graphs on multi-GPU systems, prioritizing load balancing and communication management without relying on host CPU control.&quot; (§6, p.395)<br><br>실험적으로 뒷받침: 멀티노드에서 하드웨어 이론적 peak에 근접(§1, p.385), 작은 행렬에서도 이 효율 유지. 즉 device-side 실행이 <strong style="font-size:1.1em">오버헤드 관점에서는</strong> host 개입을 거의 완전히 대체했다는 근거.</div></div>
+</div>
+<div class="ng-node" id="node-node_019" style="--color:#1ABC9C;border-radius:22px;left:620px;top:1450px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Static-Only Scope &amp; No Cross-Node Dynamic Load Balancing</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">남은 한계: 정적 스코프 + 노드 간 동적 부하분산 불가</strong><br><br>&gt; &quot;In MUSTARD, multi-node execution is only possible without dynamic load balancing.&quot; (§4, p.391)<br><br>- 그래프 구조가 런타임에 바뀌는 <strong style="font-size:1.1em">동적 그래프</strong>는 명시적으로 스코프 밖<br>- 멀티노드에서는 <strong style="font-size:1.1em">정적 파티셔닝만</strong> 가능 — 노드 간 동적 재배치는 불가<br>- device-side graph launch 자체가 디바이스당 <strong style="font-size:1.1em">최대 120 subgraph</strong>로 제한<br><br>이 세 지점이 이 논문이 스스로 인정한 미해결 영역.</div></div>
+</div>
+<div class="ng-node" id="node-node_020" style="--color:#BDC3C7;border-radius:22px;left:620px;top:1600px">
+  <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">H3 Connection: Software Per-GPU Scheduler vs FPGA Control Plane</span>
+  </div>
+  <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">H3(GPU당 FPGA 제어 평면 가설)과의 관계</strong><br><br>MUSTARD의 멀티-GPU 확장은 이미 &quot;GPU마다 독립적인 스케줄러 커널이 자기 큐를 처리하고, NVSHMEM으로 GPU 간 직접 통신&quot;하는 <strong style="font-size:1.1em">분산 제어 구조</strong>를 소프트웨어로 구현하고 있다 — 이는 H3가 상상한 &quot;GPU당 독립 제어 평면&quot;과 거시적으로 유사.<br><br>하지만 결정적 차이: MUSTARD의 제어 루프는 <strong style="font-size:1.1em">GPU 자신의 SM/스레드 자원</strong>을 점유하는 커널인 반면, H3는 GPU 컴퓨팅 자원과 <strong style="font-size:1.1em">분리된 전용 하드웨어(FPGA)</strong>를 제안. 또한 MUSTARD는 그래프 구조가 고정된 정적 그래프만 다루는 반면, H3가 겨냥하는 데이터-의존적 동적 분기(LLM decode의 EOS 판정 등)는 이 논문의 스코프 밖에 명시적으로 남아 있음 — 과장 없이 말하면, MUSTARD는 H3의 경쟁작이 아니라 H3가 아직 비어 있는 지점에 정확히 서 있음을 확인해주는 참고점.</div></div>
+</div>
+  </div>
+</div>
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" onclick="event.stopPropagation()" src="" alt="">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+</div>
+<script>
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":220,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":220,"searchText":"killer application **핵심 성과**: mustard는 멀티-gpu·멀티노드에 걸친 **정적(static) task graph**를 실행할 때, host cpu를 그래프 **초기화 1회**에만 관여시키고 이후의 의존성 추적·데이터 전송·부하분산·커널 스케줄링을 전부 gpu 디바이스 측에서 수행하는 최초의 device-side 멀티노드 실행 모델이다.\n\n기존 cuda graph 기반 접근은 프로그래머가 태스크를 수동으로 디바이스에 배정해야 했고(런타임 지식 없이), 그 결과 유휴 gpu가 있어도 특정 gpu에 부하가 몰리는 문제(figure 1의 task 7 사례)가 있었다. mustard는 온라인 스케줄링으로 이 문제를 해결하면서도 cuda graphs 수준의 저오버헤드를 유지한다.\n\n**결과**: 64-gpu 멀티노드에서 slate 대비 평균 **5.83배**, 단일노드에서 lu 평균 **1.66배** / cholesky 평균 **1.29배** 속도향상. mustard offers a clean solution for executing cuda graphs across multiple gpus on multiple nodes without requiring modifications to gpu kernel code or the adoption of new runtime mechanisms or apis."},{"id":"node_002","lx":100,"ly":520,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":520,"searchText":"필요한 이유 (why it's needed) **기존 접근들의 한계**\n\n1. **cpu-managed 런타임** (starpu, parsec, legion): work-stealing 등으로 부하분산은 잘 하지만, host가 커널을 launch하고 런타임 컴포넌트를 계속 orchestrate해야 해서 오버헤드가 큼. starpu는 gpu 전용 실행 대비 최대 13배 느림(§2.1 인용, 실측은 §5.1.2 fig.5a: 4-gpu에서 16.95x slowdown).\n2. **cuda graphs / hipgraph**: launch 오버헤드는 낮지만, **부하분산과 gpu 간 통신 orchestration이 프로그래머 책임**이고 **단일 노드 내에서만 동작**함.\n3. **persistent megakernel** (juggler 등): device-side 실행이긴 하나 register pressure·thread divergence·하드웨어 스케줄러 미지원 문제가 있고, 멀티-gpu megakernel 구현은 존재하지 않음.\n\n**핵심 스코프 선언**: 이 논문은 처음부터 **정적 그래프**로 범위를 한정한다 — 그래프 구조 자체가 런타임에 바뀌는 동적(dynamic) 그래프는 다루지 않는다. this work focuses on static task graphs. although dynamic graphs offer more flexibility by allowing changes in graph structure, most scientific, linear algebra and graph analytics applications can be expressed in form of a static graph."},{"id":"node_003","lx":100,"ly":820,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":820,"searchText":"해결책 (solution) **핵심 기법: graph enrichment**\n\n> \"the idea behind graph enrichment is to incorporate all the functionality required for task graph scheduling into the graph itself.\" (§3.1.1, p.387)\n\ncuda graph의 원래 계산 정점 사이에 런타임 기능을 담당하는 보조 정점을 삽입한다:\n- **du (dependency update)**: 원격 디바이스의 의존성 카운터를 nvshmem atomic으로 감소\n- **dw (dependency wait)**: busy-waiting으로 카운터가 0이 될 때까지 대기\n- **sp (share pointer) / rd (read data)**: 디바이스 간 데이터 포인터 공유·읽기\n- **⊕/⊖ (occupancy increase/decrease)**: 디바이스 점유량(스레드/블록 수) 추적\n\n이렇게 하면 런타임 로직이 **그래프 구조 자체**에 인코딩되어, host 없이 gpu가 자기 그래프를 그대로 실행하는 것만으로 스케줄링·통신·부하분산이 이뤄진다. the idea behind graph enrichment is to incorporate all the functionality required for task graph scheduling into the graph itself."},{"id":"node_004","lx":100,"ly":1120,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1120,"searchText":"결과 (results) **정량적 근거**\n\na100 gpu 8장 x 노드(최대 8노드=64 gpu), epyc 7742 듀얼소켓, nvlink 3.0 환경에서:\n\n- 스케줄링 오버헤드: 무연산 랜덤 그래프에서 멀티-gpu cuda graph 대비 최대 $50.48\\times$ 개선(작은 그래프), 큰 그래프에서도 $1.69\\times$\n- 단일노드 lu/cholesky: starpu·slate를 항상 능가, cusolver와 대등하거나 우세\n- 멀티노드(최대 64 gpu): slate 대비 $2.81$–$8.28\\times$, starpu 대비 $4.75$–$75.2\\times$\n\n> \"in the multi-node case, mustard reaches performance close to the hardware's theoretical peak even on smaller matrices.\" (§1, p.385) in the multi-node case, mustard reaches performance close to the hardware's theoretical peak even on smaller matrices."},{"id":"node_005","lx":100,"ly":1420,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1420,"searchText":"결론 (conclusion) **결론**: mustard는 host cpu의 개입 없이 부하분산과 통신 관리를 수행하는 최초의 device-side 멀티-gpu/멀티노드 task graph 실행 모델이다. 다만 이 모든 성과는 **정적 그래프**라는 명시적 스코프 안에서만 성립하며, 저자들도 미래 과제로 amd rocm 지원과 더 많은 응용 사례 확장만 언급할 뿐, **동적 그래프 구조**로의 확장은 논의하지 않는다.\n\n이는 device-side 실행이 host 제어를 완전히 대체하는 시점이 '그래프 구조가 고정되어 있다'는 조건에 강하게 의존한다는 것을 보여준다. mustard is designed for executing task graphs on multi-gpu systems, prioritizing load balancing and communication management without relying on host cpu control."},{"id":"node_006","lx":620,"ly":100,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"execution timeline comparison (fig.1) figure 1: 같은 8-태스크 그래프를 3-gpu에 스케줄링하는 세 가지 방식의 실행 타임라인 비교.\n\n1. **런타임 시스템**: 성능 모델/동적 할당으로 task 7을 유휴 gpu에 배정할 수 있지만 오버헤드(진회색) 큼\n2. **cuda graph**: 오버헤드는 적지만 프로그래머가 태스크 길이를 몰라 task 7을 이미 바쁜 gpu0에 배정 $\\rightarrow$ 최적이 아님\n3. **mustard**: 저오버헤드 + 온라인 스케줄링으로 task 7을 유휴 gpu2에 배정 $\\rightarrow$ 총 실행시간이 8~9에서 6~7 timestep으로 단축\n\n[[img:fig1_timelines.png:600x407]] "},{"id":"node_007","lx":620,"ly":340,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":340,"searchText":"headline speedups **headline 수치**\n\n- 64-gpu 멀티노드: slate 대비 평균 $5.83\\times$ 속도향상\n- 단일노드 lu: 최고 baseline 대비 평균 $1.66\\times$\n- 단일노드 cholesky: 최고 baseline 대비 평균 $1.29\\times$\n- 4-gpu 오버헤드 실험: starpu 대비 $4.25\\times$ 빠름 (starpu 16.95x slowdown vs mustard 6.17x)\n\n> \"mustard reaches performance close to the hardware's theoretical peak even on smaller matrices.\" (§1, p.385) "},{"id":"node_008","lx":620,"ly":400,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"landscape of prior approaches (table 1) **table 1 요약** (p.386) — 기존 접근과 mustard 비교\n\n| approach | multi-gpu | multi-node | cpu-free | dynamic load balancing | dynamic graphs | static graphs |\n|---|---|---|---|---|---|---|\n| starpu | y | y | n | y | y | n |\n| parsec | y | y | n | y | y | n |\n| legion | y | y | n | y | y | n |\n| cuda graphs | n | n | y | n | na | y |\n| partitioned cuda graphs | y | n | y | n | na | y |\n| juggler (megakernel) | n | n | y | y | na | n |\n| **mustard (ours)** | y | y | y (small overhead) | y | n | y |\n\nmustard는 multi-gpu/multi-node/cpu-free/dynamic load balancing을 모두 만족하는 유일한 행이지만, **dynamic graphs 열은 여전히 n**. "},{"id":"node_009","lx":620,"ly":550,"children":[],"template":"gap","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":550,"searchText":"cuda graphs' single-node ceiling **cuda graphs의 근본적 한계**\n\n> \"load balancing and management of inter-gpu communications between multiple devices remains contingent on the programmer's decisions and is only possible within a single node\" (§2.2, p.386)\n\n즉 cuda graph 자체가:\n- 멀티노드를 지원하지 않음\n- cudasetdevice로 정점을 디바이스에 **수동** 배정해야 함\n- 태스크 실행시간을 모른 채 정적으로 배정 $\\rightarrow$ suboptimal scheduling (figure 1의 task 7 사례)\n\nmustard가 채우는 빈틈은 정확히 이 지점 — 하지만 **그래프 구조가 아니라 그래프 위의 스케줄링**만 동적으로 만든다. "},{"id":"node_010","lx":620,"ly":700,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":700,"searchText":"starpu overhead data point **starpu 오버헤드 실측치**\n\n4-gpu 시스템에서:\n- starpu: single-gpu cudagraph 대비 $16.95\\times$ slowdown\n- mustard: $6.17\\times$ slowdown\n- $\\rightarrow$ mustard가 starpu보다 $4.25\\times$ 빠름\n\n(figure 5a, §5.1.2, p.392 — 무연산 랜덤 그래프에 대한 순수 스케줄링 오버헤드 실험) "},{"id":"node_011","lx":620,"ly":640,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":640,"searchText":"graph enrichment: du/dw/sp/rd vertices (fig.4) **enriched graph 예시 (figure 4, p.389)**\n\nfigure 1의 8-태스크 그래프에 dependency/occupancy 추적용 정점을 삽입한 모습. 태스크들은 subgraph 단위(a~e)로 병합되어 device-side launch 대상이 된다.\n\n- 각 계산 정점(0,2,3,5,6,8 등)은 ⊕(점유 증가) $\\rightarrow$ 실행 $\\rightarrow$ ⊖(점유 감소)로 감싸짐\n- du/sp가 붙은 정점은 원격 디바이스에 완료를 알리고 데이터 포인터를 공유\n- rd 정점이 원격에서 공유된 데이터를 읽어옴\n\n[[img:fig4_enriched_graph.png:560x578]] "},{"id":"node_012","lx":620,"ly":820,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":820,"searchText":"device-side graph launch & 120-subgraph limit **device-side kernel launch**\n\n기존 방법들의 문제:\n- **dynamic parallelism**: 오버헤드 크고 divide-and-conquer 전용, cuda 12에서야 재도입\n- **persistent kernel / megakernel**: 하드웨어 스케줄러 미사용, register pressure 가중\n\nmustard의 해법: **device-side cuda graph launch** — 이미 초기화된 cudagraph를 실행 중인 gpu 커널(정점)에서 직접 launch.\n\n> \"device-side graph launch comes with a limitation, which requires the number of graphs submitted to a device to be no more than 120.\" (§3.2.2, p.389-390)\n\n120개 미만이면 정점 하나하나가 별도 subgraph가 될 수 있지만, 초과 시 직렬/강결합 정점을 병합해야 하며 이 과정에서 병렬성이 줄어든다(§4 limitations). "},{"id":"node_013","lx":620,"ly":1000,"children":[],"template":"method","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1000,"searchText":"gpu-side scheduler (algorithm 2) + nvshmem **gpu-side scheduler (algorithm 2, p.391)**\n\n```\nfunction scheduler(queue q, subgraph[] s, occupancy[] o, deviceid)\n  while q.itemsdequeued != s.size:\n    if !o[deviceid].isbusy():\n      sid = q.dequeue()\n      cudagraphlaunch(s[sid])\n```\n\n각 디바이스가 자신의 큐에서 준비된 subgraph를 dequeue해 device-side launch로 실행하는 초경량 스케줄러. 큐는 broker queue를 nvshmem atomic으로 재구현해 멀티-gpu에서도 consistent하게 유지.\n\n**멀티노드 통신**: 노드 내에서는 cudamemcpy, 노드 간에는 **nvshmem**을 사용해 gpu가 host 개입 없이 직접 d2d 전송. "},{"id":"node_014","lx":620,"ly":1150,"children":[],"template":"memo","contentExpanded":false,"isMain":false,"nodeHeight":null,"naturalY":1150,"searchText":"why nvshmem atomics for cross-node deps **설계 결정: 왜 nvshmem atomic인가**\n\n의존성 카운터 갱신이 여러 컴퓨트 노드에 걸쳐 정확한 순서로 이뤄져야 함. cuda cooperative groups는 커널 내부(단일 디바이스) 동기화만 지원하고, cudadevicesynchronize()는 host 측에서만 호출 가능해 device-side 스케줄링과 맞지 않음.\n\nnvshmem은 **디바이스 코드 안에서** 원격 gpu 메모리에 원자적으로 접근할 수 있게 해줘서, host 왕복 없이 멀티노드 의존성 갱신(du$\\rightarrow$dw)을 가능하게 하는 유일한 실용적 선택이었음(§3.1.2, p.388). "},{"id":"node_015","lx":620,"ly":970,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":970,"searchText":"overhead reduction vs cuda graph (table 2 / fig.5) **오버헤드 비교 (table 2, figure 5, p.392)**\n\n| # vertices | single-gpu cuda graph (ms) | multi-gpu cuda graph (ms) | mustard (ms) | improvement |\n|---|---|---|---|---|\n| $2^8$ | 0.204 | 25.026 | 0.501 | $50.48\\times$ |\n| $2^{10}$ | 0.877 | 57.214 | 2.641 | $21.63\\times$ |\n| $2^{12}$ | 3.703 | 145.966 | 17.273 | $8.45\\times$ |\n| $2^{14}$ | 18.639 | 453.530 | 269.057 | $1.69\\times$ |\n\n그래프가 커질수록 개선폭이 줄어드는데, 이는 dependency wait 정점이 warp의 상당 비율을 차지하게 되기 때문(본문 설명). "},{"id":"node_016","lx":620,"ly":1120,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1120,"searchText":"multi-node scaling: up to 64 gpus (table 5 / fig.8) **멀티노드 스케일링 (table 5, figure 8, p.394-395)**\n\n120,000x120,000 행렬, 최대 8노드(64 a100 gpu):\n\n| 노드 수 | starpu (tflops) | slate (tflops) | mustard (tflops) |\n|---|---|---|---|\n| 1x8gpu | 4.9 | 24.5 | 96.3 |\n| 2x8gpu | 4.5 | 37.9 | 194.3 |\n| 4x8gpu | 4.7 | 46.6 | 327.3 |\n| 8x8gpu | 6.1 | 55.7 | 461.6 |\n\nslate 대비 $2.81$–$8.28\\times$, starpu 대비 $4.75$–$75.2\\times$ 속도향상. 단, 이 멀티노드 결과는 **정적 파티셔닝**이며 동적 부하분산은 포함하지 않음(§4). "},{"id":"node_017","lx":620,"ly":1270,"children":[],"template":"result","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1270,"searchText":"single-node lu/cholesky vs cusolver/slate/starpu (table 3-4) **단일노드 lu/cholesky (table 3-4, p.393-394)**\n\nlu 분해: $$a = lu$$ (하삼각 $l$과 상삼각 $u$의 곱)\n\ncholesky 분해: $$a = ll^t$$ ($a$가 대칭일 때)\n\n8-gpu, 60000x60000 행렬 기준 (단일-gpu cusolvergetrf/potrf 대비 speedup):\n\n| | lu | cholesky |\n|---|---|---|\n| mustard | $4.164\\times$ | $2.728\\times$ |\n| cusmgf (fine-tiled) | $3.856\\times$ | $3.185\\times$ (최고) |\n| slate | $0.049\\times$ | $1.657\\times$ |\n| starpu | $0.278\\times$ | $0.386\\times$ |\n\nlu에서는 mustard가 최고 성능, cholesky에서는 세밀 타일링된 cusolver(cusmgf)가 근소하게 앞섬 — mustard는 성능 모델·수동 타일링 없이도 대등한 성능을 낸다는 것이 핵심 주장. "},{"id":"node_018","lx":620,"ly":1300,"children":[],"template":"claim","contentExpanded":false,"isMain":true,"nodeHeight":null,"naturalY":1300,"searchText":"near theoretical peak, host-free **\"host-free, near-peak\" 주장**\n\n> \"mustard is designed for executing task graphs on multi-gpu systems, prioritizing load balancing and communication management without relying on host cpu control.\" (§6, p.395)\n\n실험적으로 뒷받침: 멀티노드에서 하드웨어 이론적 peak에 근접(§1, p.385), 작은 행렬에서도 이 효율 유지. 즉 device-side 실행이 **오버헤드 관점에서는** host 개입을 거의 완전히 대체했다는 근거. "},{"id":"node_019","lx":620,"ly":1450,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1450,"searchText":"static-only scope & no cross-node dynamic load balancing **남은 한계: 정적 스코프 + 노드 간 동적 부하분산 불가**\n\n> \"in mustard, multi-node execution is only possible without dynamic load balancing.\" (§4, p.391)\n\n- 그래프 구조가 런타임에 바뀌는 **동적 그래프**는 명시적으로 스코프 밖\n- 멀티노드에서는 **정적 파티셔닝만** 가능 — 노드 간 동적 재배치는 불가\n- device-side graph launch 자체가 디바이스당 **최대 120 subgraph**로 제한\n\n이 세 지점이 이 논문이 스스로 인정한 미해결 영역. "},{"id":"node_020","lx":620,"ly":1600,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1600,"searchText":"h3 connection: software per-gpu scheduler vs fpga control plane **h3(gpu당 fpga 제어 평면 가설)과의 관계**\n\nmustard의 멀티-gpu 확장은 이미 \"gpu마다 독립적인 스케줄러 커널이 자기 큐를 처리하고, nvshmem으로 gpu 간 직접 통신\"하는 **분산 제어 구조**를 소프트웨어로 구현하고 있다 — 이는 h3가 상상한 \"gpu당 독립 제어 평면\"과 거시적으로 유사.\n\n하지만 결정적 차이: mustard의 제어 루프는 **gpu 자신의 sm/스레드 자원**을 점유하는 커널인 반면, h3는 gpu 컴퓨팅 자원과 **분리된 전용 하드웨어(fpga)**를 제안. 또한 mustard는 그래프 구조가 고정된 정적 그래프만 다루는 반면, h3가 겨냥하는 데이터-의존적 동적 분기(llm decode의 eos 판정 등)는 이 논문의 스코프 밖에 명시적으로 남아 있음 — 과장 없이 말하면, mustard는 h3의 경쟁작이 아니라 h3가 아직 비어 있는 지점에 정확히 서 있음을 확인해주는 참고점. "}];
+var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":""},{"source":"node_001","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":""},{"source":"node_002","target":"node_009","type":"line","label":""},{"source":"node_002","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_004","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_016","type":"line","label":""},{"source":"node_004","target":"node_017","type":"line","label":""},{"source":"node_005","target":"node_018","type":"line","label":""},{"source":"node_005","target":"node_019","type":"line","label":""},{"source":"node_005","target":"node_020","type":"line","label":""}];
+var HEADER_H = 36;
+
+var vp = document.getElementById('viewport');
+var canvas = document.getElementById('canvas');
+
+// Set viewport top to match actual toolbar height
+(function() {
+  var tb = document.getElementById('toolbar');
+  vp.style.top = tb.offsetHeight + 'px';
+})();
+var tx = 0, ty = 0, scale = 1;
+
+function applyTransform() {
+  canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+}
+
+// Zoom
+vp.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var ns = Math.max(0.1, Math.min(4, scale * factor));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
+
+// Canvas pan
+var panState = null;
+vp.addEventListener('mousedown', function(e) {
+  if (e.target.closest('.ng-node')) return;
+  selectNode(null);
+  panState = { sx: e.clientX - tx, sy: e.clientY - ty };
+  vp.classList.add('pan-drag');
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panState) return;
+  tx = e.clientX - panState.sx; ty = e.clientY - panState.sy;
+  applyTransform();
+});
+window.addEventListener('mouseup', function() {
+  panState = null; vp.classList.remove('pan-drag');
+});
+
+// Node selection
+var selectedNodeId = null;
+function selectNode(nodeId) {
+  if (selectedNodeId) {
+    var prev = document.getElementById('node-' + selectedNodeId);
+    if (prev) prev.classList.remove('ng-selected');
+  }
+  selectedNodeId = nodeId;
+  var label = document.getElementById('tb-sel');
+  if (nodeId) {
+    var el = document.getElementById('node-' + nodeId);
+    if (el) el.classList.add('ng-selected');
+    var titleEl = el ? el.querySelector('.ng-title') : null;
+    if (label) { label.textContent = 'Selected: ' + (titleEl ? titleEl.textContent : nodeId); label.style.opacity = '0.9'; }
+  } else {
+    if (label) { label.textContent = 'Click a node to select'; label.style.opacity = '0.35'; }
+  }
+}
+
+// Header click = select node
+var lastWasDrag = false;
+function onHeaderClick(hdr) {
+  if (lastWasDrag) { lastWasDrag = false; return; }
+  var nodeEl = hdr.parentNode;
+  var nodeId = nodeEl.id.replace('node-', '');
+  selectNode(selectedNodeId === nodeId ? null : nodeId);
+}
+
+// Title click = fold/unfold this node
+function onTitleClick(e, titleEl) {
+  e.stopPropagation();
+  var nodeEl = titleEl.closest('.ng-node');
+  var body = nodeEl.querySelector('.ng-body');
+  if (!body) return;
+  var expanding = body.style.display === 'none';
+  body.style.display = expanding ? '' : 'none';
+  syncMinHeight(nodeEl, expanding);
+  var nodeId = nodeEl.id.replace('node-', '');
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
+  }
+  setTimeout(recomputePositions, 0);
+  // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
+  if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
+    setTimeout(function() { document.getElementById('search-input').focus(); }, 0);
+  }
+}
+
+// Get node datum by id
+function getNodeDatum(nodeId) {
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) return NODES_DATA[i];
+  }
+  return null;
+}
+
+// Collect all descendants recursively (for collapse — no depth limit)
+function getAllDescendants(nodeId, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var result = [];
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return result;
+  // Include both children array and edge targets
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) { if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target); });
+  childIds.forEach(function(childId) {
+    result.push(childId);
+    getAllDescendants(childId, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Collect descendants for expand — skip main_topic children (and their subtrees)
+// Includes both outgoing and incoming (non-main) edges to support multi-parent sub-nodes
+function getExpandDescendants(nodeId, isRoot, visited) {
+  visited = visited || [];
+  if (visited.indexOf(nodeId) !== -1) return [];
+  visited.push(nodeId);
+  var datum = getNodeDatum(nodeId);
+  if (!datum) return [];
+  // Do not recurse into other main (sharp) nodes
+  if (!isRoot && datum.isMain) return [];
+  var result = [nodeId];
+  var childIds = (datum.children || []).slice();
+  EDGES.forEach(function(e) {
+    // Outgoing edges from this node
+    if (e.source === nodeId && childIds.indexOf(e.target) === -1) childIds.push(e.target);
+    // Incoming from non-main: support sub-nodes with multiple parents
+    if (e.target === nodeId && childIds.indexOf(e.source) === -1) {
+      var srcDatum = getNodeDatum(e.source);
+      if (srcDatum && !srcDatum.isMain) childIds.push(e.source);
+    }
+  });
+  childIds.forEach(function(childId) {
+    getExpandDescendants(childId, false, visited).forEach(function(d) { result.push(d); });
+  });
+  return result;
+}
+
+// Apply expand/collapse to a list of node IDs
+// 접힘/펼침 시 min-height 동기화 — 접힌 노드가 수동 리사이즈 높이로 남는 버그 방지
+function syncMinHeight(el, expand) {
+  var minH = el.getAttribute('data-min-h');
+  el.style.minHeight = (expand && minH) ? minH + 'px' : '';
+}
+
+function applyFold(nodeIds, expand) {
+  nodeIds.forEach(function(id) {
+    var el = document.getElementById('node-' + id);
+    if (!el) return;
+    var body = el.querySelector('.ng-body');
+    var chevron = el.querySelector('.ng-chevron');
+    if (body) body.style.display = expand ? '' : 'none';
+    if (chevron) chevron.textContent = expand ? '▲' : '▼';
+    syncMinHeight(el, expand);
+    for (var i = 0; i < NODES_DATA.length; i++) {
+      if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
+    }
+  });
+  setTimeout(recomputePositions, 0);
+}
+
+// Recompute positions when <details> toggles change node height.
+// 'toggle' does not bubble so we use capture phase.
+canvas.addEventListener('toggle', function() {
+  setTimeout(recomputePositions, 0);
+}, true);
+
+// Toolbar: context-aware expand/collapse
+function doExpand() {
+  if (selectedNodeId) {
+    applyFold(getExpandDescendants(selectedNodeId, true), true);
+  } else {
+    // Expand all — include main_topic roots but skip nested main_topic subtrees
+    var toExpand = [];
+    NODES_DATA.forEach(function(n) {
+      if (toExpand.indexOf(n.id) !== -1) return;
+      getExpandDescendants(n.id, true).forEach(function(d) { if (toExpand.indexOf(d) === -1) toExpand.push(d); });
+    });
+    applyFold(toExpand, true);
+  }
+}
+function doCollapse() {
+  if (selectedNodeId) {
+    applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
+  } else {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+  }
+}
+
+// Tag drag handle
+function onNodeTagMousedown(e, nodeEl) {
+  e.stopPropagation();
+  lastWasDrag = false;
+  var x0 = e.clientX, y0 = e.clientY;
+  var left0 = parseFloat(nodeEl.style.left) || 0;
+  var top0  = parseFloat(nodeEl.style.top)  || 0;
+  var moved = false, finalDX = 0, finalDY = 0;
+  var nodeId = nodeEl.id.replace('node-', '');
+  var nodeDatum = null;
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    if (NODES_DATA[i].id === nodeId) { nodeDatum = NODES_DATA[i]; break; }
+  }
+  function onMove(ev) {
+    var rawDx = ev.clientX - x0, rawDy = ev.clientY - y0;
+    if (!moved && (Math.abs(rawDx) > 5 || Math.abs(rawDy) > 5)) { moved = true; nodeEl.classList.add('ng-dragging'); }
+    if (moved) {
+      var dx = rawDx / scale, dy = rawDy / scale;
+      nodeEl.style.left=(left0+dx)+'px'; nodeEl.style.top=(top0+dy)+'px'; finalDX=dx; finalDY=dy; drawEdges();
+    }
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    nodeEl.classList.remove('ng-dragging');
+    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
+    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function recomputePositions() {
+  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
+  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
+
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+
+  function getH(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) return el.offsetHeight;
+    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
+    return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
+  }
+  function getW(n) {
+    var el = document.getElementById('node-' + n.id);
+    return el ? el.offsetWidth : (n.nodeWidth || 432);
+  }
+  function isConn(aId, bId) {
+    var a = nodeMap[aId], b = nodeMap[bId];
+    if (!a || !b) return false;
+    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
+    return EDGES.some(function(e) {
+      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+    });
+  }
+
+  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
+  var par = {};
+  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
+  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
+  for (var i = 0; i < NODES_DATA.length; i++) {
+    for (var j = i + 1; j < NODES_DATA.length; j++) {
+      var a = NODES_DATA[i], b = NODES_DATA[j];
+      if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
+        var ra = find(a.id), rb = find(b.id);
+        if (ra !== rb) par[ra] = rb;
+      }
+    }
+  }
+  var colMap = {};
+  NODES_DATA.forEach(function(n) {
+    var root = find(n.id);
+    if (!colMap[root]) colMap[root] = [];
+    colMap[root].push(n);
+  });
+
+  // 컬럼을 min X 오름차순(왼→오)으로 정렬
+  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
+    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
+    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
+    return minXA - minXB;
+  });
+
+  var renderY = {};
+
+  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
+  function getEffY(node) {
+    var effY = node.ly;
+    NODES_DATA.forEach(function(other) {
+      if (renderY[other.id] === undefined) return;
+      if (!isConn(node.id, other.id)) return;
+      var otherRY = renderY[other.id];
+      var otherH = getH(other);
+      var otherBottom = otherRY + otherH;
+      var otherPush = Math.max(0, otherRY - other.ly);
+      if (otherH > HEADER_H && otherBottom > node.ly) {
+        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
+        effY = Math.max(effY, otherBottom + 48);
+      } else {
+        // 접힌 상태: Y 이동 delta만 전파
+        effY = Math.max(effY, node.ly + otherPush);
+      }
+    });
+    return effY;
+  }
+
+  // 컬럼별 그리디 패킹 (왼→오)
+  columns.forEach(function(col) {
+    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
+    var effYMap = {};
+    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
+
+    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
+    col.sort(function(a, b) {
+      var ea = effYMap[a.id], eb = effYMap[b.id];
+      return ea !== eb ? ea - eb : a.ly - b.ly;
+    });
+
+    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
+    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
+    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
+    var placed = [];
+    col.forEach(function(node) {
+      var h = getH(node);
+      var baseGap = node.isMain ? 20 : 30;
+      var y = effYMap[node.id];
+      var moved = true;
+      while (moved) {
+        moved = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var p = placed[pi];
+          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
+          if (!overlapX) continue;
+          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
+          if (y < p.y + p.h + gap && y + h + gap > p.y) {
+            y = p.y + p.h + gap;
+            moved = true;
+          }
+        }
+      }
+      renderY[node.id] = y;
+      placed.push({ node: node, y: y, h: h });
+    });
+  });
+
+  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
+  var lineBySource = {};
+  EDGES.forEach(function(e) {
+    if (e.type !== 'line') return;
+    if (!lineBySource[e.source]) lineBySource[e.source] = [];
+    lineBySource[e.source].push(e.target);
+  });
+  Object.keys(lineBySource).forEach(function(srcId) {
+    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
+    if (targetIds.length < 2) return;
+    var xGroups = [];
+    targetIds.forEach(function(id) {
+      var el = document.getElementById('node-' + id);
+      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
+      var placed = false;
+      for (var gi = 0; gi < xGroups.length; gi++) {
+        var firstId = xGroups[gi][0];
+        var fEl = document.getElementById('node-' + firstId);
+        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
+        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
+      }
+      if (!placed) xGroups.push([id]);
+    });
+    xGroups.forEach(function(grp) {
+      if (grp.length < 2) return;
+      var grpSorted = grp.map(function(id) {
+        var el = document.getElementById('node-' + id);
+        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
+      }).sort(function(a, b) { return a.y - b.y; });
+      for (var i = 1; i < grpSorted.length; i++) {
+        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
+        var newY = Math.max(grpSorted[i].y, minY);
+        grpSorted[i].y = newY;
+        renderY[grpSorted[i].id] = newY;
+      }
+    });
+  });
+
+  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
+  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
+  var H_GAP = 60;
+  var renderX = {};
+  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
+  byX.forEach(function(node) {
+    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
+    var nH = getH(node);
+    var nW = getW(node);
+    var x = node.lx;
+    var moved = true;
+    while (moved) {
+      moved = false;
+      for (var oi = 0; oi < byX.length; oi++) {
+        var other = byX[oi];
+        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
+        if (ox === undefined || other.id === node.id) continue;
+        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
+        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
+        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
+          x = ox + getW(other) + H_GAP;
+          moved = true;
+        }
+      }
+    }
+    renderX[node.id] = x;
+  });
+
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (!el) return;
+    el.style.left = (renderX[n.id] !== undefined ? renderX[n.id] : n.lx) + 'px';
+    el.style.top = (renderY[n.id] !== undefined ? renderY[n.id] : n.ly) + 'px';
+  });
+  drawEdges();
+}
+
+// Edge drawing
+function getNodeRect(el) {
+  var x = parseFloat(el.style.left)||0, y = parseFloat(el.style.top)||0;
+  return { x:x, y:y, w:el.offsetWidth, h:el.offsetHeight, cx:x+el.offsetWidth*.5, cy:y+el.offsetHeight*.5 };
+}
+function getBestPorts(sr, tr) {
+  var sp=[{name:'right',p:[sr.x+sr.w,sr.cy]},{name:'left',p:[sr.x,sr.cy]},{name:'bottom',p:[sr.cx,sr.y+sr.h]},{name:'top',p:[sr.cx,sr.y]}];
+  var tp=[{name:'left',p:[tr.x,tr.cy]},{name:'right',p:[tr.x+tr.w,tr.cy]},{name:'top',p:[tr.cx,tr.y]},{name:'bottom',p:[tr.cx,tr.y+tr.h]}];
+  var best=null,bestD=Infinity;
+  sp.forEach(function(s){tp.forEach(function(t){var dx=s.p[0]-t.p[0],dy=s.p[1]-t.p[1],d=dx*dx+dy*dy;if(d<bestD){bestD=d;best={sp:s,tp:t};}});});
+  return best;
+}
+var DIR={right:[1,0],left:[-1,0],bottom:[0,1],top:[0,-1]};
+function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
+function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+function drawEdges() {
+  var svg=document.getElementById('wire-svg');
+  svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
+
+  // Group line edges by source for bus routing
+  var lineBySource={};
+  EDGES.forEach(function(e){
+    if(e.type!=='line') return;
+    if(!lineBySource[e.source]) lineBySource[e.source]=[];
+    lineBySource[e.source].push(e);
+  });
+
+  var busDrawn={};
+
+  // Bus routing: one source → multiple line targets all on the same side (right)
+  Object.keys(lineBySource).forEach(function(srcId){
+    var group=lineBySource[srcId];
+    if(group.length<2) return;
+    var srcEl=document.getElementById('node-'+srcId);
+    if(!srcEl) return;
+    var sr=getNodeRect(srcEl);
+    var targets=[];
+    group.forEach(function(e){
+      var tEl=document.getElementById('node-'+e.target);
+      if(!tEl) return;
+      targets.push({e:e,r:getNodeRect(tEl)});
+    });
+    if(targets.length<2) return;
+    // Check all targets are to the right
+    var allRight=targets.every(function(t){return t.r.x>=sr.x+sr.w-5;});
+    if(!allRight) return;
+
+    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
+    var srcAnchorY=sr.cy;
+    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
+    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
+    var busMinY=Math.min(srcAnchorY,minTY);
+    var busMaxY=Math.max(srcAnchorY,maxTY);
+
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,'#888','1.5'));
+    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,'#888','1.5'));
+    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,'#888'));
+    targets.forEach(function(t){
+      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,'#888','1.5'));
+      g.appendChild(svgCirc(t.r.x,t.r.cy,4,'#888'));
+      busDrawn[t.e.source+'-'+t.e.target]=true;
+    });
+    svg.appendChild(g);
+  });
+
+  // Remaining edges: Bezier curves
+  EDGES.forEach(function(edge){
+    if(busDrawn[edge.source+'-'+edge.target]) return;
+    var srcEl=document.getElementById('node-'+edge.source), tgtEl=document.getElementById('node-'+edge.target);
+    if(!srcEl||!tgtEl) return;
+    var ports=getBestPorts(getNodeRect(srcEl),getNodeRect(tgtEl));
+    if(!ports) return;
+    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
+    var dist=Math.sqrt(Math.pow(tp[0]-sp[0],2)+Math.pow(tp[1]-sp[1],2));
+    var bend=Math.min(dist*.45,150);
+    var cx1=sp[0]+spD[0]*bend,cy1=sp[1]+spD[1]*bend,cx2=tp[0]+tpD[0]*bend,cy2=tp[1]+tpD[1]*bend;
+    var d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ng-eg');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#666');path.setAttribute('stroke-width','1.5');
+    if(edge.type==='arrow') path.setAttribute('marker-end','url(#arrow)');
+    g.appendChild(path);
+    if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill','#666');g.appendChild(c);});}
+    svg.appendChild(g);
+  });
+}
+
+// Fit view
+function fitView() {
+  var nodes=document.querySelectorAll('.ng-node');
+  if(!nodes.length) return;
+  var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(function(n){var x=parseFloat(n.style.left)||0,y=parseFloat(n.style.top)||0;minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x+n.offsetWidth);maxY=Math.max(maxY,y+n.offsetHeight);});
+  var rect=vp.getBoundingClientRect(),W=rect.width,H=rect.height;
+  var cw=maxX-minX+80,ch=maxY-minY+80;
+  scale=Math.min(W/cw,H/ch,1.5);
+  tx=(W-cw*scale)/2-(minX-40)*scale;
+  ty=(H-ch*scale)/2-(minY-40)*scale;
+  applyTransform();
+}
+
+// Lightbox
+function showLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('active');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();openSearch();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('search-wrap').classList.contains('open')){closeSearch();return;}
+    closeLightbox();
+  }
+});
+// Middle click: prevent X11 primary selection paste
+vp.addEventListener('mousedown',function(e){if(e.button===1) e.preventDefault();});
+// Background click: close search if open
+vp.addEventListener('mouseup',function(e){
+  if(e.button!==0) return;
+  if(!e.target.closest('.ng-node')&&!e.target.closest('#search-wrap')){
+    if(document.getElementById('search-wrap').classList.contains('open')) closeSearch();
+  }
+});
+
+// Search
+var searchSelectedId=null;
+var searchMatchNodes=[];
+var kbIdx=-1;
+
+function openSearch(){
+  document.getElementById('search-wrap').classList.add('open');
+  var inp=document.getElementById('search-input');
+  inp.focus();inp.select();
+  kbIdx=-1;
+  if(inp.value) doSearch(inp.value);
+}
+function closeSearch(){
+  clearSearchHighlights();
+  searchSelectedId=null;searchMatchNodes=[];kbIdx=-1;
+  document.getElementById('search-wrap').classList.remove('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-count').textContent='';
+  closeDropdown();
+}
+function clearSearchHighlights(){
+  document.querySelectorAll('.ng-search-match,.ng-search-active').forEach(function(el){el.classList.remove('ng-search-match','ng-search-active');});
+}
+function closeDropdown(){
+  document.getElementById('search-drop').classList.remove('open');
+  document.getElementById('search-row').classList.remove('dropdown-open');
+  kbIdx=-1;
+}
+function doSearch(q){
+  clearSearchHighlights();
+  searchSelectedId=null;kbIdx=-1;
+  var query=q.trim().toLowerCase();
+  if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
+  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+  updateSearchCount();
+  renderDropdown();
+}
+function renderDropdown(){
+  var drop=document.getElementById('search-drop');
+  var row=document.getElementById('search-row');
+  drop.innerHTML='';
+  if(!searchMatchNodes.length){closeDropdown();return;}
+  searchMatchNodes.forEach(function(n,i){
+    var div=document.createElement('div');
+    div.className='ng-drop-item';
+    div.setAttribute('data-kb-idx',i);
+    var nodeEl=document.getElementById('node-'+n.id);
+    var titleEl=nodeEl?nodeEl.querySelector('.ng-title'):null;
+    div.textContent=titleEl?titleEl.textContent:n.id;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectSearchNode(n.id);});
+    div.addEventListener('mouseenter',function(){setKbActive(i);});
+    drop.appendChild(div);
+  });
+  if(kbIdx>=0&&kbIdx<searchMatchNodes.length) applyKbHighlight();
+  drop.classList.add('open');
+  row.classList.add('dropdown-open');
+}
+function setKbActive(idx){
+  kbIdx=idx;
+  applyKbHighlight();
+  var drop=document.getElementById('search-drop');
+  var el=drop.querySelector('[data-kb-idx="'+idx+'"]');
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+function applyKbHighlight(){
+  var drop=document.getElementById('search-drop');
+  drop.querySelectorAll('.ng-drop-item').forEach(function(el){
+    var active=el.getAttribute('data-kb-idx')===String(kbIdx);
+    el.style.background=active?'#e8f0fe':'transparent';
+    el.style.fontWeight=active?'500':'400';
+  });
+}
+function selectSearchNode(id){
+  clearSearchHighlights();
+  searchSelectedId=id;
+  var el=document.getElementById('node-'+id);
+  if(el) el.classList.add('ng-search-active');
+  // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
+  searchMatchNodes.forEach(function(n){
+    var nodeEl=document.getElementById('node-'+n.id);
+    if(!nodeEl) return;
+    var body=nodeEl.querySelector('.ng-body');
+    if(!body) return;
+    var datum=null;
+    for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
+    if(!datum) return;
+    if(n.id===id){
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+    } else {
+      if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
+    }
+  });
+  setTimeout(function(){recomputePositions();flyToNode(id);},0);
+  closeDropdown();
+  updateSearchCount();
+}
+function onSearchInputClick(){
+  if(searchSelectedId!==null){
+    // 이전 선택 노드의 인덱스를 찾아 kbIdx 복원
+    var idx=-1;
+    for(var i=0;i<searchMatchNodes.length;i++){if(searchMatchNodes[i].id===searchSelectedId){idx=i;break;}}
+    clearSearchHighlights();
+    searchSelectedId=null;
+    searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
+    updateSearchCount();
+    renderDropdown();
+    if(idx>=0){kbIdx=idx;applyKbHighlight();}
+  }
+}
+function updateSearchCount(){
+  var el=document.getElementById('search-count');
+  if(!el) return;
+  var q=document.getElementById('search-input').value.trim();
+  if(!q){el.textContent='';return;}
+  if(searchSelectedId){el.style.color='#6b7280';el.textContent='1 selected';return;}
+  if(!searchMatchNodes.length){el.style.color='#ef4444';el.textContent='0 results';return;}
+  el.style.color='#6b7280';el.textContent=searchMatchNodes.length+' results';
+}
+function flyToNode(nodeId){
+  var el=document.getElementById('node-'+nodeId);
+  if(!el) return;
+  var rect=vp.getBoundingClientRect();
+  var W=rect.width,H=rect.height;
+  var nodeX=parseFloat(el.style.left)||0;
+  var nodeY=parseFloat(el.style.top)||0;
+  tx=W/2-(nodeX+el.offsetWidth/2)*scale;
+  ty=H/2-(nodeY+el.offsetHeight/2)*scale;
+  applyTransform();
+}
+function onSearchKey(e){
+  var n=searchMatchNodes.length;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?0:(kbIdx+1)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(n>0){var newIdx=kbIdx<0?n-1:(kbIdx-1+n)%n;setKbActive(newIdx);flyToNode(searchMatchNodes[newIdx].id);}
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(n>0) selectSearchNode(searchMatchNodes[kbIdx>=0?kbIdx:0].id);
+  } else if(e.key==='Escape'){
+    closeSearch();e.preventDefault();
+  }
+  e.stopPropagation();
+}
+
+// KaTeX rendering
+function initKatex() {
+  if(typeof renderMathInElement === 'undefined') return;
+  renderMathInElement(document.getElementById('canvas'), {
+    delimiters: [
+      {left:'$$', right:'$$', display:true},
+      {left:'$',  right:'$',  display:false}
+    ],
+    throwOnError: false,
+    output: 'html'
+  });
+}
+
+window.addEventListener('load', function() {
+  // Render KaTeX first so node heights are accurate
+  initKatex();
+  recomputePositions();
+  drawEdges();
+  fitView();
+  // Recompute after images load (base64 images also finalize height asynchronously)
+  var imgs = Array.from(document.querySelectorAll('.ng-node img'));
+  var pending = imgs.filter(function(img) { return !img.complete; }).length;
+  if (pending === 0) return;
+  function onImgSettle() {
+    pending--;
+    if (pending <= 0) { recomputePositions(); drawEdges(); }
+  }
+  imgs.forEach(function(img) {
+    if (!img.complete) {
+      img.addEventListener('load', onImgSettle);
+      img.addEventListener('error', onImgSettle);
+    }
+  });
+});
+</script>
+</body>
+</html>

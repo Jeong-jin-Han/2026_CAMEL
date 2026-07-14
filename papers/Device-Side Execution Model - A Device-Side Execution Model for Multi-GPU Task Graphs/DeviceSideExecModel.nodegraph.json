@@ -1,0 +1,308 @@
+{
+  "version": "1.0.0",
+  "title": "A Device-Side Execution Model for Multi-GPU Task Graphs",
+  "created": "2026-07-13T08:33:23.000Z",
+  "modified": "2026-07-13T08:33:23.000Z",
+  "source": {
+    "pdf": "DeviceSideExecModel.pdf",
+    "authors": "Ilyas Turimbetov, Mohamed Wahib, Didem Unat",
+    "venue": "ICS '25 (International Conference on Supercomputing)",
+    "doi": "10.1145/3721145.3730426",
+    "pages": 13
+  },
+  "nodeTemplates": {
+    "main_topic": { "label": "Main topic",  "color": "#4B8BBE", "icon": "file-text",    "shape": "sharp"   },
+    "method":     { "label": "Method",      "color": "#5C9E6E", "icon": "cpu",           "shape": "sharp"   },
+    "result":     { "label": "Result",      "color": "#9B59B6", "icon": "bar-chart-2",   "shape": "sharp"   },
+    "claim":      { "label": "Claim",       "color": "#E74C3C", "icon": "alert-circle",  "shape": "sharp"   },
+    "question":   { "label": "Question",    "color": "#E5A835", "icon": "help-circle",   "shape": "rounded" },
+    "gap":        { "label": "Gap / Idea",  "color": "#1ABC9C", "icon": "lightbulb",     "shape": "rounded" },
+    "reference":  { "label": "Reference",   "color": "#95A5A6", "icon": "book-open",     "shape": "rounded" },
+    "memo":       { "label": "Memo",        "color": "#BDC3C7", "icon": "edit-3",        "shape": "rounded" }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "**핵심 성과**: MUSTARD는 멀티-GPU·멀티노드에 걸친 **정적(static) task graph**를 실행할 때, host CPU를 그래프 **초기화 1회**에만 관여시키고 이후의 의존성 추적·데이터 전송·부하분산·커널 스케줄링을 전부 GPU 디바이스 측에서 수행하는 최초의 device-side 멀티노드 실행 모델이다.\n\n기존 CUDA Graph 기반 접근은 프로그래머가 태스크를 수동으로 디바이스에 배정해야 했고(런타임 지식 없이), 그 결과 유휴 GPU가 있어도 특정 GPU에 부하가 몰리는 문제(Figure 1의 Task 7 사례)가 있었다. MUSTARD는 온라인 스케줄링으로 이 문제를 해결하면서도 CUDA Graphs 수준의 저오버헤드를 유지한다.\n\n**결과**: 64-GPU 멀티노드에서 SLATE 대비 평균 **5.83배**, 단일노드에서 LU 평균 **1.66배** / Cholesky 평균 **1.29배** 속도향상.",
+      "original": {
+        "text": "Mustard offers a clean solution for executing CUDA graphs across multiple GPUs on multiple nodes without requiring modifications to GPU kernel code or the adoption of new runtime mechanisms or APIs.",
+        "location": "Abstract, p.384"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 0 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why It's Needed)",
+      "content": "**기존 접근들의 한계**\n\n1. **CPU-managed 런타임** (StarPU, PaRSEC, Legion): work-stealing 등으로 부하분산은 잘 하지만, host가 커널을 launch하고 런타임 컴포넌트를 계속 orchestrate해야 해서 오버헤드가 큼. StarPU는 GPU 전용 실행 대비 최대 13배 느림(§2.1 인용, 실측은 §5.1.2 Fig.5a: 4-GPU에서 16.95x slowdown).\n2. **CUDA Graphs / hipGraph**: launch 오버헤드는 낮지만, **부하분산과 GPU 간 통신 orchestration이 프로그래머 책임**이고 **단일 노드 내에서만 동작**함.\n3. **Persistent megakernel** (Juggler 등): device-side 실행이긴 하나 register pressure·thread divergence·하드웨어 스케줄러 미지원 문제가 있고, 멀티-GPU megakernel 구현은 존재하지 않음.\n\n**핵심 스코프 선언**: 이 논문은 처음부터 **정적 그래프**로 범위를 한정한다 — 그래프 구조 자체가 런타임에 바뀌는 동적(dynamic) 그래프는 다루지 않는다.",
+      "original": {
+        "text": "This work focuses on static task graphs. Although dynamic graphs offer more flexibility by allowing changes in graph structure, most scientific, linear algebra and graph analytics applications can be expressed in form of a static graph.",
+        "location": "§2, p.385"
+      },
+      "contentExpanded": true,
+      "originalExpanded": true,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 300 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "**핵심 기법: Graph Enrichment**\n\n> \"The idea behind graph enrichment is to incorporate all the functionality required for task graph scheduling into the graph itself.\" (§3.1.1, p.387)\n\nCUDA Graph의 원래 계산 정점 사이에 런타임 기능을 담당하는 보조 정점을 삽입한다:\n- **DU (Dependency Update)**: 원격 디바이스의 의존성 카운터를 NVSHMEM atomic으로 감소\n- **DW (Dependency Wait)**: busy-waiting으로 카운터가 0이 될 때까지 대기\n- **SP (Share Pointer) / RD (Read Data)**: 디바이스 간 데이터 포인터 공유·읽기\n- **⊕/⊖ (Occupancy Increase/Decrease)**: 디바이스 점유량(스레드/블록 수) 추적\n\n이렇게 하면 런타임 로직이 **그래프 구조 자체**에 인코딩되어, host 없이 GPU가 자기 그래프를 그대로 실행하는 것만으로 스케줄링·통신·부하분산이 이뤄진다.",
+      "original": {
+        "text": "The idea behind graph enrichment is to incorporate all the functionality required for task graph scheduling into the graph itself.",
+        "location": "§3.1.1, p.387"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "**정량적 근거**\n\nA100 GPU 8장 x 노드(최대 8노드=64 GPU), EPYC 7742 듀얼소켓, NVLink 3.0 환경에서:\n\n- 스케줄링 오버헤드: 무연산 랜덤 그래프에서 멀티-GPU CUDA Graph 대비 최대 $50.48\\times$ 개선(작은 그래프), 큰 그래프에서도 $1.69\\times$\n- 단일노드 LU/Cholesky: StarPU·SLATE를 항상 능가, cuSOLVER와 대등하거나 우세\n- 멀티노드(최대 64 GPU): SLATE 대비 $2.81$–$8.28\\times$, StarPU 대비 $4.75$–$75.2\\times$\n\n> \"In the multi-node case, MUSTARD reaches performance close to the hardware's theoretical peak even on smaller matrices.\" (§1, p.385)",
+      "original": {
+        "text": "In the multi-node case, MUSTARD reaches performance close to the hardware's theoretical peak even on smaller matrices.",
+        "location": "§1, p.385"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "**결론**: MUSTARD는 host CPU의 개입 없이 부하분산과 통신 관리를 수행하는 최초의 device-side 멀티-GPU/멀티노드 task graph 실행 모델이다. 다만 이 모든 성과는 **정적 그래프**라는 명시적 스코프 안에서만 성립하며, 저자들도 미래 과제로 AMD ROCm 지원과 더 많은 응용 사례 확장만 언급할 뿐, **동적 그래프 구조**로의 확장은 논의하지 않는다.\n\n이는 device-side 실행이 host 제어를 완전히 대체하는 시점이 '그래프 구조가 고정되어 있다'는 조건에 강하게 의존한다는 것을 보여준다.",
+      "original": {
+        "text": "MUSTARD is designed for executing task graphs on multi-GPU systems, prioritizing load balancing and communication management without relying on host CPU control.",
+        "location": "§6, p.395"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 0, "y": 1200 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_006",
+      "template": "result",
+      "title": "Execution Timeline Comparison (Fig.1)",
+      "content": "Figure 1: 같은 8-태스크 그래프를 3-GPU에 스케줄링하는 세 가지 방식의 실행 타임라인 비교.\n\n1. **런타임 시스템**: 성능 모델/동적 할당으로 Task 7을 유휴 GPU에 배정할 수 있지만 오버헤드(진회색) 큼\n2. **CUDA Graph**: 오버헤드는 적지만 프로그래머가 태스크 길이를 몰라 Task 7을 이미 바쁜 GPU0에 배정 $\\rightarrow$ 최적이 아님\n3. **MUSTARD**: 저오버헤드 + 온라인 스케줄링으로 Task 7을 유휴 GPU2에 배정 $\\rightarrow$ 총 실행시간이 8~9에서 6~7 timestep으로 단축\n\n[[IMG:fig1_timelines.png:600x407]]",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": -120 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "claim",
+      "title": "Headline Speedups",
+      "content": "**Headline 수치**\n\n- 64-GPU 멀티노드: SLATE 대비 평균 $5.83\\times$ 속도향상\n- 단일노드 LU: 최고 baseline 대비 평균 $1.66\\times$\n- 단일노드 Cholesky: 최고 baseline 대비 평균 $1.29\\times$\n- 4-GPU 오버헤드 실험: StarPU 대비 $4.25\\times$ 빠름 (StarPU 16.95x slowdown vs MUSTARD 6.17x)\n\n> \"MUSTARD reaches performance close to the hardware's theoretical peak even on smaller matrices.\" (§1, p.385)",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 120 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "method",
+      "title": "Landscape of Prior Approaches (Table 1)",
+      "content": "**Table 1 요약** (p.386) — 기존 접근과 MUSTARD 비교\n\n| Approach | Multi-GPU | Multi-node | CPU-free | Dynamic load balancing | Dynamic graphs | Static graphs |\n|---|---|---|---|---|---|---|\n| StarPU | Y | Y | N | Y | Y | N |\n| PaRSEC | Y | Y | N | Y | Y | N |\n| Legion | Y | Y | N | Y | Y | N |\n| CUDA Graphs | N | N | Y | N | NA | Y |\n| partitioned CUDA Graphs | Y | N | Y | N | NA | Y |\n| Juggler (Megakernel) | N | N | Y | Y | NA | N |\n| **MUSTARD (ours)** | Y | Y | Y (small overhead) | Y | N | Y |\n\nMUSTARD는 Multi-GPU/Multi-node/CPU-free/Dynamic load balancing을 모두 만족하는 유일한 행이지만, **Dynamic graphs 열은 여전히 N**.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 180 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "gap",
+      "title": "CUDA Graphs' Single-Node Ceiling",
+      "content": "**CUDA Graphs의 근본적 한계**\n\n> \"load balancing and management of inter-GPU communications between multiple devices remains contingent on the programmer's decisions and is only possible within a single node\" (§2.2, p.386)\n\n즉 CUDA Graph 자체가:\n- 멀티노드를 지원하지 않음\n- cudaSetDevice로 정점을 디바이스에 **수동** 배정해야 함\n- 태스크 실행시간을 모른 채 정적으로 배정 $\\rightarrow$ suboptimal scheduling (Figure 1의 Task 7 사례)\n\nMUSTARD가 채우는 빈틈은 정확히 이 지점 — 하지만 **그래프 구조가 아니라 그래프 위의 스케줄링**만 동적으로 만든다.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 330 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "memo",
+      "title": "StarPU Overhead Data Point",
+      "content": "**StarPU 오버헤드 실측치**\n\n4-GPU 시스템에서:\n- StarPU: single-GPU cudaGraph 대비 $16.95\\times$ slowdown\n- MUSTARD: $6.17\\times$ slowdown\n- $\\rightarrow$ MUSTARD가 StarPU보다 $4.25\\times$ 빠름\n\n(Figure 5a, §5.1.2, p.392 — 무연산 랜덤 그래프에 대한 순수 스케줄링 오버헤드 실험)",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 480 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "method",
+      "title": "Graph Enrichment: DU/DW/SP/RD Vertices (Fig.4)",
+      "content": "**Enriched Graph 예시 (Figure 4, p.389)**\n\nFigure 1의 8-태스크 그래프에 dependency/occupancy 추적용 정점을 삽입한 모습. 태스크들은 subgraph 단위(A~E)로 병합되어 device-side launch 대상이 된다.\n\n- 각 계산 정점(0,2,3,5,6,8 등)은 ⊕(점유 증가) $\\rightarrow$ 실행 $\\rightarrow$ ⊖(점유 감소)로 감싸짐\n- DU/SP가 붙은 정점은 원격 디바이스에 완료를 알리고 데이터 포인터를 공유\n- RD 정점이 원격에서 공유된 데이터를 읽어옴\n\n[[IMG:fig4_enriched_graph.png:560x578]]",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 420 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "method",
+      "title": "Device-Side Graph Launch & 120-Subgraph Limit",
+      "content": "**Device-Side Kernel Launch**\n\n기존 방법들의 문제:\n- **Dynamic parallelism**: 오버헤드 크고 divide-and-conquer 전용, CUDA 12에서야 재도입\n- **Persistent kernel / megakernel**: 하드웨어 스케줄러 미사용, register pressure 가중\n\nMUSTARD의 해법: **device-side CUDA Graph launch** — 이미 초기화된 cudaGraph를 실행 중인 GPU 커널(정점)에서 직접 launch.\n\n> \"device-side graph launch comes with a limitation, which requires the number of graphs submitted to a device to be no more than 120.\" (§3.2.2, p.389-390)\n\n120개 미만이면 정점 하나하나가 별도 subgraph가 될 수 있지만, 초과 시 직렬/강결합 정점을 병합해야 하며 이 과정에서 병렬성이 줄어든다(§4 Limitations).",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 600 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "method",
+      "title": "GPU-Side Scheduler (Algorithm 2) + NVSHMEM",
+      "content": "**GPU-Side Scheduler (Algorithm 2, p.391)**\n\n```\nfunction SCHEDULER(Queue q, Subgraph[] S, Occupancy[] O, deviceID)\n  while q.itemsDequeued != S.size:\n    if !O[deviceID].isBusy():\n      sID = q.dequeue()\n      cudaGraphLaunch(S[sID])\n```\n\n각 디바이스가 자신의 큐에서 준비된 subgraph를 dequeue해 device-side launch로 실행하는 초경량 스케줄러. 큐는 Broker queue를 NVSHMEM atomic으로 재구현해 멀티-GPU에서도 consistent하게 유지.\n\n**멀티노드 통신**: 노드 내에서는 cudaMemcpy, 노드 간에는 **NVSHMEM**을 사용해 GPU가 host 개입 없이 직접 D2D 전송.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 780 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "memo",
+      "title": "Why NVSHMEM Atomics for Cross-Node Deps",
+      "content": "**설계 결정: 왜 NVSHMEM atomic인가**\n\n의존성 카운터 갱신이 여러 컴퓨트 노드에 걸쳐 정확한 순서로 이뤄져야 함. CUDA Cooperative Groups는 커널 내부(단일 디바이스) 동기화만 지원하고, cudaDeviceSynchronize()는 host 측에서만 호출 가능해 device-side 스케줄링과 맞지 않음.\n\nNVSHMEM은 **디바이스 코드 안에서** 원격 GPU 메모리에 원자적으로 접근할 수 있게 해줘서, host 왕복 없이 멀티노드 의존성 갱신(DU$\\rightarrow$DW)을 가능하게 하는 유일한 실용적 선택이었음(§3.1.2, p.388).",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 930 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "result",
+      "title": "Overhead Reduction vs CUDA Graph (Table 2 / Fig.5)",
+      "content": "**오버헤드 비교 (Table 2, Figure 5, p.392)**\n\n| # vertices | Single-GPU CUDA Graph (ms) | Multi-GPU CUDA Graph (ms) | MUSTARD (ms) | Improvement |\n|---|---|---|---|---|\n| $2^8$ | 0.204 | 25.026 | 0.501 | $50.48\\times$ |\n| $2^{10}$ | 0.877 | 57.214 | 2.641 | $21.63\\times$ |\n| $2^{12}$ | 3.703 | 145.966 | 17.273 | $8.45\\times$ |\n| $2^{14}$ | 18.639 | 453.530 | 269.057 | $1.69\\times$ |\n\n그래프가 커질수록 개선폭이 줄어드는데, 이는 dependency wait 정점이 warp의 상당 비율을 차지하게 되기 때문(본문 설명).",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 750 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "result",
+      "title": "Multi-Node Scaling: up to 64 GPUs (Table 5 / Fig.8)",
+      "content": "**멀티노드 스케일링 (Table 5, Figure 8, p.394-395)**\n\n120,000x120,000 행렬, 최대 8노드(64 A100 GPU):\n\n| 노드 수 | StarPU (TFLOPS) | SLATE (TFLOPS) | MUSTARD (TFLOPS) |\n|---|---|---|---|\n| 1x8GPU | 4.9 | 24.5 | 96.3 |\n| 2x8GPU | 4.5 | 37.9 | 194.3 |\n| 4x8GPU | 4.7 | 46.6 | 327.3 |\n| 8x8GPU | 6.1 | 55.7 | 461.6 |\n\nSLATE 대비 $2.81$–$8.28\\times$, StarPU 대비 $4.75$–$75.2\\times$ 속도향상. 단, 이 멀티노드 결과는 **정적 파티셔닝**이며 동적 부하분산은 포함하지 않음(§4).",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 900 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "result",
+      "title": "Single-Node LU/Cholesky vs cuSOLVER/SLATE/StarPU (Table 3-4)",
+      "content": "**단일노드 LU/Cholesky (Table 3-4, p.393-394)**\n\nLU 분해: $$A = LU$$ (하삼각 $L$과 상삼각 $U$의 곱)\n\nCholesky 분해: $$A = LL^T$$ ($A$가 대칭일 때)\n\n8-GPU, 60000x60000 행렬 기준 (단일-GPU cuSolverGetrf/Potrf 대비 speedup):\n\n| | LU | Cholesky |\n|---|---|---|\n| MUSTARD | $4.164\\times$ | $2.728\\times$ |\n| cuSmGF (fine-tiled) | $3.856\\times$ | $3.185\\times$ (최고) |\n| SLATE | $0.049\\times$ | $1.657\\times$ |\n| StarPU | $0.278\\times$ | $0.386\\times$ |\n\nLU에서는 MUSTARD가 최고 성능, Cholesky에서는 세밀 타일링된 cuSOLVER(cuSmGF)가 근소하게 앞섬 — MUSTARD는 성능 모델·수동 타일링 없이도 대등한 성능을 낸다는 것이 핵심 주장.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1050 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "claim",
+      "title": "Near Theoretical Peak, Host-Free",
+      "content": "**\"Host-free, near-peak\" 주장**\n\n> \"MUSTARD is designed for executing task graphs on multi-GPU systems, prioritizing load balancing and communication management without relying on host CPU control.\" (§6, p.395)\n\n실험적으로 뒷받침: 멀티노드에서 하드웨어 이론적 peak에 근접(§1, p.385), 작은 행렬에서도 이 효율 유지. 즉 device-side 실행이 **오버헤드 관점에서는** host 개입을 거의 완전히 대체했다는 근거.",
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1080 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "gap",
+      "title": "Static-Only Scope & No Cross-Node Dynamic Load Balancing",
+      "content": "**남은 한계: 정적 스코프 + 노드 간 동적 부하분산 불가**\n\n> \"In MUSTARD, multi-node execution is only possible without dynamic load balancing.\" (§4, p.391)\n\n- 그래프 구조가 런타임에 바뀌는 **동적 그래프**는 명시적으로 스코프 밖\n- 멀티노드에서는 **정적 파티셔닝만** 가능 — 노드 간 동적 재배치는 불가\n- device-side graph launch 자체가 디바이스당 **최대 120 subgraph**로 제한\n\n이 세 지점이 이 논문이 스스로 인정한 미해결 영역.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1230 },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "memo",
+      "title": "H3 Connection: Software Per-GPU Scheduler vs FPGA Control Plane",
+      "content": "**H3(GPU당 FPGA 제어 평면 가설)과의 관계**\n\nMUSTARD의 멀티-GPU 확장은 이미 \"GPU마다 독립적인 스케줄러 커널이 자기 큐를 처리하고, NVSHMEM으로 GPU 간 직접 통신\"하는 **분산 제어 구조**를 소프트웨어로 구현하고 있다 — 이는 H3가 상상한 \"GPU당 독립 제어 평면\"과 거시적으로 유사.\n\n하지만 결정적 차이: MUSTARD의 제어 루프는 **GPU 자신의 SM/스레드 자원**을 점유하는 커널인 반면, H3는 GPU 컴퓨팅 자원과 **분리된 전용 하드웨어(FPGA)**를 제안. 또한 MUSTARD는 그래프 구조가 고정된 정적 그래프만 다루는 반면, H3가 겨냥하는 데이터-의존적 동적 분기(LLM decode의 EOS 판정 등)는 이 논문의 스코프 밖에 명시적으로 남아 있음 — 과장 없이 말하면, MUSTARD는 H3의 경쟁작이 아니라 H3가 아직 비어 있는 지점에 정확히 서 있음을 확인해주는 참고점.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": { "x": 520, "y": 1380 },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
+    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
+    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
+    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
+    { "id": "edge_005", "source": "node_001", "target": "node_006", "type": "line", "label": "" },
+    { "id": "edge_006", "source": "node_001", "target": "node_007", "type": "line", "label": "" },
+    { "id": "edge_007", "source": "node_002", "target": "node_008", "type": "line", "label": "" },
+    { "id": "edge_008", "source": "node_002", "target": "node_009", "type": "line", "label": "" },
+    { "id": "edge_009", "source": "node_002", "target": "node_010", "type": "line", "label": "" },
+    { "id": "edge_010", "source": "node_003", "target": "node_011", "type": "line", "label": "" },
+    { "id": "edge_011", "source": "node_003", "target": "node_012", "type": "line", "label": "" },
+    { "id": "edge_012", "source": "node_003", "target": "node_013", "type": "line", "label": "" },
+    { "id": "edge_013", "source": "node_003", "target": "node_014", "type": "line", "label": "" },
+    { "id": "edge_014", "source": "node_004", "target": "node_015", "type": "line", "label": "" },
+    { "id": "edge_015", "source": "node_004", "target": "node_016", "type": "line", "label": "" },
+    { "id": "edge_016", "source": "node_004", "target": "node_017", "type": "line", "label": "" },
+    { "id": "edge_017", "source": "node_005", "target": "node_018", "type": "line", "label": "" },
+    { "id": "edge_018", "source": "node_005", "target": "node_019", "type": "line", "label": "" },
+    { "id": "edge_019", "source": "node_005", "target": "node_020", "type": "line", "label": "" }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "canvasImages": []
+}
