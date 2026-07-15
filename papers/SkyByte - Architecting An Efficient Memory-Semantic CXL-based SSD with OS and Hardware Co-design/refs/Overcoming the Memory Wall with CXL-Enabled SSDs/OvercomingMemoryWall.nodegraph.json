@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "Overcoming the Memory Wall with CXL-Enabled SSDs",
   "created": "2026-07-14T00:00:00.000Z",
-  "modified": "2026-07-14T00:00:00.000Z",
+  "modified": "2026-07-15T09:00:00.000Z",
   "source": {
     "pdf": "Overcoming the Memory Wall with CXL-Enabled SSDs.pdf",
     "authors": "Shao-Peng Yang, Minjae Kim, Sanghyun Nam, Juhyung Park, Jin-yong Choi, Eyee Hyun Nam, Eunji Lee, Sungjin Lee, Bryan S. Kim (Syracuse / DGIST / Soongsil / FADU)",
@@ -101,7 +101,9 @@
       "children": [
         "node_007",
         "node_008",
-        "node_009"
+        "node_009",
+        "node_023",
+        "node_032"
       ],
       "links": []
     },
@@ -126,7 +128,11 @@
         "node_011",
         "node_012",
         "node_013",
-        "node_014"
+        "node_014",
+        "node_024",
+        "node_026",
+        "node_030",
+        "node_031"
       ],
       "links": []
     },
@@ -150,7 +156,9 @@
         "node_015",
         "node_016",
         "node_017",
-        "node_018"
+        "node_018",
+        "node_025",
+        "node_028"
       ],
       "links": []
     },
@@ -172,7 +180,11 @@
       },
       "children": [
         "node_019",
-        "node_020"
+        "node_020",
+        "node_027",
+        "node_029",
+        "node_033",
+        "node_034"
       ],
       "links": []
     },
@@ -491,6 +503,222 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "memo",
+      "title": "🏛️ 학회: ATC = 실용성·철저한 실측/특성화를 보상",
+      "content": "**USENIX ATC 2023**. ATC가 보상하는 축은 **실용성·완성도·철저한 평가/특성화** — \"이게 실제로 되나, 무엇이 필요한가\"를 재현 가능한 방법으로 끝까지 파는 논문. reviewer가 특히 찌르는 곳은 **산업 relevance·실환경(real device/workload) 근거**다.\n\n이 논문이 ATC taste에 정합하는 이유:\n- **최초의 open-source CXL-flash feasibility characterization** — 새 HW 메커니즘 novelty(ISCA류)가 아니라 \"flash-backed CXL memory가 되는가, 어떤 조건에서\"를 정량으로 답한다. Artifact Evaluated (Available·Functional) 배지.\n- **real-application trace 기반 특성화** — 합성+실 workload로 caching/MSHR/prefetch 실효성을 실측처럼 정량화(68–91% sub-µs, ≥3.1yr).\n- **명확한 시스템 처방** — \"HW 최적화만으론 부족, kernel hint가 필요\"라는 배포 지향 결론.\n\n$\\Rightarrow$ 아래 ✅는 **이 축(실용 feasibility·특성화 깊이)에서 왜 통과했나**, ⚠️는 **이 축에서 무엇이 약한가(실물 아닌 시뮬레이션·GC 미고려)**로 정렬된다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": -200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "claim",
+      "title": "✅ 잘한 점: 최초의 open-source CXL-flash feasibility 특성화 (68–91% sub-µs)",
+      "content": "이 논문의 결정적 강점 #1 — **프레이밍과 novelty가 '기법'이 아니라 '최초의 깊은 특성화'에 있다**. prior work(예: [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]])는 CXL-SSD의 인터커넥트·확장성 vision을 논했을 뿐인데, 이 논문은 **장치 내부(device-internal) 설계 결정과 기존 최적화 기법의 실효성**을 처음으로 open-source로 판다.\n\n결과가 headline이 된다: real-application trace에서 **68–91%를 sub-µs**로 서비스, 수명 **≥3.1년**. \"flash-CXL memory는 된다\"를 데이터로 못박아 후속 연구(SkyByte 등)의 판을 깔았다. ATC가 보상하는 **실용 feasibility + 재현성** 축에 정확히 안착.",
+      "original": {
+        "text": "to the best of our knowledge, we are the first open-sourced in-depth study on the design choices of a CXL-flash device and on the effectiveness of existing optimization techniques.",
+        "location": "§1, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 80
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "claim",
+      "title": "✅ 잘한 점: \"caching만으론 실패 → prefetcher는 V2P로 붕괴 → kernel hint 필요\" 진단",
+      "content": "결정적 강점 #2 — **긍정 결과에서 멈추지 않고 한계까지 정직하게 해부**했다. 이게 단순 feasibility 자랑을 '분석'으로 격상시킨다.\n\n진단 사슬:\n1. **caching alone is insufficient** — 큰 cache로도 짧은 inter-arrival이 flash backend를 압도(§4.1).\n2. flash read의 **90%↑가 repeated read** → MSHR 없이는 tail latency 못 잡음(§4.2).\n3. **prefetcher는 양날의 검** — real workload(BERT/XZ/YCSB)에선 오히려 성능 저하(Obs#1).\n4. 근본 원인은 **V2P 주소변환이 접근 패턴을 흐린다**(BO on PageRank: virtual 99% → physical 42% accuracy, Obs#6).\n5. $\\Rightarrow$ **kernel access-pattern hint** 라는 OS 협력이 돌파구(Obs#7).\n\n이 진단이 곧 [[SkyByte]] co-design의 정당화 근거다.",
+      "original": {
+        "text": "The virtual-to-physical address translation makes it difficult for the CXL-flash to prefetch data. ... The BO prefetcher under Page Rank is 99% accurate for the virtual memory trace, but with the physical trace, accuracy drops to 42%.",
+        "location": "§5.2, Observation #6, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "claim",
+      "title": "✅ 잘한 점: physical-trace 방법론의 엄밀성 + open-source 아티팩트",
+      "content": "결정적 강점 #3 — **방법론적 엄밀성**(ATC가 특히 보상). \"virtual trace로 재면 편하다\"는 유혹을 배격하고, page-fault 후킹으로 **physical trace**를 직접 수집한다. 근거: virtual trace는 sub-µs 비율을 **과대낙관**(matrix multiply 오차 25%↑)하므로 physical이 필수. 이 엄밀성이 없었으면 Obs#6(V2P가 prefetch 방해)이라는 핵심 발견 자체가 안 나온다.\n\n게다가 tracing tool + MQSim 기반 시뮬레이터를 **전부 공개**(`github.com/spypaul/MQSim_CXL`) → Artifact Available·Functional. 재현성·후속 연구 발판이라는 ATC 미덕을 충족.",
+      "original": {
+        "text": "Using virtual memory traces generates an overly optimistic result with far more requests completing under a microsecond compared to the result from running physical memory traces. The error between the running with virtual address and physical address is significantly high: all the matrix multiply experiments have errors over 25%.",
+        "location": "§3.2, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: trace-driven simulation일 뿐, 실물 CXL-flash prototype이 아님",
+      "content": "**reviewer 질문**: 이 논문의 모든 수치(68–91% sub-µs, inter-arrival, tail latency)는 **MQSim 기반 trace-driven 시뮬레이션** 산출물이다. 실제 CXL.mem 링크의 back-pressure·retry·credit flow, 실 flash 컨트롤러의 스케줄링, host의 CXL coherence 처리 오버헤드가 반영되지 않았다. \"실물 CXL-flash에서도 같은 68–91%가 나오는가?\" ATC reviewer가 실환경 근거를 찌를 지점.\n\n**저자 방어**: 저자 스스로 한계를 인정하고 **\"future research가 build upon할 platform\"**으로 프레이밍한다 — 2023년 당시 실물 CXL-flash HW가 없었고, 목적이 설계 공간 특성화이므로 시뮬레이션이 합리적 선택. (그래도 실측 부재는 ATC 기준 구조적 약점으로 남는다.)",
+      "original": {
+        "text": "the host system considered may not fully reflect the new system characteristics introduced by CXL. Therefore, we believe more work needs to be done in the CXL-flash research space, and our work can be a platform on which future research can build upon.",
+        "location": "§7, p.12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 920
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: flash 내부 task(GC·wear leveling)를 시뮬레이터가 미고려",
+      "content": "**reviewer 질문**: 실제 SSD tail latency의 주범은 **garbage collection·wear leveling**인데, 시뮬레이터가 이를 모델링하지 않았다. GC가 flash read/program 큐에 끼어들면 이미 \"caching으로도 못 가리는\" inter-arrival 문제가 더 악화되고, 68–91% sub-µs·≥3.1년 수명 추정이 낙관 쪽으로 치우친다. \"GC 켜도 이 feasibility가 유지되나?\"\n\n**저자 방어**: §7에서 명시적으로 한계로 선언 — 이 논문은 **caching/prefetch의 실효성 특성화**에 범위를 좁혔고, GC/WL은 후속 과제로 남긴다. (정직하지만, feasibility headline을 인용할 때는 이 가정을 반드시 병기해야 함.)",
+      "original": {
+        "text": "The current design of a CXL-flash as explored in this paper does not consider the flash's internal tasks such as garbage collection and wear leveling.",
+        "location": "§7, p.12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: kernel hint(Obs#7)가 'clairvoyant kernel' 오라클 가정",
+      "content": "**reviewer 질문**: 논문의 처방적 결론(kernel hint로 sub-µs 86→91%)은 **가상의 clairvoyant kernel** — 자주 접근되는 top physical frame을 사전에 아는 오라클 — 에 기댄다. 실제로는 (1) 누가 언제 profiling하나, (2) profiling/hint 전달 오버헤드는 sub-µs 예산에 어떻게 들어가나, (3) hint 인터페이스·frame 소유권은 어떻게 정의되나가 전부 미정의. \"오라클을 빼면 이득이 남나?\"\n\n**저자 방어**: \"data-intensive 앱은 반복 iterate하므로 profiling으로 실현 가능\"하고, 확률적 hint 생성(top 10%, 0–10% chance)으로도 개선이 나타난다고 방어. 다만 이는 **제안(direction)**일 뿐 구현·측정이 아니어서, 실현 부담은 후속 co-design(SkyByte)의 몫으로 남는다.",
+      "original": {
+        "text": "We consider a hypothetically clairvoyant kernel that knows the physical memory access pattern. This is not too far-fetched as data-intensive applications often iterate multiple times and their behaviors can be profiled.",
+        "location": "§5.2, Observation #7, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "question",
+      "title": "🔀 왜 pure-HW prefetch 대신 kernel-provided hint인가",
+      "content": "긴 flash 지연 은닉에서 저자가 판 갈래:\n- **(A) 더 똑똑한 HW prefetcher** — degree/offset 튜닝, feedback/best-offset/Leap.\n- **(B) 장치를 virtual하게 주소지정** — V2P를 우회해 규칙성 보존.\n- **(C) kernel이 access-pattern hint를 장치에 전달**(co-design).\n\n**저자 선택 = C**. 이유: (A)는 real workload에서 오히려 성능을 깎고(Obs#1), 근본 원인이 **V2P가 패턴을 흐리는 것**이라 HW만으로는 못 넘는다(Obs#6). (B)는 CXL-flash가 LLC에서 **physical transaction을 직접 받으므로 불가능** — 장치는 virtual을 볼 수 없다. 그래서 host가 아는 workload 지식을 hint로 내려주는 C만 남는다(Obs#7).\n\n**저자가 안 판 갈래(=gap)**: hint 생성·소유·multi-host 조정. 이 빈칸을 [[SkyByte]]가 coordinated context switch + write log로 더 공격적으로 메운다.",
+      "original": {
+        "text": "The drop in both accuracy and coverage for physical traces shows that the CXL-flash would perform better if it were addressed virtually. ... If the kernel were to provide memory access pattern hints to the device, the CXL-flash performance improves by converting hit-under-misses into cache hits.",
+        "location": "§5.2, Observations #6–#7, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1760
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_031",
+      "template": "question",
+      "title": "🔀 왜 실물 prototype 대신 trace-driven simulation인가",
+      "content": "CXL-flash 평가 방법의 갈래:\n- **(A) 실물 CXL-flash HW prototype** — 가장 신뢰 높은 실측.\n- **(B) FPGA 에뮬레이션** — 중간.\n- **(C) physical-trace 수집 + MQSim 기반 시뮬레이션.**\n\n**저자 선택 = C**. 이유: 2023년 당시 실물 CXL-flash가 없었고, 목표가 **넓은 설계 공간**(cache 크기·MSHR·prefetcher 종류·flash tech·parallelism)을 **체계적으로 스윕**하는 특성화라 시뮬레이션이 합리적. 단 신뢰성을 위해 virtual이 아닌 **physical trace**를 직접 수집해 낙관 편향을 제거(§3.2, 오차 25%↑).\n\n**저자가 남긴 갈래(=⚠️와 연결)**: 실 CXL.mem 링크 동역학·GC는 미반영 → \"platform for future research\"로 남김. A/B는 후속 실물 검증(SkyByte는 FPGA로 성능모델 검증)의 몫.",
+      "original": {
+        "text": "Due to the large design space, we first explore the CXL-flash hardware design in § 4 and then evaluate and analyze policies and algorithms in § 5.",
+        "location": "§1, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2040
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_032",
+      "template": "reference",
+      "title": "📐 P/L: 'caching/prefetch로 flash 지연 은닉'(P) → OS 협력 없인 구조적으로 부족(L)",
+      "content": "기존 접근을 **관점 P + 구조적 한계 L**로 분해. 이 논문의 기여는 P를 실측으로 소진시켜 L을 드러낸 것 — 그리고 그 L이 곧 [[SkyByte]] co-design의 존재 이유다.\n\n| 관점 P (문제를 본 렌즈) | 실측이 드러낸 구조적 한계 L |\n|---|---|\n| \"DRAM cache로 hot data 은닉하면 된다\" | 짧은 inter-arrival이 flash backend를 압도 → **caching alone is insufficient**, MSHR 없인 repeated read(90%↑)를 못 막음 |\n| \"HW prefetcher로 지연을 선제 은닉\" | **V2P 변환이 패턴을 흐려**(virtual 99%→physical 42%) prefetcher 무력화·cache pollution → real workload에선 역효과 |\n| \"장치 내부 HW 최적화만으로 near-DRAM 가능\" | 장치가 **physical만 보므로** host의 workload 지식 없이는 구조적으로 한계 → **kernel hint = OS 협력이 필수** |\n\n핵심: L은 \"성능이 나쁨\"이 아니라 **\"장치가 physical transaction만 받는다\"는 관점 P의 구조에서 필연적으로 남는 것**. 관점을 'OS↔SSD co-design'으로 바꿔야 풀린다.",
+      "original": {
+        "text": "This experiment shows that caching alone is insufficient in reducing the latency of a CXL-flash, and we need additional auxiliary structures to reduce the traffic to flash memory.",
+        "location": "§4.1, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2320
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_033",
+      "template": "memo",
+      "title": "📍 위치: SkyByte Base-CSSD 계보의 baseline characterization",
+      "content": "ATC'23 CXL-flash 좌표에서 이 논문의 자리 — **설계가 아니라 특성화**. 같은 학회·인접 논문 대비:\n\n| 논문 | 성격 | 이 논문과의 관계 |\n|---|---|---|\n| [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]] (HotStorage'22) | CXL+SSD **vision** | 이 논문이 그 vision을 실증 검증한 첫 in-depth study |\n| **DirectCXL** (ATC'22) | 실 HW로 외부 DRAM disaggregation | 매체가 DRAM(이 논문은 flash) |\n| [[SkyByte]] (HPCA'25) | OS+HW **co-design 설계** | 이 논문의 baseline(Base-CSSD)을 계승·공격적 확장 |\n\n즉 이 논문은 \"flash-CXL memory는 된다, 단 OS 협력이 필요하다\"를 **데이터로 세팅한 baseline** — SkyByte가 그 위에서 coordinated context switch·cacheline write log로 한계를 넘는다. 내 발표축 \"SSD 이중역할 × transparent co-design\"에서 co-design **필요성의 실증적 뿌리(motivation 슬라이드)**.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2600
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_034",
+      "template": "gap",
+      "title": "🧭 내 연구: single-host feasibility → multi-host 공유 시 P′ 재정의",
+      "content": "이 논문의 모든 결과는 **한 host = 한 page table = 하나의 V2P 매핑** 위에서 성립한다(관점 P). 내 방향(**multi-node CXL coherence**)에서 이 특성화를 **공유 CXL-SSD로 재수행**하면 계산이 붕괴한다(P′):\n\n- **caching/prefetch 계산 붕괴**: 여러 host 요청이 섞이면 inter-arrival·cache pollution·prefetch accuracy(Obs#4~#6의 분석 틀)가 host별로 갈려 무의미해진다.\n- **coherence 재정의**: host A가 promote/캐싱한 line을 host B가 stale로 봄 → CXL 3.0 **back-invalidate/HDM-DB** 필요. MSHR outstanding-read 병합·CFLRU clean/dirty 판정도 host 경계를 넘으면 달라진다.\n- **hint 소유권**: Obs#7의 kernel hint를 multi-host에선 누가 생성·조정하나?\n\n$\\Rightarrow$ 이 논문의 \"무엇이 필요한가\"를 **공유 맥락에서 다시 묻는 것(P′)**이 내 gap. (single-host라는 L에서 직접 유도된 P′, 억지 novelty 아님.) $\\rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]]",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2880
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -647,6 +875,90 @@
       "target": "node_020",
       "type": "line",
       "label": "연결"
+    },
+    {
+      "id": "edge_023",
+      "source": "node_002",
+      "target": "node_023",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_024",
+      "source": "node_003",
+      "target": "node_024",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_025",
+      "source": "node_004",
+      "target": "node_025",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_026",
+      "source": "node_003",
+      "target": "node_026",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_027",
+      "source": "node_005",
+      "target": "node_027",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_028",
+      "source": "node_004",
+      "target": "node_028",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_029",
+      "source": "node_005",
+      "target": "node_029",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_030",
+      "source": "node_003",
+      "target": "node_030",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_031",
+      "source": "node_003",
+      "target": "node_031",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_032",
+      "source": "node_002",
+      "target": "node_032",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_033",
+      "source": "node_005",
+      "target": "node_033",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_034",
+      "source": "node_005",
+      "target": "node_034",
+      "type": "line",
+      "label": "분석"
     }
   ],
   "viewport": {

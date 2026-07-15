@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "TPP: Transparent Page Placement for CXL-Enabled Tiered-Memory",
   "created": "2026-07-14T00:00:00.000Z",
-  "modified": "2026-07-14T00:00:00.000Z",
+  "modified": "2026-07-15T09:00:00.000Z",
   "source": {
     "pdf": "TPP - Transparent Page Placement for CXL-Enabled Tiered-Memory.pdf",
     "authors": "Hasan Al Maruf, Hao Wang, Abhishek Dhanotia, Johannes Weiner, Niket Agarwal, Pallab Bhattacharya, Chris Petersen, Mosharaf Chowdhury, Shobhit Kanaujia, Prakash Chauhan (Meta / Univ. of Michigan / NVIDIA)",
@@ -100,7 +100,9 @@
       },
       "children": [
         "node_007",
-        "node_008"
+        "node_008",
+        "node_021",
+        "node_030"
       ],
       "links": []
     },
@@ -125,7 +127,9 @@
         "node_010",
         "node_011",
         "node_012",
-        "node_013"
+        "node_013",
+        "node_028",
+        "node_029"
       ],
       "links": []
     },
@@ -148,7 +152,13 @@
       "children": [
         "node_014",
         "node_015",
-        "node_016"
+        "node_016",
+        "node_022",
+        "node_023",
+        "node_024",
+        "node_025",
+        "node_026",
+        "node_027"
       ],
       "links": []
     },
@@ -170,7 +180,9 @@
       },
       "children": [
         "node_017",
-        "node_018"
+        "node_018",
+        "node_031",
+        "node_032"
       ],
       "links": []
     },
@@ -454,6 +466,214 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "memo",
+      "title": "🏛️ 학회: ASPLOS = cross-layer(OS+arch) co-design 보상",
+      "content": "**Venue-first anchor** — ASPLOS taste는 **arch+OS+PL을 가로지르는 co-design**을 보상하고, \"한 층만 건드림·계층이 얕음\"을 찌른다.\n\nTPP가 이 축에 정합하는 방식: 새 하드웨어를 만드는 대신 **Linux 커널 memory management 전체(reclaim 경로·NUMA Balancing·zone watermark·LRU)를 CXL tiering용으로 재설계**한다. 즉 **하드웨어 특성**(CXL-Memory = CPU-less NUMA node, DRAM $+50\\text{-}100$ns tier)과 **OS 메커니즘**을 한 번에 맞물리는 cross-layer 작업 — arch가 만든 새 tier를 OS가 어떻게 투명하게 품는가.\n\n또 ASPLOS/OSDI 계열이 좋아하는 **real-system 실측**(Meta production + FPGA CXL 1.1 + Linux v5.18 머지)까지 갖춰, \"계층 얕음\" 공격을 정면으로 방어한다.\n\n$\\rightarrow$ 아래 ✅/⚠️는 모두 **이 cross-layer 축(HW tier 특성 ↔ OS 배치 메커니즘)** 위에서 판단한다.",
+      "original": {
+        "text": "We propose a novel OS-level application-transparent page placement mechanism (TPP) for CXL-enabled memory.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": -200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "claim",
+      "title": "✅ 잘한 점: 앱 수정·사전지식 0 — 커널 릴리스로 전역 배포 (practical impact)",
+      "content": "**cross-layer 축의 강점 1 — transparency & deployability.** TPP는 application 수정도, 접근 패턴 사전지식도 요구하지 않고 **kernel-space 안에서** hot/cold 배치를 끝낸다. 그 결과 특정 앱 튜닝이 아니라 **커널 릴리스 하나로 전역(hyperscale) 배포** 가능하고, 실제로 패치 대부분이 **Linux v5.18에 머지**됐다.\n\nreviewer가 좋게 볼 지점: novelty(새 tier용 OS 재설계)뿐 아니라 **practical impact/배포성** — ASPLOS·OSDI가 보상하는 real-system 완결성. 앱별 profiler나 ISA 변경을 요구하는 경쟁작 대비 배포 장벽이 결정적으로 낮다.",
+      "original": {
+        "text": "TPP works transparently without any application-specific knowledge and can be deployed globally as a kernel release.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 80
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "claim",
+      "title": "✅ 잘한 점: 경량 reactive demotion + decoupled promotion (기존 프리미티브 재조합)",
+      "content": "**cross-layer 축의 강점 2 — 새 HW 없이 커널 프리미티브를 재조합해 ping-pong 제거.**\n\n- **경량 demotion**: reclaim 후보를 swap 대신 별도 list로 CXL-node에 **비동기 migration** — NUMA node로의 migration은 swapping보다 **orders of magnitude 빠르고**, demoted page가 in-memory라 load/store 접근 유지(major fault 회피).\n- **decoupled path + active-LRU promotion**: alloc/reclaim watermark 분리로 local free headroom을 유지하고, active-LRU에 있을 때만 promote해 hysteresis 부여.\n\nreviewer가 좋게 볼 지점: **evaluation depth** — active-LRU가 promotion rate **11×↓**, 성공률 **48%↑**로 각 컴포넌트 기여를 ablation으로 못박음. \"단순 조합\" 공격을 정량 근거로 방어.",
+      "original": {
+        "text": "Migration to a NUMA node is orders of magnitude faster than swapping.",
+        "location": "§5.1, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "claim",
+      "title": "✅ 잘한 점: Meta 4개 production 워크로드 × FPGA CXL 1.1 실측 (합성 아님)",
+      "content": "**cross-layer 축의 강점 3 — real-system 실측.** 합성 벤치가 아니라 **Meta의 live production workload 4종**(Web/Cache/DataWarehouse/Ads)을 **pre-production x86 + FPGA 기반 CXL 1.1** 실기(CXL-Memory가 CPU-less NUMA node로 노출)에서 평가.\n\n결과: all-local ideal 대비 **<1% gap**, default Linux 대비 **18%**, NUMA Balancing·AutoTiering 대비 **5-17%** 개선.\n\nreviewer가 좋게 볼 지점: **generalization 우려 완화** — 다양한 production 도메인에서 재현되므로 \"특정 마이크로벤치에만 통함\" 공격이 약해진다. ASPLOS가 특히 보상하는 arch(새 tier)↔OS(배치)↔실측의 삼각 완결성.",
+      "original": {
+        "text": "an ideal baseline (<1% gap) that has all the memory in the local tier.",
+        "location": "Abstract, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: single-host tier만 — CXL의 진짜 매력(pooling)은 밖",
+      "content": "**reviewer 질문**: \"CXL 3.0의 결정적 가치는 **multi-host memory pooling**(같은 학회의 Pond 등)인데, TPP는 **한 host의 local↔CXL NUMA node**만 다룬다. page-temperature·watermark·LRU가 전부 단일 host 물리주소 공간 이야기라, pool로 확장하면 host마다 온도가 충돌하지 않나? cross-layer라면서 정작 multi-node 계층은 왜 비었나?\"\n\n**저자 방어**: 논문 scope를 명시적으로 single-host tiered memory로 한정했고, multi-tenant/QoS는 §7 future work로 인정한다. FPGA도 CXL 1.1(pooling 이전)이라 범위상 자연스럽다.\n\n**남는 구조적 한계**: pooling coherence는 언급조차 없음 — scope 한정이 곧 이 축의 미해결을 지운 건 아니다(→ 🧭 내 연구).",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 920
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: reactive(사후 감지) — 예측이 아님",
+      "content": "**reviewer 질문**: \"온도 감지가 minor page fault + LRU 기반의 **reactive** 메커니즘이다. trapped hot page를 **사후에** 감지해 이주하므로, 접근이 급변하는 구간(Web은 cold의 80%가 10분 내 재접근)에서 promotion이 늦고, 저자 스스로 active-LRU 도입 시 수렴에 **5분 더** 걸린다고 보고한다(§6.2). 왜 예측적 prefetch/placement는 안 했나? latency-critical burst엔 취약하지 않나?\"\n\n**저자 방어**: 접근 패턴이 **수분~수시간 안정적**(§3)이라 reactive로 충분하며, 예측은 PEBS류 상시 프로파일링이 필요해 **page-size agnostic·저오버헤드** 목표와 상충한다.\n\n**남는 한계**: 안정 가정이 깨지는 워크로드(짧고 뜨거운 burst, shifting working set)에선 reactive 지연이 그대로 비용. RL/예측 배치([[ArtMem]])가 겨냥하는 빈틈.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: page-temperature/LRU가 shared CXL tier에서 깨짐",
+      "content": "**reviewer 질문**: \"active-LRU·watermark·minor-page-fault 온도 모델은 전부 **단일 host 물리주소 공간** 전제다. CXL 3.0 pooling에서 **remote host의 접근은 이 host의 page fault를 발생시키지 않으므로** 온도가 안 잡히고, promotion이 만든 **로컬 물리 사본**은 다른 host에 **stale**를 노출한다. 이 모델이 공유 tier에서 성립하나?\"\n\n**저자 방어**: 본 논문 대상은 CXL 1.1 single-host tier이며 cross-host coherence는 out of scope.\n\n**남는 구조적 한계**: 온도의 지역성 붕괴 + promotion=사본=coherence 부담은 관점 P(단일 host) 때문에 구조적으로 남는다 → **cross-host invalidation(CXL 3.0 back-invalidate/HDM-DB)** 없이는 pool에서 재설계 불가피(→ 🧭 내 연구).",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "question",
+      "title": "🔀 왜 promotion/demotion 경로를 decouple했나 (vs alloc-halt / swap)",
+      "content": "**갈림길** — local이 찰 때 어떻게 free를 확보하고 새 할당·promotion을 받나:\n- **(A)** default Linux처럼 free가 low 아래면 **새 allocation을 halt**하고 reclaim이 high 채우길 기다림(alloc↔reclaim 강결합).\n- **(B)** reclaim을 **swap**으로(TMO식 page-out).\n- **(C)** **allocation_watermark와 demotion_watermark를 분리** — free가 demotion_watermark까지 background reclaim, 새 alloc은 별도 watermark만 넘으면 진행. 게다가 swap 대신 async migration.\n\n**저자가 고른 것 = C**, 이유: (A)는 고할당률에서 reclaim이 못 따라가 page가 CXL로 몰림; (B)는 매 접근이 major fault라 CXL의 load/store 가치를 잃음. **C만** 짧고 뜨거운 새 할당을 local에 직접 매핑하면서 **동시에** CXL의 trapped hot page promotion을 받을 **free headroom**을 남긴다.\n\n**저자가 안 판 갈래**: watermark가 host-local 개념 — **pool 차원 압박 조율**은 미정의(=gap).",
+      "original": {
+        "text": "To achieve that, we decouple the logic of 'reclamation stop' and 'new allocation happen' mechanism.",
+        "location": "§5.2, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1760
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "question",
+      "title": "🔀 왜 기존 NUMA Balancing 재사용했나 (vs 새 HW 카운터 / PEBS)",
+      "content": "**갈림길** — CXL-node의 hot page를 무엇으로 감지·승격하나:\n- **(A)** 새 **HW 온도 카운터/디바이스 로직**(SkyByte식 hardware-assisted migration).\n- **(B)** **PEBS/IPT user-space 프로파일러**를 상시 구동.\n- **(C)** 이미 커널에 있는 **NUMA Balancing(AutoNUMA)의 minor page fault**를 **CXL-node 전용 + active-LRU 필터**로 증강.\n\n**저자가 고른 것 = C**, 이유: PEBS는 CPU 벤더 간 **비표준**·상시 부담, IPT는 accessed-bit clear + TLB flush로 고빈도 감시 시 slowdown, 둘 다 page-size에 종속. NUMA Balancing은 이미 transparent·저오버헤드·**page-size agnostic**. 단 default의 결함(active 상태 무시 instant promote)을 **active-LRU hysteresis**로 보정.\n\n**저자가 안 판 갈래**: (A) HW로 내리는 길 = [[SkyByte]], 예측/**RL 정책** 배치 = [[ArtMem]]. 즉 C는 \"기존 OS 프리미티브 재사용\"이라는 보수적·배포친화 선택.",
+      "original": {
+        "text": "To promote such pages, we augment Linux's NUMA Balancing.",
+        "location": "§5.3, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2040
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "reference",
+      "title": "📐 P/L: default Linux tiering(동종 전제) → ping-pong·trapped (구조적 L)",
+      "content": "**기존 관점 P → 구조적 한계 L → TPP의 P″** 분해:\n\n| 기존 해법 (default Linux tiering) | 관점 P (문제를 본 렌즈) | 한계 L (P 때문에 남는 구조적 문제) |\n|---|---|---|\n| NUMA hint fault 시 **즉시 promote**; reclaim = **동기 swap**; alloc↔reclaim **강결합** | \"CXL도 **동종 DRAM NUMA node**처럼 — 접근되면 곧 hot이니 바로 올리고, local 차면 swap으로 내보낸다\" (homogeneous 전제) | active 상태 무시 promote → **ping-pong / trapped hot page**; 동기 swap이 느려 그 사이 새 alloc이 **CXL로 몰려 영구 정착** → suboptimal placement |\n| **TPP P″** | \"CXL은 **이종(slow) tier** — 온도는 **active-LRU**로 재고, 경로는 **decouple**하고, promotion엔 **hysteresis**를 준다\" | L 해소: **decoupled path + temperature-aware** promotion으로 trapped/ping-pong 제거 |\n\n핵심: L은 \"성능 나쁨\"이 아니라 **관점 P(동종 전제)가 만든 구조적 결과** — 그래서 관점을 이종 tier로 바꾼 TPP에서 풀린다. 아래 원문은 P의 핵심 결함(instant promote)을 못박는다.",
+      "original": {
+        "text": "When a NUMA hint fault happens on a page, default NUMA balancing instantly promotes the page without checking its active state.",
+        "location": "§5.3, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2320
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_031",
+      "template": "memo",
+      "title": "📍 위치: OS-only transparent placement의 대표 — SkyByte/ArtMem 좌표",
+      "content": "TPP는 tiered-memory 배치 문제를 **OS/software 층에서 투명하게** 푸는 **대표작**(software 극단). 같은 문제(hot/cold 배치)를 다른 층·다른 정책으로 푸는 이웃과의 좌표:\n\n| 좌표 | 배치 주체 | 정책 성격 |\n|---|---|---|\n| **TPP** (ASPLOS'23) | **OS/커널** | reactive heuristic (fault+LRU) |\n| [[SkyByte]] (HPCA'25) | **하드웨어**(디바이스 내부) | HW-assisted adaptive migration |\n| [[ArtMem]] | OS+학습 | **RL** 기반 adaptive migration |\n\n★ **비교 관계**: [[SkyByte]]는 자신의 adaptive migration을 **TPP류 OS baseline(SkyByte-CT)**과 겨룬다 — TPP는 \"왜 migration을 HW로 내렸나\"의 **반대편 극단**. [[ArtMem]]은 TPP의 **reactive heuristic을 학습 정책으로 대체**하는 인접 좌표. 즉 축은 **reactive OS heuristic(TPP) ↔ HW migration(SkyByte) ↔ RL policy(ArtMem)**. 내 발표축 \"SSD 이중역할 × transparent co-design\"에서 TPP = **software 끝**.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2600
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_032",
+      "template": "gap",
+      "title": "🧭 내 연구: per-host 온도 → shared CXL tier의 cross-host coherence P′",
+      "content": "TPP의 page-temperature·watermark·active-LRU·PG_demoted는 전부 **single-host 물리주소 공간** 전제(=refs의 L). 내 관점 **P′ = CXL tier가 여러 host에 공유될 때의 cross-host 간섭/coherence**.\n\n공유 pool에서 P′가 드러내는 것:\n- host A가 cold로 판단해 demote한 page를 **host B가 즉시 재접근** → per-host 온도가 충돌.\n- A의 promotion이 만든 **로컬 사본**이 B에 **stale** 노출 → **cross-host invalidation(CXL 3.0 back-invalidate / HDM-DB)** 필요, TPP엔 없음.\n\n$\\rightarrow$ TPP의 **기법**(경량 demotion·decoupled watermark·active-LRU)은 재사용하되, **문제 정의를 single→multi host로** 다시 세워 **pool-aware coherent placement**로 승격하는 것이 gap. (P′는 refs의 L=single-host 전제에서 직접 유도됨.) (→ [[SkyByte]], [[CXL Multi-node Coherence]])",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2880
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -603,6 +823,90 @@
       "target": "node_018",
       "type": "line",
       "label": "연결"
+    },
+    {
+      "id": "edge_022",
+      "source": "node_002",
+      "target": "node_021",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_023",
+      "source": "node_004",
+      "target": "node_022",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_024",
+      "source": "node_004",
+      "target": "node_023",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_025",
+      "source": "node_004",
+      "target": "node_024",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_026",
+      "source": "node_004",
+      "target": "node_025",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_027",
+      "source": "node_004",
+      "target": "node_026",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_028",
+      "source": "node_004",
+      "target": "node_027",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_029",
+      "source": "node_003",
+      "target": "node_028",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_030",
+      "source": "node_003",
+      "target": "node_029",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_031",
+      "source": "node_002",
+      "target": "node_030",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_032",
+      "source": "node_005",
+      "target": "node_031",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_033",
+      "source": "node_005",
+      "target": "node_032",
+      "type": "line",
+      "label": "분석"
     }
   ],
   "viewport": {

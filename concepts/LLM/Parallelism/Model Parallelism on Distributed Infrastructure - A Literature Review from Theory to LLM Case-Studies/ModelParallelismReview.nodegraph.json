@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "Model Parallelism on Distributed Infrastructure: A Literature Review from Theory to LLM Case-Studies",
   "created": "2026-07-06T06:09:46.000Z",
-  "modified": "2026-07-06T06:09:46.000Z",
+  "modified": "2026-07-15T00:00:00.000Z",
   "source": {
     "pdf": "Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf",
     "authors": "Felix Brakel (University of Amsterdam / Vrije Universiteit Amsterdam), Uraz Odyurt (Radboud University / Nikhef), Ana-Lucia Varbanescu (University of Twente / University of Amsterdam)",
@@ -11,14 +11,54 @@
     "pages": 10
   },
   "nodeTemplates": {
-    "main_topic": { "label": "Main topic", "color": "#4B8BBE", "icon": "file-text",   "shape": "sharp" },
-    "method":     { "label": "Method",     "color": "#5C9E6E", "icon": "cpu",         "shape": "sharp" },
-    "result":     { "label": "Result",     "color": "#9B59B6", "icon": "bar-chart-2", "shape": "sharp" },
-    "claim":      { "label": "Claim",      "color": "#E74C3C", "icon": "alert-circle","shape": "sharp" },
-    "question":   { "label": "Question",   "color": "#E5A835", "icon": "help-circle", "shape": "rounded" },
-    "gap":        { "label": "Gap / Idea", "color": "#1ABC9C", "icon": "lightbulb",   "shape": "rounded" },
-    "reference":  { "label": "Reference",  "color": "#95A5A6", "icon": "book-open",   "shape": "rounded" },
-    "memo":       { "label": "Memo",       "color": "#BDC3C7", "icon": "edit-3",      "shape": "rounded" }
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#5C9E6E",
+      "icon": "cpu",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#9B59B6",
+      "icon": "bar-chart-2",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#E74C3C",
+      "icon": "alert-circle",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#1ABC9C",
+      "icon": "lightbulb",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Reference",
+      "color": "#95A5A6",
+      "icon": "book-open",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#BDC3C7",
+      "icon": "edit-3",
+      "shape": "rounded"
+    }
   },
   "nodes": [
     {
@@ -41,10 +81,19 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 0 },
-      "children": ["node_016"],
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_016"
+      ],
       "links": [
-        { "type": "pdf", "target": "./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=2", "label": "원문 §3.1.1, p.2 (Figure 2)" }
+        {
+          "type": "pdf",
+          "target": "./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=2",
+          "label": "원문 §3.1.1, p.2 (Figure 2)"
+        }
       ]
     },
     {
@@ -59,7 +108,43 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 300 },
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "children": [
+        "node_019",
+        "node_020"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "method",
+      "title": "DP / TP / PP — 세 병렬화 축 (무엇을 쪼개나)",
+      "content": "딥러닝 분산학습의 세 기본 축. **무엇을 쪼개느냐**로 갈린다.\n\n| 축 | 무엇을 쪼갬 | 각 device가 가진 것 | 통신 |\n|---|---|---|---|\n| **DP** (Data Parallel) | **데이터(batch)** | **전체 모델 복제** | gradient **all-reduce** (step마다) |\n| **TP** (Tensor Parallel) | **한 layer 내부 tensor**(weight matrix) | 같은 layer의 **일부(shard)** | layer마다 all-reduce/all-gather (**빈번·무거움**) |\n| **PP** (Pipeline Parallel) | **layer들(stage)** | 연속된 **layer 묶음** | stage 경계에서 activation 전달 (**드묾**) + bubble |\n\n- **DP**: 모델은 다 갖고 데이터만 나눔 — 모델이 device 하나에 들어갈 때. gradient 동기화가 비용.\n- **TP**: 하나의 layer(예: MLP·attention의 거대 행렬)를 쪼개 여러 device가 나눠 계산 → **layer 하나 계산에 device 간 통신** 필요(Megatron: column-분할 다음 row-분할로 all-reduce 1회). 통신이 잦고 무거워 **빠른 링크(intra-node/NVLink)** 위에 둔다.\n- **PP**: 모델을 layer 단위로 잘라 stage로 배치하고 micro-batch를 파이프라인 → 통신은 stage 경계뿐이라 **드물어 inter-node에도 견딤**. 대신 **pipeline bubble**(파이프 채우고 비우는 idle) 손해.\n- 셋은 **결합**된다 — **3D parallelism** $=$ DP $\\times$ TP $\\times$ PP (예: Megatron-LM).",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 450,
+        "y": 250
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "memo",
+      "title": "intra / inter — 같은 패턴, 다른 이름 (op·layer·node·host)",
+      "content": "'한 단위 **안**(intra) vs 단위**들 사이**(inter)'라는 구분은 이름만 바뀌며 여러 층에서 반복된다 — **의미는 동일(within vs between), 표현만 다름.**\n\n| 표현 | intra (안) | inter (사이) |\n|---|---|---|\n| **operator graph** (이 리뷰) | intra-operator | inter-operator |\n| **layer 분할** | intra-layer $=$ **TP** | inter-layer $=$ **PP** |\n| **하드웨어 배치** | intra-node (NVLink) | inter-node (network) |\n| **CXL coherence** | intra-host | inter-host |\n\n- **TP $=$ intra-layer/intra-operator**, **PP $=$ inter-layer/inter-operator** — 같은 축의 다른 이름(이 리뷰의 「이론적 틀」 노드가 명시). **Alpa**는 이 둘을 **intra-op(ILP) + inter-op(DP)** 2계층으로 분리 탐색.\n- **배치 heuristic**: TP는 통신이 잦아 **intra-node(빠른 링크)**에, PP/DP는 통신이 드물어 **inter-node**에 — '무거운 통신은 안쪽, 가벼운 통신은 바깥쪽'이라는 공통 원리. (bandwidth·latency 위계와 정합)\n- **CXL과의 대응**: **intra-host**(하드웨어가 자동 coherence) / **inter-host**(sharing $\\rightarrow$ back-invalidate)도 같은 within/between 패턴이다. 병렬화의 '통신 비용으로 경계를 나눈다'와, coherence의 'domain 경계에서 끊긴다'가 같은 골격. $\\rightarrow$ [[CXL Coherence]]의 intra/inter scope.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 450,
+        "y": 400
+      },
       "children": [],
       "links": []
     },
@@ -75,8 +160,14 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 600 },
-      "children": ["node_007", "node_015"],
+      "position": {
+        "x": 0,
+        "y": 600
+      },
+      "children": [
+        "node_007",
+        "node_015"
+      ],
       "links": []
     },
     {
@@ -99,10 +190,22 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 900 },
-      "children": ["node_008", "node_009", "node_010", "node_011"],
+      "position": {
+        "x": 0,
+        "y": 900
+      },
+      "children": [
+        "node_008",
+        "node_009",
+        "node_010",
+        "node_011"
+      ],
       "links": [
-        { "type": "pdf", "target": "./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=6", "label": "원문 §5.1, p.6 (Table 2)" }
+        {
+          "type": "pdf",
+          "target": "./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=6",
+          "label": "원문 §5.1, p.6 (Table 2)"
+        }
       ]
     },
     {
@@ -125,10 +228,22 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 1200 },
-      "children": ["node_012", "node_013", "node_014", "node_017"],
+      "position": {
+        "x": 0,
+        "y": 1200
+      },
+      "children": [
+        "node_012",
+        "node_013",
+        "node_014",
+        "node_017"
+      ],
       "links": [
-        { "type": "pdf", "target": "./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=9", "label": "원문 §6-7, p.9 (Table 3)" }
+        {
+          "type": "pdf",
+          "target": "./Model Parallelism on Distributed Infrastructure - A Literature Review from Theory to LLM Case-Studies.pdf#page=9",
+          "label": "원문 §6-7, p.9 (Table 3)"
+        }
       ]
     },
     {
@@ -143,8 +258,13 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 0, "y": 1500 },
-      "children": ["node_018"],
+      "position": {
+        "x": 0,
+        "y": 1500
+      },
+      "children": [
+        "node_018"
+      ],
       "links": []
     },
     {
@@ -159,7 +279,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 450, "y": 550 },
+      "position": {
+        "x": 450,
+        "y": 550
+      },
       "children": [],
       "links": []
     },
@@ -183,7 +306,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 450, "y": 750 },
+      "position": {
+        "x": 450,
+        "y": 750
+      },
       "children": [],
       "links": []
     },
@@ -199,7 +325,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 450, "y": 900 },
+      "position": {
+        "x": 450,
+        "y": 900
+      },
       "children": [],
       "links": []
     },
@@ -223,7 +352,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 450, "y": 1050 },
+      "position": {
+        "x": 450,
+        "y": 1050
+      },
       "children": [],
       "links": []
     },
@@ -239,7 +371,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 450, "y": 1200 },
+      "position": {
+        "x": 450,
+        "y": 1200
+      },
       "children": [],
       "links": []
     },
@@ -255,7 +390,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 450, "y": 1350 },
+      "position": {
+        "x": 450,
+        "y": 1350
+      },
       "children": [],
       "links": []
     },
@@ -271,7 +409,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 450, "y": 1500 },
+      "position": {
+        "x": 450,
+        "y": 1500
+      },
       "children": [],
       "links": []
     },
@@ -287,7 +428,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 450, "y": 1650 },
+      "position": {
+        "x": 450,
+        "y": 1650
+      },
       "children": [],
       "links": []
     },
@@ -299,7 +443,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 850, "y": 600 },
+      "position": {
+        "x": 850,
+        "y": 600
+      },
       "children": [],
       "links": []
     },
@@ -315,7 +462,10 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 850, "y": 150 },
+      "position": {
+        "x": 850,
+        "y": 150
+      },
       "children": [],
       "links": []
     },
@@ -327,11 +477,22 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 850, "y": 1200 },
+      "position": {
+        "x": 850,
+        "y": 1200
+      },
       "children": [],
       "links": [
-        { "type": "url", "target": "https://arxiv.org/abs/1909.08053", "label": "Megatron-LM (Shoeybi et al. 2019) arXiv" },
-        { "type": "url", "target": "https://doi.org/10.1145/3458817.3476209", "label": "Efficient large-scale LM training on GPU clusters (Narayanan et al. 2021) DOI" }
+        {
+          "type": "url",
+          "target": "https://arxiv.org/abs/1909.08053",
+          "label": "Megatron-LM (Shoeybi et al. 2019) arXiv"
+        },
+        {
+          "type": "url",
+          "target": "https://doi.org/10.1145/3458817.3476209",
+          "label": "Efficient large-scale LM training on GPU clusters (Narayanan et al. 2021) DOI"
+        }
       ]
     },
     {
@@ -342,29 +503,152 @@
       "contentExpanded": true,
       "originalExpanded": false,
       "childrenExpanded": false,
-      "position": { "x": 850, "y": 1500 },
+      "position": {
+        "x": 850,
+        "y": 1500
+      },
       "children": [],
       "links": []
     }
   ],
   "edges": [
-    { "id": "edge_001", "source": "node_001", "target": "node_002", "type": "arrow", "label": "" },
-    { "id": "edge_002", "source": "node_002", "target": "node_003", "type": "arrow", "label": "" },
-    { "id": "edge_003", "source": "node_003", "target": "node_004", "type": "arrow", "label": "" },
-    { "id": "edge_004", "source": "node_004", "target": "node_005", "type": "arrow", "label": "" },
-    { "id": "edge_005", "source": "node_005", "target": "node_006", "type": "arrow", "label": "" },
-    { "id": "edge_006", "source": "node_001", "target": "node_016", "type": "line", "label": "gap" },
-    { "id": "edge_007", "source": "node_003", "target": "node_007", "type": "line", "label": "" },
-    { "id": "edge_008", "source": "node_003", "target": "node_015", "type": "line", "label": "" },
-    { "id": "edge_009", "source": "node_004", "target": "node_008", "type": "line", "label": "" },
-    { "id": "edge_010", "source": "node_004", "target": "node_009", "type": "line", "label": "" },
-    { "id": "edge_011", "source": "node_004", "target": "node_010", "type": "line", "label": "" },
-    { "id": "edge_012", "source": "node_004", "target": "node_011", "type": "line", "label": "" },
-    { "id": "edge_013", "source": "node_005", "target": "node_012", "type": "line", "label": "" },
-    { "id": "edge_014", "source": "node_005", "target": "node_013", "type": "line", "label": "" },
-    { "id": "edge_015", "source": "node_005", "target": "node_014", "type": "line", "label": "" },
-    { "id": "edge_016", "source": "node_005", "target": "node_017", "type": "line", "label": "참고" },
-    { "id": "edge_017", "source": "node_006", "target": "node_018", "type": "line", "label": "내 연구" }
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_005",
+      "target": "node_006",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_006",
+      "source": "node_001",
+      "target": "node_016",
+      "type": "line",
+      "label": "gap"
+    },
+    {
+      "id": "edge_007",
+      "source": "node_003",
+      "target": "node_007",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_008",
+      "source": "node_003",
+      "target": "node_015",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_009",
+      "source": "node_004",
+      "target": "node_008",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_010",
+      "source": "node_004",
+      "target": "node_009",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_004",
+      "target": "node_010",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_012",
+      "source": "node_004",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_013",
+      "source": "node_005",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_014",
+      "source": "node_005",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_015",
+      "source": "node_005",
+      "target": "node_014",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_016",
+      "source": "node_005",
+      "target": "node_017",
+      "type": "line",
+      "label": "참고"
+    },
+    {
+      "id": "edge_017",
+      "source": "node_006",
+      "target": "node_018",
+      "type": "line",
+      "label": "내 연구"
+    },
+    {
+      "id": "edge_018",
+      "source": "node_002",
+      "target": "node_019",
+      "type": "line",
+      "label": "DP/TP/PP"
+    },
+    {
+      "id": "edge_019",
+      "source": "node_002",
+      "target": "node_020",
+      "type": "line",
+      "label": "intra/inter"
+    }
   ],
-  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
 }

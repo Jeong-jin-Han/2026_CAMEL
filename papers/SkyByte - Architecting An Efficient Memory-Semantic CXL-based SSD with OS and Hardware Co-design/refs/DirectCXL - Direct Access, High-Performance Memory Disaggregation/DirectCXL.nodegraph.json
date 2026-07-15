@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "Direct Access, High-Performance Memory Disaggregation with DirectCXL",
   "created": "2026-07-13T00:00:00.000Z",
-  "modified": "2026-07-13T07:00:00.000Z",
+  "modified": "2026-07-15T09:00:00.000Z",
   "source": {
     "pdf": "DirectCXL - Direct Access, High-Performance Memory Disaggregation.pdf",
     "authors": "Donghyun Gouk, Sangwon Lee, Miryeong Kwon, Myoungsoo Jung (KAIST CAMELab)",
@@ -99,7 +99,9 @@
       },
       "children": [
         "node_007",
-        "node_008"
+        "node_008",
+        "node_020",
+        "node_029"
       ],
       "links": []
     },
@@ -123,7 +125,11 @@
         "node_009",
         "node_010",
         "node_011",
-        "node_012"
+        "node_012",
+        "node_021",
+        "node_023",
+        "node_027",
+        "node_028"
       ],
       "links": []
     },
@@ -146,7 +152,10 @@
       "children": [
         "node_013",
         "node_014",
-        "node_015"
+        "node_015",
+        "node_022",
+        "node_024",
+        "node_026"
       ],
       "links": []
     },
@@ -168,7 +177,10 @@
       },
       "children": [
         "node_016",
-        "node_017"
+        "node_017",
+        "node_025",
+        "node_030",
+        "node_031"
       ],
       "links": []
     },
@@ -429,6 +441,222 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "memo",
+      "title": "🏛️ 학회: ATC = 실용성·완성도·철저한 실측을 보상",
+      "content": "USENIX ATC는 **실용성·완성도·철저한 실측**을 보상하고, reviewer는 반대로 **실환경 relevance·산업적 실현성·실측 근거 부족**을 찌른다(같은 논문도 ISCA면 '시뮬레이션 OK'지만 ATC면 '실물 어디 있나'가 된다).\n\nDirectCXL은 이 축을 정면으로 맞춘다: 개념·시뮬레이션에 머물지 않고 **상용 CXL 2.0 IP가 없는 상황에서 CXL controller/switch/RISC-V root port를 전부 자작해 실물 FPGA testbed를 세우고**, 같은 testbed에서 **RDMA(FastSwap·HERD)와 나란히 실측 비교**했다. 즉 '완성된 real system + 동일 조건 정량 비교'라는 ATC taste의 정중앙.\n\n→ 이 축을 기준으로 아래 ✅는 '무엇으로 그 축을 맞췄나', ⚠️는 '그 축에서 아직 무엇이 약한가(실리콘 미성숙·pooling 한계)'로 읽는다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": -200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "claim",
+      "title": "✅ 잘한 점: 최초 실물 CXL.mem disaggregation (IP 전부 자작)",
+      "content": "**novelty × 완성도** — DirectCXL은 CXL.mem으로 host와 원격 메모리를 직접 잇는 **최초의 실제 하드웨어 분해 프로토타입**이다. ATC가 벌하는 '개념뿐/시뮬레이션뿐'을 정면 돌파: 상용 CXL 2.0 IP가 존재하지 않던 시점에 **processor-side CXL engine·CXL switch·RISC-V host(LLC에 CXL RP)를 밑바닥부터 전부 자작**했다.\n\nreviewer 관점 강점: 이건 delta가 아니라 **새 하드웨어 계층을 실물로 세운 것** — 이후 CXL-SSD/memory-semantic 연구가 인용할 실측 레퍼런스(CXL flit·HDM 매핑·RP/switch 구현)를 만들었다. '해결책'의 프로토타입 노드가 근거.",
+      "original": {
+        "text": "To the best of our knowledge, there are no commercialized CXL 2.0 IPs for the processor side's CXL engines and CXL switch. Thus, we built all DIRECTCXL IPs from the ground.",
+        "location": "§3.3, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 80
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "claim",
+      "title": "✅ 잘한 점: RDMA 대비 64B load 8.3× (동일 testbed 실측)",
+      "content": "**evaluation depth × 실측** — DirectCXL은 64B memory load가 **328 cycles**로 **RDMA(2705 cycles) 대비 8.3×** 빠름을 같은 프로토타입 위에서 실측했다. 곁가지 지표까지 정직하게: memory-hierarchy 관점 RDMA best-case 대비 6.2×, cache hit 시 Local과 동일한 4-cycle.\n\nATC reviewer가 좋아하는 지점: 수치가 시뮬레이터 추정이 아니라 **동일 하드웨어·동일 워크로드에서 RDMA를 실제로 돌려 얻은 비교**라는 점. '왜 CXL이 RDMA를 이기나'가 실측으로 못박혀 있어 반박 여지가 적다. '결과'의 지연 분해 노드가 근거.",
+      "original": {
+        "text": "DirectCXL only takes 328 cycles for memory load request, which is 8.3x faster than RDMA.",
+        "location": "§4.1, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "claim",
+      "title": "✅ 잘한 점: cxl-namespace runtime — PMDK보다 단순·유연",
+      "content": "**practical impact** — 상용 CXL OS가 없어 SW runtime까지 자작했는데, 그 설계가 깔끔하다: HDM 주소공간을 segment(cxl-namespace)로 쪼개 **app이 mmap으로 직접 접근**하게 한다. 저자는 이를 PMDK와 비교하며 **PMDK보다 훨씬 단순·유연**하다고 못박는다 — PMDK/DAX는 NVMe namespace처럼 파일시스템·고정 크기에 묶이지만, cxl-namespace는 **파일시스템 없이 전통 memory segment처럼 직접 노출**된다.\n\nreviewer 관점: HW만이 아니라 **app이 실제로 쓸 수 있는 접근 경로(mmap)까지 완성**했다는 점이 ATC의 '완성도' 축과 정합. '해결책'의 runtime 노드가 근거.",
+      "original": {
+        "text": "it is much simpler and more flexible for namespace management than PMDK. For example, PMDK's namespace is very much the same idea as NVMe namespace, managed by file systems or DAX with a fixed size. In contrast, our cxl-namespace is more similar to the conventional memory segment, which is directly exposed to the application without a file system employment.",
+        "location": "§3.2, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: 지연의 77.8%가 CXL IPs (실리콘 미성숙)",
+      "content": "성능 우위(8.3×)에도 불구하고 DirectCXL 지연의 **77.8%가 PCIe+CXL IPs(RP/EP/Switch)**에서 나온다. 즉 남은 병목은 알고리즘이 아니라 **FPGA IP의 미성숙(주파수·실리콘화)**이다.\n\n**reviewer 질문**: 'FPGA 250MHz soft IP로 잰 328 cycles가 상용 ASIC CXL과 얼마나 대표성이 있나? 절대 지연이 IP 성숙도에 이렇게 지배되면, 8.3× 비교는 성숙한 RDMA(ASIC RNIC) vs 미성숙 CXL(FPGA) 아닌가?'\n\n**저자 방어**: 이 병목은 '주파수를 올리면 개선된다'고 명시 — 구조적 한계가 아니라 공학적 여지다(Table 2에서 IP 주파수를 올리는 가정으로 개선 방향 제시). 오히려 미성숙 FPGA로도 RDMA를 8.3× 이겼으니 실리콘화 시 격차는 더 벌어진다는 논지.",
+      "original": {
+        "text": "the performance bottleneck of DirectCXL is PCIe including CXL IPs (77.8% of the total latency). This can be accelerated by increasing the working frequency.",
+        "location": "§4.1, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 920
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: 이건 pooling(분할)이지 sharing(공유)이 아니다",
+      "content": "제목은 'memory disaggregation'이지만, CXL switch의 각 virtual hierarchy는 **어떤 host도 HDM을 공유하지 않도록** 단일 경로만 준다. 즉 여러 host가 물리적으로 붙어도 각 HDM은 **한 host 전용 슬라이스(pooling)** — 진짜 자원 공유·동적 재분배가 아니다.\n\n**reviewer 질문**: '분해의 핵심 이득(여러 host가 한 메모리 풀을 유연 공유·초과할당 완화)을 정작 no-sharing으로 포기한 것 아닌가? 이 정도면 disaggregation이라기보다 host별 원격 DRAM expansion 아닌가?'\n\n**저자 방어**: CXL 2.0 스펙 자체가 HDM 공유를 막는다(coherent cross-host 공유는 CXL 3.0 back-invalidate 필요) — 저자의 선택이 아니라 표준의 경계. FM이 VH를 재구성해 host↔device 매핑을 바꾸는 '분할 단위 재할당'까지는 제공한다.\n\n(※ 이 pooling≠sharing의 개념 해부·coherence 축 분리는 기존 'multi-host≠공유'·'coherence 두 축' 클러스터가 담당 — 여기선 reviewer 공격 지점으로만.)",
+      "original": {
+        "text": "each CXL virtual hierarchy only offers the path from one to another to ensure that no host is sharing an HDM.",
+        "location": "§3.1, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: tail latency가 Local 대비 2.8×",
+      "content": "평균/best-case는 Local과 같은 4-cycle까지 붙지만(cache hit), **tail latency는 Local 대비 2.8× 나쁘다**. 곡선 모양은 유사하나(같은 DRAM·network 없음) 꼬리가 벌어진다.\n\n**reviewer 질문**: 'cache-friendly 워크로드에선 DRAM급이라지만, cache miss가 잦거나 tail-sensitive한 서비스(SLA·latency-critical)에선 이 2.8× 꼬리가 문제 아닌가? 평균만 자랑하고 tail은 넘어간 것 아닌가?'\n\n**저자 방어**: 꼬리가 벌어지는 원인은 network가 아니라 **CXL IP·CPU stall(4KB 큰 payload가 64B 요청으로 쪼개져 CPU에서 stall)** — 즉 위의 IP 미성숙과 같은 뿌리이고, RDMA의 network 유발 tail과 달리 구조적이지 않다는 논지.",
+      "original": {
+        "text": "The tail latency is 2.8x worse than Local, but its latency curve is similar to that of Local. This is because both DirectCXL and Local use the same DRAM (and there is no network access overhead).",
+        "location": "§4.1, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "question",
+      "title": "🔀 왜 CXL.mem 직접 (vs RDMA page-swap / object-KVS)?",
+      "content": "원격 메모리를 host에 붙이는 갈래:\n\n- **(A) Page-based swap** (FastSwap 계열) — kswapd 아래에서 page fault 시 원격 swap. 투명하나 page fault·I/O amplification·context switch 비용, 8B를 읽으려 4KB page를 옮김.\n- **(B) Object-based KVS** (HERD 계열) — KV store로 원격 접근. page 오버헤드는 피하나 소스 대규모 수정 + 메모리 노드 연산(해싱).\n- **(C) CXL.mem 직접** — load/store를 LLC에서 CXL flit으로 변환해 원격 HDM 직행.\n\n**저자 선택 = C.** 이유: A·B는 공통적으로 **RDMA로 데이터를 복사**하고 network를 태워야 하는데, C는 그 복사·network 계층 자체를 없앤다. **'복사가 없으니 원격 메모리의 진짜 성능이 그대로 드러난다'**는 게 논지의 뿌리 — A/B가 못 넘는 벽(복사)을 관점을 바꿔 제거.\n\n**안 판 갈래(gap 후보)**: C는 복사를 없앤 대가로 **HDM 공유를 포기**(no-sharing VH)했다. '복사 제거'와 'multi-host 공유'를 동시에 얻는 갈래(CXL 3.0 back-invalidate)는 이 논문 밖.",
+      "original": {
+        "text": "Since DIRECTCXL does not require any data copies between the host memory and remote memory, it can expose the true performance of remote-side disaggregated memory resources to the users.",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1760
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "question",
+      "title": "🔀 왜 cxl-namespace (vs PMDK / DAX)?",
+      "content": "HDM을 app에 노출하는 SW 경로 갈래:\n\n- **(A) PMDK/DAX 식** — 원격 메모리를 persistent-memory namespace처럼, **파일시스템 또는 DAX로 고정 크기** 관리(NVMe namespace와 같은 발상).\n- **(B) 전용 cxl-namespace** — HDM을 segment로 쪼개 `/dev/directcxl` ioctl로 관리, app이 **mmap으로 직접** 접근.\n\n**저자 선택 = B.** 이유: A는 파일시스템·고정 크기에 묶여 무겁고 경직됨. B는 **전통 memory segment에 가까워 파일시스템 없이 직접 노출** → PMDK보다 단순·유연. CXL.mem은 byte-addressable memory이지 block storage가 아니므로, storage식 namespace(A)보다 memory식 segment(B)가 자연스럽다는 판단.\n\n**차이/gap 후보**: B는 단순하지만 **커널의 CXL 메모리 관리(NUMA·migration·pooling 재할당)를 아직 얕게** 다룸 — 저자 스스로 커널 확장을 future work로 남김.",
+      "original": {
+        "text": "it is much simpler and more flexible for namespace management than PMDK. For example, PMDK's namespace is very much the same idea as NVMe namespace, managed by file systems or DAX with a fixed size. In contrast, our cxl-namespace is more similar to the conventional memory segment, which is directly exposed to the application without a file system employment.",
+        "location": "§3.2, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2040
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "reference",
+      "title": "📐 P/L: RDMA 기반 분해(P) → 복사·network로 지연 수 자릿수↑(L)",
+      "content": "기존 메모리 분해를 '관점 P → 구조적 한계 L'로 분해:\n\n| 기존 해법 A | 관점 P (문제를 본 렌즈) | 한계 L (그 관점 때문에 남는 구조적 것) |\n|---|---|---|\n| Page swap / KVS | **'원격 메모리 = network 너머의 자원'** → RDMA로 옮겨 와서 씀 | 반드시 **데이터 복사 + network handling**(MR 등록·MTT 변환·RNIC 간 DMA 2회) → 지연이 local DRAM보다 수 자릿수↑, CPU cache도 못 씀 |\n\n핵심: L은 '느리다'가 아니라 **'원격을 network 너머로 보는 관점 P를 쓰는 한, 복사·network 계층은 구조적으로 제거 불가'**라는 것. RDMA 지연의 78.7%가 network인 게 그 증거.\n\n**DirectCXL의 관점 전환 P″** = '원격 메모리 = **system bus에 붙은 local DRAM**' → load/store가 LLC에서 CXL flit으로 직행. P를 P″로 바꾸니 **복사·network 계층 자체가 사라져** L이 소멸(→ 8.3×, cache hit 4-cycle). '해결책'의 HDM 매핑 노드가 P″의 구현.",
+      "original": {
+        "text": "all these approaches use RDMA (or a similar network protocol), which is essential to cache the data and pay the cost of memory operations for network handling.",
+        "location": "§2.2, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2320
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "memo",
+      "title": "📍 위치: 실물 CXL.mem 분해의 원점 (KAIST CAMELab 계보)",
+      "content": "ATC'22 taste(real system·실측)에서 DirectCXL의 위치 = **실물 CXL.mem 메모리 분해의 원점**. '개념·시뮬레이션'을 넘어 '자작 IP로 만든 real system + RDMA 동일조건 비교'를 세운 첫 데이터 점.\n\n같은 KAIST CAMELab 계보의 두 축과 함께 읽는다:\n- [[SkyByte]] — DirectCXL의 CXL.mem 직접 접근을 **storage(CXL-SSD)** 로 확장, OS/HW co-design으로 긴 지연 은닉.\n- [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)]] — 같은 그룹의 CXL-SSD 비전(Type-3 논거).\n\nDirectCXL이 '순수 DRAM 분해'의 하드웨어·개념 토대를 깔고, 그 위에서 SkyByte류 memory-semantic CXL-SSD가 자란다. 세미나 '인터커넥트 축의 원점'으로 배치.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2600
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_031",
+      "template": "gap",
+      "title": "🧭 내 연구: VH의 no-sharing 격리를 풀면 multi-host coherence P′",
+      "content": "DirectCXL이 남긴 L(⚠️ pooling≠sharing)에서 내 P′가 유도된다: VH가 host↔HDM을 1:1로 격리해 **coherence를 애초에 회피**한 그 지점을 **의도적으로 푼다** — 여러 host가 같은 HDM을 동시 캐싱·공유하면 단일 경로 보장이 깨지고 **directory + back-invalidate(HDM-DB, CXL 3.0)**가 필요해진다.\n\n(상세 전개·coherence 두 축 분리는 기존 'VH no-sharing gap'·'coherence 두 축' 클러스터에 위임. 여기선 P′의 출발점만 못박음: **DirectCXL의 no-sharing L → multi-host sharing coherence P′.**) → [[CXL Multi-node Coherence]]",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2880
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -571,6 +799,90 @@
       "target": "node_019",
       "type": "line",
       "label": "coherence 축"
+    },
+    {
+      "id": "edge_021",
+      "source": "node_002",
+      "target": "node_020",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_022",
+      "source": "node_003",
+      "target": "node_021",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_023",
+      "source": "node_004",
+      "target": "node_022",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_024",
+      "source": "node_003",
+      "target": "node_023",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_025",
+      "source": "node_004",
+      "target": "node_024",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_026",
+      "source": "node_005",
+      "target": "node_025",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_027",
+      "source": "node_004",
+      "target": "node_026",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_028",
+      "source": "node_003",
+      "target": "node_027",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_029",
+      "source": "node_003",
+      "target": "node_028",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_030",
+      "source": "node_002",
+      "target": "node_029",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_031",
+      "source": "node_005",
+      "target": "node_030",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_032",
+      "source": "node_005",
+      "target": "node_031",
+      "type": "line",
+      "label": "분석"
     }
   ],
   "viewport": {

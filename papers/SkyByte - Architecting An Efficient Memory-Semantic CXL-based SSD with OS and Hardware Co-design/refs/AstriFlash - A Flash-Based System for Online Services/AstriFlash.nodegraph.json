@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "AstriFlash: A Flash-Based System for Online Services",
   "created": "2026-07-14T00:00:00.000Z",
-  "modified": "2026-07-14T02:00:00.000Z",
+  "modified": "2026-07-15T09:00:00.000Z",
   "source": {
     "pdf": "AstriFlash - A Flash-Based System for Online Services.pdf",
     "authors": "Siddharth Gupta, Yunho Oh, Lei Yan, Mark Sutherland, Abhishek Bhattacharjee, Babak Falsafi, Peter Hsu (EPFL / Korea Univ / Yale)",
@@ -101,7 +101,9 @@
       "children": [
         "node_007",
         "node_008",
-        "node_020"
+        "node_020",
+        "node_021",
+        "node_030"
       ],
       "links": []
     },
@@ -145,7 +147,9 @@
         "node_010",
         "node_011",
         "node_012",
-        "node_013"
+        "node_013",
+        "node_028",
+        "node_029"
       ],
       "links": []
     },
@@ -168,7 +172,13 @@
       "children": [
         "node_014",
         "node_015",
-        "node_016"
+        "node_016",
+        "node_022",
+        "node_023",
+        "node_024",
+        "node_025",
+        "node_026",
+        "node_027"
       ],
       "links": []
     },
@@ -190,7 +200,9 @@
       },
       "children": [
         "node_017",
-        "node_018"
+        "node_018",
+        "node_031",
+        "node_032"
       ],
       "links": []
     },
@@ -445,6 +457,214 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "memo",
+      "title": "🏛️ 학회: HPCA — HW 메커니즘 novelty + feasibility·구현 친화를 보상",
+      "content": "accept 여부를 판단하기 **전에** 세우는 anchor. HPCA는 ISCA/MICRO의 **HW 메커니즘 novelty·정량 rigor** 축에 **구현·feasibility 친화**를 더해 보상하고, reviewer는 특히 **\"실현성·실측 근거\"**를 찌른다.\n\nAstriFlash가 이 축에 정확히 앉는 이유:\n- **novelty** — 기존 switch-on-miss가 ns급 memory stall·batch(SPEC)만 다룬 걸 **µs-scale·latency-sensitive**로 확장한 switch-on-miss microarchitecture + ASO를 Store Buffer까지 넓힌 post-retirement speculation + in-DRAM Miss Status Row.\n- **feasibility** — 전 설계를 **QFlex cycle-accurate full-system sim**에 올려 실측하고, 추가 HW를 **core당 2KB = 0.001mm² (A76의 0.1%)** 예산으로 못박아 \"실현 가능한가?\"에 수치로 답.\n\n이 anchor 위에서 아래 ✅는 \"그 축을 **어떻게 맞췄나**\", ⚠️는 \"그 축에서 **뭐가 약한가**(실물 silicon 부재 등)\"로 정렬된다.",
+      "original": {
+        "text": "Therefore, our 2KB overhead per core occupies 0.001mm2 (0.1% of Cortex A76), which might be acceptable.",
+        "location": "§IV.C, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": -200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "claim",
+      "title": "✅ 잘한 점: hardware DRAM cache + 100ns user-level HW thread switch로 µs flash 은닉",
+      "content": "reviewer가 accept 근거로 볼 **핵심 HW 메커니즘**(HPCA novelty 축의 정면).\n\nDRAM-cache miss 시 flash를 **동기 대기하지 않고** user-level thread를 **100ns**에 전환(switch-on-miss)해 flash 접근을 useful work와 overlap한다. OS context switch(~5µs) 대비 **50×**, 최근 user-level 제안 대비 **5×** 빠르다. 이 경량성이 있어야 단일 물리 서버가 **논리적 multi-server(M/M/k)**처럼 동작해 head-of-line blocking을 없애고, 결과적으로 **DRAM-only 대비 throughput 95%**(vs Flash-Sync 27%)를 얻는다.\n\n핵심: 지연을 줄인 게 아니라 **전환 비용을 µs→ns로** 낮춰 µs flash를 흡수 가능하게 만든 것이 결정적 강점.",
+      "original": {
+        "text": "AstriFlash uses a simple user-level thread library [5], [61] to switch between threads in 100 ns, which is 50x faster than context switches, and 5x faster than recent proposals [39], [65].",
+        "location": "§III.B, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 80
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "claim",
+      "title": "✅ 잘한 점: near-DRAM p99 tail (2% 손실) — flash 가격에 DRAM급 SLO",
+      "content": "online service의 승패 기준은 평균이 아니라 **p99 tail**(「Tail latency란?」 참조). AstriFlash는 Flash-Sync(=이상적 latency 분포)의 **1.02×**, 즉 **2% 손실**로 p99를 지킨다. 고부하에선 queuing과 flash 접근이 overlap돼 **93% throughput이 DRAM-only 96%의 tail과 매칭** — 3% throughput·**20× cost 절감**으로 동일 tail을 산다.\n\n**evaluation depth**(HPCA rigor 축): ablation이 각 컴포넌트 기여를 분리 — priority scheduling을 빼면(noPS) **6.82×**, DRAM 분할을 빼면(noDP) **1.76×**로 tail이 악화 → scheduler·page-table 상주가 각각 필요함을 실측으로 입증.",
+      "original": {
+        "text": "Compared to Flash-Sync, AstriFlash has a 2% latency degradation ... AstriFlash-noPS has a ∼7x latency degradation ... AstriFlash-noDP has a ∼70% latency degradation as page-table entries for cold pages have to be fetched from flash.",
+        "location": "§VI.B, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "claim",
+      "title": "✅ 잘한 점: paging 오버헤드를 core-side+memory-side로 해부 — 둘 다 제거",
+      "content": "이 논문의 **문제 프레이밍** 강점(reviewer가 \"왜 이 설계가 필연인가\"를 납득하는 골격).\n\n\"flash가 느리다\"가 아니라 **\"paging이 µs flash를 못 따라간다\"**로 병목을 재정의하고, 그 비용을 **core-side(task 관리·context switch)**와 **memory-side(page-table 수정·TLB shootdown)** 두 축으로 해부한다. 기존 제안이 대개 **한 축만** 최적화한 데 반해, AstriFlash는 core-side를 **user-level switch**로·memory-side를 **hardware DRAM cache**로 **동시에(synergistically)** 없앤다.\n\n이 이분법 자체가 기여 — 두 축이 서로 다른 메커니즘을 요구함을 보이고 각각에 맞는 해법을 배치해, 부분 최적화로는 못 넘는 지점을 넘는다.",
+      "original": {
+        "text": "We categorize these overheads into memory-side representing flash-access scheduling and memory-capacity management, and core-side representing task management and context switches.",
+        "location": "§II.C, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: SSD를 black box·page(4KB) 단위로 취급",
+      "content": "**reviewer 질문**: skew가 강하면 당겨온 4KB page의 대부분이 cold다 — flash BW·DRAM 용량 낭비 아닌가? SSD 내부(FTL·GC 타이밍)와 협응하면(예: cacheline 단위) 더 얻을 게 있는데 왜 SSD를 손대지 않나? (실제로 [[SkyByte]]가 이 지점을 **cacheline write log**로 정확히 공격하며 자기 차별점을 세운다.)\n\n**저자 방어**: (1) DRAM cache는 캐시 계층의 **마지막 층**이라 temporal보다 **spatial locality**를 노려야 하고, (2) 64B block이면 32GB cache에 tag **~4GB**로 비현실적 → 4KB가 tag 예산상 불가피, (3) SSD를 **black box**로 두어야 표준 SSD로 **이식성**을 얻는다(co-design 검증 비용 회피).\n\n즉 성능 상한(page 낭비)을 **이식성·구현비용과 맞바꾼 의도적 선택**. 그러나 공유·byte-granularity 시대엔 남는 구조적 한계.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 920
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: single-host microarchitecture 전제 — 공유·multi-socket 미해결",
+      "content": "**reviewer 질문**: switch-on-miss·SB speculation·in-DRAM MSR·forward-progress bit가 전부 **한 core/한 host** 안에 닫혀 있다. 여러 host(또는 여러 socket)가 같은 flash/DRAM cache를 공유하면 dirty page 소유·무효화는 thread switch로 안 풀린다 — coherence는 어디에?\n\n**저자 방어**: 타깃은 datacenter의 **단일 서버 노드**이고, 논리적 multi-server queuing(M/M/k)으로 **서버당 throughput**을 채우는 것으로 scope를 명시 → 공유 메모리 coherence는 out-of-scope. black box·single-host이기에 오히려 microarchitecture만으로 닫을 수 있었다.\n\n그러나 이 전제는 **CXL 공유 메모리** 맥락에선 구조적 빈칸(→ 「내 연구」 노드).",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: HW thread switch·SB speculation = 코어 마이크로아키텍처 변경(배포 장벽)",
+      "content": "**reviewer 질문**: switch-on-miss는 OoO core에 **Handler/Resume Register·forward-progress bit·ROB flush 경로·ASO를 Store Buffer까지 확장한 post-retirement speculation**을 요구한다 — 상용 CPU **마이크로아키텍처(사실상 ISA) 변경**이라 실물 배포가 어렵다. 평가도 **실물 silicon이 아니라 QFlex full-system sim**뿐이다(HPCA reviewer가 특히 찌르는 \"실측·실현성\" 축).\n\n**저자 방어**: 추가 HW는 **core당 2KB = 0.001mm² (A76의 0.1%)**로 area 부담이 미미하고(\"might be acceptable\"), 신규 구조가 아니라 이미 있는 ASO speculation의 **확장**이라 검증면이 좁다. 그래도 \"실물 프로토타입 부재\"는 남는 약점.\n\n대조: [[SkyByte]]는 FPGA prototype으로 성능모델을 실측 검증 — 같은 microarch-변경 계열이지만 실현성 근거의 형태가 다르다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "question",
+      "title": "🔀 왜 OS context switch(~5µs) 대신 HW user-level thread switch(100ns)",
+      "content": "긴 flash stall을 숨기는 갈래:\n- **(A)** OoO로 그냥 견디기 — 50µs를 명령창으로 못 숨김.\n- **(B)** OS **context switch**로 async 접근 — 각 ~5µs인데 miss가 **~10µs마다** 나 오버헤드가 접근과 맞먹고, TLB shootdown은 코어 수에 안 스케일.\n- **(C)** prefetch/DRAM 캐시 확대 — skew·용량 한계로 miss 자체는 안 사라짐.\n- **(D = 채택)** **user-level HW thread switch 100ns** — OS를 안 거쳐 context switch 대비 50×·최근 제안 5× 빠름.\n\n**저자 이유**: 기존 switch-on-miss가 ns급 memory stall·batch(SPEC)만 다룬 걸 **µs급·latency-sensitive** workload로 확장한 것이 novelty(원문). ~10µs마다 나는 miss를 흡수하려면 전환 비용이 **ns급**이어야만 한다.\n\n**안 판 갈래**: SSD 컨트롤러와 협응하는 전환(= SkyByte의 coordinated context switch) — AstriFlash는 은닉을 **core 안에서 닫는** 쪽을 택했다.",
+      "original": {
+        "text": "AstriFlash provides a novel μs-scale switch-on-miss architecture that allows switching user-level threads on a DRAM miss to hide flash accesses efficiently and achieve DRAM-like throughput. While switch-on-miss architectures have been studied only in the context of ns-scale memory stalls and batch workloads like SPEC, AstriFlash needs to absorb μs-scale stalls and support latency-sensitive workloads.",
+        "location": "§III.B, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1760
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "question",
+      "title": "🔀 왜 SSD를 black box·page(4KB) granularity로 (vs co-design·cacheline)",
+      "content": "DRAM cache의 접근 단위 갈래:\n- **(A)** **cacheline(64B)** — 낭비 최소지만 32GB cache에 tag **~4GB**로 비현실적이고, SSD를 byte-단위로 다루려면 컨트롤러 **co-design**이 필요.\n- **(B = 채택)** **page(4KB)** — DRAM cache는 최종 계층이라 **spatial locality** 지향이 맞고, 4KB여도 tag 64MB라 **tag를 DRAM에** 두는 것으로 타협. SSD는 **PCIe BAR로 노출된 black box**(PA ≡ Logical Page Number)로 두어 표준 SSD에 이식.\n\n**저자 이유**: tag 저장 예산(64B는 ~4GB tag로 impractical) + spatial locality(원문).\n\n**안 판 갈래**: SSD 컨트롤러까지 내려가 **cacheline로 협응**(= SkyByte) → page 낭비는 남지만 **이식성**을 얻는 맞바꿈. 이 갈림길이 AstriFlash↔SkyByte를 가르는 근본 결정.",
+      "original": {
+        "text": "having 64B blocks in a 32GB cache will require ∼4GB of tags which is impractical. Therefore, the DRAM cache in AstriFlash should employ a larger page size such as 4KB.",
+        "location": "§III.B, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2040
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "reference",
+      "title": "📐 P/L: OS demand paging = ms급 disk 추상화(P) → µs flash에 구조적 오버헤드(L)",
+      "content": "선행 관점을 P/L로 분해(idea.md §2).\n\n| 기존 해법 (관점 P) | 관점 P — 문제를 본 렌즈 | 한계 L — 그 관점 때문에 남는 것 |\n|---|---|---|\n| **OS demand paging** | flash 접근을 **ms급 disk I/O**용 추상화로 봄 (page fault → OS가 스케줄·문맥전환) | µs flash엔 **오버헤드가 접근보다 큼**: context switch ~5µs, **global TLB shootdown >10µs(코어 수에 안 스케일)** — miss가 ~10µs마다라 throughput 붕괴 |\n| **Flash-Sync (FlatFlash)** | core가 flash를 **동기 대기** | 긴 stall을 core에 노출 → throughput 27% |\n\n**AstriFlash P″**: 관점을 \"OS가 페이지를 옮긴다\"에서 **\"HW가 캐시 miss를 처리하고 core는 다른 thread로 전환\"**으로 바꿔 L을 소거 — core-side는 100ns user-level switch, memory-side는 hardware DRAM cache로 **둘 다** 제거.\n\n**남는 L**(다음 논문 몫): SSD를 black box·page로 본 관점 → cacheline 낭비, single-host 전제(→ 「내 연구」).",
+      "original": {
+        "text": "modern datacenter workloads have a DRAM miss every ∼10 μs per thread accompanied by 10 μs of page fault and context switch overhead. Moreover, TLB shootdowns and OS mechanisms result in global synchronization and thus do not scale with the number of cores.",
+        "location": "§II.C, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2320
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_031",
+      "template": "memo",
+      "title": "📍 위치: '지연을 switching으로 은닉' 계보에서 AstriFlash의 좌표 (co-design 깊이 축)",
+      "content": "「계보(FlatFlash→AstriFlash→SkyByte)」·「vs SkyByte」 노드가 세 논문 비교표를 이미 담으므로, 여기선 **HPCA taste 관점의 위치**만 못박는다.\n\nAstriFlash는 \"긴 flash 지연을 **문맥 전환으로 숨긴다**\"는 원리를 **SSD를 전혀 건드리지 않고 core/OS microarchitecture만으로** 달성한 **정점**이다 — 이 \"black box를 유지한 채 HW 메커니즘으로 해결\"이 정확히 **HPCA가 보상하는 HW novelty + feasibility 축**과 정합(그래서 accept).\n\n계보상:\n- **[[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]]**(동기 대기 = Flash-Sync baseline, 27%)를 switch-on-miss로 **95%**까지 끌어올림.\n- **[[SkyByte]]**는 여기서 한 눈금 더 내려가 **SSD 컨트롤러까지 co-design**(cacheline·coordinated switch) — **black-box ↔ co-design**이 정반대 극.\n\n즉 AstriFlash = \"co-design을 **core/OS에서 멈춘**\" 지점.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2600
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_032",
+      "template": "gap",
+      "title": "🧭 내 연구: switch-on-miss는 single-host microarch — multi-host cross-host stall 조율이 P′",
+      "content": "📐 P/L이 남긴 L(\"single-host 전제\")에서 유도되는 내 관점(brief — 상세는 「switch-on-miss는 single-host — multi-host coherence가 빈칸」 노드에 위임).\n\nAstriFlash의 은닉(switch-on-miss·SB speculation·MSR)은 **한 host 안에서** stall을 다른 thread로 흡수한다. stall이 **cross-host**(host A의 접근이 host B가 쥔 최신본을 기다림)일 때는 전환만으로 정합성이 안 잡힌다.\n\n**P′**: 공유 CXL 메모리에선 **누가 최신본을 갖고 언제 back-invalidate하나(coherence)**를 먼저 정의해야 stall을 은닉할 자격이 생긴다. 즉 은닉 기법은 재사용하되 **문제를 single→multi host로 재정의**하는 것이 gap. $\\rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]]",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2880
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -601,6 +821,90 @@
       "target": "node_016",
       "type": "line",
       "label": "결과"
+    },
+    {
+      "id": "edge_023",
+      "source": "node_002",
+      "target": "node_021",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_024",
+      "source": "node_004",
+      "target": "node_022",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_025",
+      "source": "node_004",
+      "target": "node_023",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_026",
+      "source": "node_004",
+      "target": "node_024",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_027",
+      "source": "node_004",
+      "target": "node_025",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_028",
+      "source": "node_004",
+      "target": "node_026",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_029",
+      "source": "node_004",
+      "target": "node_027",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_030",
+      "source": "node_003",
+      "target": "node_028",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_031",
+      "source": "node_003",
+      "target": "node_029",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_032",
+      "source": "node_002",
+      "target": "node_030",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_033",
+      "source": "node_005",
+      "target": "node_031",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_034",
+      "source": "node_005",
+      "target": "node_032",
+      "type": "line",
+      "label": "분석"
     }
   ],
   "viewport": {

@@ -26,7 +26,7 @@ tags:
 
 ## ⚙️ HW / Accelerator — 가속기 배경
 - [[FPGA Programmability]] — 회로가 되는 칩, 명령어는 선택사항 (고정 회로 → soft-core 스펙트럼 · Smart-Infinity updater가 명령어 안 받는 이유 · [[H3 — DockerGPU, in-GPU control plane|H3]] dispatcher 설계 축)
-- [[Roofline & FLOPs]] — FLOP·FLOPs·FLOPS 구분 + 연산 밀도 $I$ + Roofline 병목 판정 (Adam update가 memory-bound라 near-data가 이기는 이유, 그래프 포함)
+- [[Roofline & FLOPs]] — FLOP·FLOPs·FLOPS 구분 + 연산 밀도 $I$ + Roofline 병목 판정 (Adam update가 memory-bound라 near-data가 이기는 이유, 그래프 포함) + **§5 적용 단위 규칙·실수 방지 체크리스트** (1장 = 한 HW×한 phase, 합성은 Amdahl)
 
 ## 🧵 OS / Concurrency — 동시성 배경
 - [[Deadlock · Livelock · Starvation]] — 세 가지 '멈춤'과 보장의 사다리 (Coffman 4조건 중 하나만 깨면 deadlock 원천 차단 · livelock-freedom = 유한성의 논리적 보장 · Venice 실례)

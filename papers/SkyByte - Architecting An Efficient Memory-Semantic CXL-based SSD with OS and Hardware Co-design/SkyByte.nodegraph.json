@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "SkyByte: Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design",
   "created": "2026-07-13T00:00:00.000Z",
-  "modified": "2026-07-14T01:00:00.000Z",
+  "modified": "2026-07-15T05:00:00.000Z",
   "source": {
     "pdf": "SkyByte - Architecting An Efficient Memory-Semantic CXL-based SSD with OS and Hardware Co-design.pdf",
     "authors": "Haoyang Zhang*, Yuqi Xue*, Yirui Eric Zhou, Shaobo Li, Jian Huang (UIUC; *co-primary)",
@@ -100,7 +100,9 @@
       "children": [
         "node_007",
         "node_008",
-        "node_009"
+        "node_009",
+        "node_035",
+        "node_045"
       ],
       "links": []
     },
@@ -128,7 +130,10 @@
         "node_014",
         "node_015",
         "node_016",
-        "node_017"
+        "node_017",
+        "node_036",
+        "node_043",
+        "node_044"
       ],
       "links": []
     },
@@ -153,7 +158,11 @@
         "node_019",
         "node_020",
         "node_021",
-        "node_022"
+        "node_022",
+        "node_037",
+        "node_038",
+        "node_040",
+        "node_041"
       ],
       "links": []
     },
@@ -175,7 +184,11 @@
       },
       "children": [
         "node_023",
-        "node_024"
+        "node_024",
+        "node_039",
+        "node_042",
+        "node_046",
+        "node_047"
       ],
       "links": []
     },
@@ -244,7 +257,7 @@
       "title": "핵심 선행/비교 연구: CXL-SSD, ByteFS, AstriFlash, FlatFlash, TPP",
       "content": "SkyByte가 서 있는 좌표를 정하는 핵심 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **Overcoming the Memory Wall with CXL-Enabled SSDs** (Yang et al., ATC'23) | SkyByte가 출발점으로 삼는 대표 CXL-SSD 아키텍처 |\n| **ByteFS** (S. Li et al., ASPLOS'25) | SSD byte-accessibility를 OS·storage 계층에서 지원, 직접 비교되는 동시기 연구 |\n| **AstriFlash** (Gupta et al., HPCA'23) | host DRAM을 SSD의 set-associative cache로, user-level thread switch로 I/O 은닉. **차별점**: SSD를 black box·page 단위로 취급 vs SkyByte의 프로토콜 계층 co-design |\n| **FlatFlash** (Abulila et al., ASPLOS'19) | byte-accessible SSD + host-bridge promotion buffer, SkyByte migration 일관성 설계의 기반 |\n| **TPP** (Maruf et al., ASPLOS'23) | Linux NUMA balancing 기반 page placement, SkyByte-CT 비교 baseline |\n| **Informing Memory Operations** (Horowitz et al., ISCA'96) | cache miss를 software에 알리는 primitive, SSD→CPU 알림 설계의 영감 |",
       "original": {
-        "text": "Unlike prior work such as AstriFlash that treats the SSD as a black box at page granularity, SkyByte co-designs the host OS and SSD controller.",
+        "text": "AstriFlash [23] uses the host DRAM as a hardware-managed cache of the SSD, and hides the flash latency using user-level thread switches triggered by host DRAM misses. However, it still treats the SSD as a black box and manages it at page granularity.",
         "location": "§VII, p.12"
       },
       "contentExpanded": true,
@@ -284,7 +297,7 @@
       "title": "SkyByte-Delay opcode + Long Delay Exception (retire-time로 false-positive 제거)",
       "content": "두 개의 새 프리미티브가 핵심이다.\n\n**`SkyByte-Delay` opcode**: CXL.mem의 NDR(No Data Response, slave→master) 메시지 사양을 확장해 **reserved opcode**를 하나 활용한다(Fig.8). 해당 `MemRd`가 긴 지연(예: SSD DRAM cache miss)을 겪을 것임을 host에 알리는 신호다. 표준 프로토콜의 여유 공간을 재활용하므로 wire format 변경이 최소다.\n\n**SkyByte Long Delay Exception**: NDR 수신 후 곧바로 전환하지 않고, 대응 명령이 **retire될 때**만 exception을 띄운다. 이유는 speculative `load`/`store`나 하드웨어 prefetch가 결국 **squash(무효화)**될 수 있기 때문 — retire 시점까지 미루면 '전환했는데 알고 보니 취소될 명령이었던' **false-positive context switch를 추가 하드웨어 비용 없이** 제거한다. 이 깔끔함이 이 설계의 백미다.",
       "original": {
-        "text": "SkyByte extends the NDR message specification by introducing a new opcode called SkyByte-Delay. This opcode indicates that the corresponding MemRd request will suffer from a long access delay (e.g., an SSD DRAM cache miss).",
+        "text": "Such a design eliminates false-positive context switches, where a load/store triggers a context switch but is later squashed, at no extra hardware cost, since modern processors by default delay the exception handling to the retire stage.",
         "location": "§III-A, p.5"
       },
       "contentExpanded": true,
@@ -701,6 +714,229 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_035",
+      "template": "memo",
+      "title": "🏛️ 학회: HPCA — HW 메커니즘 novelty + feasibility·구현 친화 + 정량 rigor",
+      "content": "SkyByte는 **HPCA 2025** 논문이다. HPCA(High-Performance Computer Architecture)는 ISCA/MICRO 계열의 '컴퓨터 아키텍처 top-tier'이되, 세 학회 중 **feasibility·구현 친화**를 유독 크게 보상하는 색을 갖는다.\n\n**HPCA reviewer가 보상하는 축**\n- **HW 메커니즘 novelty**: 새 마이크로아키텍처 프리미티브(SkyByte의 `SkyByte-Delay` opcode·retire-time Long Delay Exception·PLB)를 좋아한다.\n- **feasibility·실현성**: '시뮬레이터에서만 되는 이야기'를 특히 경계한다 → **FPGA prototype으로 성능 모델을 실측 검증**한 점이 이 축에 정확히 꽂힌다.\n- **정량 rigor**: baseline(SOTA를 다 넣은 Base-CSSD)·ablation·민감도 sweep·**비용 정량화(15.9배)**까지 요구하는 취향.\n\n**HPCA reviewer가 찌르는 곳** (→ 이 축에서 ⚠️를 판단)\n- **실현성·실측 근거**: 'ISA·HW를 바꿔야 하면 진짜 실리콘에 실릴 수 있나', '시뮬레이션 수치가 full-system을 대변하나'.\n\n> 순서: 이 축을 먼저 세우고 → 아래 ✅는 '이 축을 어떻게 맞췄나', ⚠️는 '이 축에서 뭐가 약한가'로 읽는다. 「필요한 이유」에 anchor.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": -200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_036",
+      "template": "claim",
+      "title": "✅ 잘한 점: false-positive context switch를 retire-time exception으로 추가 HW 비용 없이 제거",
+      "content": "**왜 HPCA reviewer가 좋게 봤나 — HW novelty를 '공짜'로 얻는 우아함.** context switch를 언제 트리거할지에서 가장 위험한 것은 **speculative load/store나 prefetch가 결국 squash될 명령**인데 그걸 보고 전환해버리는 false-positive다. SkyByte는 별도 speculation-tracking 하드웨어를 붙이는 대신, **현대 프로세서가 이미 exception을 retire stage까지 미룬다는 성질**을 그대로 재활용한다 — 명령이 retire에 도달했다는 것 자체가 'squash되지 않았다'의 증거이므로, retire 시점에 Long Delay Exception을 띄우면 false-positive가 **구조적으로** 사라진다.\n\nHPCA 취향에서 이 설계가 강한 이유: (1) **새 프리미티브**(Long Delay Exception)를 도입하되 (2) 그 정확성을 **기존 마이크로아키텍처 계약(retire-time exception)** 위에 얹어 **추가 HW 비용 0**으로 만든 점. '새롭지만 실현 가능하고 낭비 없다'는 세 박자가 맞는다. reviewer가 '왜 speculative를 걸러내는 하드웨어가 없냐'고 물을 여지 자체를 설계로 닫아버린 것.",
+      "original": {
+        "text": "Such a design eliminates false-positive context switches, where a load/store triggers a context switch but is later squashed, at no extra hardware cost, since modern processors by default delay the exception handling to the retire stage.",
+        "location": "p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 80
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_037",
+      "template": "claim",
+      "title": "✅ 잘한 점: FPGA prototype으로 시뮬레이터 성능 모델을 실측 검증 (feasibility)",
+      "content": "**왜 HPCA reviewer가 좋게 봤나 — '시뮬레이션-only'라는 최대 공격을 선제 차단.** 성능 수치는 MacSim+SimpleSSD 시뮬레이터에서 나오지만, SkyByte는 write log·data cache의 **critical-path 인덱싱 연산을 실제 Xilinx Zynq UltraScale+ ZU3EG MPSoC(SSD 컨트롤러에 흔히 쓰이는 ARM Cortex-A53급 보드)에 구현**해 lookup 지연(64MB log 72ns / 512MB cache 49ns)과 처리량(cacheline read/write 11.93/9.37 GB/s)을 **실측**하고, 그 값으로 **시뮬레이터의 성능 모델을 보정·검증**했다.\n\nHPCA는 세 아키텍처 top-tier 중 **feasibility를 특히 보상**한다(🏛️ 학회 노드). '핵심 자료구조가 SSD 컨트롤러 하드웨어에서 이 지연 안에 실제로 도는가'를 실물로 못박았기 때문에, reviewer의 '이 수치는 이상적 모델의 산물 아니냐'는 1순위 공격이 상당 부분 무력화된다. 시뮬레이터 하나로만 밀었다면 같은 학회에서 훨씬 약했을 논문이다.",
+      "original": {
+        "text": "We verified the performance model used in our simulator with these measurements.",
+        "location": "p.9"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_038",
+      "template": "claim",
+      "title": "✅ 잘한 점: context switch 이득이 write log·migration과 직교(1.49배)임을 ablation으로 증명",
+      "content": "**왜 HPCA reviewer가 좋게 봤나 — 세 메커니즘이 '겹치는 이득을 나눠 먹는 것'이 아님을 정량으로 못박음.** reviewer가 co-design 논문에 흔히 던지는 의심은 '컴포넌트를 여러 개 쌓았는데 사실 서로의 이득을 잠식/중복하는 것 아니냐'다. SkyByte는 ablation을 **두 개의 독립 경로로 교차 측정**해 이 의심을 정면으로 닫는다 — coordinated context switch를 (a) 맨바닥 Base-CSSD 위에 얹었을 때와 (b) 이미 write log+migration이 다 들어간 SkyByte-WP 위에 얹었을 때, 그 향상 배수가 **둘 다 평균 1.49배로 같다**. 즉 context switch의 이득이 다른 두 메커니즘과 **곱셈적으로 독립(orthogonal)**임을 실험 설계 자체로 증명했다.\n\n이 '교차 ablation' 구성은 HPCA가 요구하는 **정량 rigor**의 모범이다. 단순히 컴포넌트를 하나씩 켠 막대그래프(node 「Ablation」)를 넘어, **직교성이라는 주장을 반증 가능한 형태로 설계**해 보인 점이 강점. (예외로 tpcc는 page migration이 지배 — 이 예외를 숨기지 않고 밝힌 것도 rigor 신호.)",
+      "original": {
+        "text": "By comparing the performance improvement of SkyByte-C over Base-CSSD and that of SkyByte-Full over SkyByte-WP (both are 1.49× on average), we observe that the benefit of context switching is orthogonal to that of write log and page migration, except for tpcc, where the benefit of page migration dominates.",
+        "location": "p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_039",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: persistence를 기본 미가정 — pin이 promotion을 죽이는 trade-off",
+      "content": "**reviewer 질문**: 'memory-semantic SSD의 세일즈 포인트 중 하나가 대용량 flash의 **비휘발성**인데, SkyByte는 기본적으로 애플리케이션이 persistence를 요구하지 않는다고 가정한다. persistence가 필요한 워크로드에서는 어떻게 되나?' 실제로 평가 워크로드에 persistent-memory 벤치마크(WHISPER 계열)가 포함되는데, 성능의 상당 부분은 **hot page를 host DRAM으로 promote**해서 나온다. 그런데 persistence를 보장하려면 그 page를 **pin**해야 하고, pin된 page는 **정의상 promote되지 않는다** → 성능 이득의 핵심 경로가 막힌다.\n\n**여기에 저자 방어(상상)**: '`clwb`로 cacheline이 **battery-backed SSD DRAM**에 도달함을 보장하므로, flash까지 안 내려도 durability는 확보된다. 또 pin은 **선택적**이라 persistence가 불필요한 대다수 워크로드는 promotion 이득을 그대로 누린다.' → reviewer 재반박 여지: battery-backed DRAM 가정의 견고성, 그리고 'persistence 켠 워크로드에서의 성능 저하 곡선'이 논문에 정량화되지 않았다는 점. 즉 **persistence-on 구성의 end-to-end 성능이 빠진 것**이 빈칸.",
+      "original": {
+        "text": "By default, SkyByte assumes the user application does not require data persistence, so it can transparently promote pages to the host DRAM for performance improvement. To support data persistence, SkyByte offers the option for users to pin memory pages in the CXL-SSD, such that these pages will not be promoted to the host.",
+        "location": "p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 920
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_040",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: PIN trace-replay가 스케줄링의 피드백 루프를 담지 못함",
+      "content": "기존 「시뮬레이션 중심」 노드가 full-system·switch storm을 짚었다면, 여기서는 **방법론 자체의 구조적 한계**를 다른 각도로 찌른다.\n\n**reviewer 질문**: 'SkyByte의 핵심은 실행 중에 스케줄러가 **어느 thread를 언제 돌릴지 동적으로 바꾸는 것**이다. 그런데 평가는 실제 Intel 서버에서 thread별로 **한 번 캡처한 PIN instruction trace를 replay**한다. context switch가 실행 인터리빙을 바꾸면 그에 따라 **cache/메모리 접근 패턴과 data-dependent한 분기**도 달라져야 하는데, 고정된 per-thread trace는 이 **피드백**을 반영하지 못한다. 즉 스케줄링이 만들어내는 실행 경로 변화를 trace가 되먹이지 못하는 것 아닌가?'\n\n**저자 방어(상상)**: 'thread별 100M+ instruction의 긴 trace로 통계적 대표성을 확보했고, 관심 축은 (분기 방향이 아니라) **메모리 접근의 지연·병목**이라 trace-replay가 충분히 근사한다.' → 재반박 여지: lock-heavy·동기화 많은 워크로드(tpcc 등)에서 스케줄 순서가 임계구역 경합을 바꾸면 trace가 그 효과를 놓친다. reviewer라면 '**실행 기반(execution-driven) full-system 재현 1~2개**로 trace 결과와 대조'를 요구할 지점.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_041",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: 동시기 memory-semantic SSD(ByteFS)·실 CXL-SSD HW와 head-to-head 부재",
+      "content": "**reviewer 질문**: 'baseline인 Base-CSSD는 SOTA 최적화를 다 넣은 강한 비교군이고 AstriFlash-CXL·TPP와도 비교했다. 하지만 **가장 가까운 동시기 경쟁자인 ByteFS(ASPLOS 2025, 같은 memory-semantic SSD를 OS·storage 계층에서 지원)**와의 **직접 head-to-head**가 없다. 또 Samsung 2TB CXL-SSD prototype을 인용하면서도 구성만 scale-down해 시뮬레이션할 뿐 **실 CXL-SSD 하드웨어에서의 end-to-end 측정**은 없다. 강점(6.11배)이 이 두 비교에서도 유지되나?'\n\n**저자 방어(상상)**: 'ByteFS는 **동시기(concurrent) 연구**라 공정한 재구현·비교가 어렵고, 초점도 다르다(파일시스템·byte-accessibility 지원 vs 지연 은닉·co-design). 실 CXL-SSD 상용 하드웨어는 연구 시점에 미출시라 Samsung 스펙을 따 시뮬레이션했다.' → 재반박 여지: 최소한 **write log/migration 계층에서 ByteFS와 겹치는 축(write amplification 등)** 하나만이라도 정량 대조했다면 위치가 더 선명했을 것. HPCA reviewer는 '**가장 강한 인접 baseline을 왜 뺐나**'를 습관적으로 묻는다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_042",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: DRAM miss마다 도는 exception 경로 — 오버헤드가 완전히 회계됐나",
+      "content": "기존 「ISA/HW 변경 배포 장벽」 노드가 **누가 실리콘에 넣어주나(배포)**를 물었다면, 여기서는 **성능 회계(overhead accounting)** 각도로 다르게 찌른다.\n\n**reviewer 질문**: 'coordinated context switch는 SSD DRAM cache miss가 날 때마다 → NDR 회신 → host CXL controller가 **LLC MSHR과 L1/L2를 탐색** → retire 시 exception → IDT handler → CFS 스케줄링을 거친다. miss가 잦은 memory-bound 워크로드(MPKI가 최대 122.9)에서는 이 경로가 **매우 빈번히** 돈다. exception 진입/복귀·스케줄러·TLB·cache 오염 비용이 성능 모델에 **전부** 반영됐나, 아니면 낙관적으로 잡혔나? context switch overhead가 flash read latency를 넘으면 이득이 준다(민감도 분석)는데, 그 overhead 값 자체의 보수성은?'\n\n**저자 방어(상상)**: '**2µs threshold**로 지연이 충분히 클 때만 전환하도록 gating하고(짧은 지연은 그냥 대기), MSHR 탐색은 기존 cache 계층 재활용이라 추가 구조가 최소다. 민감도 분석(Fig.15)에서 overhead를 sweep해 손익분기를 보였다.' → 재반박 여지: threshold gating은 **잘못된 대기(전환했어야 할 걸 안 함)**를 늘릴 수 있고, exception 경로 실측 비용이 FPGA가 아니라 **시뮬레이터 파라미터**로 들어갔다는 점(✅ FPGA는 write log/cache만 검증)에서 회계의 견고성이 남는 질문.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1760
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_043",
+      "template": "question",
+      "title": "🔀 왜 co-design인가: 긴 flash 지연 은닉 — prefetch/DRAM 캐시 확대 대신 coordinated context switch",
+      "content": "긴 flash 접근으로 인한 CPU pipeline stall을 숨기는 데는 설계자가 팔 수 있는 갈래가 여럿이다.\n\n**가능한 접근 (설계자라면)**\n| 갈래 | 아이디어 | 왜 부족/한계 |\n|---|---|---|\n| **A. Prefetch** | 접근 패턴 예측해 flash→DRAM 미리 당김 | 예측 빗나가면 여전히 miss stall, 불규칙 워크로드에 취약 |\n| **B. SSD DRAM 캐시 확대** | 내부 DRAM을 키워 miss율↓ | DRAM은 비싸고(용량 수 GB), miss는 남음 → 근본 은닉 아님 |\n| **C. Coordinated context switch (채택)** | miss로 막힌 thread를 OS가 다른 thread로 전환 | HW/OS 변경 필요하지만 stall 자체를 CPU 활용으로 전환 |\n| **D. Black-box HW thread switch (AstriFlash식)** | SSD를 black box로 두고 HW user-level thread switch로 I/O 숨김 | OS가 어느 명령이 막혔는지 모름 → 정확 추적·정책 통합 불가 |\n\n**저자의 선택 C + 왜**: host DRAM에서라면 OS가 긴 접근에 context switch로 CPU를 살리지만, CXL-SSD에선 그 기회가 사라진다 — *「OS가 CPU→SSD로 CXL 프로토콜을 통해 직접 발행된 load/store를 intercept할 수 없기」* 때문(p.1). 그래서 CPU도 SSD도 단독으로는 switch 여부를 못 정하고, **양쪽을 coordinate하는 co-design만이** 어느 명령이 긴 SSD 지연으로 막혔는지 정확히 추적해 switch를 트리거할 수 있다(original, p.4). 즉 A/B는 miss 자체를 줄이려는 시도라 stall을 근본적으로 은닉하지 못하고, C는 stall을 다른 thread 실행으로 전환한다.\n\n**차이 — 저자가 안 판 갈래(gap 후보)**: D의 AstriFlash식 **black-box HW thread switch**. 저자는 SSD를 black box·page granularity로 취급하면 hit/miss·speculative 여부를 host가 알 수 없어 retire-time 정밀 트리거(false-positive 제거)와 CFS 같은 OS 정책 통합이 불가능하다고 보고 co-design을 골랐다. 좁힌 기준 = *「명령 단위 정확 추적 + OS 스케줄러 통합」*. 남는 gap: co-design은 CPU/CXL ISA·HW 변경(SkyByte-Delay opcode, Long Delay Exception)이라는 배포 장벽을 대가로 지불한다(「해결책」의 method 노드 및 ISA-변경 아쉬운 점과 연결).",
+      "original": {
+        "text": "Neither CPU nor SSD can by itself decide whether to trigger a context switch. Therefore, to enable context switch on long CXL-SSD memory stalls, we coordinate between host OS and SSD controller.",
+        "location": "p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2040
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_044",
+      "template": "question",
+      "title": "🔀 왜 cacheline write log인가: SSD DRAM을 page 단위 캐싱 대신 cacheline 단위 로그로",
+      "content": "byte-granular CXL과 page-granular flash 사이 granularity mismatch를 SSD DRAM에서 어떻게 흡수할지의 갈림길.\n\n**가능한 접근 (설계자라면)**\n| 갈래 | 아이디어 | 왜 부족/한계 |\n|---|---|---|\n| **A. Page 캐시 확대** | SSD DRAM에 통째 page(4KB) 단위로 caching | 접근 안 된 cacheline까지 상주 → DRAM 낭비 |\n| **B. Page write-back 캐시** | page 단위로 dirty 관리·flush | 한 cacheline write에도 page fetch+write → write amplification |\n| **C. Cacheline write log (채택)** | 모든 write를 원본 page fetch 없이 log tail에 append, page data cache는 read용으로 병행 | 조회에 two-level hash·compaction 필요하나 공간·traffic 최적 |\n\n**저자의 선택 C + 왜**: 저자들의 §II 측정이 결정적 — *「대부분 워크로드가 page의 75% 이상에서 cacheline의 40% 미만만 접근하며, 전체 page를 SSD DRAM에 caching하면 귀한 SSD DRAM 공간을 크게 낭비한다」*(original, p.2). page 단위(A/B)는 (1) 접근되지 않는 cacheline까지 상주시켜 작은 SSD DRAM을 낭비하고 (2) cacheline 하나 쓰려 원본 page를 fetch해야 해 write amplification을 부른다. cacheline write log는 finer granularity로 공간을 아끼고, 더 큰 write coalescing window로 compaction 시 flash write traffic을 줄인다(결과: write 23.08배↓).\n\n**차이 — 저자가 안 판 갈래(gap 후보)**: 단순 **page 캐시 확대**(A) — 이는 「측정 근거: page의 75%에서 cacheline 40% 미만 접근」 claim이 정면으로 반박하는 baseline이자, DRAM 낭비·write amplification이라는 아쉬운 점의 원인. 좁힌 기준 = *「접근 밀도(access density)에 맞춘 granularity」*. 저자가 지불한 대가: log 조회를 위한 two-level hash table 색인(평균 5.6MB footprint)과 background compaction 복잡도.",
+      "original": {
+        "text": "our study in §II finds that most workloads access less than 40% of cachelines in more than 75% of pages. Caching the entire page in the SSD DRAM significantly wastes precious SSD DRAM space.",
+        "location": "p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2320
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_045",
+      "template": "reference",
+      "title": "📐 P/L: 기존 관점과 한계",
+      "content": "선행 연구를 **관점 P + 한계 L**로 분해한다. 여기서 L은 '성능이 나빴다'가 아니라 **관점 P를 썼기 때문에 구조적으로 남는 것**이다 — 그래서 관점을 바꾸면 풀린다는 사슬이 선다.\n\n| 기존 해법 A | 관점 P (문제를 본 렌즈) | 한계 L (그 관점 때문에 구조적으로 남는 것) |\n|---|---|---|\n| **AstriFlash** (Gupta et al., HPCA'23) | SSD를 **black box**로 두고, host DRAM을 그 SSD의 hardware-managed cache로 삼아 **page(4KB) 단위**로만 관리. I/O 은닉은 host DRAM miss가 트리거하는 user-level thread switch로 | SSD 내부 상태(cache hit/miss, flash queue 깊이)가 host에 안 보여 **어느 load/store가 왜 막혔는지 정확히 추적 불가**. page 단위라 **cacheline 단위 write log·정밀 stall 추적이 원천적으로 불가** (그래서 논문도 AstriFlash를 write log와 통합하지 못함) |\n| **Overcoming the Memory Wall / Base-CSSD** (Yang et al., ATC'23) | CXL-SSD를 **host memory의 확장**으로 노출하고, SSD 내부 DRAM **caching·prefetch로 긴 flash 지연을 은닉** | load/store가 CPU에서 SSD로 직접 나가 **OS가 가로챌 수 없음** → 막힌 thread를 재우고 다른 thread를 돌리는 **context switch 기회 자체가 사라짐**. caching만으론 부족해 SOTA Base-CSSD도 SkyByte에 평균 6.11배 뒤짐 → **OS 협력이 필요**하다는 결론 |\n| **FlatFlash** (Abulila et al., ASPLOS'19) | SSD를 **byte+block 이중 인터페이스**로 PCIe/CAPI 위 unified memory-storage 계층에 노출 (promotion buffer로 일관성) | **CXL.mem native가 아니고 단일 memory 인터페이스도 아님**(CXL 이전). 프로토콜 계층까지 내려가는 **co-design(NDR informing·retire-time exception)이 없어** 긴 지연을 host 스케줄링에 엮지 못함 |\n\n**SkyByte의 전환**: 위 P들을 **OS↔SSD controller co-design (P″)** 으로 바꿔 그 L을 품는다 — CPU도 SSD도 단독으론 hit/miss·speculative 여부를 모르니 양쪽 coordination이 필수라는 통찰에서, SSD가 CXL.mem NDR로 지연을 host에 informing하고 host가 retire-time에 정확히 context switch한다. black box→투명(informing), page→cacheline(write log)로 관점을 비튼 게 novelty의 뿌리다.",
+      "original": {
+        "text": "AstriFlash [23] uses the host DRAM as a hardware-managed cache of the SSD, and hides the flash latency using user-level thread switches triggered by host DRAM misses. However, it still treats the SSD as a black box and manages it at page granularity.",
+        "location": "§VII, p.12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2600
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_046",
+      "template": "memo",
+      "title": "📍 위치: memory-semantic SSD 계보 속 SkyByte",
+      "content": "CXL/memory-semantic SSD 계보에서 SkyByte의 좌표를 잡으면 그 novelty가 '어느 축을 새로 판 것'인지 또렷해진다.\n\n| 연구 | 인터페이스·계층 | 관점 |\n|---|---|---|\n| [[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy\\|FlatFlash]] (ASPLOS'19) | PCIe/CAPI, **byte+block 이중** | unified memory-storage 계층 (PLB promotion buffer의 출처) |\n| DirectCXL (ATC'22) | CXL.mem, **순수 DRAM** disaggregation | 진짜 DRAM을 CXL로 분리 (flash 아님) |\n| [[Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)\\|Hello Bytes, Bye Blocks (CXL-SSD)]] | CXL.mem **Type-3 비전** | SSD를 memory expander로 보는 vision/position |\n| [[Overcoming the Memory Wall with CXL-Enabled SSDs\\|Overcoming the Memory Wall]] (ATC'23) | CXL.mem, Type-3 | CXL-SSD 아키텍처 **원형·baseline characterization** (SkyByte의 Base-CSSD 뿌리) |\n| [[ByteFS - System Support for (CXL-based) Memory-Semantic Solid-State Drives\\|ByteFS]] (ASPLOS'25) | CXL.mem, **파일시스템 계층** | byte-accessibility를 FS·OS 계층에서 지원 |\n| **SkyByte** (HPCA'25) | CXL.mem, Type-3, **device+OS 계층** | **cacheline 단위 device-layer OS+HW co-design** |\n\n**한 줄 위치**: FlatFlash가 인터페이스(byte+block)를, Hello Bytes가 vision을, Overcoming the Memory Wall이 baseline을, ByteFS가 파일시스템 계층을 맡았다면, SkyByte는 **프로토콜(NDR)·마이크로아키텍처(retire exception)·스케줄러(CFS)를 관통해 cacheline 단위로 device를 OS와 함께 재설계**한 자리에 선다. 즉 계보에서 '가장 아래(device controller)와 가장 위(OS scheduler)를 동시에 cacheline 해상도로 엮은' 지점이 비어 있었고, SkyByte가 그 칸을 채운다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2880
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_047",
+      "template": "gap",
+      "title": "🧭 내 연구: single-host → multi-host coherence",
+      "content": "SkyByte가 관점을 co-design으로 바꿔도 **여전히 남긴 L = single-host(Type-3 HDM-H) 전제**다. 모든 메커니즘이 한 host의 CFS/PTE/PLB 안에서만 조율된다.\n\n내 P′는 **multi-host CXL coherence** — 여러 host가 한 CXL-SSD를 공유 메모리 풀로 나눠 쓰는 순간 (1) write log의 '최신 cacheline'이 단일 total order를 잃어 **host 간 write serialization**이 필요해지고, (2) hot page를 host A로 promote하면 host B가 **stale copy**를 볼 수 있어 promotion 일관성을 **back-invalidate/HDM-DB(CXL 3.x)** 로 재정의해야 한다. SkyByte의 informing(NDR) 아이디어에 coherence 상태를 실어 일반화할 수 있는지가 파볼 지점이다.\n\n※ 상세는 기존 「내 연구방향과의 연결: SkyByte는 single-host, 나는 multi-node CXL coherence」 클러스터(전제 노출 / 깨지는 지점 / NDR 일반화 / 구별 실험)에서 이미 전개됨 — 여기서는 P/L→P′ 사슬만 못박는다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 3160
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -962,6 +1198,97 @@
       "target": "node_034",
       "type": "line",
       "label": "thrashing"
+    },
+    {
+      "id": "edge_038",
+      "source": "node_002",
+      "target": "node_035",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_039",
+      "source": "node_003",
+      "target": "node_036",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_040",
+      "source": "node_004",
+      "target": "node_037",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_041",
+      "source": "node_004",
+      "target": "node_038",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_042",
+      "source": "node_005",
+      "target": "node_039",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_043",
+      "source": "node_004",
+      "target": "node_040",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_044",
+      "source": "node_004",
+      "target": "node_041",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_045",
+      "source": "node_005",
+      "target": "node_042",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_046",
+      "source": "node_003",
+      "target": "node_043",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_047",
+      "source": "node_003",
+      "target": "node_044",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_048",
+      "source": "node_002",
+      "target": "node_045",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_049",
+      "source": "node_005",
+      "target": "node_046",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_050",
+      "source": "node_005",
+      "target": "node_047",
+      "type": "line",
+      "label": "분석"
     }
   ],
   "viewport": {

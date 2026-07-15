@@ -74,6 +74,7 @@ $$\text{Speedup} = \frac{1}{(1-f) + \frac{f}{s}}$$
 
 ### (①~④의 통합) Roofline — 렌즈들을 하나로 묶는 정량 그림
 달성 성능 $= \min(\text{peak compute},\ I \times \text{bandwidth})$. arithmetic intensity $I$ 축 하나로 **compute-bound vs memory-bound**를 판정 — parallelism(peak↑)·locality($I$↑)·data movement(bandwidth 지붕)를 **한 그림에서 동시에** 본다. CAMEL 논문 대부분의 "왜 이 워크로드에 이 접근인가"의 답이 roofline상의 위치(bandwidth-bound: embedding·graph·sparse·element-wise update). 상세·그래프·A100 수치: **[[Roofline & FLOPs]]**.
+- ⚠️ **적용 단위 주의**: Roofline 1장 = 한 하드웨어 × 한 phase. **여러 phase의 합성(end-to-end speedup)은 ① Amdahl의 일** — end-to-end 숫자를 roofline 평면에 찍는 건 범주 착오. 실수 목록·판정 체크리스트: [[Roofline & FLOPs]] §5.
 
 ---
 

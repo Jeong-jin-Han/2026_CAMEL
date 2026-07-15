@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "Informing Memory Operations: Providing Memory Performance Feedback in Modern Processors",
   "created": "2026-07-14T00:00:00.000Z",
-  "modified": "2026-07-14T00:00:00.000Z",
+  "modified": "2026-07-15T09:00:00.000Z",
   "source": {
     "pdf": "Informing Memory Operations - Providing Memory Performance Feedback in Modern Processors.pdf",
     "authors": "Mark Horowitz (Stanford), Margaret Martonosi (Princeton), Todd C. Mowry (Univ. of Toronto), Michael D. Smith (Harvard)",
@@ -100,7 +100,9 @@
       },
       "children": [
         "node_007",
-        "node_008"
+        "node_008",
+        "node_019",
+        "node_028"
       ],
       "links": []
     },
@@ -124,7 +126,11 @@
         "node_009",
         "node_010",
         "node_011",
-        "node_012"
+        "node_012",
+        "node_020",
+        "node_021",
+        "node_026",
+        "node_027"
       ],
       "links": []
     },
@@ -147,7 +153,10 @@
       "children": [
         "node_013",
         "node_014",
-        "node_015"
+        "node_015",
+        "node_022",
+        "node_024",
+        "node_025"
       ],
       "links": []
     },
@@ -168,7 +177,10 @@
         "y": 1200
       },
       "children": [
-        "node_016"
+        "node_016",
+        "node_023",
+        "node_029",
+        "node_030"
       ],
       "links": []
     },
@@ -414,6 +426,222 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "memo",
+      "title": "🏛️ 학회: ISCA'96 — 새 HW primitive의 novelty를 보상",
+      "content": "ISCA는 **하드웨어 메커니즘 novelty + 정량 rigor**를 보상하는 학회다. reviewer는 \"HW 통찰이 얕다 / 단순 조합이다 / 범용성이 없다\"를 특히 찌른다.\n\n이 논문이 그 축에 정확히 앉는 이유:\n1. **informing memory operations**라는 새 HW primitive를 제안 — ISA에 conditional branch-and-link-on-miss + MHAR/MHRR 레지스터를 더한다(HW novelty).\n2. 14개 SPEC92 cycle-단위 시뮬 + coherence case study로 **정량 rigor**를 갖춤.\n3. \"필요한 HW는 이미 branch·exception 메커니즘으로 존재\"라고 논증해 ISCA reviewer의 두 단골 공격(**HW 부담·generality**)을 선제 방어.\n\n$\\rightarrow$ 아래 ✅/⚠️는 이 축(HW novelty·정량성·범용성) 위에서 판단한다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": -200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "claim",
+      "title": "✅ 잘한 점: cache miss를 SW에 노출하는 새 primitive",
+      "content": "결정적 강점은 **load/store의 hit/miss라는, 그때까지 SW에 안 보이던 이벤트를 관측·반응 가능한 1급 primitive로 승격**시킨 점이다.\n\nbranch만 관측 가능하던 비대칭을 깨고, miss를 \"conditional branch-and-link가 miss일 때만 taken\"으로 재정의했다. 하나의 명명된 primitive(informing memory operations)로 문제 자체를 다시 세운 것이 ISCA가 보상하는 conceptual novelty의 전형.",
+      "original": {
+        "text": "we propose a new class of memory operations called informing memory operations, which essentially consist of a memory operation combined (either implicitly or explicitly) with a conditional branch-and-link operation that is taken only if the reference suffers a cache miss.",
+        "location": "Abstract / §1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 80
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "claim",
+      "title": "✅ 잘한 점: 기존 branch·exception HW 재활용으로 저비용",
+      "content": "두 번째 강점은 **새 primitive를 거의 공짜로 얻는다**는 논증이다.\n\nin-order(Alpha 21164)는 기존 **replay trap**을, out-of-order(MIPS R10000)는 기존 **branch/exception 메커니즘**을 재활용 $\\rightarrow$ 필요한 HW의 대부분이 이미 존재. hit case 오버헤드는 0$\\sim$명령 1개.\n\n이것이 ISCA reviewer의 \"HW 부담이 크다\" 공격을 정면으로 무력화하는 co-design 논거.",
+      "original": {
+        "text": "most of the necessary hardware mechanisms are the branch and exception mechanisms already present in current machines.",
+        "location": "§3, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "claim",
+      "title": "✅ 잘한 점: 하나의 primitive로 prefetch·monitoring·multithreading·coherence",
+      "content": "세 번째 강점은 **generality**다. 같은 primitive가 software-controlled prefetching, performance monitoring, context-switch-on-a-miss multithreading, fine-grained access control coherence를 모두 지원한다.\n\n특히 coherence case study에서 informing 방식이 **ECC-based 대비 평균 11%, reference-checking 대비 24% 빠름**을 정량 입증 $\\rightarrow$ \"범용성이 실이득으로 이어진다\"를 한 응용에서 증명. 기능마다 전용 HW를 넣는 것보다 경제적이라는 논거.",
+      "original": {
+        "text": "The significance of informing memory operations, however, is that they provide basic primitives which also support a much broader range of applications beyond performance tools.",
+        "location": "§5, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: '이미 있는 HW'라지만 새 ISA·레지스터·speculative 보증을 요구",
+      "content": "**reviewer 질문**: \"필요한 HW가 이미 있다지만, 실제로는 새 명령(branch-and-link-on-miss), 새 user-visible 레지스터(MHAR/MHRR), 그리고 out-of-order에서 speculative load가 cache를 조용히 갱신 못 하게 하는 **MSHR 수명연장**까지 요구한다. branch 방식은 shadow state가 약 3배 필요하다고 스스로 밝혔다 — commodity CPU 벤더가 이걸 넣을 유인은?\"\n\n**저자 방어**: hardware requirements are modest이며, out-of-order의 cache-state 보증은 many applications엔 불필요하고 필요할 때만 modest change라고 최악 비용을 옵션으로 격리한다.",
+      "original": {
+        "text": "For many applications, these guarantees are not strictly necessary, but when desired, modest hardware changes can prevent speculative data from entering the primary cache.",
+        "location": "§5, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 920
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: 평가가 전부 시뮬레이션(실측 없음), coherence는 별도 시뮬레이터",
+      "content": "**reviewer 질문**: \"오버헤드는 R10000·21164를 '기반으로 한' cycle 시뮬이고 실제 실리콘 측정이 아니다. 모델이 실제 프로세서와 다르며(예: 3-level을 2-level cache로 단순화), coherence 결과는 아예 다른 **TangoLite 기반 병렬 시뮬**로 뽑았다 — 두 실험이 서로 다른 프레임워크인데 일관성은?\"\n\n**저자 방어**: state-of-the-art 프로세서의 rich detail(pipeline·renaming·reorder buffer·contention)을 모델링했고, 1996년엔 informing HW가 실물에 없어 시뮬이 불가피. ISCA에선 detailed simulation이 통상 용인되는 평가.",
+      "original": {
+        "text": "We performed detailed cycle-by-cycle simulations of two state-of-the-art processors: an out-of-order machine based on the MIPS R10000, and an in-order machine based on the Alpha 21164.",
+        "location": "§4.2.1, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: 응용은 넓지만 실이득 증명은 coherence 하나뿐 (multithreading은 스케치)",
+      "content": "**reviewer 질문**: \"generality를 팔지만 end-to-end 이득을 보인 건 coherence case study뿐이다. context-switch-on-a-miss multithreading은 '두 최적화 아이디어'만 서술하고 정량 평가가 없고, prefetching·monitoring 이득도 이전 TR[HMMS95]에 위임했다. 게다가 오버헤드가 su2cor에선 실행시간 **3배**로 폭발한다 — '넓지만 얕은' 것 아닌가?\"\n\n**저자 방어**: 저자도 오버헤드가 커질 수 있음을 인정하고, 수용 여부는 use case에 달렸다고 프레이밍(모니터링은 2배도 감내, multithreading은 못 감내). primitive는 메커니즘이고 각 응용 최적화는 후속 연구로 명시적으로 미룬다.",
+      "original": {
+        "text": "the overheads of informing memory operations are generally small for 1 or 10-instruction miss handlers, but the overheads can become large in some cases.",
+        "location": "§4.2.2, p.8"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "question",
+      "title": "🔀 왜 informing(HW→SW 통지)인가 — polling counter도 conventional trap도 아니고",
+      "content": "저자가 판 갈래:\n- **(A) on-chip counter polling** — 참조 전후로 miss counter를 읽어 hit/miss 판정.\n- **(B) 전통적 exception/interrupt** — miss마다 OS trap.\n- **(C) informing** — miss를 condition code로 노출하거나 저오버헤드 user-space trap.\n\n**저자 선택 = C.** 이유: (A)는 참조마다 counter를 두 번 읽어 극도로 느리고 out-of-order에선 **counter 접근이 pipeline을 serialize**한다. (B)는 OS로 context switch하는 데 수백 cycle. C만이 fine-grained·저오버헤드·selective를 동시에 만족.\n\n**안 판 갈래**: 순수 HW 해법(stream buffer 등)은 abstract에서 \"complete solution 아님\"으로 일축 — SW 제어 여지를 남기려 informing을 택함.",
+      "original": {
+        "text": "We avoid traditional trap mechanisms that require hundreds of cycles to context switch into the operating system and invoke the trap dispatch code, which then context switches again to run the actual handler.",
+        "location": "§2.2, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1760
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "question",
+      "title": "🔀 왜 세 구현 중 condition-code·low-overhead trap만 — squashed-slot은 폐기",
+      "content": "primitive를 실현하는 세 갈래:\n- **(A) cache-outcome condition code** — 명시적 check 명령, HW 최소지만 재컴파일 필요, hit당 명령 1개.\n- **(B) squashed slot** — hit이면 뒤 slot 명령을 squash(delay-slot식 branch-and-link-if-miss).\n- **(C) low-overhead cache miss trap** — 암묵적 제어이동, hit 오버헤드 0, 재컴파일 없이 whole-system 모니터링.\n\n저자는 **A·C를 채택, B를 명시적으로 폐기**한다 — superscalar에서 delay-slot semantics에 대한 HW 설계자들의 기피 + 두 종류의 메모리 연산이 필요하기 때문. A와 C는 tradeoff로 병치: HW 단순(A) $\\leftrightarrow$ hit 오버헤드 0·소스 없는 상용 SW·OS까지 모니터링(C).",
+      "original": {
+        "text": "it suffers from hardware designers' aversions to delay slot semantics in architectures for superscalar machines. For these reasons (as well as space constraints) we do not consider it further here.",
+        "location": "§2, p.2"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2040
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "reference",
+      "title": "📐 P/L: 메모리 이벤트가 SW에 안 보임 → SW가 miss에 반응·스케줄 불가",
+      "content": "| 기존 해법 A | 관점 P (문제를 본 렌즈) | 한계 L (그 관점 때문에 남은 구조적 제약) |\n|---|---|---|\n| load/store ISA (flat memory 시절 정의) | 메모리를 \"uniform high-speed memory\"로 추상화 — hit/miss는 HW 내부사 | SW가 특정 참조의 miss를 **관측할 수 없음** $\\rightarrow$ miss에 반응·스케줄·prefetch 불가 |\n| bus monitor / on-chip counter | 성능을 **coarse-grained 요약·사후 통계**로 봄 | 참조 단위(on-the-fly) hit/miss 불가; counter는 느리고 pipeline을 serialize |\n\n이 논문의 **P″ = miss를 branch처럼 관측·반응 가능한 이벤트로 노출**(informing). L의 뿌리가 '관점(flat-memory 추상화)'이므로, 관점을 바꾸면 L이 구조적으로 풀린다.",
+      "original": {
+        "text": "loads and stores offer no direct mechanism for software to determine if a particular reference was a hit or a miss.",
+        "location": "§1, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2320
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "memo",
+      "title": "📍 위치: 30년 뒤 SkyByte가 이 primitive를 CXL-SSD로 부활",
+      "content": "ISCA'96의 이 informing primitive는 30년 뒤 [[SkyByte]](HPCA'25)에서 현대적으로 부활한다.\n\nSkyByte의 NDR **`SkyByte-Delay` opcode + Long Delay Exception**은 정확히 이 논문의 \"miss $\\rightarrow$ low-overhead user trap $\\rightarrow$ handler\"의 직계 후손이다. 바뀐 건 **매체뿐**:\n- 노출 이벤트: primary cache miss(수십 cycle) $\\rightarrow$ CXL-SSD의 NAND stall($\\mu$s급)\n- SW 반응: context-switch-on-a-miss $\\rightarrow$ OS context switch\n\n\"HW가 long-latency 이벤트를 노출 $\\rightarrow$ SW가 스케줄로 은닉\"이라는 ISCA式 co-design 원리는 불변. 이 논문은 그 계보의 **원점**으로서, HW novelty가 30년간 재사용되는 ISCA taste의 대표 사례.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2600
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "gap",
+      "title": "🧭 내 연구: informing을 multi-host CXL coherence 이벤트로",
+      "content": "이 논문의 informing 이벤트는 전부 **local**(자기 core의 miss)이고 MHAR/MHRR도 single core·single address space 전제 — 이것이 남은 L.\n\n내 관점 **P′ = multi-host 공유 CXL 메모리**. remote back-invalidation(CXL 3.0 BI)이나 cross-host miss 같은 long-latency/coherence 이벤트가 발생할 때, **어느 host의 스케줄러에게 informing할 것인가**(fabric? home agent?)가 gap.\n\n1996 \"miss $\\rightarrow$ local switch\", SkyByte \"SSD stall $\\rightarrow$ local switch\"를 \"remote invalidation $\\rightarrow$ 원격 host 스케줄 조정\"으로 확장. $\\rightarrow$ [[CXL Multi-node Coherence]]",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2880
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -542,6 +770,90 @@
       "target": "node_018",
       "type": "line",
       "label": "내 연구"
+    },
+    {
+      "id": "edge_019",
+      "source": "node_002",
+      "target": "node_019",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_020",
+      "source": "node_003",
+      "target": "node_020",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_021",
+      "source": "node_003",
+      "target": "node_021",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_022",
+      "source": "node_004",
+      "target": "node_022",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_023",
+      "source": "node_005",
+      "target": "node_023",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_024",
+      "source": "node_004",
+      "target": "node_024",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_025",
+      "source": "node_004",
+      "target": "node_025",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_026",
+      "source": "node_003",
+      "target": "node_026",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_027",
+      "source": "node_003",
+      "target": "node_027",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_028",
+      "source": "node_002",
+      "target": "node_028",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_029",
+      "source": "node_005",
+      "target": "node_029",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_030",
+      "source": "node_005",
+      "target": "node_030",
+      "type": "line",
+      "label": "분석"
     }
   ],
   "viewport": {

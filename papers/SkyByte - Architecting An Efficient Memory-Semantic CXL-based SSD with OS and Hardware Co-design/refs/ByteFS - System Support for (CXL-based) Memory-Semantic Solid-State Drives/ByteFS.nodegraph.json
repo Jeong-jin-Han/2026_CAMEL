@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "ByteFS: System Support for (CXL-based) Memory-Semantic Solid-State Drives",
   "created": "2026-07-14T00:00:00.000Z",
-  "modified": "2026-07-14T00:00:00.000Z",
+  "modified": "2026-07-15T09:00:00.000Z",
   "source": {
     "pdf": "ByteFS - System Support for (CXL-based) Memory-Semantic Solid-State Drives.pdf",
     "authors": "Shaobo Li, Yirui Eric Zhou, Hao Ren, Jian Huang (UIUC)",
@@ -101,7 +101,9 @@
       "children": [
         "node_007",
         "node_008",
-        "node_009"
+        "node_009",
+        "node_022",
+        "node_031"
       ],
       "links": []
     },
@@ -127,7 +129,10 @@
         "node_012",
         "node_013",
         "node_014",
-        "node_015"
+        "node_015",
+        "node_023",
+        "node_029",
+        "node_030"
       ],
       "links": []
     },
@@ -150,7 +155,11 @@
       "children": [
         "node_017",
         "node_018",
-        "node_019"
+        "node_019",
+        "node_024",
+        "node_025",
+        "node_026",
+        "node_028"
       ],
       "links": []
     },
@@ -172,7 +181,10 @@
       },
       "children": [
         "node_020",
-        "node_021"
+        "node_021",
+        "node_027",
+        "node_032",
+        "node_033"
       ],
       "links": []
     },
@@ -473,6 +485,226 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "memo",
+      "title": "🏛️ 학회: ASPLOS = cross-layer(FS+firmware) co-design 보상 / \"한 층만\" 찌름",
+      "content": "**ASPLOS가 보상하는 축**: architecture+OS+PL을 가로지르는 **cross-layer co-design**. reviewer가 특히 찌르는 곳 = **한 층만 건드림 / 계층이 얕음**(nodegraph_review §3-0 표).\n\n**ByteFS가 이 축을 맞춘 방식**: 문제를 FS 한 층에서 끝내지 않고 (1) **host filesystem(SW)** 핵심 자료구조를 재설계(inode 64B 분할·extent·CoW+XOR 선택)하고, (2) **SSD firmware(HW)** 를 log-structured write buffer·3-layer skip list·custom NVMe COMMIT/RECOVER로 함께 재설계한다. §3의 정량분석이 두 층을 잇는 다리. 즉 **byte↔block 이중역할을 FS·firmware 두 층에서 동시에** 푼다 $\\rightarrow$ ASPLOS taste 정합.\n\n이 anchor를 기준으로 ✅는 \"두 층을 어떻게 맞물렸나\", ⚠️는 \"그 co-design이 무엇을 전제/요구하나\"로 정렬된다.",
+      "original": {
+        "text": "We present ByteFS, an efficient file system for M-SSDs with a co-design of software (host filesystem) and hardware (SSD firmware).",
+        "location": "§4.1, p.5"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": -200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "claim",
+      "title": "✅ 잘한 점: 자료구조별 byte/block 선호를 정량분석으로 갈라 transparent 선택",
+      "content": "ByteFS의 결정적 강점 = **설계를 직관이 아니라 §3 정량 프로파일에서 유도**한 점(문제 프레이밍 + rigor). FS 핵심 구조를 op 단위로 쪼개 \"어느 것이 byte를, 어느 것이 block을 선호하나\"를 Table 3로 못박고, 그 규칙을 그대로 firmware/FS에 심어 **transparent**(POSIX 그대로)하게 자동 선택한다.\n\n- **규칙**: metadata write는 대개 작다 $\\rightarrow$ **byte**. 그 read는 같은 block 내 locality $\\rightarrow$ **block**+host caching.\n- runtime 데이터는 CoW+XOR로 modified ratio $R$을 재 byte/block 결정($R<\\tfrac{1}{8}$이면 byte).\n\nreviewer가 좋게 볼 지점: \"byte가 무조건 좋다\"는 단순 주장이 아니라 **구조별로 갈라 근거를 댄** 점.",
+      "original": {
+        "text": "most metadata updates in file systems are small, so the byte interface is suitable. For their reads, we can use the block interface to exploit data locality.",
+        "location": "§3.2, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 80
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "claim",
+      "title": "✅ 잘한 점: SSD firmware log-structured write buffer + coalescing로 flash/write traffic 대폭 ↓",
+      "content": "두 번째 결정적 강점 = **device 층 기여**(단순 FS 논문을 넘어서는 부분, ASPLOS 축에 정확히 부합). 내부 DRAM을 cacheline 단위 **log-structured region**으로 재조직해 작은 write를 log에 append하고 background cleaning이 **coalescing** 후 flash에 flush $\\rightarrow$ critical path의 flash 접근·write amplification을 firmware 안에서 흡수.\n\n**정량 효과**: flash traffic 평균 Ext4/F2FS/NOVA/PMFS 대비 **2.9× / 2.1× / 3.2× / 2.2×↓**, SSD write traffic **최대 5.1×↓**(abstract). 인덱스(3-layer skip list)는 89ns lookup·21MB로 경량이라 flash µs 스케일에 묻힌다.\n\nreviewer 관점: FS 최적화가 아니라 **firmware 데이터 구조 재설계로 device I/O를 줄인** 실측 근거 $\\rightarrow$ evaluation depth.",
+      "original": {
+        "text": "On average, ByteFS reduces the flash traffic by 2.9×, 2.1×, 3.2×, and 2.2× compared to Ext4, F2FS, NOVA, and PMFS. ByteFS reduces flash write traffic by coalescing small writes in the in-device write log.",
+        "location": "§5.3, p.12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "claim",
+      "title": "✅ 잘한 점: write log를 redo log로 재사용 → double-write 없이 crash consistency (recovery 4.2s)",
+      "content": "세 번째 강점 = **essential FS property(crash consistency)를 공짜에 가깝게** 얻은 점. firmware가 이미 갖는 in-device write log에 모든 metadata update가 append되므로, 그 로그를 **그대로 redo log로 재사용**해 flash에 두 번 쓰는 **double logging을 제거**한다. battery-backed DRAM + TxID/TxLog로 atomic commit.\n\n**실측**: crash 후 평균 **4.2s** 복구(SSD DRAM 로드 0.9s + log/TxLog 스캔·flush 2.7s). metadata traffic이 NOVA(out-of-place)·PMFS(data journaling)의 double-write보다도 적은 이유가 이 in-place + redo-log 재사용.\n\nreviewer가 좋게 볼 지점: 성능 최적화(byte write)와 crash consistency가 **충돌하지 않고 같은 로그 자료구조를 공유**하도록 설계한 점.",
+      "original": {
+        "text": "we can avoid writing to flash memory twice (double logging) by directly using the write log as a redo log for metadata updates. This enables ByteFS to support atomic and crash-consistent updates.",
+        "location": "§4.3, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: \"host가 최신본 소유 → coherency 불필요\"라는 single-host 불변식 (reviewer 공격)",
+      "content": "ByteFS는 §4.2에서 SSD DRAM↔CPU cache **coherency가 필요없다**고 단정하고, 같은 문장에서 byte interface를 **CXL.mem로도 realize 가능**하다고 말한다 — 이 둘은 긴장 관계다.\n\n**reviewer 질문**: \"CXL.mem는 정의상 cacheable load/store를 여러 agent에 노출하는데, 왜 coherency가 불필요한가? multi-core/multi-process가 같은 M-SSD region을 동시에 mmap하거나 DMA가 끼면 이 불변식이 성립하나?\"\n\n**저자 방어(암묵)**: \"firmware가 host가 쓴 데이터를 수정하지 않으니 device발 stale이 없고, **단일 host가 항상 최신본**을 갖는다\" $\\rightarrow$ 그러나 이 방어는 **정확히 single host에서만** 성립. 논문 전체(coordinated caching·TxTable·redo log)가 이 전제 위에 서 있다. reviewer라면 \"한계로 명시했어야\"라고 지적할 지점. (내 연구 P′로 승격 $\\rightarrow$ 🧭 노드.)",
+      "original": {
+        "text": "ByteFS do not require cache-coherency between the SSD DRAM and the host CPU cache because the host always contains the latest data and the M-SSD firmware does not modify the data written by the host. The byte interface can also be realized with CXL.mem protocol, with which the host CPU can issue cacheable load/store accesses to the device.",
+        "location": "§4.2, p.6"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 920
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: firmware 1.5K LoC + custom NVMe(COMMIT/RECOVER) 요구 → 배포 장벽",
+      "content": "ByteFS의 이득은 **firmware를 고칠 수 있다**는 전제에 의존한다: log-structured DRAM 관리·skip list·log cleaning·**custom NVMe COMMIT(TxID)/RECOVER()** 를 firmware 안에 심는다.\n\n**reviewer 질문**: \"상용 SSD firmware는 폐쇄적이고 NVMe는 표준 위원회 관할인데, custom NVMe 명령과 1.5K LoC firmware 변경을 어떻게 배포하나? OpenSSD가 아닌 실제 CMM-H/CXL-SSD에서 재현 가능한가?\"\n\n**저자 방어**: \"**HW 변경은 없다**(no hardware modification), OpenSSD FPGA 실물로 실증, firmware만 1.5K LoC(그중 custom NVMe 0.1K)\" $\\rightarrow$ 그래도 **vendor firmware 접근권**을 전제. ASPLOS는 co-design을 보상하지만(축 정합), 같은 이유로 \"실배포 경로\"를 reviewer가 물을 수 있는 지점.",
+      "original": {
+        "text": "In ByteFS, we modified the SSD firmware with 1.5K lines of C code. It does not require any changes to the SSD hardware. More specifically, we customize the NVMe protocol to enable byte granularity accesses with 0.1K LoC and implement the 256MB write log ...",
+        "location": "§4.9, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: 이득이 write/metadata-heavy에 편중, read-heavy는 비슷 + NVM FS baseline 불리 매핑",
+      "content": "**Generalization 우려.** 큰 speedup은 create(6.0×)·OLTP(4.1×)·Varmail 같은 **작은 sync write·metadata-heavy** 워크로드에 몰린다. **read-heavy(Webserver/Webproxy)** 에선 Ext4/F2FS와 **거의 동등**.\n\n**reviewer 질문**: (1) \"이득이 특정 워크로드 프로파일에 편향된 것 아닌가?\" (2) \"baseline인 **NOVA/PMFS를 flash에 미최적화된 채 M-SSD에 그대로 매핑**해 비교한 것은 straw-man 아닌가 — flash-aware NVM FS와 비교했어야?\"\n\n**저자 방어**: (1) \"read는 block interface+host caching으로 **이미** 최적이라 추가 이득 여지가 작다(설계 의도)\", (2) \"§2.2에서 NVM FS는 M-SSD에 **natural fit이 없음**을 논증했고, 이들이 M-SSD의 유일한 byte-interface 선택지라 정당한 비교\". 방어는 성립하나, ✅ 강점의 **적용범위가 write-heavy로 좁다**는 사실은 남는다.",
+      "original": {
+        "text": "Webserver and Webproxy are read-heavy workloads. ByteFS shows a similar performance compared with Ext4 and F2FS, as we leverage the block interface and host-side caching to exploit data locality.",
+        "location": "§5.2, p.11"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "question",
+      "title": "🔀 왜 dual byte+block (vs pure byte / pure memory-semantic FS)?",
+      "content": "저자가 선 갈림길: M-SSD 위 FS 인터페이스를 어떻게 노출할까.\n\n- **(A) pure block** (기존 Ext4/F2FS 그대로): byte 접근 못 씀 $\\rightarrow$ 128B update도 4KB write, amplification 최대 6.2×.\n- **(B) pure byte / memory-semantic** (NVM FS·DAX식으로 device를 near-DRAM byte-only로 취급): SW overhead는 줄지만 **flash의 page-granular 특성·spatial locality·PCIe latency**를 못 살려 M-SSD에서 열세(NOVA/PMFS 실측).\n- **(C) dual — 자료구조별 선택** ← 저자 선택.\n\n**저자 이유**: metadata write는 작아 byte, 그 read는 locality라 block — \"**둘 다 지원**하지 않으면 M-SSD 이점을 못 살린다\"(§2.2). **안 판 갈래**: device를 완전 memory-semantic으로 추상화([[SkyByte]]식)한 뒤 그 위에 얇은 byte-only FS만 얹는 길 $\\rightarrow$ ByteFS는 firmware까지 내려가 block 경로를 **버리지 않고** 유지하는 쪽을 택했다.",
+      "original": {
+        "text": "without changing the inherent design, it is hard to fully exploit the performance benefits of M-SSDs with existing file systems, as they all lack the support for both byte and block interface, and the consideration of the unique performance characteristics.",
+        "location": "§2.2, p.3"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1760
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "question",
+      "title": "🔀 왜 firmware redo-log (vs host-side journaling / double-write)?",
+      "content": "crash consistency를 어디서·어떻게 얻을까.\n\n- **(A) host journaling** (Ext4 JBD2 ordered mode): critical metadata를 **두 번 쓴다** $\\rightarrow$ journaling이 전체 traffic의 30.7%. M-SSD의 write amplification을 다시 키움.\n- **(B) host-side log / out-of-place** (NOVA식): device는 몰라도 되지만 여전히 double-write·flash 미최적화.\n- **(C) firmware-level redo log** ← 저자 선택.\n\n**저자 이유**: 어차피 성능을 위해 **모든 metadata update가 firmware write log에 append**되므로, 그 로그를 **그대로 redo log로 재사용**하면 flash에 두 번 쓰는 double logging을 통째로 없앤다 — 성능 최적화 자료구조와 consistency 자료구조를 **하나로 합치는** 수. **안 판 갈래**: consistency를 host에만 두고 firmware를 건드리지 않는 길(=배포는 쉽지만 double-write 잔존). 이 선택이 ⚠️ \"firmware 수정 요구\" 장벽과 맞바꾼 것.",
+      "original": {
+        "text": "In ByteFS, all metadata updates are appended to the log region. Therefore, we can avoid writing to flash memory twice (double logging) by directly using the write log as a redo log for metadata updates.",
+        "location": "§4.3, p.7"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2040
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_031",
+      "template": "reference",
+      "title": "📐 P/L: 기존 FS가 M-SSD byte-granularity를 못 살림 → 작은 update가 page write로 증폭",
+      "content": "기존 해법을 **관점 P(문제를 본 렌즈) → 한계 L(그 관점 때문에 구조적으로 남는 것)** 으로 분해:\n\n| 기존 해법 A | 관점 P | 한계 L (구조적) |\n|---|---|---|\n| **block FS** (Ext4/F2FS) | SSD를 **4KB page/block black box**로 봄 | 128B metadata update도 **4KB write** 강제 $\\rightarrow$ write amplification 최대 6.2×. byte-granularity라는 새 자유도를 **주소지정 단위에서 봉쇄** |\n| **NVM FS** (PMFS/NOVA/SplitFS) | device를 **near-DRAM byte-only**(DAX)로 봄 | **flash page-granular 특성·PCIe latency·spatial locality**를 무시 $\\rightarrow$ M-SSD에서 오히려 열세 |\n\n**L은 \"느리다\"가 아니라 \"관점 P 때문에 남는 것\"**: block FS는 device를 block으로 보는 한 byte 이득이 원천 봉쇄되고, NVM FS는 device를 순수 byte-DRAM으로 보는 한 flash/PCIe 병목을 다룰 언어가 없다.\n\n**ByteFS의 P″** = \"FS 자료구조별 granularity를 **FS+SSD firmware 두 층 재설계**로 정한다\" $\\rightarrow$ 두 L을 동시에 품는다.",
+      "original": {
+        "text": "Persisting one 128B inode update requires a 4KB write to the disk, further amplifying the write traffic. Therefore, the byte interface can greatly reduce the inode write traffic.",
+        "location": "§3.2, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2320
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_032",
+      "template": "memo",
+      "title": "📍 위치: memory-semantic SSD 스택의 FS 계층 (SkyByte=device 계층) — UIUC Jian Huang 그룹",
+      "content": "**ASPLOS'25에서의 좌표**: ByteFS는 같은 **UIUC Jian Huang 그룹**의 memory-semantic SSD 라인에서 **filesystem/OS support 계층**을 맡는다. cross-layer(FS+firmware) 논문이라 ASPLOS taste에 정합해 accept.\n\n- **[[SkyByte]]** (HPCA'25) = **device 계층**(memory-semantic SSD device를 HW/OS co-design으로). ByteFS는 \"그런 device 위에 얹는 파일시스템\".\n- **[[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]]** (ASPLOS'19) = M-SSD **원형**(SW 기반 unified address translation). FlatFlash가 \"byte로 접근 가능함\"을 보였다면, ByteFS는 그 위에서 **system software(FS)가 어떻게 관리할지**의 공백을 채운다.\n\n즉 세 논문이 **원형(FlatFlash) → device(SkyByte) → FS(ByteFS)** 로 같은 이중역할(byte↔block)을 서로 다른 계층에서 transparent co-design한다. (스택 세부 비교는 기존 「스택 관계」 노드 참조 — 여기선 venue·계층 위치만.)",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2600
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_033",
+      "template": "gap",
+      "title": "🧭 내 연구: single-host FS 불변식(L′) → multi-host CXL-SSD namespace의 cross-host 소유권·flush P′",
+      "content": "**P/L→P′ 사슬(간결판)**: ByteFS는 관점을 P″=\"FS+firmware co-design\"으로 바꿔 amplification L을 풀었지만, 그 대가로 **single-host 불변식 L′**(\"host가 항상 최신본 소유 $\\rightarrow$ coherency 불필요\", ⚠️ 노드)이 새로 굳어졌다.\n\n**내 P′ = multi-host CXL-SSD coherence**: 여러 host가 같은 CXL-SSD FS namespace를 공유하면 L′이 정확히 깨진다 —\n- **최신본 소유권**: host A·B page cache 중 누가 최신? $\\rightarrow$ CXL 3.0 back-invalidate/HDM-DB가 ByteFS의 coordinated caching에 편입돼야.\n- **cross-host flush/commit**: TxTable·TxLog가 단일 host 소속 $\\rightarrow$ 공유 namespace의 commit ordering·flush 권한 미정의.\n\nByteFS의 **기법(dual interface·log·coalescing·redo log)은 재사용**하되 **문제 정의를 single→multi host로** 다시 세우는 것이 gap. (기존 「내 연구방향」 노드의 P′를 **P/L 유도 사슬**로 압축·보강. $\\rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]])",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2880
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -622,6 +854,90 @@
       "target": "node_021",
       "type": "line",
       "label": "연결"
+    },
+    {
+      "id": "edge_022",
+      "source": "node_002",
+      "target": "node_022",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_023",
+      "source": "node_003",
+      "target": "node_023",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_024",
+      "source": "node_004",
+      "target": "node_024",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_025",
+      "source": "node_004",
+      "target": "node_025",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_026",
+      "source": "node_004",
+      "target": "node_026",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_027",
+      "source": "node_005",
+      "target": "node_027",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_028",
+      "source": "node_004",
+      "target": "node_028",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_029",
+      "source": "node_003",
+      "target": "node_029",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_030",
+      "source": "node_003",
+      "target": "node_030",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_031",
+      "source": "node_002",
+      "target": "node_031",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_032",
+      "source": "node_005",
+      "target": "node_032",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_033",
+      "source": "node_005",
+      "target": "node_033",
+      "type": "line",
+      "label": "분석"
     }
   ],
   "viewport": {

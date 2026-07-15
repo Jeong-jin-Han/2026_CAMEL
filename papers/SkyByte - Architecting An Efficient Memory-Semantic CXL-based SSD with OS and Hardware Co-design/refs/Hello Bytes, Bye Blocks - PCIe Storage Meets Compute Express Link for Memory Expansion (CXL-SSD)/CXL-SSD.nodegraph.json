@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "title": "Hello Bytes, Bye Blocks: PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)",
   "created": "2026-07-13T00:00:00.000Z",
-  "modified": "2026-07-14T04:00:00.000Z",
+  "modified": "2026-07-15T09:00:00.000Z",
   "source": {
     "pdf": "Hello Bytes, Bye Blocks - PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD).pdf",
     "authors": "Myoungsoo Jung (KAIST CAMELab)",
@@ -99,7 +99,9 @@
         "y": 300
       },
       "children": [
-        "node_007"
+        "node_007",
+        "node_020",
+        "node_028"
       ],
       "links": []
     },
@@ -125,7 +127,11 @@
         "node_010",
         "node_011",
         "node_013",
-        "node_014"
+        "node_014",
+        "node_021",
+        "node_022",
+        "node_023",
+        "node_027"
       ],
       "links": []
     },
@@ -146,7 +152,8 @@
         "y": 900
       },
       "children": [
-        "node_012"
+        "node_012",
+        "node_024"
       ],
       "links": []
     },
@@ -168,7 +175,11 @@
       },
       "children": [
         "node_015",
-        "node_016"
+        "node_016",
+        "node_025",
+        "node_026",
+        "node_029",
+        "node_030"
       ],
       "links": []
     },
@@ -229,6 +240,23 @@
       "position": {
         "x": 1580,
         "y": -120
+      },
+      "children": [
+        "node_019"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "memo",
+      "title": "intra-host / inter-host란? — 'host' = 하나의 coherency domain",
+      "content": "**host** = 하나의 CPU 시스템 = **하나의 coherency domain**(자기 코어들 + 캐시들을 home agent가 일관되게 관리하는 단위). CXL에서 'host 하나'는 보통 하나의 CXL root port를 가진 하나의 서버/소켓 복합체다.\n\n- **intra-host(호스트 내부)**: 그 **한 host의 경계 안** — 코어들·캐시들·그 host가 매핑한 메모리(local DRAM이든 device HDM이든). 여기 coherence는 host home agent가 **자동**(MESI).\n- **inter-host(호스트 간)**: **서로 다른 host들 사이** — 각자 **별개 coherency domain**. 이들을 잇는 선/프로토콜이 원래 없어서, 여러 host가 같은 메모리를 캐시하면 그 사이 coherence는 누군가 **새로 놓아야** 한다(CXL 3.0 device back-invalidate).\n\n**핵심 경계**: coherence domain은 **host 경계에서 끊긴다.** 그래서 'intra'는 하드웨어가 늘 공짜로 처리하고, 'inter'는 CXL이 새로 풀어야 하는 문제.\n\n**일반 패턴**: '한 단위 **안**(intra) vs 단위**들 사이**(inter)'라는 구분은 CXL만의 것이 아니다 — parallelism에서도 **intra-node/inter-node**(NVLink vs network), **intra-layer/inter-layer**(TP vs PP)로 똑같이 나타난다. 의미는 동일(within vs between), 표현만 다름. $\\rightarrow$ Parallelism 노트 참조.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1580,
+        "y": 220
       },
       "children": [],
       "links": []
@@ -414,6 +442,207 @@
       },
       "children": [],
       "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "memo",
+      "title": "🏛️ 학회: HotStorage 2022 — 도발적 vision/position 보상, 평가 부재 관대",
+      "content": "HotStorage는 도발적 **vision/position** paper를 위한 workshop이다. 완성된 평가·실측보다 **새 문제 프레이밍·통찰**을 보상하고 평가 부재엔 관대하되, **통찰·문제 프레이밍이 약하면 탈락**한다.\n\n이 글은 **single-author 7-page position paper**로, 상용 CXL 실리콘도 없던 2022년에 'PCIe block storage를 CXL로 byte-addressable memory expander로' 재정의하며 **'CXL-SSD'라는 개념 좌표(Type-3 + storage 힌트)**를 처음 세웠다. §1은 이 논문 전체를 4개 질문(why/how/which-type/what-to-improve)으로 프레이밍한다.\n\n**판단 축 세팅**: 그래서 아래 ✅는 **'개념 정립·문제 프레이밍의 날카로움'** 축에서, ⚠️는 **'제안일 뿐 구현·표준·실측 부재'** 축에서 읽어야 한다. HotStorage taste에선 후자가 치명적 감점이 아니라 **예상된 것** — position paper의 정상 범위다. 반대로 통찰이 평범했다면 여기서 떨어졌을 것.",
+      "original": {
+        "text": "Even though CXL manages data coherency mainly between CPU memory spaces and memory on attached devices, we argue that it can also be useful to reform existing block storage as cost-efficient, large-scale working memory.",
+        "location": "Abstract, p.45"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": -200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "claim",
+      "title": "✅ 잘한 점: non-cacheable BAR의 벽을 정확히 짚고 CXL=cacheable로 압축",
+      "content": "reviewer가 산 지점 = **문제 프레이밍의 정확성**. '왜 지금껏 PCIe SSD를 memory로 못 썼나'를 대역폭 부족이 아니라 **x86이 PCIe 접근을 non-cacheable로 강제**하는 것으로 지목한다. 대역폭 가설은 수치로 먼저 배제(PCIe Gen5/6 = 63~121 GB/s로 far memory에 충분)하고, 그 위에서 CXL의 단 하나의 본질적 기여를 **'그 접근을 cacheable로'**로 압축.\n\n이 한 통찰이 논문 전체 argument의 축이다 — §5의 129.5× 실험도 결국 'PCIe는 CPU cache를 못 쓴다'는 이 명제의 정량 증거일 뿐. HotStorage가 보상하는 **'기존 문제를 새 각도로 재정의'**에 정확히 부합해, 단순 CXL hype가 아니라 **한 문장으로 반증 가능한 명제**로 vision을 세운 게 강점.",
+      "original": {
+        "text": "This non-cacheable characteristic severely degrades the performance of all memory accesses targeting the BARs ... this nature enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy and disables them from taking advantage of CPU caches.",
+        "location": "§2, p.46"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 80
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "claim",
+      "title": "✅ 잘한 점: Type-3 선택을 3개 구조적 논거로 정당화 (position인데 반증 가능하게)",
+      "content": "position paper의 설득력은 '왜 이 설계점인가'를 얼마나 촘촘히 논증하느냐다. 저자는 Type-3를 **선언하지 않고** Type-2와의 대비로 3개 **구조적** 논거를 든다: (1) 확장성(RP당 device 1개 제한), (2) CXL.cache 풀피처의 매 I/O cache-state 확인 오버헤드, (3) storage 연산의 host 허가 비용.\n\n(논거의 *내용*은 기존 「왜 Type-3인가」 노드 소관 — 여기선 **reviewer 관점**만.) vision paper인데도 device type 선택을 **확장성·오버헤드·허가**의 세 축으로 나눠 **각각 반박 가능한 형태**로 못박은 점이 이 논문을 hype에서 구분한 accept 근거. 그리고 이 논증이 SkyByte 등 후속이 'CXL-SSD=Type-3'를 채택할 때 인용하는 1차 근거가 됐다(개념적 파급력).",
+      "original": {
+        "text": "There are three reasons why we believe that Type 3 devices are better than Type 2 devices for the storage-integrated memory expander.",
+        "location": "§3, p.47"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 360
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "claim",
+      "title": "✅ 잘한 점: determinism/bufferability — vision을 실행 가능한 프로토콜 어젠다로 내림",
+      "content": "'SSD를 memory로 쓰자'에 그치지 않고, memory pooling용 Type-3가 storage로선 못 다루는 **두 물성(GC latency fluctuation, persistence)**을 짚고, CXL.mem **예약 필드에 DT/ND·BF/NB 힌트**를 얹자는 구체 메커니즘까지 제안한다. reviewer가 좋게 볼 지점 = vision을 **'그래서 프로토콜을 이렇게 바꾸면'**까지 내려 후속 연구 어젠다로 만든 것.\n\n이 **transparent co-design 씨앗**(storage 내부 상태를 host에 힌트로 노출)이 곧 SkyByte의 coordinated context switch(긴 flash 지연을 host에 알림)로 이어진다 — 즉 이 노드는 논문의 '두 번째 기여 축'이자, 개념이 실제 구현으로 번지는 접점.",
+      "original": {
+        "text": "we suggest two simple features, i) determinism and ii) bufferability, which can be annotated to CXL messages and hint the host semantic to the underlying CXL controllers.",
+        "location": "§7, p.50"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: 성능 근거가 Apex-Map 합성 + FPGA Z-NAND emul (실 워크로드·실 CXL 부재)",
+      "content": "**reviewer 질문**: 129.5×/3× 이득이 실제 애플리케이션에서도 나오나? locality 파라미터 $\\alpha$를 스윕하는 **Apex-Map은 합성 벤치**일 뿐, DB·graph·KVS 같은 실 워크로드 trace가 없다. 게다가 CXL 실리콘이 없어 **RISC-V O3 core + OpenExpress NVMe를 FPGA로 emul, backend도 Z-NAND emul** — CXL flit latency 모델의 신뢰도는? worst-case($\\alpha=1$)는 DRAM 대비 84.1× 나쁜데, '실 워크로드의 locality는 best쪽'이라는 건 저자 믿음('we believe')에 기댄다.\n\n**저자 방어**: 저자 스스로 §5에서 'somewhat disappointed', §8에서 'performance projection is imperfect'라 인정하고, HotStorage는 **상용 CXL 부재 시점의 vision paper**라 정량 rigor보다 방향 제시가 목적 — venue taste상 예상된 약점이지 reject 사유가 아니다.",
+      "original": {
+        "text": "We are somewhat disappointed with the results as CXL's worst-case latency characteristics are far away from DRAM's behaviors. However, most workloads exhibit high locality except for a specific application like graph processing.",
+        "location": "§5, p.48"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 920
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: DT/BF는 제안일 뿐 — 인코딩·구현·평가·정책 전부 미정",
+      "content": "**reviewer 질문**: determinism/bufferability와 GPF는 CXL.mem 예약 필드에 얹자는 **아이디어 스케치일 뿐**, 실제 비트 인코딩·컨트롤러 구현·성능 평가가 하나도 없다. host가 **어떤 힌트를 언제 세울지**(컴파일러? 런타임? PMDK?)의 정책, 힌트 오분류 시 correctness(NB인데 BF로 표기하면 persistence 깨짐), 예약 필드 소모의 표준화 경로가 전부 미정. 따라서 '§5의 긴 지연을 이 힌트로 완화할 수 있다'는 주장은 **검증되지 않은 채** 남는다.\n\n**저자 방어**: 본문이 'suggest ... and debate how these additional states can be beneficial'로 명시적 **discussion 성격** — position paper의 열린 제안이다. 그럼에도 '두 번째 기여 축이 미검증'은 남고, 실제로 **SkyByte는 이 문제를 힌트가 아니라 context switch로 다르게 풀어** 이 제안 경로의 미완결을 방증한다.",
+      "original": {
+        "text": "we suggest two additional states, determinism and bufferability, and debate how these additional states can be beneficial to handle the PCIe storage in expanding the host's CPU memory with CXL.",
+        "location": "§1, p.46"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1200
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "gap",
+      "title": "⚠️ 아쉬운 점: MLD는 분할(pooling)일 뿐 — 여러 host 공유 coherence가 scope 밖",
+      "content": "**reviewer 질문**: §6의 'virtualize each storage device to be shared by different hosts'는 실은 **각 MLD를 한 host에 전용 매핑하는 분할(pooling)**이지, 여러 host가 같은 HDM 영역을 동시에 coherent하게 쓰는 **sharing이 아니다**. 저자 자신이 MLD 분할이 backend/internal DRAM 병렬성을 깎아 per-MLD 대역폭을 떨어뜨린다고 인정. 그렇다면 진짜 disaggregation의 핵심(공유 데이터의 **host 간 일관성**)이 빠져 있다 — 'shared'라는 단어가 오해를 부른다.\n\n**저자 방어**: 2022년 **CXL 2.0** 시점엔 device-side back-invalidate(HDM-DB, CXL 3.0)가 아직 없어 **host 간 sharing coherence 자체가 프로토콜 밖** — 그래서 pooling까지가 정당한 scope. → 이 누락 지점이 정확히 내 연구 gap(아래 🧭)이자 SkyByte도 single-host로 남긴 자리.",
+      "original": {
+        "text": "A disadvantage of multi-host VHs can be bandwidth sharing and/or traffic congestion. To support MLDs, PCIe storage may require partitioning the underlying backend and internal DRAMs, lowering the level of parallelism, and this can unfortunately reduce the bandwidth of each MLD.",
+        "location": "§6, p.49"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "question",
+      "title": "🔀 왜 Type-3인가 — Type-2도 갈 수 있었는데 (역설계)",
+      "content": "설계자라면 storage-integrated expander에 세 갈래가 있다: **(A) Type-3**(.io+.mem, HDM만), **(B) Type-2**(.io+.cache+.mem, HDM+연산), (C) Type-1.\n\n**(B) Type-2는 실제로 매력적 갈래였다** — 저자 스스로 'Type 2 can probably be a good option for utilizing HDM and/or integrating data processing capabilities into the storage'라 인정한다. computational storage(연산을 SSD로) 흐름과도 정합.\n\n**그런데 버린다**: (1) RP당 device 1개→비확장, (2) 매 I/O cache-state 확인, (3) storage 연산의 host 허가. 즉 저자는 **'storage side가 host CPU cache까지 coherent하게 관리할 필요는 없다'**(내부 DRAM 관리 ≠ host cache coherence)는 관찰로 Type-2의 CXL.cache를 통째로 잘라낸다.\n\n**저자가 안 판 갈래(gap 후보)**: '연산형 CXL-SSD(Type-2)에서 확장성·허가 오버헤드를 완화하는' 방향 = computational CXL-SSD의 열린 설계공간. **좁힌 기준**: 결론은 어디까지나 **'순수 memory expansion 목적'** 하에서만 Type-3가 dominant — 목적이 in-storage compute면 저울이 달라진다.",
+      "original": {
+        "text": "Type 2 can probably be a good option for utilizing HDM and/or integrating data processing capabilities into the storage by being aware of the semantics of host CPUs. In this paper, we however advocate Type 3 for a storage-integrated memory expander in CXL.",
+        "location": "§4/§3, p.47"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 1760
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "reference",
+      "title": "📐 P/L: 기존 PCIe BAR 접근 = non-cacheable 강제 (관점 P → 구조적 한계 L → CXL의 P″)",
+      "content": "| 해법 | 관점 (문제를 본 렌즈) | 결과로 남는 것 |\n|---|---|---|\n| **PCIe BAR expander** (2B-SSD, NVMe) | **P**: SSD를 host의 *peripheral / I/O device*로 봄 → BAR로의 memory 요청을 storage가 **반드시 가로채야** 함 | **L(구조적)**: x86이 PCIe 접근을 **non-cacheable로 강제** → CPU cache 원천 봉쇄, storage가 메모리 계층에서 배제 |\n| **CXL-SSD** (이 논문) | **P″**: SSD를 host와 **같은 coherent domain의 memory**로 봄 | 접근이 **cacheable** → CPU cache 계층에 편입, non-cacheable L 소멸 |\n\n**L의 핵심(성능이 아니라 관점의 귀결)**: 느려서가 아니다. storage를 *peripheral*로 보는 관점이면 CPU가 요청을 캐시하는 순간 **storage가 요청 도착을 못 잡아 system failure / storage disconnection** 위험 → 그래서 x86이 **구조적으로 non-cacheable일 수밖에** 없다. 관점 P를 'peripheral'→'coherent memory'(P″)로 바꾸는 것만으로 L 전체가 사라진다 — 이 논문의 novelty가 P vs P″ 대비에서 나온다는 증거.",
+      "original": {
+        "text": "x86 instruction set architectures of both Intel and AMD do not allow PCIe-related memory requests to be cached at the CPU side. Unfortunately, this nature enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy and disables them from taking advantage of CPU caches.",
+        "location": "§2, p.46"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2040
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "memo",
+      "title": "📍 위치: CXL-SSD 비전(개념) → SkyByte가 구현, DirectCXL·FlatFlash 계보",
+      "content": "HotStorage 2022의 이 글은 **'CXL-SSD' 좌표(Type-3 + storage 힌트)를 세운 개념/비전** 노드다. 같은 **KAIST CAMELab** 계보에서 역할이 분담된다:\n\n- **개념/비전 (여기)**: 무엇을·왜 — block을 byte로, Type-3가 옳다, storage 물성을 힌트로.\n- **하드웨어 실증**: [[DirectCXL - Direct Access, High-Performance Memory Disaggregation]] — 실물 CXL.mem 분해 프로토타입.\n- **구현 (co-design)**: [[SkyByte]] (HPCA'25) — Type-3 memory-semantic CXL-SSD를 OS·HW co-design으로 실제 설계.\n- **개념적 뿌리**: [[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]] — byte-accessible SSD의 통합 메모리-스토리지 계층(본문 [10]으로 직접 인용).\n\n즉 이 논문 = **비전(무엇을·왜)**, 나머지 = **실증/구현(어떻게)**. 'HotStorage가 vision을 던지고 상위 venue(ISCA/HPCA/ASPLOS)가 그 vision을 받아 실증한다'는 workshop의 역할이 이 계보로 확인된다.",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2320
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "gap",
+      "title": "🧭 내 연구: MLD 분할(pooling) → 공유(sharing) coherence P′",
+      "content": "이 논문이 남긴 **L**(위 ⚠️: MLD는 storage를 분할해 각 조각을 한 host에 줄 뿐) = **여러 host가 같은 HDM을 동시에 공유할 때의 host 간 coherence**가 통째로 빠짐.\n\n내 관점 **P′** = *pooling을 sharing으로* — **directory + device back-invalidate(HDM-DB, CXL 3.0)**로 공유 CXL-SSD 영역의 일관성·write log 최신성·promotion 순서를 재정의. determinism/bufferability 같은 storage 힌트도 '공유 상황에서 **누가** 어떤 힌트를 세우나'로 다시 물어야 한다.\n\nP′는 refs의 L에서 직접 유도됨(억지 novelty 아님). *상세 전개는 기존 「내 연구방향: MLD 분할(pooling) → 공유(sharing) coherence」 노드에 위임 — 여기선 reviewer가 짚은 scope 누락(위 ⚠️)에서 P′가 도출되는 사슬만 명시.*",
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -560,
+        "y": 2600
+      },
+      "children": [],
+      "links": []
     }
   ],
   "edges": [
@@ -563,6 +792,90 @@
       "target": "node_016",
       "type": "line",
       "label": "inter-host=내 연구"
+    },
+    {
+      "id": "edge_022",
+      "source": "node_018",
+      "target": "node_019",
+      "type": "line",
+      "label": "용어 정의"
+    },
+    {
+      "id": "edge_023",
+      "source": "node_002",
+      "target": "node_020",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_024",
+      "source": "node_003",
+      "target": "node_021",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_025",
+      "source": "node_003",
+      "target": "node_022",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_026",
+      "source": "node_003",
+      "target": "node_023",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_027",
+      "source": "node_004",
+      "target": "node_024",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_028",
+      "source": "node_005",
+      "target": "node_025",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_029",
+      "source": "node_005",
+      "target": "node_026",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_030",
+      "source": "node_003",
+      "target": "node_027",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_031",
+      "source": "node_002",
+      "target": "node_028",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_032",
+      "source": "node_005",
+      "target": "node_029",
+      "type": "line",
+      "label": "분석"
+    },
+    {
+      "id": "edge_033",
+      "source": "node_005",
+      "target": "node_030",
+      "type": "line",
+      "label": "분석"
     }
   ],
   "viewport": {
