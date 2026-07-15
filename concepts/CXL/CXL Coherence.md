@@ -1,6 +1,6 @@
 ---
 title: "CXL Coherence — cache coherence와 헷갈리는 용어"
-aliases: [CXL Coherence, CXL.cache, cache coherence, coherence, translation vs caching, 헷갈리는 용어]
+aliases: [CXL Coherence, CXL.cache, cache coherence, coherence, translation vs caching, 헷갈리는 용어, bias mode, host bias, device bias, HDM-DB]
 type: concept
 tags:
   - concept
@@ -104,6 +104,26 @@ host CPU(또는 device B)가 X를 고침
 **두 사건 분리 (안 섞기):**
 - **① 위치 변경 (HPA→DPA_v2)**: device 내부 재배치 → **변환표만 갱신**, 값 그대로 → coherence 무관.
 - **② 값 변경**: device가 값 변경 → host 복사본 무효화 필요 → CXL.cache가 device→host 통보.
+
+## ★ "coherent하게 / 아니게"를 지정하는 세 층 (2026-07-15 문답)
+
+> **1차 사료**: [CXL 3.1 Specification (공식 PDF, vault 보관)](<CXL-3.1-Specification.pdf>) — 층 ①=§2.0(p.69) · 층 ②=§2.2.1 HDM-DB(p.71)·§2.3 Type 3(p.74) · 층 ③=**§2.2.2 Bias-based Coherency Model**(p.71~73, Mode Management는 §2.2.2.3). 원문 확인 문장: *"In both modes, **coherency is preserved** for device-attached memory."* (p.71 — device bias ≠ 비일관의 스펙 근거). §2.2.1: 256B Flit 장치는 HDM-DB **의무**(HDM-D는 68B 호환용) = 3.x 세대의 표준 경로는 Back-Invalidate.
+
+CXL은 coherence를 전역 on/off가 아니라 **세 층에서 선택적으로 지정**하게 설계돼 있다:
+
+| 층 | 단위 | 지정 방법 | 뜻 |
+|---|---|---|---|
+| **① 프로토콜** | 트래픽 종류 | CXL.io(비일관) / CXL.cache / CXL.mem 중 무엇을 쓰나 (= Type 1/2/3) | 가장 굵은 구분 |
+| **② HDM 타입** | 메모리 영역 | **HDM-H**(host가 전담, Type 3) / **HDM-D**(device가 CXL.cache로, 구형) / **HDM-DB**(device가 **Back-Invalidate**로 능동 관리, 3.0) | "이 영역의 coherence를 **누가** 관리하나" |
+| **③ Bias mode** | **4KiB 페이지** (Type 2 HDM) | device 내 **bias table**로 추적, 런타임 전환 | "이 페이지 접근에 coherence **왕복을 낼 것인가**" |
+
+**③ Bias mode 상세** — 아마 "coherent하게/않게 지정"이라는 말의 출처:
+- **Host bias** (기본값): device가 자기 메모리를 접근할 때도 host를 경유해 coherence 해결 — host↔device 데이터 교환 구간용
+- **Device bias**: device가 **host 개입 없이(coherence 왕복 없이)** 자기 메모리 직접 접근 — 가속기 단독 계산 구간용. host가 그 페이지를 건드리면 느린 경로로 처리
+- 정밀 표현: device bias도 시스템 전체로는 coherent함 유지 — "비일관"이 아니라 **"coherence 해결 왕복을 생략할 수 있는 상태"**
+
+> [!tip] [[H1 — 워크로드 특화로 multi-node coherence 줄이기|H1]]과의 연결
+> bias mode의 존재 = **스펙 설계자들도 "coherence는 항상 필요한 게 아니고 phase별로 켜고 꺼야 한다"를 인정**하고 4KiB 스위치를 박아둔 것. H1은 그 스위치를 **누가·무슨 지식으로 조종하나**(지금은 드라이버/SW에 방치된 빈 자리)의 질문 — TrainingCXL·CtXnL이 판 지점이 정확히 여기(워크로드 지식 기반 selective coherence).
 
 ## 한 줄 요약
 > cache(저장장치) ≠ CXL.cache(프로토콜). coherence는 대상이 memory(DRAM), 이름은 방법(cache line 추적)에서 옴. coherence는 "복사본 존재" 때문에 필요 → single-node도 의미. translation(HPA↔DPA, 복사본 없는 두 이름) ≠ caching(복사본, invalidate). CXL.cache의 본질 = device를 coherence 참여자로 만든 것.
