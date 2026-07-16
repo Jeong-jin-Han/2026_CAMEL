@@ -5,8 +5,13 @@ tags: [meta/hub]
 ---
 # CAMEL 26S Paper Wiki
 
-SSD Internals Intensive Seminar (26S) 논문 위키. **75편 전부 정독(deep) 완료.**
-다축(토픽·학회·연도)으로 navigate. 작성 규칙은 워크플로 노트 참고.
+SSD Internals Intensive Seminar (26S) 논문 위키. 다축(토픽·학회·연도)으로 navigate. 작성 규칙은 워크플로 노트 참고.
+
+> [!warning] 📢 리스트 전면 개정 (2026-07-16, v1 → v2)
+> advisor 판단으로 세미나 리스트가 교체됨. **현재(v2) = 80편**: 겹침 46편(기존 deep 노트 유지) + **신규 34편**(33 stub 생성 + AstriFlash는 SkyByte refs의 deep 노트 재사용).
+> - 과거(v1) 전용 32편 + 리스트 외 개인 정독 4편 → **[[26S v1 아카이브]]** (노트·정독 자산 보존, 삭제 아님)
+> - 신규 stub은 `list/26s-v2` 태그로 구분 · cluster 추정 ⚠️ 9편은 확인 필요
+> - ❗ **발표 영향**: [[Ananke]](8/6)·[[Sparse Checkpointing for Fast and Reliable MoE Training|Sparse Checkpointing]](8/20)이 새 리스트에서 제외됨 → **재선정 필요** ([[SkyByte]] 7/23은 유지)
 
 > [!tip] 시작점
 > 처음이면 [[Communication Tax]](교수님 비전 문서)부터 → 발표 4편 → 토픽 hub 순으로 보면 맥락이 잡힙니다.
@@ -54,7 +59,9 @@ SSD Internals Intensive Seminar (26S) 논문 위키. **75편 전부 정독(deep)
 
 해석: 무게중심은 **① ML×스토리지 → ② in-storage → ③ FS·신뢰성**. 내 발표 framing(2026-07-13 최종) = **"SSD의 이중 역할(compute+persistence) × transparent HW-SW co-design"** — ①(Smart-Infinity·Sparse Ckpt)과 ②③(SkyByte·Ananke)을 관통. CXL은 deep-invest 대신 background로 감만 잡음(발표 내 CXL 접점 = [[SkyByte]]).
 
-## 진행 현황
-- deep: **75 / 75** · stub: 0 · 남은 SSD-list: 0 ✅
-- hubs: topic 9 · venue 10 · year 4 (전부 자동 채움) · concepts(CXL) 10 · insights 3 · hypotheses 2
+## 진행 현황 (v2 기준, 2026-07-16 개정)
+- **현재 리스트(v2) 80편**: deep(겹침) 46 + AstriFlash(refs deep) 1 + **stub 33** (신규, PDF 미확보)
+- 과거(v1) 자산: deep 32편 보존 → [[26S v1 아카이브]]
+- hubs: topic 9 · venue 10 · year 4 · concepts(CXL 10 + HW 2 + OS 1) · insights 3 · hypotheses 3
 - CXL 계보 papers([[CAMEL Lab CXL 연구 계보]]): **17/19 정독+요약 완료** (미정독 2 = Panmnesia·One-Chip, 공개 PDF 없음)
+- 다음 작업: ① 발표 2슬롯(8/6·8/20) 재선정 ② 신규 33편 PDF 확보→deep 승격 ③ cluster ⚠️ 9편 확인
