@@ -34,3 +34,15 @@ IEEE International Symposium on High-Performance Computer Architecture.
 
 ### 취향 요약 (누적 관찰 — ≥3편일 때만, "관찰"로)
 - (2편: SkyByte·AstriFlash — 둘 다 **HW 메커니즘 + FPGA/실측 feasibility**로 채택. 관찰 축적 중, ≥3편 시 확정.)
+
+## 🆕 26S v2 신규 (stub)
+> 2026-07-16 리스트 개정으로 편입. PDF 미확보 — deep 승격 시 상단 목록으로 이동.
+- [[MGC - Multiple-Gray-Code for 3D NAND Flash based High-Density SSDs]] — HPCA 2023 🆕stub
+- [[Multi-Granularity Shadow Paging with NVM Write Optimization for Crash-Consistent Memory-Mapped I-O]] — HPCA 2023 🆕stub
+- [[RoMe - Row Granularity Access Memory System for Large Language Models]] — HPCA 2026 🆕stub
+- [[Root Crash Consistency of SGX-style Integrity Trees in Secure Non-Volatile Memory Systems]] — HPCA 2023 🆕stub
+- [[SAGe - A Lightweight Algorithm-Architecture Co-Design for Mitigating the Data Preparation Bottleneck in Large-Scale Genome Sequence Analysis]] — HPCA 2026 🆕stub
+- [[SecPB - Architectures for Secure Non-Volatile Memory with Battery-Backed Persist Buffers]] — HPCA 2023 🆕stub
+- [[Silo - Speculative Hardware Logging for Atomic Durability in Persistent Memory]] — HPCA 2023 🆕stub
+- [[Thoth - Bridging the Gap Between Persistently Secure Memories and Memory Interfaces of Emerging NVMs]] — HPCA 2023 🆕stub
+- [[AstriFlash]] — HPCA 2023 🆕 (deep 노트는 SkyByte refs에)

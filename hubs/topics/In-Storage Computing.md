@@ -25,3 +25,11 @@ tags: [meta/hub, hub/topic]
 
 ## 인접 토픽
 [[CXL]] · [[LLM Systems]]
+
+## 🆕 26S v2 신규 (stub)
+> 2026-07-16 리스트 개정으로 편입. PDF 미확보 — deep 승격 시 상단 목록으로 이동.
+- [[A Cost-Effective Near-Storage Processing Solution for Offline Inference of Long-Context LLMs]] — ASPLOS 2026 🆕stub
+- [[Exploiting Similarity Opportunity of Emerging AI Models on 3D Hybrid Bonding Architecture]] — ISCA 2023 🆕stub
+- [[MegIS - High-Performance, Energy-Efficient, and Low-Cost Metagenomic Analysis with In-Storage Processing]] — ISCA 2023 🆕stub
+- [[PreSto - An In-Storage Data Preprocessing System for Training Recommendation Models]] — ISCA 2024 🆕stub
+- [[SAGe - A Lightweight Algorithm-Architecture Co-Design for Mitigating the Data Preparation Bottleneck in Large-Scale Genome Sequence Analysis]] — HPCA 2026 🆕stub

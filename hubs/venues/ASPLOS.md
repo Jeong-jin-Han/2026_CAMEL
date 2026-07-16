@@ -27,3 +27,11 @@ ACM International Conference on Architectural Support for Programming Languages 
 
 ### 취향 요약 (누적 관찰)
 - **관찰(3편)**: 세 편 모두 **여러 계층을 함께 재설계한 cross-layer co-design**(FTL↔page table / 커널 MM↔CXL / FS↔firmware) — ASPLOS는 단일 계층 최적화보다 **계층 관통 설계**를 보상하는 경향. 근거: [[FlatFlash]]·[[TPP]]·[[ByteFS]].
+
+## 🆕 26S v2 신규 (stub)
+> 2026-07-16 리스트 개정으로 편입. PDF 미확보 — deep 승격 시 상단 목록으로 이동.
+- [[A Cost-Effective Near-Storage Processing Solution for Offline Inference of Long-Context LLMs]] — ASPLOS 2026 🆕stub
+- [[Hitchhike - Efficient Request Submission via Deferred Enforcement of Address Contiguity]] — ASPLOS 2026 🆕stub
+- [[PACT - A Criticality-First Design for Tiered Memory]] — ASPLOS 2026 🆕stub
+- [[PF-LLM - Large Language Model Hinted Hardware Prefetching]] — ASPLOS 2026 🆕stub
+- [[STRAW - Stress-Aware WL-Based Read Disturbance Management for High-Density NAND Flash Memory]] — ASPLOS 2026 🆕stub

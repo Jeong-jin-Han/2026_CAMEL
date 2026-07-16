@@ -24,3 +24,7 @@ USENIX Annual Technical Conference.
 
 ### 취향 요약 (누적 관찰 — ≥3편일 때 확정)
 - (2편 관찰: 둘 다 '실물 실측' 또는 'open-source 특성화'로 실용성을 증명 — ATC의 실용성·완성도 taste와 정합. 1편 더 축적 시 확정.)
+
+## 🆕 26S v2 신규 (stub)
+> 2026-07-16 리스트 개정으로 편입. PDF 미확보 — deep 승격 시 상단 목록으로 이동.
+- [[Tectonic-Shift - A Composite Storage Fabric for Large-Scale ML Training]] — ATC 2023 🆕stub

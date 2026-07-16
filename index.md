@@ -19,15 +19,15 @@ SSD Internals Intensive Seminar (26S) 논문 위키. 다축(토픽·학회·연�
 ## 🎤 내 발표 4편 (격주 목 · 4회 전부 녹화/교수님 온라인 참관)
 프레임 = **"SSD의 이중 역할(compute + persistence)이 LLM 학습을 어떻게 뒷받침하는가"** + 관통 개념 **transparent HW-SW co-design** (2026-07-13 랩장 피드백 반영 **최종 확정** — [[연구 목표 변화 로그]] v2 · 상세 기록: 2026_vault 「세미나_최종4편_선정_기록」).
 - [[Smart-Infinity]] — HPCA'24 · **7/9 ✅** · LLM 학습 compute를 near-storage로 offload *(Phase 1: Compute)*
-- [[SkyByte]] — HPCA'25 · **7/23** · SSD를 memory-semantic CXL로 재설계 (OS+HW co-design) *(Phase 1: Compute)*
-- [[Ananke]] — FAST'25 · **8/6** · transparent FS microkernel recovery (3만+ fault-injection) *(Phase 2: Persistence)*
-- [[Sparse Checkpointing for Fast and Reliable MoE Training|Sparse Checkpointing]] — NSDI'26 · **8/20** · MoE 학습 sparse checkpoint 알고리즘 *(Phase 2: Persistence)*
-- ~~DJFS(CMM-H 니치)·WOFS(formal proof, 랩장: "수학 증명은 랩 방향과 다름")·Formalising CXL Cache Coherence(동일 사유)~~ → 정독 후보로 강등
+- [[SkyByte]] — HPCA'25 · **7/23** · SSD를 memory-semantic CXL로 재설계 (OS+HW co-design) *(Phase 1: Compute — v2 리스트에도 있음, 유지)*
+- ~~[[Ananke]] — FAST'25 · 8/6~~ · ❗**v2 리스트 제외 → 발표 취소, 재선정 필요**
+- ~~[[Sparse Checkpointing for Fast and Reliable MoE Training|Sparse Checkpointing]] — NSDI'26 · 8/20~~ · ❗**v2 리스트 제외 → 발표 취소, 재선정 필요**
+- (이전 강등 이력: DJFS·WOFS·Formalising CXL — 정독 후보. 재선정 시 새 후보 신호: SquirrelFS(OSDI'24, Rust로 crash consistency 검사)·HPCA'23 secure-NVM/crash 계열·Espresso(OSDI'26, CXL JBOF))
 
-## By Topic (cluster 기준 편수)
-- [[File System]] (18) · [[In-Storage Computing]] (13) · [[Reliability]] (8)
-- [[LLM Systems]] (7) · [[KV-LSM]] (6) · [[ZNS]] (6) · [[CXL]] (5)
-- [[Infra]] (4) · [[Vector Search]] (2)
+## By Topic (cluster 기준 편수 — v2 리스트, 2026-07-16 재집계)
+- [[In-Storage Computing]] (~18) · [[File System]] (~14) · [[Reliability]] (~14)
+- [[Infra]] (~8) · [[LLM Systems]] (~7) · [[CXL]] (~5) · [[ZNS]] (~4) · [[KV-LSM]] (~4) · [[Vector Search]] (2)
+- ※ v1 대비 이동: **ISC·Reliability(secure-NVM/crash 계열)↑, FS-SW·LLM-serving↓** — v1의 FAST 25편이 v2에선 4편 (advisor의 "FAST 제외" 방향과 정합). 신규 stub의 cluster 추정 ⚠️9편 확정 후 수치 고정
 
 ## By Venue
 - [[FAST]] · [[ASPLOS]] · [[ISCA]] · [[HPCA]] · [[MICRO]] · [[OSDI]] · [[SOSP]] · [[ATC]] · [[Eurosys]] · [[NSDI]]
@@ -46,8 +46,9 @@ SSD Internals Intensive Seminar (26S) 논문 위키. 다축(토픽·학회·연�
 - CXL 배경 reading (발표 focus 아님, 감 잡기용): [[LightPC]] (ISCA'22, full-system persistence) → [[TrainingCXL]] (IEEE Micro'23, CXL type-2 학습) · 발표 내 CXL 접점은 [[SkyByte]] (memory-semantic CXL SSD, OS+HW co-design)
 - CAMEL Lab CXL 연구 계보 (리스트 밖·내 CXL 연구 배경): [[CAMEL Lab CXL 연구 계보]] — DirectCXL(뿌리)부터 Panmnesia silicon·One-Chip vision까지 시간순 flow + 빈 자리(programming model)
 
-## 🔬 랩 관심사 맵 (리스트 75편 분포)
+## 🔬 랩 관심사 맵 (⚠️ v1 75편 기준 — 개정 전 분석, v2 재분석 필요)
 > 주의: 이건 **세미나 읽기 리스트**지 랩 publication이 아님 → 최근 SSD/storage 연구 지형을 넓게 본 것.
+> **v2 변화 관찰(잠정)**: OSDI 대폭 증가(1→12편)·FAST 급감(25→4편)·secure-NVM/crash-consistency(HPCA'23) 계열 신설 — 무게중심이 storage-SW에서 **아키텍처·신뢰성·in-storage** 쪽으로 이동.
 
 테마별 관련 논문 수(중복 카운트):
 - **LLM/ML × storage — 24편 (≈1/3, 최대 무게중심)**
