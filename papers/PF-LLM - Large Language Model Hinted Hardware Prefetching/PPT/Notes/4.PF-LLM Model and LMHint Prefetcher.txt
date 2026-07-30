@@ -1,0 +1,308 @@
+제안한 framework에 대한 디테일 
+두 가지 주요 구성 요소
+PF-LLM: offline 분석을 하는 모델
+
+LMHint Prefetcher: 런타임 실행을 위한 prefetcher
+
+Section 4.1
+PF-LLM 모델의 아키텍처 디자인
+
+Section 4.2
+훈련 방법
+
+Section 4.3
+offline 힌트를 만드는 과정이면
+
+Section 4.4
+LMHint Prefetcher hw 디자인
+온라인 prefetching 결정을 안내하기 위해 힌트를 소비함
+
+Section 5
+구현과 실험 환경 디테일
+
+-------------------
+PF-LLM 및 LMHint prefetcher 
+데이터에 중점을 두고 있음 -> 왜 그럴까?
+최신 superscala processor core 내의 L1D cache를 위한 
+prefetching
+
+단순함과 명료함을 위해서,
+우리 실험과 평가는 단일 코어 context로 제한함 
+
+x86-64 ISA에만 집중
+
+본 연구의 효용성을 마이크로 아키텍처 수준의 입증은 미래 연구를 더 큰 응용과 멀티 코어 시스템으로 동기부여한다.
+
+--------------------
+# 4.1 PF-LLM 모델 아키텍처
+PF-LLM 모델은 정적 코드 context를 분석하기 위해 디자인되었고 
+런타임 prefetcher를 위한 힌트를 제공한다. 
+이 아키텍쳐에 대해 설명하고 input과 output의 서식을 묘사한다.
+
+------------
+모델 아키텍처 
+기존의 파운데이션 모델의 내재된 광범위한 지식을 이용하기 위해서 
+본 연구는 사전 훈련된 코딩에 특화된 LLM을 fine-tune했다. 
+
+prefetching이라는 작업이 고도로 특화된 작업이기에
+작은 모델은 충분한 용량을 제공하면서도 더 빠른 훈련을 가능하게 하고
+더 작은 GPU 메모리 공간을 요구한다. 
+
+이용가능한 모델의 리뷰를 한 후, Qwen-2.5-Coder-0.5B-Instruct [16]를 선택했다.
+사이즈와 우리의 요구 사항에 잘맞고
+SOTA 코딩 역량을 가지고 있는 ->  Qwen-2.5-Coder-0.5B-Instruct
+
+우리의 실험은 이 모델에 대해서 
+기본 모델 아키텍처를 변경하지 않고
+prefetching 데이터셋에 대해서 fine tune하고 
+
+------------
+입력
+PF-LLM은 문자열을 입력으로 받는다,
+우리의 경우 타켓 load 명령어에 둘러싼 어셈블리 코드 컨텍스트를 입력으로 한다.
+
+소스 코드 또는 IR (LLVM IR)을 사용될 수 있는 반면  <- 왜 어셈블리 언어야 하는가?
+우리는 정적 binary 실행 파일을 가진 어떤 프로그램에도 우리의 접근법이 적용가능하도록 보장하기 위해서 
+어셈블리 코드를 선택했다.
+
+정적 binary는 어셈블리 코드로 쉽게 disasseble할 수 있는 반면
+binary에서 소스 코드로 복구하는 것은 종종 어려운 일이다.
+
+주어진 load 명령어의 코드 컨텍스트를 
+그 앞에 있는 128개의 어셈블리 라인과 그 뒤에 있는 128개의 라인 
+(총 257개의 어셈블리 코드 라인)으로 구성하도록 설정한다.
+
+
+------------
+출력
+모델은 online prefetcher를 위한 힌트 집합을 생성한다.
+3가지 힌트 유형
+
+prefetcher selection hint
+주어진 load 명령어에 대해서 prefech 요청을 발행하기 위해 
+ensemble 내에서 어떤 sub prefetcher를 사용해야 하는지 지정하는 정수 인덱스이다.
+
+prefetcher degree hint 
+선택된 prefetcher의 적극성을 조절하기 위한 정수
+degree에 대한 해석은 sub prefetcher에 특정된다. 하지만
+높은 값은 항상 더 적극적인 정책을 나타낸다.
+만약에 선택된 prefetcher가 prefetch degree 조절을 지원하지 않는다면 해당 힌트는 사용되지 않음 
+(cf. 여기서 각주, 더 자세한 것은 Table 2에 나와있다.)
+
+demand request filtering hint 
+load 명령어에서 비롯된 demand 요청을 받지 않아야 할 서브 prefetcher 를 지정해준다.
+관련없는 demand 요청을 필터링하는 것은 특정 sub prefetcher의 내부 상태 업데이트 바뀌는 것의 노이즈를 줄일 수 있다.
+이 방식은 선행연구[22]에서도 사용되어왔다.
+이 힌트는 optional로 모든 load instruction에서 제공하는 것은 아닌다.
+
+
+------------------
+# 4.2 PF-LLM Prompt Formatting and training
+PF-LLM 모델을 fine-tuning학는 것은 어셈블리 코드 context와 그것에 대응되는 정답 prefetching policy로 구성된 대규모 데이터를 필요로 한다.
+우리는 이 데이터셋을 ChampSim 아키텍처 시뮬레이터[15]를 사용해 생성하는데, 이것은 널리 쓰이고 시뮬레이션 속도가 빨라서 선택했다.
+
+우리의 데이터셋 생성은 벤치마크 프로그램 모음으로 시작된다.
+각각의 벤치마크마다 sub prefetcher와 prefetcher degree의 모든 unique 조합에 대해에 대해 별도의 ChampSim 시뮬레이션을 실행했다.
+ChampSim 시뮬레이터를 수정하여 unique PC로 식별된 모든 load 명령어에 대해 AMAT를 cycle로 측정했다.
+
+-------------
+우리는 이 표로부터 정답 정책을 도출하기 위해, 간단한 결정론적 휴리스틱을 사용한다.
+
+-------------
+1. unique PC를 가지고 있는 모든 load 명령어 마다 우리는 최소 AMAT를 달성하는 prefetcher 유형과 prefetcher degree의 조합을 선택했다. 
+최적의 prefetche 정책이 될 수 있게 load 명령에 대해서
+
+2. unique PC를 가지고 있는 모든 load 명령어 마다 우리는 최소의 AMAT를 결과가 나오는 policy를 식별하고 demand 요청이 필터링이 되어야 하는 그것의 prefetcher를 지정해야 한다. 
+하지만 복잡한 내부 상태를 가진 정교한 prefetcher를 방해하는 것을 막기 위해 이 필터링 힌트는 생략된다.
+만약 최악의 성능을 가진 prefetcher가 지정된 "advanced components" 이면  (Table 2)
+
+------------
+이 휴리스틱은 두 가지 가정을 기반으로 한다.
+1. 시뮬레이션 동안 주어진 load 명령어에 대해 잘 작동하는 prefetcher 구성은 최종 ensemble에 대해서도 효과적일 것이다.
+
+2. prefetcher의 성능이 매우 좋지 않으면 이 prefetcher는 이 PC access pattern에 맞게 설계되지 않았으며, 해당 load의 demand 요청에 의해 내부 상태가 방해받는다면 필터링에 좋은 후보가 된다. 
+
+자세한 데이터셋 생성은 Section 5에서 제공된다.
+
+----------- {skip}
+Figure 3(a)에서 보여주듯이, PF-LLM은 어셈블리 컨텍스트와 실제 정책으로 훈련된다. 
+
+Listing 1. <- Qwen 모델의 공식 양식을 기반으로 함
+양식을 맞추는데는 두 가지 장점이 있다.
+1. fine tuning을 하는 동안의 수렴 속도를 가속한다.
+    시스템 프롬프트와 유저 프롬프트는 베이스 모델이 자신의 zero shot 능력을 활용하여 과제를 이해하도록 해주며, 그럼으로써 모델이 입력 형식이 아니라 
+    prefetching의 미묘한 지점을 학습하는데 집중할 수 있다.
+2. 이 템플릿은 구조화된 출력을 용이하게 한다. 
+    json schema를 깨는 토큰을 마스킹으로 아예 차단한다.
+
+프롬프트 양식에서 
+load instruction의 위치에서 <load>, </load> 태그를 통해 어셈블리 코드 컨텍스느 내의 load 명령어의 위치를 특정한다. 
+모델이 쉽게 load 명령어의 위치를 알아보게 하기 위해서
+
+
+----------------------
+4.3 PF-LLM Offline Hinting
+학습되고 나면 PF-LLM 모델은 한 번도 보지 않은 어떤 프로그램에 대해서도 prefetching 힌트를 생성할 수 있다. 
+Figure 3(b)에서 보여주듯이, 이 과정은 주어진 프로그램 binary를 디스어셈블하는 것으로 시작된다. 
+그 다음 스크립트가 어셈블리 코드 안의 모든 load 명령을 식별한다. 각 load마다, 그 코드 컨텍스트 (앞뒤 128줄씩)를 Listing 1의 프롬프트 템플릿으로 포맷팅하여 PF-LLM 모델에 추론을 위해 넘긴다. 
+
+이 과정은 load 명령 하나당 모델 추론 한 번을 요구한다. 그러나 PF-LLM의 작은 0.5B 파라미터 수, 짧은 컨텍스트 길이 (특히 짦은 생성 길이), 그리고 vLLM 서빙 프레임워크의 높은 성능 덕분에, 총 추론 비용은 합리적인다. 상세한 비용 분석은 Section 5.
+모든 load 명령어를 다 순회하고 나면, 예측된 힌트들이 하나의 테이블로 모여 load PC로 인덱싱되고 런타임용 JSON 파일로 저장된다.
+
+----------------------
+4.4 LMHint Hardware Prefetcher
+offline에서 생성된 힌트를 processor 내부에서 runtime에 사용될 수 있도록 어떻게 전달해야 할까?
+LMHint Prefetcher HW prefetcher 
+PF-LLM 모델에서 제공된 힌트와 함께 서브 prefetcher를 런타임에서 관리하기 위해서
+
+-----------
+offline에 생성된었던 힌트들은, 프로그램 실행 전에, PHT라고 불리는 DRAM의 데이타 구조에 메인 메모리 자료 구조로 load된다.
+PHT는 각 load 명령의 virtual PC로 인덱싱된다. 이 힌트들을 낮은 지연에 접근할 수 있도록, 우리는 Prefetch Hint buffer(PHB)라 불리는 작은 
+on chip 버퍼를 도입한다.
+
+PHB는 PHT의 힌트 엔트리 중 가장 최근에 사용된 것들을 캐싱하는데, 이는 TLB가 page table 엔트리를 캐싱하는 방식과 유사하다.
+
+우리 설계에서는, 하드웨어 오버헤드를 최소화하면서 single cycle 접근을 보장하기 위해 256 엔트리 PHB를 사용한다.
+각 PC에 대한 힌트를 단일 8bit 값으로 제한하여, 4bit는 prefetcher selection에, 2 비트를 prefetch degree에, 2비트를 demand request filtering 정책에 할당한다. sub-prefetcher가 소수인 ensemble에서는 더 적은 비트로도 충분할 수 있지만 8bit보다 작은 row width를 갖는 SRAM blackbox는 흔히 구할 수 없으므로 우리는 8bit 인코딩을 채택한다. 원래 JSON 파일 형태였던 힌트 데이터는, PHT와 PHB 양쪽에 효율적으로 저장하기 위해 이 압축된 binary 형식으로 변환된다. -> 압축 binary 형식이 어디에 나와있지?
+-----------
+load 명령이 issue될 때, 그 PC로 PHB를 조회한다. hit이면, 해당 힌트 정책이 인출되어 prefetcher ensemble을 제어하도록 dispatch된다. 
+LMHint prefetcher는 여러 기존 sub-prefetcher를 조율하는 prefetcher ensemble이다. 인출된 힌트가 그 동작을 3가지 방식으로 좌우한다.
+
+1. prefetcher selection 힌트는, 이 load에 대응하여 생성된 prefetch 요청을 어느 sub-prefetcher가 issue하도록 허용될지를 결정한다.
+
+2. prefetch degree 힌트는, 선택된 sub-prefetcher에 직접 전잘되어 그 적극성을 제어한다. 
+
+3. demand request filtering 힌트는, demand 요청이 지정된 sub-prefetcher로 전송되는 것을 막아, sub-prefetcher의 내부 상태를 무관한 training 정보로부터 보호한다. 
+
+PHB miss가 발생하면, 메인 메모리의 PHT로부터 엔트리를 채우기 위한 요청이 전송된다. 그 사이에는 PHT와 PHB 양쪽의 예약된 zero-addressed 엔트리에 저장된 기본 prefetch 정책을 사용한다.
+
+
+===========================
+Figure 3.
+우리의 접근 방식 개요.
+(a) PF-LLM 모델은 아키텍쳐 시뮬레이션에 얻은 실제 prefetching 정책을 사용하여 fine tune된다.
+(b) 훈련된 PF-LLM 모델은 application의 어셈블리 코드에서 offline으로 prefetching hint를 생성한다.
+(c) LMHint prefetcher HW는 런타임 시 이러한 힌트를 사용하여 정보에 입각한 online prefetching 결정을 내린다.
+
+
+Table 1. 
+데이터셋 생성 과정
+각각의 load PC에 대해서 최적의 prefetcher 유형과 degree를 최고의 AMAT를 가진 구성에서 선택된다.
+필터링할 prefetcher는 최악의 AMAT를 가진 구성에서 선택된다.
+
+Listing 1.
+PF-LLM 훈련에 대한 프롬프트 양식
+줄 1 ~ 6: 시스템 프롬프트
+줄 8 ~ 16: 사용자 프롬프트 (input)
+줄 18  ~ 22: 보조 프롬프트 (output)
+
+===========================
+디자인과 구현은 다르다
+설명을 할 때 구현과 디자인에 대해서 나누어서 설명해야 함
+(background에 대해서 설명할 때는 디자인에 초점을 두어서 설명
+같은 디자인이더라도 구현은 다를 수 있기 때문에)
+(SW에서 말하는 디자인/구현과 HW에서 말하는 디자인/구현이 다르다)
+
+Q. superscala에 대해서 언급을 해야 함 -> SMT에 대한 설명도 해야 할까?
+
+Q. 최신 CPU의 prefetching전략은 어떤식으로 되는지
+-> 이 논문에서는 최신 CPU의 prefetching전략을 끄고 진행했는지?
+
+Q. ISA와 마이크로아키텍처에 대해서 설명하기 
+
+Q. IR과 LLVM IR에 대해서 설명하기
+
+Q. code 측면에서의 context와 cpu 측면에서의 context를 풀어서 설명해주기
+
+
+논문에서 사용하는 용어는 존중하고, 그것에 대한 설명을 이해하기 쉽게 만들기 
+
+그러면 load라인별로 Output이 생기는 것인가?
+
+prefetcher 각각에 대해서 degree를 보는 것이 아니라 공용 degree를 보는 것
+
+두 가지 의미의 optional 
+- 하나는 항상 생성되지만, 받아들이거나 무시되는 것
+- 항상 생성하지 않는 것
+
+Q. [22]과 [15], 특히 [15] ChampSim 아키텍처 시뮬레이터에 대해서 언급하기
+
+Q. PC에 대해서 설명해주기
+
+Q. prefetcher는 stream방식, stride방식에 대해서 설명해주기 (예시를 든 것일 뿐)
+
+Q. 논문의 오타
+    " For each load instruction with a unique PC, we identify
+    the policy that results in the minimum AMAT and designate
+    its prefetcher as the one for which demand requests should
+    be filtered. "
+    A. minimum이 아니라 maximum이어야 하는 것 아닌가? 
+    minimum인 것에 대해서 filtering을 하면 안되는데
+
+Q. Prefetcher demand request filtering에 대해서 
+    같은 worst더라도 
+    덜 정교한 것은 무조건 filtering을 하고
+    정교한 것은 오히려 성능 저하가 있을 수 있어서 filtering을 하지 않는다.  -> 이것에 대한 근거는 정교성에 대한 기준, advanced components의 기준
+
+Q. 시스템 프롬프트가 무엇인지, <|im_start|>, <|im_end|> 가 무엇을 의미하는 것인지 (Qwen의 공식)
+
+애매하게 실린 문장은 논문에서 중요하지 않거나 논문에서 제안한 아이디어인 경우
+
+Q. JSON 파일이 무엇인지? vLLM이 무엇인지
+    A. 
+    vLLM을 왜 사용해야 할까?
+    제약 decoding : JSON 형식 강제
+    high throughput batching : 추론 비용 감소
+
+Q. main memory는 DRAM인가?
+    A. main memory는 프로세서 밖의 주 저장소이다.
+
+Q. on-chip/off-chip , on-package/in-package
+    A.
+    On-Chip (in-Die)        : L1,L2,L3 cahce / register file 
+    On-package (in-package) : HBM
+    Off-Chip (Off-package)  : DDR4,5 / CXL 
+
+Q. cache, caching에 대해서 설명하고 I/D 구분짓는 이유를 (Temporal locality, spatial locality) 연관지어서 설명해주기 
+
+Q. SRAM blackbox는 무엇인가?
+    A. 파운드리가 통째로 주는 완제품 SRAM 덩어리
+
+Q. issue가 무엇인지, dispatch가 무엇인지 
+
+Q. PHB miss가 발생할 경우, PHB와 PHT 양쪽에 저장된 기본 prefetch 정책을 사용하는데 
+    miss가 많다면 PF-LLM의 hint를 사용하지 않는다. -> 논문의 문제점 PHB hit rate를 어디에도 수치가 없다는 문제점 
+
+    A. PHB는 cache라서 miss가 많이 나지는 않는다.
+
+
+Q. filter가 2bit면 4가지 조합뿐인데, Listing1의 JSON엔 "Filter":"stream"처럼
+   prefetcher 이름이 적혀있다. 어떻게 2bit로 이게 가능한가?
+    A.
+    [사실 확인] §4.4: 8bit 힌트 = selection 4bit + degree 2bit + filter 2bit. filter는 2bit(4값) 맞음.
+
+    [먼저 filter가 하는 일] "이 load의 demand를 *어느* sub-prefetcher에게 보내지 말지" 지정.
+      (§4.4: 지정된 prefetcher가 demand를 못 받게 해 내부상태를 무관한 training으로부터 보호)
+      → "Filter":"stream" = "이 load의 demand를 stream prefetcher엔 안 보냄"
+
+    [두 표현이 다른 층위] = 이게 정진 모순의 정체
+      JSON "Filter":"stream"  = SW/사람용 이름 (offline 표현)
+      2bit                    = HW 인코딩 (런타임 표현)
+      §4.4 "originally in JSON, converted into compact binary format"
+        = JSON→2bit lowering (컴파일: C소스→기계어와 동형)
+
+    [★2bit(4값)로 충분한 이유 = filter 대상이 소수]
+      - selection: 전체 prefetcher(최대 11개) 중 1개 골라야 → 4bit(16값) 필요
+      - filter   : "막을 수 있는" prefetcher가 적음 → 2bit로 충분
+        · §5.1: 정교한 5개(Pythia/Bingo/DSPatch/Sandbox/SMS)는 절대 filter 안 함 → 제외
+        · 최종 설계 SDFR = sub-prefetcher 4개뿐
+        → {no-filter + 소수 후보} = 4값(2bit)로 커버
+      즉 selection과 filter의 비트 수가 다른 건 "고를 대상 집합 크기"가 달라서.
+
+    [논문 미설명 지점]
+      - JSON 이름 → 정확히 어느 2bit 값인지의 매핑은 논문에 없음("compact binary로 변환"까지만)
+      - 8bit(4/2/2)도 딱 필요해서가 아니라 "8bit 미만 SRAM 매크로가 흔치 않아서" 채운 것(slack 有)
+      - 그래서 "stream"이 2bit 어디에 대응하는지는 하드웨어 구성(어떤 4개를 쓰냐)에 종속, 원문 미기재
+
+    [결론] 2bit로 "stream" 지정이 되는 건 filter 대상이 소수(정교한 것 제외 + 최종 4개)라서.
+      JSON 이름=offline 표현 / 2bit=특정 HW 구성용 인코딩. 정확한 매핑은 논문 미기재.

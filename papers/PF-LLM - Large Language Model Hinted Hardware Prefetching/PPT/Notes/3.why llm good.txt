@@ -1,0 +1,153 @@
+# 3. Why an LLM is a Good Choice for prefetching
+
+기존의 prefetching 기법들은 여러 trade off을 가지고 있다
+HW prefetcher는 복잡성으로 인한 제약을 받는 반면,
+compiler based(offline), profiling based(online) 방식은 
+취약한 휴리스틱이나 소스 코드 및 특정 입력 데이터에 대한 의존성으로 어려움을 겪는다.
+
+본 논문에서 prefetching에 fine tuned된 LLM 이 심층적인 offline 분석과 학습된 접근 방식의 적응성을 결합함으로써 
+이러한 한계를 독창적으로 극복할 수 있다고 주장한다.
+
+## 심층적인 코드 이해하는데
+LLM의 주요 장점은 기존 방식보다 더 높은 추상화 수준에서 코드에 대해 추론할 수 있다는 점
+하드웨어 prefetcher는 일반적으로 메모리 주소 스트림에서 패턴을 식별하며, 고정된 스트라이드와 같은 시간적 규칙성으로 제한된다.
+마찬가지로 컴파일러 휴리스틱은 종종 로컬 루프 분석이나 패턴 매칭에 의존한다.
+
+반면, LLM은 코드 컨텍스트에서 기본 의미론을 추론할 수 있다.
+예를 들어, 단순 배열, 구조체 배열 또는 연결 리스트를 순회하는 경우를 구분할 수 있으며,
+각각 다른 최적의 prefetching 전략을 의미한다.
+
+{skip}
+
+
+## 자동화된 휴리스틱 발견
+본 연구에서는 LLM을 사용하여 데이터로부터 효과적인 prefetching 휴리스틱을 자동으로 학습하는 방식을 제시한다.
+수작업으로 설계된 휴리스틱에 의존하는 컴파일러 기반 기법과 확연히 대조적이다. 
+이러한 규칙을 수동으로 설계하는 것은 상당한 도메인 전문 지식을 요구하는 노동 집약적인 과정이면 종종 취약하고
+일반화하기 어려운 정책으로 이어집니다.
+
+하지만 학습된 접근 방식은 방대한 코드 데이터 세트에서 더욱 복잡하고 미묘한 패턴을 발견할 수 있다.
+또한, 최신 하드웨어 출시 후 구식이 될 수 있는 정적인 수동 규칙과 달리,
+학습된 휴리스틱은 새로운 훈련 데이터로 모델을 fine tune함으로써
+새로운 프로그래밍 관용구, 새로운 하드웨어 기능 및 새로운 작업 부하 특성에 적용할 수 있다.
+
+이는 컴파일러 휴리스틱의 경직성과 HW ensemble prefetcher 에 필요한 비용이 많이 드는 online 학습을 모두 우회한다.
+
+
+## Generalization from Collective Experience
+PGO는 경험을 통해 학습되며,
+실행 프로파일을 사용하여 여러 가지 가상 시나리오를 테스트하여 offline prefetching 결정을 내린다.
+
+반면, 해당 정보는 프로파일링 대상 애플리케이션에 특화되어 있으며, 프로파일링 실행 중에 사용된 특정 입력 데이터에 민감한 경우가 많다.
+
+접근 방식은 이러한 아이디어의 개념적 진화를 나타낸다.
+
+해당 LLM은 많은 서로 다른 프로그램들로부터 나온 종합된 경험을 나타내는 다양한 말뭉치로 학습된다.
+
+단일 프로그램의 동작을 학습하는 대신, LLM은 광범위한 애플리케이션 전반에 걸쳐 정적 코드 패턴과 동적 메모리 동작 간의 관계를 일반화하여 학습합니다. <- ???
+
+따라서 PF-LLM은 실증적 분석의 proxy 역할을 수행하며, application 고유의 profile없이도 이전에 보지 못한 새로운 프로그램에 대한 효과적인 prefetching 정책을 추론할 수 있다.
+
+이는 입력 데이터에 대한 의존성을 없애고 최적화를 훨씬 더 견고하게 만든다.
+결정적으로, PF-LLM은 assembly 코드 상에서 작동함.
+원래의 소스 코드와 특정 프로그램 입력 모두로부터 독립되게 만들어, 프로필 기반 최적화와 많은 컴파일러 기반 접근 방식이 불가능한 이미 
+컴파일된 closed-source 바이너ㄹ까지 적용 가능성을 확장한다.
+
+
+## 사전 학습된 기반 모델 활용
+우리 방법의 타당성은 강력한 사전 학습된 코딩 모델을 fine tune할 수 있는 능력을 기반으로 둔다.
+이 모델들은 이미 수십억 줄의 코드로 학습되어 프로그램 언어와 구조에 대한 일반적인 이해력을 갖추고 있다. 
+이러한 모델은 prefetching에 특화시킴으로서 우리는 이 방대한 사전 지식을 활용하며, 이는 모델을 처음부터 학습시키는 것보다 우리의 접근 방식을 
+훨씬 더 실용적으로 만든다. 
+궁극적으로, 이 접근 방식의 효용성은 결과로 입증된다. 
+PF-LLM 모델은 어셈블리 문맥(Context)만으로 최적의 prefetching 정책을 정확히 예측하는데 있어 95%라는 놀라운 정확도를 달성했다.
+이 높은 정확도는 런타임에서 상당한 성능 향상으로 직결된다.
+offline에서 생성된 이러한 힌트들의 안내를 받는 LMHint prefetcher는 메모리 집약적인 벤치마크에서 SOTA ensemble 방법 대비 평균 18.9%
+고도로 최적화된 단일 prefetcher 대비 9.8%의 IPC 향상을 제공한다. 이는 offline 분석을 위해 LLM을 사용하는 것이 HW prefeching의 강력하고 효과적인 새로운 방향임을 확인해준다.
+
+
+
+========================
+Q. 여기서 말하는 context window는 code context와 다른 의미인가? Y
+    Furthermore, the large context windows of modern LLMs enable
+    a higher-level analysis of program structure that is infeasible
+    to perform in compilers or hardware prefetchers.
+
+    A. compiler도 large context window를 할 수 있지 않는가? 단지 compute budget과 어떤 휴리스틱을 사용하느냐에 따라 달라지는 것 아닌가?
+
+Q. 휴리스틱이 무엇인가?
+
+
+Q. 왜 assembly어를 사용했는가?
+    A. 
+    for (i...) a[i]  : 고정 stride
+    for (auto& x : vec) : 고정 stride
+    -> 인라인 후 대개 같은 기계어
+
+    vector vs list 완전히 다른 기계어 
+
+Q. Automated Heuristic Discovery라는 소제목을 가지고 왔으면 같은 측면인 online HW ensemble을 적어도 이 문단 내에서는 비판하지 말아야 하는 것 아닌가?
+
+    A. 
+    This bypasses both the rigidity of compiler heuristics and
+    the costly online training required by hardware ensemble
+    prefetchers.
+    여기서 이 문단에서 비교할 것은 정적으로 휴리스틱을 만드는 offline방식의 compile만 비교해야 하는데 마지막 문장에서 왜 갑자기
+    online HW ensemble을 가지고 온 것일까?
+
+Q. 실제로 동적 메모리 동작을 준 적은 없는데 policy만 알려주었는데 이 부분에 있어서 표현이 부정확하다.
+    A. 
+    Instead of learning the behavior of a single program, the LLM learns
+    to generalize the relationship between static code patterns
+    and dynamic memory behavior across a wide range of applications.
+
+
+--------------------
+심층적인 코드 이해 (Deep Code Understanding)
+
+  [한 줄] LLM은 기존 방식보다 "더 높은 추상화 수준"에서 코드를 이해한다.
+
+  [기존 방식이 보는 것 = 낮은 수준]
+    - HW prefetcher : 메모리 "주소 스트림"의 패턴만 봄
+                      -> 고정 stride 같은 시간적 규칙성에 갇힘.
+    - 컴파일러 휴리스틱: 로컬 루프 분석·패턴 매칭 정도.
+    => 둘 다 "주소가 어떻게 움직이나"만 보고, "코드가 무엇을 하는지"는 모름.
+
+  [LLM이 보는 것 = 의미(semantics)]
+    코드 문맥에서 "무엇을 순회하는지"를 추론:
+      - 단순 배열 순회        -> 고정 stride 프리페치가 맞음
+      - 구조체 배열(AoS)       -> 멤버 간격만큼 뛰는 spatial 프리페치
+      - 연결 리스트 순회       -> 포인터 추적(불규칙) -> 다른 전략 필요
+    => 각 자료구조가 "다른 최적 프리페치 전략"을 의미하는데,
+       LLM은 코드만 보고 이 구분을 함 (주소 스트림만으론 불가).
+
+  [왜 assembly를 입력으로? (핵심)]
+    소스 코드는 추상적이라 실제 접근 패턴과 안 맞을 수 있음:
+      for (i..) a[i]        \  둘 다 인라인 후
+      for (auto& x : vec)   /  대개 "같은 기계어" = 고정 stride
+      vector vs list        -> "완전히 다른 기계어"
+    => 실제 메모리 동작은 "컴파일된 기계어(assembly)"에 드러남.
+       그래서 소스가 아니라 assembly(257줄 문맥)를 LLM 입력으로.
+       + 소스/입력데이터 독립 -> closed-source 바이너리까지 적용 가능.
+
+
+사전 학습된 파운데이션 모델 활용 (Leveraging Pre-trained Foundation Models)
+
+  [한 줄] 처음부터 학습(from scratch)이 아니라, 이미 코드를 아는 모델을 fine-tune.
+
+  [왜 실용적인가]
+    - 파운데이션 코딩 모델(예: Qwen2.5-Coder)은 이미 "수십억 줄 코드"로 학습됨
+      -> 프로그래밍 언어·구조에 대한 일반적 이해를 이미 보유.
+    - PF-LLM = 그 위에 "prefetching 특화"만 fine-tune (방대한 사전지식 재활용).
+    => 처음부터 학습하는 것보다 훨씬 실용적(데이터·비용 적게).
+
+  [적응성 (기존 대비 강점)]
+    - 컴파일러 수동 휴리스틱: 새 하드웨어 나오면 구식화(경직).
+    - HW ensemble: 값비싼 online 학습 필요(느림).
+    - LLM: 새 데이터로 fine-tune만 하면 새 관용구·새 HW·새 워크로드에 적응.
+      => 컴파일러의 경직성 + ensemble의 online 학습 비용을 둘 다 우회.
+
+  [결과로 입증]
+    - assembly 문맥만으로 최적 정책 예측 정확도 95%.
+    - 런타임 성능: SOTA ensemble 대비 +18.9%, 최고 단일 prefetcher 대비 +9.8% IPC.
+    => "offline LLM 분석"이 HW prefetching의 강력한 새 방향임을 확인.

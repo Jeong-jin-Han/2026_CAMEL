@@ -1,0 +1,225 @@
+memory wall의 정의
+= CPU 연산 속도와 메모리(DRAM) 접근 속도(latency)의 격차가 시간이 지날수록
+  벌어지는 현상. (Wulf & McKee, 1995)
+  - CPU는 빠르게 개선(수년마다 크게), DRAM latency는 느리게 개선 -> 격차 누적.
+  - 결과: 메모리 접근이 지배적 병목. CPU가 데이터 기다리며 stall(놀게 됨).
+  - 그래서 자주 쓰는 걸 CPU 가까이 caching -> cache 계층으로 격차를 메움.
+
+  [주의: 두 종류의 느림 구분]
+    disk -> DRAM (page fault 로드): ~ms, 페이지당 1번 (demand paging)  ← 다른 문제
+    DRAM -> CPU (매 접근):          ~100ns, 상시  = memory wall        ← cache가 해결
+  => 이 노트/cache는 후자(memory wall). DRAM에 데이터가 있어도 접근이 느린 것.
+
+-------------------
+cache의 목적은 
+DRAM까지의 latency가 기니 onchip buffer로 자주 빈번하게 사용하는 것을 
+caching하면 지연시간을 줄일 수 있다. (R/W)을 빨리 할 수 있다.
+지연시간 줄이기 
+
+caching의 의미
+= 자주/최근 쓰는 데이터의 "사본"을 더 빠르고 가까운 저장소(on-chip SRAM)에 두어
+  다음 접근을 빠르게 하는 기법.
+  - 원본 = 느리고 큰 저장소(DRAM) / 사본 = 빠르고 작은 저장소(cache)
+  - hit  = 캐시에서 찾음(빠름) / miss = 없어서 원본 접근(느림)
+  - 효과: 작은 빠른 저장소로 "평균 접근 속도"를 끌어올림 (-> AMAT)
+
+  [왜 작은 사본으로 되나 = locality 전제]
+    프로그램은 최근 쓴 것(temporal)·근처 것(spatial)을 다시 쓸 확률이 높음
+    -> 자주 쓰는 일부만 사본으로 둬도 대부분 hit. (다음 항목)
+  [부작용 예고] 원본 != 사본 상태가 생김 -> 여러 코어면 coherence 문제(뒤).
+
+spatial locality와 teporal locality 2가지 측면에 대해서 작성해보기
+-> instruction cache / data cache로 나눈다. 
+(두 데이터의 특성이 다르기 때문에)
+
+
+
+
+coherence에 대해서 
+private 과 share cache
+-> private cache 때문에 coherence문제가 생긴다.
+
+blocking과 non blocking cache 
+지연시간 숨기기 
+stall을 할 때 다른 stall가 겹쳐서 stall 기간을 줄이는 것
+blocking 문제를 non blocking 으로 가는 것이고 
+MSHR = 진행 중인 msis 를 추적하는 HW register
+
+
+MSHR의 두 가지 역할
+1. Non blocking (MLP 확보):
+    여러 miss를 동시에 in flight, 여러 DRAM 접근을 겹쳐서 처리 -> Memory level parallelism
+2. Miss coalescing (병합):
+    같은 cacheline에 대한 여러 miss를 MSHR 한 엔트리로 묶음 -> DRAM에 중복 요청을 보내지 않음
+
+MSHR개수가 prefetching을 할 수 있는 최대 개수는
+prefetch request + demand miss <= MSHR 개수
+
+cache block의 단위
+address decode 
+[tag | set index | block offset]
+
+cache mechanism 과 policy
+    mechanism으로 
+    eviction
+    insertion
+    data array
+    tag array 
+    (tag array: associativity 조절하는 것)
+    MSHR (miss handling): miss를 어떻게 처리하는가? non blocking
+
+    policy로
+
+    insertion policy : MRU, LRU로 넣을지
+    eviction policy : LRU, PLRU (LRU의 최적화)
+
+    [검증: 큰 그림 O, 2군데 교정]
+    원리: mechanism = 할 수 있게 하는 HW(수단) / policy = 그 HW를 쓰는 규칙.
+      eviction/insertion = mechanism(동작) O, MSHR/data/tag array = mechanism O.
+      eviction policy(LRU/PLRU), insertion policy(MRU/LRU) = policy O.
+
+    교정1) associativity는 policy 아님 -> 구조 파라미터(설계시 고정).
+      policy=런타임에 다르게 결정(LRU vs PLRU) / associativity=배선으로 고정.
+      tag array = mechanism(구조), associativity는 그 구조 선택.
+    교정2) insertion policy "MRU/LRU로 넣을지" = 정확히는 "새 블록의 초기
+      우선순위(재사용 예상)를 어디 둘지". MRU위치=오래 살려라(재사용 가정),
+      LRU위치=곧 쫓겨나도 됨(스트리밍).
+
+    [mechanism <-> policy 짝]
+      eviction 동작   <- eviction policy(누구 쫓나: LRU/PLRU)
+      insertion 동작  <- insertion policy(어디/어떤 우선순위로 넣나)
+      tag array(구조) <- associativity는 구조 파라미터(policy 아님)
+      data/tag array, MSHR <- 저장/추적 자체, 대응 policy 약함(mechanism만)
+    => eviction/insertion은 동작(mech)+규칙(policy) 둘 다. array/MSHR은 mech만.
+
+
+(ViVT, ViPT, PiPT) -> ChampSim에서 모델링 안해서 무의미
+[idea, simple] PiPT로 작동할 것 같음 
+
+-----
+
+cache miss 4가지
+
+cold
+conflict
+capacity
+coherence
+
+    [층위 주의] tag compare = "hit/miss 여부"만 판정(mechanism).
+      4C = 그 miss가 "왜 없었나"의 원인 분류(사후 분석). 다른 층.
+      -> tag compare에서 miss났다고 conflict 아님. cold/capacity도 똑같이 miss로 보임.
+
+    [4C 정의: "왜 없었나"]
+      cold(compulsory) : 한 번도 본 적 없음(첫 접근). 무한대 캐시여도 miss.
+                         -> prefetch만 해법(캐시 키워도 못 막음).
+      capacity         : 캐시 전체가 작아서 쫓겨남. 캐시 크기 키우면 hit.
+      conflict         : 캐시 전체엔 자리 있는데 "그 set이 꽉 차서" 쫓겨남.
+                         판정: 같은 크기 full-associative였다면 hit. -> associativity로 완화.
+      coherence        : 다른 코어 write로 invalidate돼서 없어짐.
+
+    [예: 직접사상, A/B가 같은 set0에 매핑]
+      A접근 -> set0 빔 -> miss = cold
+      B접근 -> tag 다름 -> miss, A 쫓아냄
+      A접근 -> set0에 B -> miss = conflict (전체론 set1,2,3 비었는데 set0만 다툼)
+      => 세 번째 A만 conflict, 첫 A는 cold. tag compare는 셋 다 그냥 miss.
+
+    핵심: tag compare="있냐/없냐"(HW 판정) / 4C="왜 없나"(분석). 다른 층.
+
+----
+AMAT = 확률에 따른 지연시간의 평균 
+
+
+
+
++++++
+[prefetching]
+cache pollution (prefetching의 부작용)
+
+[latency]
+1. latency 줄이기
+    caching (locality 활용)
+2. latency 숨기기
+    non-blocking (MSHR) + prefetching + OoO
+
+
+==============
+Q. HW prefetching이 해결하고자 하는 것은 모든 cache miss를 고려하는 것일까?
+    A.
+    prefetching을 할 때 miss 종류를 구분하지 않기 때문이다. 
+
+    cold를 강조하는 것은 prefetch만 해법이 있어서
+    conflict는 associativiy를 늘리면 가능함
+    capacity는 cache size를 키우면 됨
+
+    Q. coherence는 어려움
+    왜 어려울까?
+    쉽게 다른 write의 invalidate되기 때문에 이전에 prefetch를 하더라도 cache 안에 존재할 확률이 적어서 그런 것일까?
+        A.
+            1. 트리거가 비동기라 예측 불가능
+            2. 애초에 데이터가 아직 안 만들어졌다, 낡은 stale값을 가져오는 것은 의미가 없음 
+            3. prefetch가 오히려 해를 끼침
+                coherence에서 prefetch가 무용지물을 넘어 트래픽을 늘린다.
+                write을 하려고 하는데 prefetch가 가지고 온 것 때문에 S가 생겨서 invalidate 하는 coherence traffic추가로 발생하고
+
+        (cache pollution과는 별개로 봐야함 <- 원래 이것은 모든 prefetching에서 문제가 되는 부분이기 때문에)
+
+    Q. L1 private cache, L2 private cache, L3 share cache 
+    coherence를 고려하게 되는 이유는 private cache로 인한 것
+    private는 각 코어마다 cache가 있는 것이고, share는 
+    private cache라면 각각에 대해서 따로 관리를 하는 것일까?
+        A. inclusive로 해서 L2가 L1의 superset이라면 L2의 coherence에 대해서만 괸리하면 됨
+
+            Q1. coherence로 L2가 무효화가 되면 L1도 -> Y
+            Q2. back invalidation인가? "L2 무효화 -> L1 무효화" -> Y
+                A2.
+                foward와 back의 구분   
+                정상 요청 흐름 (forward): 안쪽 → 바깥쪽
+                L1 miss → L2 → L3 → DRAM     (코어에서 멀어지는 방향, "downstream")
+
+
+Q. MSHR이 담고 있는 것은 무엇인가?
+    A.
+    MSHR 하나 = 진행 중인 miss 하나(캐시 라인 하나) 추적.
+
+    담는 것:
+      - block(line) 주소   : 어느 블록인지 + 응답 매칭 + 같은 블록 재-miss 감지(coalescing)
+      - 목적지 캐시 위치    : 응답 오면 어느 set/way에 채울지
+      - request type       : load / store / prefetch / ifetch
+      - target 리스트      : 이 블록 기다리는 각 요청
+          · 블록 내 offset
+          · 목적지 = destination 레지스터(물리 태그) / LSQ id  (load), 쓸 데이터(store)
+
+    핵심: PC는 안 담음.
+      - 반환 데이터 처리엔 "블록주소+set/way"(채우기)와 "목적지 레지스터/LSQ"(전달)만 필요.
+      - PC는 prefetcher(PC-indexed 예측 테이블)에서 쓰임 -> 여기가 PF-LLM 자리.
+      - 즉 예측=PC 씀(prefetcher) / 추적=destination 씀(MSHR)로 분업.
+
+    coalescing: 같은 블록 재-miss는 새 MSHR 안 잡고 기존 MSHR에 target만 추가
+                -> DRAM 요청 1개, 도착 시 여러 명령에 나눠 전달.
+
+
+Q. single core concurrent 상황에서 context switch를 하게 될 경우에 flush를 언제 하는지 
+어차피 PiPT면 flush를 하지 않아도 하지만 working set이 다른 경우 cache를 나눠쓰다 보니 
+그러면 context switch는 누가 결정하나 cache miss가 생길 때 작동하나 아니면 page fault가 작동할 때 작동하나?
+    A. context switch는 누가 결정? OS scheduler 커널이 결정함
+    cache miss는 안하고 page fault에서는 할 수 있음
+    디스크 I/O가 필요한 major fault에서만 함 
+
+    짦은 latency는 HW (MSHR/OoO)로 숨기고, 긴 latency는 OS (context switch)로 숨기기
+
+    [process switch vs thread switch] 핵심 = 주소 공간이 바뀌느냐
+                        thread switch(같은 proc)    process switch(다른 proc)
+      주소 공간         동일(같은 page table)        다름(page table 교체, CR3 변경)
+      저장/복원         레지스터(PC/SP/GPR/flags/FP)  위 전부 + 주소공간(CR3)
+      TLB              flush 불필요                  flush (ASID/PCID 없으면)
+      PiPT 캐시         flush X                      flush X
+      비용             쌈                            비쌈(TLB flush·캐시 contention)
+
+      => thread switch = 주소공간 그대로라 TLB·캐시 warm 유지, 거의 공짜.
+         process switch = CR3 교체 -> TLB flush(ASID 없을 때) + working set contention.
+         "flush 언제?"는 주로 process switch의 TLB 문제. PiPT 캐시는 둘 다 flush X.
+
+
+
+write allocate/non write allocate 
+write back/write through

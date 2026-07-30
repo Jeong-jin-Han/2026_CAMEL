@@ -1,0 +1,181 @@
+우리는 PF-LLM을 소개했다 
+LMHint Prefetcher라 명명한 경량 앙상블 하드웨어 prefetcher를 위해, 정적 어셈블리 코드를 분석하여 
+pefetching 힌트를 생성하는 파인튜닝된 대규모 언어 모델잉다. 복잡한 정책 결정을 offline 분석으로 떠넘김으로써(offloading)
+, 우리 접근법은 값비싼 online training을 제거한다. 우리의 평가는 PF-LLM이 최적 prefetching 정책을 95% 정확도로 예측함을 입증한다.
+이는 유의미한 성능 향상으로 이어지는데, memory-intensive SPEC 2017 벤치마크에서 SOTA 단일 prefetcher 대비 평균 9.8%, 
+선도적 ensemble 방법 대비 18.9%의 IPC 향상이다. 
+
+이 연구는 offline AI 모델이 런타임 동안 하드웨어를 지휘하는 co-design 방법론을 개척한다. 이 LLM guided 접근법의 성공은, 
+프로세서 성능을 진전시키는 데 있어 AI 모델로 동적 마이크로아키텍처 메커니즘을 안내하는 잠재력을 서사한다.
+
+=============
+Q. 동적 마이크로아키텍처 메커니즘이 무엇인가?
+    A. 
+    런타임에 추측으로 동작하는 하드웨어 예측기
+    branch predictor, cache replacement, prefetcher
+
+Q. mechanism과 policy의 차이가 무엇인가?
+    A.
+    mechanism : 무엇을 할 수 있는가 (능력/수단, how it can work)
+    policy : 언제 무엇을 할 수 있는가 (결정/전략, what to do when)
+
+    mechanism은 도구, policy는 그 도구를 쓰는 규칙
+
+    고전 원칙: separate policy from mechanism 
+
+
+    sub prefetcher들의 ensemble 구조와 orchestration layer그 자체가 mechanism이고
+    sub prefetcher를 어떤 것을 사용하느냐냐가 policy인인 것 같다는 생각이 들었어
+
+Q. Figure 3(c)에서 TLB like loading이 무엇을 의미하는 것인지 잘 모르겠어
+    A. 단순히 비유한 것이네
+            Prefetching Hint  | VA
+    DRAM    PHT                 Page table
+    cache   PHB                 TLB
+
+Q. 
+LSU가 무엇을 의미하는 것인가?
+TLB의 위치는 L1TLB인데 이것은 L1D 한 다음에 L2로 연결되는 것 같아서 여기서 
+논문에서는 prefetching한 cache block을 어디에 두는지 언급을 했나?
+L1 miss 기준으로 하게 될 경우 L2에 prefetched cacheline을 넗게 되면 L1 hit이 안되어서 
+또 prefetching을 할 것 같은데 논문에서는 어떤 식으로 설명되었지?
+    A1.
+    LSU = load store unit 
+    코어 안에서 메모리 접근 (load/store) 명령을 처리하는 유닛
+
+    A2.
+    L1D <- prefetching 대상 
+
+    채우는 것과 prefetch request를 구분해야 함
+    채우는 것은 L1D에 채우는 것이고 
+
+    prefetch from L2라고 했지만 
+    [idea, simple] prefetch from lower or equal than L2
+
+    내 생각과 논문의 아이디어를 명확히 구분해서 설명하도록 하자 
+
+
+Q.
+PHT, PHB를 개념적으로는 이해했는데 
+이것을 하는 주체가 누구인지 정확히 말을 못하겠어 
+논문에서도 디테일하게 설명해주지 않은 것 같고
+PHT를 machine binary로 바꾸었다고 한 것 같은데 그 이유도 아직 잘 와닿지 않아서 이것을 
+시스템 관점에서 이해해 보려고 하는데 도와줄래?
+
+    A.
+    핵심: PHT/PHB는 하나가 아니라 여러 주체의 손을 거친다. 생애주기별로 who가 바뀜.
+
+    [생애주기별 주체]
+    ① 힌트 생성   어셈블리→JSON     : 오프라인 SW (PF-LLM + vLLM, GPU)   ← 논문 명시 §4.3
+    ② 인코딩      JSON→8bit PHT     : 빌드/배포 도구(?)                  ← 논문 미명시(수동태)
+    ③ 적재        PHT→DRAM, PHB 초기: OS 로더(+ASLR offset)             ← §7.4에서 암시만
+    ④ 조회/채움   PC로 PHB 조회      : 하드웨어(LMHint), 자동            ← 논문 명시 §4.4
+
+    → 확실한 건 ①(오프라인 SW)와 ④(HW)뿐. ②③ 주체는 논문의 공백.
+      아마 ChampSim 시뮬레이션이라 실제 OS/툴체인 통합을 안 만든 것.
+
+    [SW/HW 경계 = policy/mechanism 분리의 실체]
+    ①②③ = 소프트웨어 (실행 전, 느려도 됨 → 똑똑하게 LLM) = policy 생성
+    ────── 경계: PHT(DRAM) = 인터페이스. SW가 write, HW가 read ──────
+    ④    = 하드웨어 (실행 중, 빨라야 함 → 단순하게 조회)     = mechanism 실행
+    PHT/PHB가 §7.2의 "offline hint generation ↔ online prefetcher selection 인터페이스"의 물리적 실체.
+
+    [④ HW 동작 — SW 개입 없음]
+    load 실행 → LSU가 PC 냄 → PHB(온칩 SRAM) PC로 조회
+      hit : 8bit 힌트 꺼내 Router/Mux/degree 손잡이 세팅
+      miss: PHT(DRAM)에서 엔트리 fill (그동안 기본정책). TLB miss시 page walker가 하듯 HW 상태기계가 함.
+    TLB가 SW 없이 주소 변환하듯, PHB도 HW로 single-cycle 조회. → 그래서 single-cycle 강조(§4.4).
+
+    [왜 JSON → 8bit binary로 바꾸나 — 3겹]
+    겹1) HW는 JSON 텍스트를 파싱 못 함. 고정폭 비트필드([sel 4][deg 2][filt 2]=8bit)여야
+         배선으로 즉시 해석 → single-cycle. JSON이면 불가능.
+    겹2) 크기. 8bit+48bit PC=7byte/load → 7.26%. JSON이면 몇 배. PHB는 256엔트리 온칩 SRAM이라
+         비트=면적·전력. 8bit로 조여야 현실적. (§4.4 SRAM blackbox 8bit)
+    겹3) ★이 변환 = 컴파일과 동형(同型).
+         컴파일:  C소스(사람용)   → 기계어(CPU용, 고정폭)
+         PF-LLM: JSON힌트(SW용)  → 8bit힌트(HW용, 고정폭)
+         둘 다 "똑똑한 표현(느림)"을 "실행용 표현(빠름)"으로 lowering. HW가 소비할 형태로 내리는 것.
+
+    [논문 공백 = 발견 #37, 등급 2]
+    ②JSON→8bit를 누가(컴파일러/링커/별도도구), ③PHT를 어느 ELF 섹션에 넣어 로더가 어떻게 적재하는지
+    논문에 없음(수동태 "is converted"). ④ HW 조회만 상술. 오타가 아니라 "실용화에 필수인데 비운 부분".
+    ChampSim 시뮬레이션이라 실제 통합 미구현 추정. → "주체를 못 말하겠다"는 실력이 아니라 논문이 안 밝힌 것.
+
+    (cf. 전부 시뮬레이터 위의 HW, 실물화하려면 회로가 필요함)
+
+
+Q. 논문에서 Qwen에서 fine tuning을 할 때 어떤 것을 사용했는가?
+    A.
+    fine tuning에 대해서 언급한 것이 없음
+
+    [idea, simple]
+    모델 사이즈가 0.5B로 워낙 작기 때문에
+    full fine tuning을 한 것 같음 
+
+Q. prefetching internal state에 대해서 context switch (thread, process) 관점에 있어서 
+store/ restore 관리되어야 하지 않을까? workload마다 PHhint가 다를테니 
+그것에 대한 오버헤드는 이 논문에서 고려되지 않은 것인가?
+    A. 
+    논문에서는 single core로 context switch에 대해서 고려하지 않음
+
+    PHT/PHB 힌트                 : binary에 종속
+    sub-prefetcher의 내부 상태    : 런타임에 축적
+
+    PHB도 TLB처럼 flush하거나 tagging해야 함 
+
+    주장1: cache는 flush 안해도 PHB는 flush해야 한다.
+    주장2: PHT는 DRAM에 잔류하니 괜찮다
+
+
+==================================================
+Q. PF-LLM이 기존 ensemble을 "PC-localized(PC-centric)라서 문제"라 깠는데,
+   자기가 만든 방식도 PC로 인덱싱·PC별 힌트생성 = PC-localized 아닌가? 자기모순 아닌가?
+   저자는 대체 무슨 말을 하려는 거지?
+==================================================
+
+    [먼저 사실] PF-LLM도 뼛속까지 PC 기반 = 맞음
+    - PHT는 virtual PC로 인덱싱 (§4.4)
+    - 힌트 생성도 PC 단위 (load 명령 PC마다 어셈블리 257줄 보고 정책 1개)
+    → 표면적으론 "너도 PC-centric인데 왜 남을 까?" = 정진 관찰 정확
+
+    [핵심] "PC-centric"이 두 가지 다른 것을 가리킴 → 겉보기 모순, 실질 아님
+    - Alecto/DOL의 PC-centric = PC로 "demand 스트림을 자름"(gating/filtering) ← 런타임에 실제 접근을 잘라냄
+    - PF-LLM의 PC 사용        = PC로 "정책을 조회(lookup)"만 ← demand는 안 자름
+
+    | 구분              | Alecto/DOL        | PF-LLM               |
+    | PC로 무엇을       | demand를 자름     | 정책을 조회          |
+    | sub-pf가 보는 demand | 조각남(PC별 걸러짐) | 전체 그대로          |
+    | cross-access 상태 | 깨짐              | 온전                 |
+
+    → 문제의 본질 = "PC로 인덱싱하느냐"가 아니라
+      "PC 단위로 demand를 잘라 cross-access 상태를 조각내느냐"
+      Alecto=자름→Bingo footprint 구멍→깨짐 / PF-LLM=안 자름→footprint 온전
+
+    [저자가 진짜 하려는 말]
+    "우리도 PC로 정책을 정한다. 단 (1) offline이라 전체 코드맥락(257줄) 보고 정하고
+     (2) 런타임엔 sub-prefetcher의 demand를 자르지 않는다."
+    → 대비축이 'PC냐 아니냐'가 아니라 'online에서 demand 자르냐 / offline이라 안 자르냐'
+
+    ["힌트를 PC로 안 만들었다는 주장인가?" → N, 정반대]
+    - PF-LLM은 힌트를 철저히 PC별로 만듦(PC마다 8bit). "PC 안 씀" 주장 아님.
+
+    [★그래서 왜 이상하게 느껴지나 = 저자 라벨이 부정확]
+    - 저자가 실패원인을 "PC-centric"이라는 단어로 규정 → 그 단어는 PF-LLM에도 그대로 해당
+    - 저자가 진짜 말하려던 건 "online PC-based demand filtering"인데
+      그걸 "PC-centric / non-PC-localized"로 줄여 써서 → 자기 방법도 걸리는 라벨을 고름
+    - 앞서 나온 패턴 재현: 정확한 기준(demand를 자름)을 부정확한 라벨(PC-centric)로 표현
+      → 자기 논증이 자기 방법과 충돌하는 "것처럼" 보이게 만듦 (실제 충돌은 아님)
+
+    [발표 시 무너지지 않는 프레이밍]
+    "PF-LLM도 PC 기반이라 자기모순"에서 멈추면 저자 반박 가능("우린 demand 안 잘라").
+    한 걸음 더:
+      "저자는 실패를 'PC-centric'이라 규정했으나 PF-LLM도 PC 인덱싱·PC별 힌트생성.
+       진짜 원인은 'PC 사용'이 아니라 'online에서 PC 단위로 demand를 잘라
+       cross-access 상태를 조각내는 것'이다. 저자 라벨('PC-centric','non-PC-localized')이
+       부정확해서 자기 방법과 충돌하는 것처럼 보인다."
+    → 정진 관찰이 '저자 라벨의 부정확함'을 드러내는 증거가 되어 반박 불가
+
+    [한 줄 결론]
+    PF-LLM도 PC-localized = 맞음. 자기모순? 겉보기 Yes / 실질 No.
+    차이 = "PC로 demand를 자르느냐"(Alecto 자름 / PF-LLM 안 자름).
+    저자가 기준(demand filtering)을 부정확한 라벨(PC-centric)로 써서 생긴 착시.

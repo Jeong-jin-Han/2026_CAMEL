@@ -18,24 +18,28 @@ body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFo
 #tb-row2::-webkit-scrollbar{display:none}
 #tb-row2>*{flex-shrink:0}
 #tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
-#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
-button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
-button:hover{background:#e8e8e8;border-color:#aaa}
+button{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;flex-shrink:0;box-shadow:0 1px 2px rgba(15,23,42,.06);transition:background .1s,color .1s,border-color .1s}
+button:hover{background:#2563eb;color:#fff;border-color:#1d4ed8}
+button:active{background:#1d4ed8;border-color:#1e40af}
+select{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:500;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.06)}
+select:hover{border-color:#93c5fd}
 .tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
 #viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
 #viewport.pan-drag{cursor:grabbing}
 #canvas{position:absolute;transform-origin:0 0}
 #wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
-.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#grid-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 15%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
 .ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
-.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:default;user-select:none}
 .ng-header:hover{background:rgba(0,0,0,.04)}
-.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
-.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
-.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px;font-size:14px}
 .ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-more-btn{display:block;width:100%;margin-top:4px;padding:3px 0;background:transparent;border:none;color:inherit;opacity:.55;font-size:10px;cursor:pointer;text-align:center;user-select:none}
 .ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
 .ng-img-wrap{margin:4px 0}
 .ng-table-wrap{overflow-x:auto;margin:6px 0}
@@ -95,14 +99,21 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 <div id="toolbar">
   <div id="tb-row1">
     <span id="tb-title">Hello Bytes, Bye Blocks: PCIe Storage Meets Compute Express Link for Memory Expansion (CXL-SSD)</span>
-    <span id="tb-source">Myoungsoo Jung (KAIST CAMELab) · HotStorage 2022</span>
   </div>
   <div id="tb-row2">
+    <select id="tb-filter" title="Filter Collapse/Expand to one node type"></select>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected; all if a type filter is set) — collapsing everything also fits the view">📁 Collapse</button>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected; only the filtered type if a type filter is set)">📂 Expand</button>
     <button onclick="fitView()">Fit View</button>
-    <div class="tb-sep"></div>
-    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
-    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
-    <div class="tb-sep"></div>
+    <button id="tb-grid-btn" onclick="toggleGrid()" style="display:inline-flex;align-items:center;gap:4px" title="Toggle debug grid — vertical lines mark hop-level boundaries, horizontal lines mark main-topic cluster boundaries">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+      </svg>
+      Grid
+    </button>
     <div class="tb-sep"></div>
     <span id="tb-sel" style="opacity:.35">Click a node to select</span>
   </div>
@@ -118,6 +129,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <div id="search-drop"></div>
   </div>
   <div id="canvas">
+    <svg id="grid-svg" style="display:none"></svg>
     <svg id="wire-svg">
       <defs>
         <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -130,7 +142,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     </svg>
     <div class="ng-node" id="node-node_001" data-children="node_006" style="--color:#4B8BBE;border-radius:2px;left:660px;top:300px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문은 <strong style="font-size:1.1em">'CXL-SSD'라는 개념을 정립한 비전/포지션 논문</strong>이다. 값싸고 대용량인 <strong style="font-size:1.1em">PCIe block storage를, CXL로 host CPU에 붙여 byte-addressable working memory로</strong> 바꾸자고 논증한다.<br><br><strong style="font-size:1.1em">Killer application 1 — block을 byte로, non-cacheable을 cacheable로</strong>: PCIe로 SSD 내부 DRAM을 BAR로 노출해도 x86이 그 접근을 <strong style="font-size:1.1em">non-cacheable로 강제</strong>해 성능이 무너진다. CXL은 cache-coherent라 이 접근을 <strong style="font-size:1.1em">cacheable</strong>로 만들어 storage를 메모리 계층에 편입시킨다.<br><br><strong style="font-size:1.1em">Killer application 2 — 왜 Type-3인가의 논거</strong>: 세 device type 중 <strong style="font-size:1.1em">Type-3가 storage-integrated memory expander에 최적</strong>임을 3가지 이유(확장성·CXL.cache 오버헤드·host 허가)로 논증 → SkyByte류 CXL-SSD가 Type-3인 근거.<br><br><strong style="font-size:1.1em">Killer application 3 — storage 물성을 위한 프로토콜 힌트</strong>: GC 지연·persistence를 다루도록 CXL.mem 예약 필드에 <strong style="font-size:1.1em">determinism/bufferability</strong> 힌트를 달자고 제안.<br><br>FPGA 투영: 고locality에서 CXL가 PCIe 대비 <strong style="font-size:1.1em">129.5×</strong>, 평균 <strong style="font-size:1.1em">3×</strong> 빠르고 DRAM에 근접.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
@@ -138,7 +150,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_002" data-children="node_007,node_020,node_028" style="--color:#4B8BBE;border-radius:2px;left:660px;top:600px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
   </div>
   <div class="ng-body"><div class="ng-content">PCIe storage가 byte-addressable memory가 되는 건 <strong style="font-size:1.1em">오랜 꿈</strong>이다(2B-SSD·NVMe가 SSD 내부 DRAM을 BAR로 노출; 내부 DRAM을 backend flash의 write-back cache로 써 긴 지연 은닉).<br><br>그런데 <strong style="font-size:1.1em">결정적 벽</strong>: PCIe 대역폭은 far memory로 충분(Gen5/6 16× = 63~121 GB/s)한데도, PCIe는 storage를 <strong style="font-size:1.1em">peripheral</strong>로 취급해 CPU가 BAR로의 `load`/`store`를 <strong style="font-size:1.1em">non-cacheable</strong>로 해야 한다. x86(Intel/AMD)은 PCIe 메모리 요청을 캐시하면 <strong style="font-size:1.1em">시스템 실패·storage 단절</strong> 위험이 있어 아예 금지한다.<br><br>결과: non-cacheable 접근이 성능을 크게 떨어뜨리고, <strong style="font-size:1.1em">storage-integrated memory expander가 메모리 계층에서 배제</strong>되며 CPU cache를 못 쓴다. 이게 CXL이 필요한 이유 — cache-coherent라 이 접근을 cacheable로 만든다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
@@ -146,7 +158,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_003" data-children="node_008,node_009,node_010,node_011,node_013,node_014,node_021,node_022,node_023,node_027" style="--color:#4B8BBE;border-radius:2px;left:660px;top:900px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
   </div>
   <div class="ng-body"><div class="ng-content">PCIe storage를 CXL로 host 메모리에 편입시키되, <strong style="font-size:1.1em">Type-3</strong>로 하고 storage 물성을 힌트로 다룬다.<br><br><strong style="font-size:1.1em">1. 세 protocol / 세 type</strong>: CXL.io(기본, PCIe·FlexBus), CXL.cache(device가 host mem 캐시), CXL.mem(host가 HDM 접근) → Type-1/2/3 정의.<br><br><strong style="font-size:1.1em">2. ★ Type-3 옹호</strong>: Type-2 대비 (i) RP당 device 1개 제한 없이 <strong style="font-size:1.1em">확장</strong> 가능, (ii) CXL.cache 풀피처의 <strong style="font-size:1.1em">매 I/O cache-state 확인 오버헤드</strong> 없음, (iii) storage-side 연산의 <strong style="font-size:1.1em">host 허가</strong> 불필요.<br><br><strong style="font-size:1.1em">3. storage-side 최소 수정</strong>: 기존 PCIe endpoint 로직 재활용 + NVMe controller를 CXL.mem read/write로 단순화 → 대부분 SSD가 minor 수정으로 Type-3 지원.<br><br><strong style="font-size:1.1em">4. 시스템 통합</strong>: 부팅 시 BAR/HDM을 <strong style="font-size:1.1em">cacheable 시스템 메모리</strong>에 매핑, RP가 remap offset 동기화. load/store → CXL flit → controller가 firmware와 협력 서비스.<br><br><strong style="font-size:1.1em">5. disaggregation &amp; storage 힌트</strong>: switch/multi-switch/VH + MLD(16)로 multi-host 분해, <strong style="font-size:1.1em">determinism/bufferability</strong>로 GC·persistence 제어.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.3</span></summary>
@@ -154,7 +166,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_004" data-children="node_012,node_024" style="--color:#4B8BBE;border-radius:2px;left:660px;top:1200px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">상용 CXL가 없어 <strong style="font-size:1.1em">FPGA 프로토타입</strong>으로 투영: 자작 <strong style="font-size:1.1em">RISC-V O3 dual-core</strong>(128KB L1, 4MB L2) host + <strong style="font-size:1.1em">OpenExpress 32GB NVMe</strong>(16nm FPGA, backend=Z-NAND emul) storage, PCIe backplane. 비교: DRAM-only / PCIe expander / CXL. Workload = <strong style="font-size:1.1em">Apex-Map</strong>(locality param $\alpha$, 64B, 512M inst).<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>케이스</th><th>결과</th></tr></thead><tbody><tr><td>Best ($\alpha=0.001$, 고locality)</td><td>CXL가 PCIe 대비 <strong style="font-size:1.1em">129.5×</strong>↓, DRAM에 근접</td></tr><tr><td>Average</td><td>CXL가 PCIe 대비 <strong style="font-size:1.1em">3×</strong>↓ (DRAM 대비 9.3× 나쁨)</td></tr><tr><td>Worst ($\alpha=1$, 완전 랜덤)</td><td>CXL가 DRAM 대비 84.1× 나쁨, PCIe 대비 <strong style="font-size:1.1em">1.6×</strong>↑</td></tr></tbody></table></div><div class="ng-seg"><br>핵심 메시지: <strong style="font-size:1.1em">non-cacheable을 극복한 CXL은 고locality에서 DRAM급</strong>, 랜덤에서만 flash 지연이 노출. 대부분 워크로드는 고locality라 대용량 이득이 크다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.4</span></summary>
@@ -162,7 +174,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_005" data-children="node_015,node_016,node_025,node_026,node_029,node_030" style="--color:#4B8BBE;border-radius:2px;left:660px;top:1500px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
   </div>
   <div class="ng-body"><div class="ng-content">CXL을 <strong style="font-size:1.1em">memory expander 관점</strong>에서 보고, block semantic을 byte semantic으로 옮기는 여러 구성을 탐색한 논문. 결론: CXL은 PCIe storage를 값싼 대용량 working memory로 편입시키는 실용적 길이며, <strong style="font-size:1.1em">Type-3 + storage-aware 힌트(determinism/bufferability)</strong>가 그 핵심.<br><br><strong style="font-size:1.1em">의의</strong>: <strong style="font-size:1.1em">'CXL-SSD' 개념의 정립</strong> — [[SkyByte]](Type-3 memory-semantic CXL-SSD)가 이 비전을 실제 co-design으로 구현한다. determinism/bufferability(storage 물성을 host에 힌트로 노출)는 SkyByte의 coordinated context switch(긴 flash 지연을 host에 알림)와 같은 transparent co-design 사고.<br><br><strong style="font-size:1.1em">한계</strong>: (1) 성능 투영이 Apex-Map 합성 + FPGA emul(실 워크로드·실 CXL 실리콘 부재). (2) determinism/bufferability는 <strong style="font-size:1.1em">제안</strong>일 뿐 표준·구현 미완. (3) ★ MLD는 storage를 <strong style="font-size:1.1em">분할</strong>해 각 host에 줄 뿐, <strong style="font-size:1.1em">여러 host가 같은 영역을 coherent하게 공유</strong>하는 것은 다루지 않음(pooling≠sharing). (4) MLD 분할이 backend/internal DRAM 병렬성을 깎아 per-MLD 대역폭 저하.</div><details class="ng-original"><summary>Original <span class="ng-loc">§8, p.6</span></summary>
@@ -170,7 +182,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_006" data-children="node_017" style="--color:#E74C3C;border-radius:2px;left:1180px;top:180px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">non-cacheable BAR의 벽 → CXL로 cacheable</span>
   </div>
   <div class="ng-body"><div class="ng-content">PCIe로도 SSD 내부 DRAM을 BAR로 노출하면 byte `load`/`store`는 된다. 그러나 x86(Intel/AMD)은 PCIe 주소공간으로의 메모리 요청을 캐시하면 <strong style="font-size:1.1em">시스템 실패·storage 단절</strong> 위험이 있어 <strong style="font-size:1.1em">non-cacheable로 강제</strong>한다(BAR는 host가 storage에 '무엇을 요청/제어'하는지 알리는 인터페이스라, 캐시되면 storage가 요청 도착을 못 잡음).<br><br>결과: BAR 접근 성능이 크게 무너지고 storage-integrated expander가 <strong style="font-size:1.1em">메모리 계층에서 배제</strong>된다. <strong style="font-size:1.1em">CXL은 cache-coherent interconnect라 PCIe 주소공간으로의 load/store를 cacheable로</strong> 만들어 이 벽을 정확히 없앤다 — 이게 'CXL이 storage에 필요한' 단 하나의 핵심 이유.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
@@ -178,7 +190,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_017" data-children="node_018" style="--color:#E74C3C;border-radius:2px;left:1710px;top:180px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">초록의 coherence는 Type-1 coherence와 다른가? — 방향·주체가 다름</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">초록: *'CXL manages data coherency mainly between CPU memory spaces and memory on attached devices'* — 이 coherence는 <strong style="font-size:1.1em">Type-1의 coherence와 방향·주체가 다르다.</strong><br><br>초록 문장은 먼저 CXL의 <strong style="font-size:1.1em">일반적 coherence 우산</strong>(CXL.io+.cache+.mem이 한 coherent domain)을 가리킨다. 하지만 이 논문이 CXL-SSD를 <strong style="font-size:1.1em">Type-3</strong>로 만들 때 실제로 쓰는 coherence는 그 우산 중 <strong style="font-size:1.1em">한쪽</strong>이다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>축</th><th>Type-1 coherence</th><th>이 논문 (CXL-SSD = Type-3)</th></tr></thead><tbody><tr><td>프로토콜</td><td><strong style="font-size:1.1em">CXL.cache</strong></td><td><strong style="font-size:1.1em">CXL.mem</strong></td></tr><tr><td>누가 누구 메모리를 캐시</td><td><strong style="font-size:1.1em">device가 host 메모리를</strong></td><td><strong style="font-size:1.1em">host가 device HDM을</strong></td></tr><tr><td>방향</td><td>device $\rightarrow$ host</td><td>host $\rightarrow$ device</td></tr><tr><td>관리 주체</td><td>device가 <strong style="font-size:1.1em">능동 caching agent</strong>(snoop 참여)</td><td><strong style="font-size:1.1em">host가 관리 (HDM-H)</strong>, device는 CXL.cache 미사용</td></tr><tr><td>목적</td><td>가속기가 host 데이터를 coherent하게</td><td>storage HDM을 <strong style="font-size:1.1em">cacheable working memory</strong>로</td></tr></tbody></table></div><div class="ng-seg"><br><strong style="font-size:1.1em">핵심</strong>: Type-3 CXL-SSD의 device는 <strong style="font-size:1.1em">CXL.cache를 아예 안 쓴다</strong>(§3). 그래서 여기 coherence는 'device가 coherence 참여자가 되는 것'이 아니라, <strong style="font-size:1.1em">host CPU가 device의 HDM을 캐시할 때 그 캐시를 host가 일관되게 유지</strong>하는 것 — single-host면 <strong style="font-size:1.1em">HDM-H(host-only coherent)</strong>. 이 논문의 진짜 win도 'device를 caching agent로'가 아니라 <strong style="font-size:1.1em">PCIe에선 non-cacheable이던 storage 접근을 cacheable로</strong> 만든 것(「non-cacheable BAR의 벽」 노드와 직결).<br><br><strong style="font-size:1.1em">두 축 관점</strong>: Type-1 = <strong style="font-size:1.1em">축 A의 'device가 host를 캐시'</strong> 방향, 이 논문 = <strong style="font-size:1.1em">host가 device HDM을 캐시</strong>(single-host라 host-managed HDM-H). 둘 다 single-host지만 방향·주체가 반대다. 여러 host가 같은 HDM을 공유하는 <strong style="font-size:1.1em">축 B(back-invalidate, HDM-DB)</strong>는 또 별개 — 「내 연구방향」 노드 참조.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -186,7 +198,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_018" data-children="node_019" style="--color:#E74C3C;border-radius:2px;left:2240px;top:180px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">coherence의 두 scope: intra-host(항상·자동) vs inter-host(sharing·back-invalidate)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">'sharing 없이도 coherence가 있나?'에서 헷갈리는 이유 — coherence는 <strong style="font-size:1.1em">복사본이 있으면</strong> 필요한데, 그 복사본이 <strong style="font-size:1.1em">한 host 안</strong>이냐 <strong style="font-size:1.1em">host들 사이</strong>냐로 <strong style="font-size:1.1em">scope가 갈린다.</strong><br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th></th><th>intra-host (한 host 안)</th><th>inter-host (host들 사이)</th></tr></thead><tbody><tr><td>복사본</td><td>host 코어 캐시 ↔ 그 host가 보는 메모리(local DRAM / device HDM)</td><td>host A 캐시 ↔ host B 캐시 (같은 shared 영역)</td></tr><tr><td>언제</td><td><strong style="font-size:1.1em">항상</strong> (single-host도)</td><td><strong style="font-size:1.1em">sharing할 때만</strong></td></tr><tr><td>누가</td><td>host home agent가 <strong style="font-size:1.1em">자동</strong>(MESI)</td><td><strong style="font-size:1.1em">device가 back-invalidate</strong>(HDM-DB, CXL 3.0)</td></tr><tr><td>비용</td><td>공짜처럼 보임</td><td>비쌈 $\rightarrow$ 연구 frontier</td></tr></tbody></table></div><div class="ng-seg"><br><strong style="font-size:1.1em">Hello Bytes 초록 case(Type-3, single-host)</strong> = 왼쪽. host 캐시 ↔ device HDM 복사본은 있지만 host가 하나라 inter-host는 없음 $\rightarrow$ <strong style="font-size:1.1em">HDM-H(host-managed)</strong>로 자동 처리. 그래서 'sharing 없이도 coherence가 있다'가 성립(단 그건 intra-host scope).<br><br><strong style="font-size:1.1em">여러 host가 같은 HDM을 공유(sharing)</strong> = 오른쪽. host A·B에 같은 라인 복사본이 생겨 <strong style="font-size:1.1em">inter-host coherence</strong>가 새로 켜진다 $\rightarrow$ device가 directory+back-invalidate로. pooling(독립·분할)엔 없고 sharing에만 있는 층 = <strong style="font-size:1.1em">내 연구</strong>(「내 연구방향」 노드).<br><br><strong style="font-size:1.1em">정밀 표현</strong>: '독립(unshared) 접근이면 coherence 불필요'는 정확히는 <strong style="font-size:1.1em">'inter-host(cross-host) coherence 불필요'</strong>다. intra-host coherence는 sharing 여부와 무관하게 하드웨어가 <strong style="font-size:1.1em">늘</strong> 본다(공짜라 안 보일 뿐). 즉 네 모델('shared되는 순간 host간 coherence를 봐야 한다')은 <strong style="font-size:1.1em">오른쪽 열에서 정확히 맞다.</strong></div></div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -194,14 +206,14 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_019" style="--color:#BDC3C7;border-radius:22px;left:2240px;top:520px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">intra-host / inter-host란? — 'host' = 하나의 coherency domain</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">host</strong> = 하나의 CPU 시스템 = <strong style="font-size:1.1em">하나의 coherency domain</strong>(자기 코어들 + 캐시들을 home agent가 일관되게 관리하는 단위). CXL에서 'host 하나'는 보통 하나의 CXL root port를 가진 하나의 서버/소켓 복합체다.<br><br>- <strong style="font-size:1.1em">intra-host(호스트 내부)</strong>: 그 <strong style="font-size:1.1em">한 host의 경계 안</strong> — 코어들·캐시들·그 host가 매핑한 메모리(local DRAM이든 device HDM이든). 여기 coherence는 host home agent가 <strong style="font-size:1.1em">자동</strong>(MESI).<br>- <strong style="font-size:1.1em">inter-host(호스트 간)</strong>: <strong style="font-size:1.1em">서로 다른 host들 사이</strong> — 각자 <strong style="font-size:1.1em">별개 coherency domain</strong>. 이들을 잇는 선/프로토콜이 원래 없어서, 여러 host가 같은 메모리를 캐시하면 그 사이 coherence는 누군가 <strong style="font-size:1.1em">새로 놓아야</strong> 한다(CXL 3.0 device back-invalidate).<br><br><strong style="font-size:1.1em">핵심 경계</strong>: coherence domain은 <strong style="font-size:1.1em">host 경계에서 끊긴다.</strong> 그래서 'intra'는 하드웨어가 늘 공짜로 처리하고, 'inter'는 CXL이 새로 풀어야 하는 문제.<br><br><strong style="font-size:1.1em">일반 패턴</strong>: '한 단위 <strong style="font-size:1.1em">안</strong>(intra) vs 단위<strong style="font-size:1.1em">들 사이</strong>(inter)'라는 구분은 CXL만의 것이 아니다 — parallelism에서도 <strong style="font-size:1.1em">intra-node/inter-node</strong>(NVLink vs network), <strong style="font-size:1.1em">intra-layer/inter-layer</strong>(TP vs PP)로 똑같이 나타난다. 의미는 동일(within vs between), 표현만 다름. $\rightarrow$ Parallelism 노트 참조.</div></div>
 </div>
 <div class="ng-node" id="node-node_007" style="--color:#E74C3C;border-radius:2px;left:1180px;top:480px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">byte-addressability는 오랜 꿈 + 내부 DRAM = write-back cache</span>
   </div>
   <div class="ng-body"><div class="ng-content">PCIe storage에 byte-addressability를 주는 건 오랜 목표다 — 2B-SSD·NVMe 표준이 SSD <strong style="font-size:1.1em">내부 DRAM/buffer를 BAR로</strong> 노출해 host가 local memory처럼 load/store하게 한다. 그리고 그 내부 DRAM을 backend block media(<strong style="font-size:1.1em">Z-NAND/Flash/Optane</strong>)의 <strong style="font-size:1.1em">write-back inclusive cache</strong>로 써서 긴 backend 지연을 숨긴다.<br><br>즉 하드웨어적 재료(byte 인터페이스 + 내부 DRAM cache)는 이미 있다. 빠진 것은 그 접근을 <strong style="font-size:1.1em">CPU cache에 태우는 것</strong>인데, 그게 바로 non-cacheable 벽(왼쪽 노드) 때문에 막혀 있었다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
@@ -209,7 +221,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_008" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:780px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">세 protocol과 세 device type</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">CXL의 세 sub-protocol과 그 조합으로 정의되는 세 type:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Protocol</th><th>역할</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">CXL.io</strong></td><td>기본(모든 device 필수). PCIe 기능·FlexBus, 비coherent I/O</td></tr><tr><td><strong style="font-size:1.1em">CXL.cache</strong></td><td>device가 host 메모리를 coherent 캐시</td></tr><tr><td><strong style="font-size:1.1em">CXL.mem</strong></td><td>host가 device HDM을 load/store</td></tr></tbody></table></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Type</th><th>프로토콜</th><th>성격</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">1</strong></td><td>.io+.cache</td><td>로컬 캐시만(내부 DRAM 없음), TPU류</td></tr><tr><td><strong style="font-size:1.1em">2</strong></td><td>.io+.cache+.mem</td><td>HDM+연산, host↔device 양방향 coherent</td></tr><tr><td><strong style="font-size:1.1em">3</strong></td><td>.io+.mem</td><td>HDM만(연산 없음), 순수 memory expander</td></tr></tbody></table></div><div class="ng-seg"><br>Type-3는 CXL.cache를 안 쓰지만 CXL.mem의 read/write로 HDM 확장이 된다. CXL.io는 device-side에서 관리해 다양한 I/O 수요 수용.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.2</span></summary>
@@ -217,7 +229,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_009" style="--color:#E74C3C;border-radius:2px;left:1180px;top:930px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">★ 왜 Type-3인가 — 3가지 이유 (vs Type-2)</span>
   </div>
   <div class="ng-body"><div class="ng-content">저자가 storage-integrated memory expander로 <strong style="font-size:1.1em">Type-3를 옹호</strong>하는 3가지 근거:<br><br><strong style="font-size:1.1em">(1) 확장성</strong>: Type-2는 연산집약 가속용이라 <strong style="font-size:1.1em">CXL RP당 device 1개</strong>만 연결 가능 → Type-3만큼 scalable하지 않다.<br><br><strong style="font-size:1.1em">(2) CXL.cache 오버헤드</strong>: Type-2의 풀피처(CXL.cache+.mem)는 매 `load`/`store`가 PCIe storage 연산복합체의 <strong style="font-size:1.1em">cache 상태를 확인</strong>해야 해서, I/O마다 여러 CXL transaction 발생 → 성능 저하.<br><br><strong style="font-size:1.1em">(3) host 허가 비용</strong>: Type-2의 CXL.cache는 host local memory와 HDM을 <strong style="font-size:1.1em">모두 coherent 관리</strong>하므로, storage-side 연산이 자기 메모리를 접근할 때마다 <strong style="font-size:1.1em">host 허가</strong>가 필요 → device I/O 성능이 오히려 악화.<br><br>→ 이게 SkyByte를 비롯한 CXL-SSD가 <strong style="font-size:1.1em">Type-3인 1차 논거</strong>. (우리가 대화로 정리한 'Type-2는 왜 안 되나'의 원출처.)</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.3</span></summary>
@@ -225,7 +237,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1080px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Storage-side 최소 수정으로 Type-3 지원</span>
   </div>
   <div class="ng-body"><div class="ng-content">PCIe storage는 이미 <strong style="font-size:1.1em">PCIe endpoint + NVMe controller</strong>로 요청을 파싱하고 데이터를 옮긴다. 따라서 Type-3 지원의 HW 변경은 작다: (a) 기존 <strong style="font-size:1.1em">PCIe endpoint 로직을 재활용</strong>해 CXL transaction packet formatting·CXL.io 제어, (b) 기존 <strong style="font-size:1.1em">NVMe controller의 command parsing·page copy 기능을 단순화</strong>해 CXL.mem read/write 인터페이스 구현, (c) <strong style="font-size:1.1em">firmware가 내부 DRAM + backend block media 관리</strong>. NVMe 스펙은 controller를 firmware/hardware 어느 쪽으로도 구현 가능케 하므로, CXL.mem read/write는 hardware로 자동화하고 내부 DRAM 관리는 firmware로 두는 게 낫다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.3</span></summary>
@@ -233,7 +245,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1260px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">시스템 통합 흐름 (BAR/HDM 매핑 → flit)</span>
   </div>
   <div class="ng-body"><div class="ng-content">부팅 시 host가 RP에 연결된 CXL device를 enumerate하고, CXL <strong style="font-size:1.1em">BAR + HDM</strong> 크기를 받아 <strong style="font-size:1.1em">cacheable 시스템 메모리</strong>에 매핑한다. HDM이 device가 원래 관리하던 주소와 다른 곳에 매핑되므로, <strong style="font-size:1.1em">CXL RP가 CXL controller에 remap offset을 동기화</strong>한다(target storage의 CXL capability/config 영역에 기록).<br><br>app이 HDM(=시스템 메모리)에 load/store → <strong style="font-size:1.1em">CXL RP가 CXL flit 생성</strong> → CXL.mem으로 storage controller에 전달 → endpoint+CXL controller가 flit 파싱해 command·target address 추출 → <strong style="font-size:1.1em">firmware와 협력해 데이터 서비스</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4, p.4</span></summary>
@@ -241,7 +253,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1410px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Disaggregation 3토폴로지 + MLD(16) + multi-host</span>
   </div>
   <div class="ng-body"><div class="ng-content">storage를 컴퓨팅에서 분해하는 세 구성(Fig.3): <strong style="font-size:1.1em">(a) Switch</strong>(DSP→각 storage, USP→host RP; switch 레인 64~128 → 16-lane storage 4~8개), <strong style="font-size:1.1em">(b) Multi-switch</strong>(top switch가 host RP+하위 브리지, leaf switch가 다수 storage; network 최대 <strong style="font-size:1.1em">4PB</strong>), <strong style="font-size:1.1em">(c) Virtual Hierarchy(VH)</strong>(FM crossbar가 host↔storage 경로 기억 → 완전 분해).<br><br><strong style="font-size:1.1em">Multi-host + storage 가상화</strong>: 각 storage를 <strong style="font-size:1.1em">MLD(multiple logical device, 최대 16)</strong>로 논리 분할, 각 MLD가 자기 HDM을 서로 다른 host에 매핑(물리 storage처럼). <strong style="font-size:1.1em">단점</strong>: 대역폭 공유·트래픽 혼잡, backend/internal DRAM 분할로 <strong style="font-size:1.1em">병렬성·per-MLD 대역폭 저하</strong>. (우리가 정리한 MLD 논의의 원출처.)</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.5</span></summary>
@@ -249,7 +261,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1560px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Storage 힌트: determinism / bufferability (+ GPF)</span>
   </div>
   <div class="ng-body"><div class="ng-content">Type-3는 memory pooling용이라 storage 특유의 <strong style="font-size:1.1em">(i) latency fluctuation(GC 등 internal task)</strong>, <strong style="font-size:1.1em">(ii) data persistence</strong> 문제가 남는다. 저자는 CXL.mem <strong style="font-size:1.1em">예약 필드</strong>에 두 힌트를 달자고 제안:<br><br>- <strong style="font-size:1.1em">Determinism</strong>: `DT`(internal task 개입 없이 즉시 서비스) / `ND`(fire-and-forget → storage가 GC 등 스케줄 가능).<br>- <strong style="font-size:1.1em">Bufferability</strong>: `BF`(SSD 내부 DRAM에 캐시/버퍼 허용) / `NB`(persistence first-class → block media 기록).<br><br>조합(BF+DT/BF+ND/NB+DT/NB+ND) + <strong style="font-size:1.1em">GPF(global persistent flush)</strong>로 DB 로깅·트랜잭션·lock 시나리오 최적화(예: 로그는 BF+ND로 버퍼링, commit 시 GPF+NB+DT). loads는 대개 DT, prefetch엔 BF. <strong style="font-size:1.1em">storage 물성을 host가 힌트로 조종</strong>하는 co-design 사고 — SkyByte의 방향과 통한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7, p.6</span></summary>
@@ -257,7 +269,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_012" style="--color:#9B59B6;border-radius:2px;left:1180px;top:1740px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Apex-Map 투영: PCIe 대비 129.5×(best)/3×(avg), DRAM 근접</span>
   </div>
   <div class="ng-body"><div class="ng-content">Apex-Map(locality $\alpha$)으로 DRAM/PCIe/CXL 비교(Fig.2):<br><br>- <strong style="font-size:1.1em">Best($\alpha=0.001$)</strong>: 대부분 CPU cache hit → PCIe는 cache를 못 써 CXL 대비 <strong style="font-size:1.1em">129.5×</strong> 긴 지연. CXL ≈ DRAM.<br>- <strong style="font-size:1.1em">Average</strong>: CXL가 PCIe 대비 <strong style="font-size:1.1em">3×</strong> 빠름. DRAM 대비 9.3× 나쁘지만 block storage 감안 시 합리적.<br>- <strong style="font-size:1.1em">Worst($\alpha=1$, 완전 랜덤)</strong>: CXL가 Z-NAND 지연을 못 숨겨 DRAM 대비 84.1× 나쁨. 그래도 PCIe 대비 <strong style="font-size:1.1em">1.6×</strong>(PCIe는 BAR 요청을 동기 처리).<br><br>결론: non-cacheable을 극복한 CXL은 <strong style="font-size:1.1em">고locality에서 DRAM급</strong>, 랜덤에서만 flash 지연 노출. §7의 힌트로 이 긴 지연을 완화할 수 있다고 주장.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.4</span></summary>
@@ -265,21 +277,21 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_015" style="--color:#BDC3C7;border-radius:22px;left:1180px;top:1920px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">계보/발표축: 'CXL-SSD' 개념의 정립 → SkyByte 구현</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문은 <strong style="font-size:1.1em">'CXL-SSD'라는 개념과 그 설계 좌표(Type-3, storage 힌트)를 처음 세운</strong> 글이고, [[SkyByte]]는 그 비전을 <strong style="font-size:1.1em">실제 co-design으로 구현</strong>한 관계다.<br><br>- <strong style="font-size:1.1em">개념(여기)</strong>: Type-3가 옳다 + determinism/bufferability로 storage 물성을 host에 힌트.<br>- <strong style="font-size:1.1em">구현(SkyByte)</strong>: Type-3 CXL-SSD + coordinated context switch(긴 flash 지연을 host에 알림) + cacheline write log.<br><br>determinism/bufferability와 SkyByte의 context switch는 <strong style="font-size:1.1em">같은 transparent co-design 사고</strong>(storage 내부 상태를 host에 노출해 함께 최적화). 내 <strong style="font-size:1.1em">'SSD 이중역할 × transparent co-design'</strong> 발표축의 <strong style="font-size:1.1em">개념적 원점</strong> — 그리고 우리가 대화로 정리한 Type 1/2/3·MLD·pooling 논의가 전부 여기서 출발한다([[CXL Overview]]에 정리).</div></div>
 </div>
 <div class="ng-node" id="node-node_016" style="--color:#1ABC9C;border-radius:22px;left:1710px;top:1920px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향: MLD 분할(pooling) → 공유(sharing) coherence</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문의 multi-host는 <strong style="font-size:1.1em">MLD로 storage를 분할</strong>해 각 조각을 다른 host에 주는 것 — 즉 <strong style="font-size:1.1em">pooling(분할)</strong>이지 <strong style="font-size:1.1em">sharing(공유)</strong>이 아니다. 여러 host가 <strong style="font-size:1.1em">같은 HDM 영역을 동시에</strong> coherent하게 쓰는 시나리오는 다루지 않는다(각 MLD는 한 host 전용).<br><br>내 방향(multi-node coherence)은 정확히 그 다음 — MLD 분할을 넘어 <strong style="font-size:1.1em">공유된 CXL-SSD 영역</strong>에서 host 간 캐시 일관성을 어떻게 보장할지(<strong style="font-size:1.1em">directory + back-invalidate, HDM-DB, CXL 3.0</strong>). determinism/bufferability 같은 storage 힌트도 <strong style="font-size:1.1em">공유 상황에서 누가 어떤 힌트를 세우나</strong>로 재정의된다. 즉 이 논문의 개념 프레임(Type-3·힌트·MLD)을 multi-host coherent 공유로 확장하는 게 gap. → [[CXL Multi-node Coherence]], [[CXL Overview]]</div></div>
 </div>
 <div class="ng-node" id="node-node_020" style="--color:#BDC3C7;border-radius:22px;left:100px;top:100px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🏛️ 학회: HotStorage 2022 — 도발적 vision/position 보상, 평가 부재 관대</span>
   </div>
   <div class="ng-body"><div class="ng-content">HotStorage는 도발적 <strong style="font-size:1.1em">vision/position</strong> paper를 위한 workshop이다. 완성된 평가·실측보다 <strong style="font-size:1.1em">새 문제 프레이밍·통찰</strong>을 보상하고 평가 부재엔 관대하되, <strong style="font-size:1.1em">통찰·문제 프레이밍이 약하면 탈락</strong>한다.<br><br>이 글은 <strong style="font-size:1.1em">single-author 7-page position paper</strong>로, 상용 CXL 실리콘도 없던 2022년에 'PCIe block storage를 CXL로 byte-addressable memory expander로' 재정의하며 <strong style="font-size:1.1em">'CXL-SSD'라는 개념 좌표(Type-3 + storage 힌트)</strong>를 처음 세웠다. §1은 이 논문 전체를 4개 질문(why/how/which-type/what-to-improve)으로 프레이밍한다.<br><br><strong style="font-size:1.1em">판단 축 세팅</strong>: 그래서 아래 ✅는 <strong style="font-size:1.1em">'개념 정립·문제 프레이밍의 날카로움'</strong> 축에서, ⚠️는 <strong style="font-size:1.1em">'제안일 뿐 구현·표준·실측 부재'</strong> 축에서 읽어야 한다. HotStorage taste에선 후자가 치명적 감점이 아니라 <strong style="font-size:1.1em">예상된 것</strong> — position paper의 정상 범위다. 반대로 통찰이 평범했다면 여기서 떨어졌을 것.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.45</span></summary>
@@ -287,7 +299,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_021" style="--color:#E74C3C;border-radius:2px;left:100px;top:380px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">✅ 잘한 점: non-cacheable BAR의 벽을 정확히 짚고 CXL=cacheable로 압축</span>
   </div>
   <div class="ng-body"><div class="ng-content">reviewer가 산 지점 = <strong style="font-size:1.1em">문제 프레이밍의 정확성</strong>. '왜 지금껏 PCIe SSD를 memory로 못 썼나'를 대역폭 부족이 아니라 <strong style="font-size:1.1em">x86이 PCIe 접근을 non-cacheable로 강제</strong>하는 것으로 지목한다. 대역폭 가설은 수치로 먼저 배제(PCIe Gen5/6 = 63~121 GB/s로 far memory에 충분)하고, 그 위에서 CXL의 단 하나의 본질적 기여를 <strong style="font-size:1.1em">'그 접근을 cacheable로'</strong>로 압축.<br><br>이 한 통찰이 논문 전체 argument의 축이다 — §5의 129.5× 실험도 결국 'PCIe는 CPU cache를 못 쓴다'는 이 명제의 정량 증거일 뿐. HotStorage가 보상하는 <strong style="font-size:1.1em">'기존 문제를 새 각도로 재정의'</strong>에 정확히 부합해, 단순 CXL hype가 아니라 <strong style="font-size:1.1em">한 문장으로 반증 가능한 명제</strong>로 vision을 세운 게 강점.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.46</span></summary>
@@ -295,7 +307,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_022" style="--color:#E74C3C;border-radius:2px;left:100px;top:660px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">✅ 잘한 점: Type-3 선택을 3개 구조적 논거로 정당화 (position인데 반증 가능하게)</span>
   </div>
   <div class="ng-body"><div class="ng-content">position paper의 설득력은 '왜 이 설계점인가'를 얼마나 촘촘히 논증하느냐다. 저자는 Type-3를 <strong style="font-size:1.1em">선언하지 않고</strong> Type-2와의 대비로 3개 <strong style="font-size:1.1em">구조적</strong> 논거를 든다: (1) 확장성(RP당 device 1개 제한), (2) CXL.cache 풀피처의 매 I/O cache-state 확인 오버헤드, (3) storage 연산의 host 허가 비용.<br><br>(논거의 *내용*은 기존 「왜 Type-3인가」 노드 소관 — 여기선 <strong style="font-size:1.1em">reviewer 관점</strong>만.) vision paper인데도 device type 선택을 <strong style="font-size:1.1em">확장성·오버헤드·허가</strong>의 세 축으로 나눠 <strong style="font-size:1.1em">각각 반박 가능한 형태</strong>로 못박은 점이 이 논문을 hype에서 구분한 accept 근거. 그리고 이 논증이 SkyByte 등 후속이 'CXL-SSD=Type-3'를 채택할 때 인용하는 1차 근거가 됐다(개념적 파급력).</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.47</span></summary>
@@ -303,7 +315,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_023" style="--color:#E74C3C;border-radius:2px;left:100px;top:940px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">✅ 잘한 점: determinism/bufferability — vision을 실행 가능한 프로토콜 어젠다로 내림</span>
   </div>
   <div class="ng-body"><div class="ng-content">'SSD를 memory로 쓰자'에 그치지 않고, memory pooling용 Type-3가 storage로선 못 다루는 <strong style="font-size:1.1em">두 물성(GC latency fluctuation, persistence)</strong>을 짚고, CXL.mem <strong style="font-size:1.1em">예약 필드에 DT/ND·BF/NB 힌트</strong>를 얹자는 구체 메커니즘까지 제안한다. reviewer가 좋게 볼 지점 = vision을 <strong style="font-size:1.1em">'그래서 프로토콜을 이렇게 바꾸면'</strong>까지 내려 후속 연구 어젠다로 만든 것.<br><br>이 <strong style="font-size:1.1em">transparent co-design 씨앗</strong>(storage 내부 상태를 host에 힌트로 노출)이 곧 SkyByte의 coordinated context switch(긴 flash 지연을 host에 알림)로 이어진다 — 즉 이 노드는 논문의 '두 번째 기여 축'이자, 개념이 실제 구현으로 번지는 접점.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7, p.50</span></summary>
@@ -311,7 +323,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_024" style="--color:#1ABC9C;border-radius:22px;left:100px;top:1220px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">⚠️ 아쉬운 점: 성능 근거가 Apex-Map 합성 + FPGA Z-NAND emul (실 워크로드·실 CXL 부재)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">reviewer 질문</strong>: 129.5×/3× 이득이 실제 애플리케이션에서도 나오나? locality 파라미터 $\alpha$를 스윕하는 <strong style="font-size:1.1em">Apex-Map은 합성 벤치</strong>일 뿐, DB·graph·KVS 같은 실 워크로드 trace가 없다. 게다가 CXL 실리콘이 없어 <strong style="font-size:1.1em">RISC-V O3 core + OpenExpress NVMe를 FPGA로 emul, backend도 Z-NAND emul</strong> — CXL flit latency 모델의 신뢰도는? worst-case($\alpha=1$)는 DRAM 대비 84.1× 나쁜데, '실 워크로드의 locality는 best쪽'이라는 건 저자 믿음('we believe')에 기댄다.<br><br><strong style="font-size:1.1em">저자 방어</strong>: 저자 스스로 §5에서 'somewhat disappointed', §8에서 'performance projection is imperfect'라 인정하고, HotStorage는 <strong style="font-size:1.1em">상용 CXL 부재 시점의 vision paper</strong>라 정량 rigor보다 방향 제시가 목적 — venue taste상 예상된 약점이지 reject 사유가 아니다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.48</span></summary>
@@ -319,7 +331,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_025" style="--color:#1ABC9C;border-radius:22px;left:100px;top:1500px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">⚠️ 아쉬운 점: DT/BF는 제안일 뿐 — 인코딩·구현·평가·정책 전부 미정</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">reviewer 질문</strong>: determinism/bufferability와 GPF는 CXL.mem 예약 필드에 얹자는 <strong style="font-size:1.1em">아이디어 스케치일 뿐</strong>, 실제 비트 인코딩·컨트롤러 구현·성능 평가가 하나도 없다. host가 <strong style="font-size:1.1em">어떤 힌트를 언제 세울지</strong>(컴파일러? 런타임? PMDK?)의 정책, 힌트 오분류 시 correctness(NB인데 BF로 표기하면 persistence 깨짐), 예약 필드 소모의 표준화 경로가 전부 미정. 따라서 '§5의 긴 지연을 이 힌트로 완화할 수 있다'는 주장은 <strong style="font-size:1.1em">검증되지 않은 채</strong> 남는다.<br><br><strong style="font-size:1.1em">저자 방어</strong>: 본문이 'suggest ... and debate how these additional states can be beneficial'로 명시적 <strong style="font-size:1.1em">discussion 성격</strong> — position paper의 열린 제안이다. 그럼에도 '두 번째 기여 축이 미검증'은 남고, 실제로 <strong style="font-size:1.1em">SkyByte는 이 문제를 힌트가 아니라 context switch로 다르게 풀어</strong> 이 제안 경로의 미완결을 방증한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.46</span></summary>
@@ -327,7 +339,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_026" style="--color:#1ABC9C;border-radius:22px;left:100px;top:1780px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">⚠️ 아쉬운 점: MLD는 분할(pooling)일 뿐 — 여러 host 공유 coherence가 scope 밖</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">reviewer 질문</strong>: §6의 'virtualize each storage device to be shared by different hosts'는 실은 <strong style="font-size:1.1em">각 MLD를 한 host에 전용 매핑하는 분할(pooling)</strong>이지, 여러 host가 같은 HDM 영역을 동시에 coherent하게 쓰는 <strong style="font-size:1.1em">sharing이 아니다</strong>. 저자 자신이 MLD 분할이 backend/internal DRAM 병렬성을 깎아 per-MLD 대역폭을 떨어뜨린다고 인정. 그렇다면 진짜 disaggregation의 핵심(공유 데이터의 <strong style="font-size:1.1em">host 간 일관성</strong>)이 빠져 있다 — 'shared'라는 단어가 오해를 부른다.<br><br><strong style="font-size:1.1em">저자 방어</strong>: 2022년 <strong style="font-size:1.1em">CXL 2.0</strong> 시점엔 device-side back-invalidate(HDM-DB, CXL 3.0)가 아직 없어 <strong style="font-size:1.1em">host 간 sharing coherence 자체가 프로토콜 밖</strong> — 그래서 pooling까지가 정당한 scope. → 이 누락 지점이 정확히 내 연구 gap(아래 🧭)이자 SkyByte도 single-host로 남긴 자리.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.49</span></summary>
@@ -335,7 +347,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_027" style="--color:#E5A835;border-radius:22px;left:100px;top:2060px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 20%,transparent);color:#E5A835">Question</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🔀 왜 Type-3인가 — Type-2도 갈 수 있었는데 (역설계)</span>
   </div>
   <div class="ng-body"><div class="ng-content">설계자라면 storage-integrated expander에 세 갈래가 있다: <strong style="font-size:1.1em">(A) Type-3</strong>(.io+.mem, HDM만), <strong style="font-size:1.1em">(B) Type-2</strong>(.io+.cache+.mem, HDM+연산), (C) Type-1.<br><br><strong style="font-size:1.1em">(B) Type-2는 실제로 매력적 갈래였다</strong> — 저자 스스로 'Type 2 can probably be a good option for utilizing HDM and/or integrating data processing capabilities into the storage'라 인정한다. computational storage(연산을 SSD로) 흐름과도 정합.<br><br><strong style="font-size:1.1em">그런데 버린다</strong>: (1) RP당 device 1개→비확장, (2) 매 I/O cache-state 확인, (3) storage 연산의 host 허가. 즉 저자는 <strong style="font-size:1.1em">'storage side가 host CPU cache까지 coherent하게 관리할 필요는 없다'</strong>(내부 DRAM 관리 ≠ host cache coherence)는 관찰로 Type-2의 CXL.cache를 통째로 잘라낸다.<br><br><strong style="font-size:1.1em">저자가 안 판 갈래(gap 후보)</strong>: '연산형 CXL-SSD(Type-2)에서 확장성·허가 오버헤드를 완화하는' 방향 = computational CXL-SSD의 열린 설계공간. <strong style="font-size:1.1em">좁힌 기준</strong>: 결론은 어디까지나 <strong style="font-size:1.1em">'순수 memory expansion 목적'</strong> 하에서만 Type-3가 dominant — 목적이 in-storage compute면 저울이 달라진다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4/§3, p.47</span></summary>
@@ -343,7 +355,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_028" style="--color:#95A5A6;border-radius:22px;left:100px;top:2340px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 20%,transparent);color:#95A5A6">Reference</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">📐 P/L: 기존 PCIe BAR 접근 = non-cacheable 강제 (관점 P → 구조적 한계 L → CXL의 P″)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>해법</th><th>관점 (문제를 본 렌즈)</th><th>결과로 남는 것</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">PCIe BAR expander</strong> (2B-SSD, NVMe)</td><td><strong style="font-size:1.1em">P</strong>: SSD를 host의 *peripheral / I/O device*로 봄 → BAR로의 memory 요청을 storage가 <strong style="font-size:1.1em">반드시 가로채야</strong> 함</td><td><strong style="font-size:1.1em">L(구조적)</strong>: x86이 PCIe 접근을 <strong style="font-size:1.1em">non-cacheable로 강제</strong> → CPU cache 원천 봉쇄, storage가 메모리 계층에서 배제</td></tr><tr><td><strong style="font-size:1.1em">CXL-SSD</strong> (이 논문)</td><td><strong style="font-size:1.1em">P″</strong>: SSD를 host와 <strong style="font-size:1.1em">같은 coherent domain의 memory</strong>로 봄</td><td>접근이 <strong style="font-size:1.1em">cacheable</strong> → CPU cache 계층에 편입, non-cacheable L 소멸</td></tr></tbody></table></div><div class="ng-seg"><br><strong style="font-size:1.1em">L의 핵심(성능이 아니라 관점의 귀결)</strong>: 느려서가 아니다. storage를 *peripheral*로 보는 관점이면 CPU가 요청을 캐시하는 순간 <strong style="font-size:1.1em">storage가 요청 도착을 못 잡아 system failure / storage disconnection</strong> 위험 → 그래서 x86이 <strong style="font-size:1.1em">구조적으로 non-cacheable일 수밖에</strong> 없다. 관점 P를 'peripheral'→'coherent memory'(P″)로 바꾸는 것만으로 L 전체가 사라진다 — 이 논문의 novelty가 P vs P″ 대비에서 나온다는 증거.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.46</span></summary>
@@ -351,14 +363,14 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_029" style="--color:#BDC3C7;border-radius:22px;left:100px;top:2620px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">📍 위치: CXL-SSD 비전(개념) → SkyByte가 구현, DirectCXL·FlatFlash 계보</span>
   </div>
   <div class="ng-body"><div class="ng-content">HotStorage 2022의 이 글은 <strong style="font-size:1.1em">'CXL-SSD' 좌표(Type-3 + storage 힌트)를 세운 개념/비전</strong> 노드다. 같은 <strong style="font-size:1.1em">KAIST CAMELab</strong> 계보에서 역할이 분담된다:<br><br>- <strong style="font-size:1.1em">개념/비전 (여기)</strong>: 무엇을·왜 — block을 byte로, Type-3가 옳다, storage 물성을 힌트로.<br>- <strong style="font-size:1.1em">하드웨어 실증</strong>: [[DirectCXL - Direct Access, High-Performance Memory Disaggregation]] — 실물 CXL.mem 분해 프로토타입.<br>- <strong style="font-size:1.1em">구현 (co-design)</strong>: [[SkyByte]] (HPCA'25) — Type-3 memory-semantic CXL-SSD를 OS·HW co-design으로 실제 설계.<br>- <strong style="font-size:1.1em">개념적 뿌리</strong>: [[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]] — byte-accessible SSD의 통합 메모리-스토리지 계층(본문 [10]으로 직접 인용).<br><br>즉 이 논문 = <strong style="font-size:1.1em">비전(무엇을·왜)</strong>, 나머지 = <strong style="font-size:1.1em">실증/구현(어떻게)</strong>. 'HotStorage가 vision을 던지고 상위 venue(ISCA/HPCA/ASPLOS)가 그 vision을 받아 실증한다'는 workshop의 역할이 이 계보로 확인된다.</div></div>
 </div>
 <div class="ng-node" id="node-node_030" style="--color:#1ABC9C;border-radius:22px;left:100px;top:2900px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🧭 내 연구: MLD 분할(pooling) → 공유(sharing) coherence P′</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문이 남긴 <strong style="font-size:1.1em">L</strong>(위 ⚠️: MLD는 storage를 분할해 각 조각을 한 host에 줄 뿐) = <strong style="font-size:1.1em">여러 host가 같은 HDM을 동시에 공유할 때의 host 간 coherence</strong>가 통째로 빠짐.<br><br>내 관점 <strong style="font-size:1.1em">P′</strong> = *pooling을 sharing으로* — <strong style="font-size:1.1em">directory + device back-invalidate(HDM-DB, CXL 3.0)</strong>로 공유 CXL-SSD 영역의 일관성·write log 최신성·promotion 순서를 재정의. determinism/bufferability 같은 storage 힌트도 '공유 상황에서 <strong style="font-size:1.1em">누가</strong> 어떤 힌트를 세우나'로 다시 물어야 한다.<br><br>P′는 refs의 L에서 직접 유도됨(억지 novelty 아님). *상세 전개는 기존 「내 연구방향: MLD 분할(pooling) → 공유(sharing) coherence」 노드에 위임 — 여기선 reviewer가 짚은 scope 누락(위 ⚠️)에서 P′가 도출되는 사슬만 명시.*</div></div>
@@ -370,9 +382,23 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
   <span id="lightbox-close" onclick="closeLightbox()">✕</span>
 </div>
 <script>
-var NODES_DATA = [{"id":"node_001","lx":660,"ly":300,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":300,"searchText":"killer application 이 논문은 **'cxl-ssd'라는 개념을 정립한 비전/포지션 논문**이다. 값싸고 대용량인 **pcie block storage를, cxl로 host cpu에 붙여 byte-addressable working memory로** 바꾸자고 논증한다.\n\n**killer application 1 — block을 byte로, non-cacheable을 cacheable로**: pcie로 ssd 내부 dram을 bar로 노출해도 x86이 그 접근을 **non-cacheable로 강제**해 성능이 무너진다. cxl은 cache-coherent라 이 접근을 **cacheable**로 만들어 storage를 메모리 계층에 편입시킨다.\n\n**killer application 2 — 왜 type-3인가의 논거**: 세 device type 중 **type-3가 storage-integrated memory expander에 최적**임을 3가지 이유(확장성·cxl.cache 오버헤드·host 허가)로 논증 → skybyte류 cxl-ssd가 type-3인 근거.\n\n**killer application 3 — storage 물성을 위한 프로토콜 힌트**: gc 지연·persistence를 다루도록 cxl.mem 예약 필드에 **determinism/bufferability** 힌트를 달자고 제안.\n\nfpga 투영: 고locality에서 cxl가 pcie 대비 **129.5×**, 평균 **3×** 빠르고 dram에 근접. we advocate that cxl can open a new door that changes pcie storage's block interface to a memory-like, byte interface."},{"id":"node_002","lx":660,"ly":600,"children":["node_007","node_020","node_028"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":600,"searchText":"필요한 이유 (why it's needed) pcie storage가 byte-addressable memory가 되는 건 **오랜 꿈**이다(2b-ssd·nvme가 ssd 내부 dram을 bar로 노출; 내부 dram을 backend flash의 write-back cache로 써 긴 지연 은닉).\n\n그런데 **결정적 벽**: pcie 대역폭은 far memory로 충분(gen5/6 16× = 63~121 gb/s)한데도, pcie는 storage를 **peripheral**로 취급해 cpu가 bar로의 `load`/`store`를 **non-cacheable**로 해야 한다. x86(intel/amd)은 pcie 메모리 요청을 캐시하면 **시스템 실패·storage 단절** 위험이 있어 아예 금지한다.\n\n결과: non-cacheable 접근이 성능을 크게 떨어뜨리고, **storage-integrated memory expander가 메모리 계층에서 배제**되며 cpu cache를 못 쓴다. 이게 cxl이 필요한 이유 — cache-coherent라 이 접근을 cacheable로 만든다. this non-cacheable characteristic severely degrades the performance of all memory accesses targeting the bars ... enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy."},{"id":"node_003","lx":660,"ly":900,"children":["node_008","node_009","node_010","node_011","node_013","node_014","node_021","node_022","node_023","node_027"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":900,"searchText":"해결책 (solution) pcie storage를 cxl로 host 메모리에 편입시키되, **type-3**로 하고 storage 물성을 힌트로 다룬다.\n\n**1. 세 protocol / 세 type**: cxl.io(기본, pcie·flexbus), cxl.cache(device가 host mem 캐시), cxl.mem(host가 hdm 접근) → type-1/2/3 정의.\n\n**2. ★ type-3 옹호**: type-2 대비 (i) rp당 device 1개 제한 없이 **확장** 가능, (ii) cxl.cache 풀피처의 **매 i/o cache-state 확인 오버헤드** 없음, (iii) storage-side 연산의 **host 허가** 불필요.\n\n**3. storage-side 최소 수정**: 기존 pcie endpoint 로직 재활용 + nvme controller를 cxl.mem read/write로 단순화 → 대부분 ssd가 minor 수정으로 type-3 지원.\n\n**4. 시스템 통합**: 부팅 시 bar/hdm을 **cacheable 시스템 메모리**에 매핑, rp가 remap offset 동기화. load/store → cxl flit → controller가 firmware와 협력 서비스.\n\n**5. disaggregation & storage 힌트**: switch/multi-switch/vh + mld(16)로 multi-host 분해, **determinism/bufferability**로 gc·persistence 제어. we advocate type 3 for a storage-integrated memory expander in cxl. there are three reasons why we believe that type 3 devices are better than type 2 devices for the storage-integrated memory expander."},{"id":"node_004","lx":660,"ly":1200,"children":["node_012","node_024"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1200,"searchText":"결과 (results) 상용 cxl가 없어 **fpga 프로토타입**으로 투영: 자작 **risc-v o3 dual-core**(128kb l1, 4mb l2) host + **openexpress 32gb nvme**(16nm fpga, backend=z-nand emul) storage, pcie backplane. 비교: dram-only / pcie expander / cxl. workload = **apex-map**(locality param $\\alpha$, 64b, 512m inst).\n\n| 케이스 | 결과 |\n|---|---|\n| best ($\\alpha=0.001$, 고locality) | cxl가 pcie 대비 **129.5×**↓, dram에 근접 |\n| average | cxl가 pcie 대비 **3×**↓ (dram 대비 9.3× 나쁨) |\n| worst ($\\alpha=1$, 완전 랜덤) | cxl가 dram 대비 84.1× 나쁨, pcie 대비 **1.6×**↑ |\n\n핵심 메시지: **non-cacheable을 극복한 cxl은 고locality에서 dram급**, 랜덤에서만 flash 지연이 노출. 대부분 워크로드는 고locality라 대용량 이득이 크다. while most memory requests in this test are hit from the cpu caches, pcie cannot take any advantage of the host cpu caches, thereby exhibiting 129.5x longer latency than cxl."},{"id":"node_005","lx":660,"ly":1500,"children":["node_015","node_016","node_025","node_026","node_029","node_030"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1500,"searchText":"결론 (conclusion) cxl을 **memory expander 관점**에서 보고, block semantic을 byte semantic으로 옮기는 여러 구성을 탐색한 논문. 결론: cxl은 pcie storage를 값싼 대용량 working memory로 편입시키는 실용적 길이며, **type-3 + storage-aware 힌트(determinism/bufferability)**가 그 핵심.\n\n**의의**: **'cxl-ssd' 개념의 정립** — [[skybyte]](type-3 memory-semantic cxl-ssd)가 이 비전을 실제 co-design으로 구현한다. determinism/bufferability(storage 물성을 host에 힌트로 노출)는 skybyte의 coordinated context switch(긴 flash 지연을 host에 알림)와 같은 transparent co-design 사고.\n\n**한계**: (1) 성능 투영이 apex-map 합성 + fpga emul(실 워크로드·실 cxl 실리콘 부재). (2) determinism/bufferability는 **제안**일 뿐 표준·구현 미완. (3) ★ mld는 storage를 **분할**해 각 host에 줄 뿐, **여러 host가 같은 영역을 coherent하게 공유**하는 것은 다루지 않음(pooling≠sharing). (4) mld 분할이 backend/internal dram 병렬성을 깎아 per-mld 대역폭 저하. this paper examines cxl from a memory expander viewpoint and explores different configurations to transfer pcie's block semantic to memory-compatible byte semantic."},{"id":"node_006","lx":1180,"ly":180,"children":["node_017"],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":180,"searchText":"non-cacheable bar의 벽 → cxl로 cacheable pcie로도 ssd 내부 dram을 bar로 노출하면 byte `load`/`store`는 된다. 그러나 x86(intel/amd)은 pcie 주소공간으로의 메모리 요청을 캐시하면 **시스템 실패·storage 단절** 위험이 있어 **non-cacheable로 강제**한다(bar는 host가 storage에 '무엇을 요청/제어'하는지 알리는 인터페이스라, 캐시되면 storage가 요청 도착을 못 잡음).\n\n결과: bar 접근 성능이 크게 무너지고 storage-integrated expander가 **메모리 계층에서 배제**된다. **cxl은 cache-coherent interconnect라 pcie 주소공간으로의 load/store를 cacheable로** 만들어 이 벽을 정확히 없앤다 — 이게 'cxl이 storage에 필요한' 단 하나의 핵심 이유. if cpu can cache/buffer the memory requests targeting the pcie address space, there is no way for the pcie storage to catch their arrivals. this can introduce an unexpected situation such as a system failure or storage disconnection."},{"id":"node_017","lx":1710,"ly":180,"children":["node_018"],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":180,"searchText":"초록의 coherence는 type-1 coherence와 다른가? — 방향·주체가 다름 초록: *'cxl manages data coherency mainly between cpu memory spaces and memory on attached devices'* — 이 coherence는 **type-1의 coherence와 방향·주체가 다르다.**\n\n초록 문장은 먼저 cxl의 **일반적 coherence 우산**(cxl.io+.cache+.mem이 한 coherent domain)을 가리킨다. 하지만 이 논문이 cxl-ssd를 **type-3**로 만들 때 실제로 쓰는 coherence는 그 우산 중 **한쪽**이다.\n\n| 축 | type-1 coherence | 이 논문 (cxl-ssd = type-3) |\n|---|---|---|\n| 프로토콜 | **cxl.cache** | **cxl.mem** |\n| 누가 누구 메모리를 캐시 | **device가 host 메모리를** | **host가 device hdm을** |\n| 방향 | device $\\rightarrow$ host | host $\\rightarrow$ device |\n| 관리 주체 | device가 **능동 caching agent**(snoop 참여) | **host가 관리 (hdm-h)**, device는 cxl.cache 미사용 |\n| 목적 | 가속기가 host 데이터를 coherent하게 | storage hdm을 **cacheable working memory**로 |\n\n**핵심**: type-3 cxl-ssd의 device는 **cxl.cache를 아예 안 쓴다**(§3). 그래서 여기 coherence는 'device가 coherence 참여자가 되는 것'이 아니라, **host cpu가 device의 hdm을 캐시할 때 그 캐시를 host가 일관되게 유지**하는 것 — single-host면 **hdm-h(host-only coherent)**. 이 논문의 진짜 win도 'device를 caching agent로'가 아니라 **pcie에선 non-cacheable이던 storage 접근을 cacheable로** 만든 것(「non-cacheable bar의 벽」 노드와 직결).\n\n**두 축 관점**: type-1 = **축 a의 'device가 host를 캐시'** 방향, 이 논문 = **host가 device hdm을 캐시**(single-host라 host-managed hdm-h). 둘 다 single-host지만 방향·주체가 반대다. 여러 host가 같은 hdm을 공유하는 **축 b(back-invalidate, hdm-db)**는 또 별개 — 「내 연구방향」 노드 참조. cxl manages data coherency mainly between cpu memory spaces and memory on attached devices."},{"id":"node_018","lx":2240,"ly":180,"children":["node_019"],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":180,"searchText":"coherence의 두 scope: intra-host(항상·자동) vs inter-host(sharing·back-invalidate) 'sharing 없이도 coherence가 있나?'에서 헷갈리는 이유 — coherence는 **복사본이 있으면** 필요한데, 그 복사본이 **한 host 안**이냐 **host들 사이**냐로 **scope가 갈린다.**\n\n| | intra-host (한 host 안) | inter-host (host들 사이) |\n|---|---|---|\n| 복사본 | host 코어 캐시 ↔ 그 host가 보는 메모리(local dram / device hdm) | host a 캐시 ↔ host b 캐시 (같은 shared 영역) |\n| 언제 | **항상** (single-host도) | **sharing할 때만** |\n| 누가 | host home agent가 **자동**(mesi) | **device가 back-invalidate**(hdm-db, cxl 3.0) |\n| 비용 | 공짜처럼 보임 | 비쌈 $\\rightarrow$ 연구 frontier |\n\n**hello bytes 초록 case(type-3, single-host)** = 왼쪽. host 캐시 ↔ device hdm 복사본은 있지만 host가 하나라 inter-host는 없음 $\\rightarrow$ **hdm-h(host-managed)**로 자동 처리. 그래서 'sharing 없이도 coherence가 있다'가 성립(단 그건 intra-host scope).\n\n**여러 host가 같은 hdm을 공유(sharing)** = 오른쪽. host a·b에 같은 라인 복사본이 생겨 **inter-host coherence**가 새로 켜진다 $\\rightarrow$ device가 directory+back-invalidate로. pooling(독립·분할)엔 없고 sharing에만 있는 층 = **내 연구**(「내 연구방향」 노드).\n\n**정밀 표현**: '독립(unshared) 접근이면 coherence 불필요'는 정확히는 **'inter-host(cross-host) coherence 불필요'**다. intra-host coherence는 sharing 여부와 무관하게 하드웨어가 **늘** 본다(공짜라 안 보일 뿐). 즉 네 모델('shared되는 순간 host간 coherence를 봐야 한다')은 **오른쪽 열에서 정확히 맞다.** cxl manages data coherency mainly between cpu memory spaces and memory on attached devices."},{"id":"node_019","lx":2240,"ly":520,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":520,"searchText":"intra-host / inter-host란? — 'host' = 하나의 coherency domain **host** = 하나의 cpu 시스템 = **하나의 coherency domain**(자기 코어들 + 캐시들을 home agent가 일관되게 관리하는 단위). cxl에서 'host 하나'는 보통 하나의 cxl root port를 가진 하나의 서버/소켓 복합체다.\n\n- **intra-host(호스트 내부)**: 그 **한 host의 경계 안** — 코어들·캐시들·그 host가 매핑한 메모리(local dram이든 device hdm이든). 여기 coherence는 host home agent가 **자동**(mesi).\n- **inter-host(호스트 간)**: **서로 다른 host들 사이** — 각자 **별개 coherency domain**. 이들을 잇는 선/프로토콜이 원래 없어서, 여러 host가 같은 메모리를 캐시하면 그 사이 coherence는 누군가 **새로 놓아야** 한다(cxl 3.0 device back-invalidate).\n\n**핵심 경계**: coherence domain은 **host 경계에서 끊긴다.** 그래서 'intra'는 하드웨어가 늘 공짜로 처리하고, 'inter'는 cxl이 새로 풀어야 하는 문제.\n\n**일반 패턴**: '한 단위 **안**(intra) vs 단위**들 사이**(inter)'라는 구분은 cxl만의 것이 아니다 — parallelism에서도 **intra-node/inter-node**(nvlink vs network), **intra-layer/inter-layer**(tp vs pp)로 똑같이 나타난다. 의미는 동일(within vs between), 표현만 다름. $\\rightarrow$ parallelism 노트 참조. "},{"id":"node_007","lx":1180,"ly":480,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":480,"searchText":"byte-addressability는 오랜 꿈 + 내부 dram = write-back cache pcie storage에 byte-addressability를 주는 건 오랜 목표다 — 2b-ssd·nvme 표준이 ssd **내부 dram/buffer를 bar로** 노출해 host가 local memory처럼 load/store하게 한다. 그리고 그 내부 dram을 backend block media(**z-nand/flash/optane**)의 **write-back inclusive cache**로 써서 긴 backend 지연을 숨긴다.\n\n즉 하드웨어적 재료(byte 인터페이스 + 내부 dram cache)는 이미 있다. 빠진 것은 그 접근을 **cpu cache에 태우는 것**인데, 그게 바로 non-cacheable 벽(왼쪽 노드) 때문에 막혀 있었다. it is a long-standing dream for pcie storage to have byte-addressability and be a part of working memory devices ... they can use the internal memory/buffer as a write-back inclusive cache of the backend."},{"id":"node_008","lx":1180,"ly":780,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":780,"searchText":"세 protocol과 세 device type cxl의 세 sub-protocol과 그 조합으로 정의되는 세 type:\n\n| protocol | 역할 |\n|---|---|\n| **cxl.io** | 기본(모든 device 필수). pcie 기능·flexbus, 비coherent i/o |\n| **cxl.cache** | device가 host 메모리를 coherent 캐시 |\n| **cxl.mem** | host가 device hdm을 load/store |\n\n| type | 프로토콜 | 성격 |\n|---|---|---|\n| **1** | .io+.cache | 로컬 캐시만(내부 dram 없음), tpu류 |\n| **2** | .io+.cache+.mem | hdm+연산, host↔device 양방향 coherent |\n| **3** | .io+.mem | hdm만(연산 없음), 순수 memory expander |\n\ntype-3는 cxl.cache를 안 쓰지만 cxl.mem의 read/write로 hdm 확장이 된다. cxl.io는 device-side에서 관리해 다양한 i/o 수요 수용. cxl provides three different sub-protocols, i) cxl.io, ii) cxl.mem, and iii) cxl.cache, which can also define three different types of cxl devices (type 1 ~ type 3)."},{"id":"node_009","lx":1180,"ly":930,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":930,"searchText":"★ 왜 type-3인가 — 3가지 이유 (vs type-2) 저자가 storage-integrated memory expander로 **type-3를 옹호**하는 3가지 근거:\n\n**(1) 확장성**: type-2는 연산집약 가속용이라 **cxl rp당 device 1개**만 연결 가능 → type-3만큼 scalable하지 않다.\n\n**(2) cxl.cache 오버헤드**: type-2의 풀피처(cxl.cache+.mem)는 매 `load`/`store`가 pcie storage 연산복합체의 **cache 상태를 확인**해야 해서, i/o마다 여러 cxl transaction 발생 → 성능 저하.\n\n**(3) host 허가 비용**: type-2의 cxl.cache는 host local memory와 hdm을 **모두 coherent 관리**하므로, storage-side 연산이 자기 메모리를 접근할 때마다 **host 허가**가 필요 → device i/o 성능이 오히려 악화.\n\n→ 이게 skybyte를 비롯한 cxl-ssd가 **type-3인 1차 논거**. (우리가 대화로 정리한 'type-2는 왜 안 되나'의 원출처.) only one device (per cxl rp) can be connected to a host system, which makes type 2 devices not scalable as type 3 devices can do."},{"id":"node_010","lx":1180,"ly":1080,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1080,"searchText":"storage-side 최소 수정으로 type-3 지원 pcie storage는 이미 **pcie endpoint + nvme controller**로 요청을 파싱하고 데이터를 옮긴다. 따라서 type-3 지원의 hw 변경은 작다: (a) 기존 **pcie endpoint 로직을 재활용**해 cxl transaction packet formatting·cxl.io 제어, (b) 기존 **nvme controller의 command parsing·page copy 기능을 단순화**해 cxl.mem read/write 인터페이스 구현, (c) **firmware가 내부 dram + backend block media 관리**. nvme 스펙은 controller를 firmware/hardware 어느 쪽으로도 구현 가능케 하므로, cxl.mem read/write는 hardware로 자동화하고 내부 dram 관리는 firmware로 두는 게 낫다. a hardware change at the storage side can be simple, which in turn makes most storage devices easily support type 3 with a minor modification."},{"id":"node_011","lx":1180,"ly":1260,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1260,"searchText":"시스템 통합 흐름 (bar/hdm 매핑 → flit) 부팅 시 host가 rp에 연결된 cxl device를 enumerate하고, cxl **bar + hdm** 크기를 받아 **cacheable 시스템 메모리**에 매핑한다. hdm이 device가 원래 관리하던 주소와 다른 곳에 매핑되므로, **cxl rp가 cxl controller에 remap offset을 동기화**한다(target storage의 cxl capability/config 영역에 기록).\n\napp이 hdm(=시스템 메모리)에 load/store → **cxl rp가 cxl flit 생성** → cxl.mem으로 storage controller에 전달 → endpoint+cxl controller가 flit 파싱해 command·target address 추출 → **firmware와 협력해 데이터 서비스**. when an application loads or stores data on the system memory (mapped to hdm), cxl rp generates a message, called cxl flit, and sends it to the target's cxl storage controller via cxl.mem."},{"id":"node_013","lx":1180,"ly":1410,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1410,"searchText":"disaggregation 3토폴로지 + mld(16) + multi-host storage를 컴퓨팅에서 분해하는 세 구성(fig.3): **(a) switch**(dsp→각 storage, usp→host rp; switch 레인 64~128 → 16-lane storage 4~8개), **(b) multi-switch**(top switch가 host rp+하위 브리지, leaf switch가 다수 storage; network 최대 **4pb**), **(c) virtual hierarchy(vh)**(fm crossbar가 host↔storage 경로 기억 → 완전 분해).\n\n**multi-host + storage 가상화**: 각 storage를 **mld(multiple logical device, 최대 16)**로 논리 분할, 각 mld가 자기 hdm을 서로 다른 host에 매핑(물리 storage처럼). **단점**: 대역폭 공유·트래픽 혼잡, backend/internal dram 분할로 **병렬성·per-mld 대역폭 저하**. (우리가 정리한 mld 논의의 원출처.) cxl allows a system to logically split each endpoint into multiple type 3 devices (up to 16), called multiple logical device (mld). thus, we can make each mld define its own hdm, which can be mapped to a different place of any host of system memory."},{"id":"node_014","lx":1180,"ly":1560,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1560,"searchText":"storage 힌트: determinism / bufferability (+ gpf) type-3는 memory pooling용이라 storage 특유의 **(i) latency fluctuation(gc 등 internal task)**, **(ii) data persistence** 문제가 남는다. 저자는 cxl.mem **예약 필드**에 두 힌트를 달자고 제안:\n\n- **determinism**: `dt`(internal task 개입 없이 즉시 서비스) / `nd`(fire-and-forget → storage가 gc 등 스케줄 가능).\n- **bufferability**: `bf`(ssd 내부 dram에 캐시/버퍼 허용) / `nb`(persistence first-class → block media 기록).\n\n조합(bf+dt/bf+nd/nb+dt/nb+nd) + **gpf(global persistent flush)**로 db 로깅·트랜잭션·lock 시나리오 최적화(예: 로그는 bf+nd로 버퍼링, commit 시 gpf+nb+dt). loads는 대개 dt, prefetch엔 bf. **storage 물성을 host가 힌트로 조종**하는 co-design 사고 — skybyte의 방향과 통한다. we suggest two simple features, i) determinism and ii) bufferability, which can be annotated to cxl messages and hint the host semantic to the underlying cxl controllers."},{"id":"node_012","lx":1180,"ly":1740,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1740,"searchText":"apex-map 투영: pcie 대비 129.5×(best)/3×(avg), dram 근접 apex-map(locality $\\alpha$)으로 dram/pcie/cxl 비교(fig.2):\n\n- **best($\\alpha=0.001$)**: 대부분 cpu cache hit → pcie는 cache를 못 써 cxl 대비 **129.5×** 긴 지연. cxl ≈ dram.\n- **average**: cxl가 pcie 대비 **3×** 빠름. dram 대비 9.3× 나쁘지만 block storage 감안 시 합리적.\n- **worst($\\alpha=1$, 완전 랜덤)**: cxl가 z-nand 지연을 못 숨겨 dram 대비 84.1× 나쁨. 그래도 pcie 대비 **1.6×**(pcie는 bar 요청을 동기 처리).\n\n결론: non-cacheable을 극복한 cxl은 **고locality에서 dram급**, 랜덤에서만 flash 지연 노출. §7의 힌트로 이 긴 지연을 완화할 수 있다고 주장. cxl is also better than pcie by 3x for the average case. note that, even though the performance of cxl is 9.3x worse than that of dram, we believe it is still in a reasonable range by considering the fact that cxl leverages the block storage."},{"id":"node_015","lx":1180,"ly":1920,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1920,"searchText":"계보/발표축: 'cxl-ssd' 개념의 정립 → skybyte 구현 이 논문은 **'cxl-ssd'라는 개념과 그 설계 좌표(type-3, storage 힌트)를 처음 세운** 글이고, [[skybyte]]는 그 비전을 **실제 co-design으로 구현**한 관계다.\n\n- **개념(여기)**: type-3가 옳다 + determinism/bufferability로 storage 물성을 host에 힌트.\n- **구현(skybyte)**: type-3 cxl-ssd + coordinated context switch(긴 flash 지연을 host에 알림) + cacheline write log.\n\ndeterminism/bufferability와 skybyte의 context switch는 **같은 transparent co-design 사고**(storage 내부 상태를 host에 노출해 함께 최적화). 내 **'ssd 이중역할 × transparent co-design'** 발표축의 **개념적 원점** — 그리고 우리가 대화로 정리한 type 1/2/3·mld·pooling 논의가 전부 여기서 출발한다([[cxl overview]]에 정리). "},{"id":"node_016","lx":1710,"ly":1920,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1920,"searchText":"내 연구방향: mld 분할(pooling) → 공유(sharing) coherence 이 논문의 multi-host는 **mld로 storage를 분할**해 각 조각을 다른 host에 주는 것 — 즉 **pooling(분할)**이지 **sharing(공유)**이 아니다. 여러 host가 **같은 hdm 영역을 동시에** coherent하게 쓰는 시나리오는 다루지 않는다(각 mld는 한 host 전용).\n\n내 방향(multi-node coherence)은 정확히 그 다음 — mld 분할을 넘어 **공유된 cxl-ssd 영역**에서 host 간 캐시 일관성을 어떻게 보장할지(**directory + back-invalidate, hdm-db, cxl 3.0**). determinism/bufferability 같은 storage 힌트도 **공유 상황에서 누가 어떤 힌트를 세우나**로 재정의된다. 즉 이 논문의 개념 프레임(type-3·힌트·mld)을 multi-host coherent 공유로 확장하는 게 gap. → [[cxl multi-node coherence]], [[cxl overview]] "},{"id":"node_020","lx":100,"ly":100,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"searchText":"🏛️ 학회: hotstorage 2022 — 도발적 vision/position 보상, 평가 부재 관대 hotstorage는 도발적 **vision/position** paper를 위한 workshop이다. 완성된 평가·실측보다 **새 문제 프레이밍·통찰**을 보상하고 평가 부재엔 관대하되, **통찰·문제 프레이밍이 약하면 탈락**한다.\n\n이 글은 **single-author 7-page position paper**로, 상용 cxl 실리콘도 없던 2022년에 'pcie block storage를 cxl로 byte-addressable memory expander로' 재정의하며 **'cxl-ssd'라는 개념 좌표(type-3 + storage 힌트)**를 처음 세웠다. §1은 이 논문 전체를 4개 질문(why/how/which-type/what-to-improve)으로 프레이밍한다.\n\n**판단 축 세팅**: 그래서 아래 ✅는 **'개념 정립·문제 프레이밍의 날카로움'** 축에서, ⚠️는 **'제안일 뿐 구현·표준·실측 부재'** 축에서 읽어야 한다. hotstorage taste에선 후자가 치명적 감점이 아니라 **예상된 것** — position paper의 정상 범위다. 반대로 통찰이 평범했다면 여기서 떨어졌을 것. even though cxl manages data coherency mainly between cpu memory spaces and memory on attached devices, we argue that it can also be useful to reform existing block storage as cost-efficient, large-scale working memory."},{"id":"node_021","lx":100,"ly":380,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":380,"searchText":"✅ 잘한 점: non-cacheable bar의 벽을 정확히 짚고 cxl=cacheable로 압축 reviewer가 산 지점 = **문제 프레이밍의 정확성**. '왜 지금껏 pcie ssd를 memory로 못 썼나'를 대역폭 부족이 아니라 **x86이 pcie 접근을 non-cacheable로 강제**하는 것으로 지목한다. 대역폭 가설은 수치로 먼저 배제(pcie gen5/6 = 63~121 gb/s로 far memory에 충분)하고, 그 위에서 cxl의 단 하나의 본질적 기여를 **'그 접근을 cacheable로'**로 압축.\n\n이 한 통찰이 논문 전체 argument의 축이다 — §5의 129.5× 실험도 결국 'pcie는 cpu cache를 못 쓴다'는 이 명제의 정량 증거일 뿐. hotstorage가 보상하는 **'기존 문제를 새 각도로 재정의'**에 정확히 부합해, 단순 cxl hype가 아니라 **한 문장으로 반증 가능한 명제**로 vision을 세운 게 강점. this non-cacheable characteristic severely degrades the performance of all memory accesses targeting the bars ... this nature enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy and disables them from taking advantage of cpu caches."},{"id":"node_022","lx":100,"ly":660,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":660,"searchText":"✅ 잘한 점: type-3 선택을 3개 구조적 논거로 정당화 (position인데 반증 가능하게) position paper의 설득력은 '왜 이 설계점인가'를 얼마나 촘촘히 논증하느냐다. 저자는 type-3를 **선언하지 않고** type-2와의 대비로 3개 **구조적** 논거를 든다: (1) 확장성(rp당 device 1개 제한), (2) cxl.cache 풀피처의 매 i/o cache-state 확인 오버헤드, (3) storage 연산의 host 허가 비용.\n\n(논거의 *내용*은 기존 「왜 type-3인가」 노드 소관 — 여기선 **reviewer 관점**만.) vision paper인데도 device type 선택을 **확장성·오버헤드·허가**의 세 축으로 나눠 **각각 반박 가능한 형태**로 못박은 점이 이 논문을 hype에서 구분한 accept 근거. 그리고 이 논증이 skybyte 등 후속이 'cxl-ssd=type-3'를 채택할 때 인용하는 1차 근거가 됐다(개념적 파급력). there are three reasons why we believe that type 3 devices are better than type 2 devices for the storage-integrated memory expander."},{"id":"node_023","lx":100,"ly":940,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":940,"searchText":"✅ 잘한 점: determinism/bufferability — vision을 실행 가능한 프로토콜 어젠다로 내림 'ssd를 memory로 쓰자'에 그치지 않고, memory pooling용 type-3가 storage로선 못 다루는 **두 물성(gc latency fluctuation, persistence)**을 짚고, cxl.mem **예약 필드에 dt/nd·bf/nb 힌트**를 얹자는 구체 메커니즘까지 제안한다. reviewer가 좋게 볼 지점 = vision을 **'그래서 프로토콜을 이렇게 바꾸면'**까지 내려 후속 연구 어젠다로 만든 것.\n\n이 **transparent co-design 씨앗**(storage 내부 상태를 host에 힌트로 노출)이 곧 skybyte의 coordinated context switch(긴 flash 지연을 host에 알림)로 이어진다 — 즉 이 노드는 논문의 '두 번째 기여 축'이자, 개념이 실제 구현으로 번지는 접점. we suggest two simple features, i) determinism and ii) bufferability, which can be annotated to cxl messages and hint the host semantic to the underlying cxl controllers."},{"id":"node_024","lx":100,"ly":1220,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1220,"searchText":"⚠️ 아쉬운 점: 성능 근거가 apex-map 합성 + fpga z-nand emul (실 워크로드·실 cxl 부재) **reviewer 질문**: 129.5×/3× 이득이 실제 애플리케이션에서도 나오나? locality 파라미터 $\\alpha$를 스윕하는 **apex-map은 합성 벤치**일 뿐, db·graph·kvs 같은 실 워크로드 trace가 없다. 게다가 cxl 실리콘이 없어 **risc-v o3 core + openexpress nvme를 fpga로 emul, backend도 z-nand emul** — cxl flit latency 모델의 신뢰도는? worst-case($\\alpha=1$)는 dram 대비 84.1× 나쁜데, '실 워크로드의 locality는 best쪽'이라는 건 저자 믿음('we believe')에 기댄다.\n\n**저자 방어**: 저자 스스로 §5에서 'somewhat disappointed', §8에서 'performance projection is imperfect'라 인정하고, hotstorage는 **상용 cxl 부재 시점의 vision paper**라 정량 rigor보다 방향 제시가 목적 — venue taste상 예상된 약점이지 reject 사유가 아니다. we are somewhat disappointed with the results as cxl's worst-case latency characteristics are far away from dram's behaviors. however, most workloads exhibit high locality except for a specific application like graph processing."},{"id":"node_025","lx":100,"ly":1500,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1500,"searchText":"⚠️ 아쉬운 점: dt/bf는 제안일 뿐 — 인코딩·구현·평가·정책 전부 미정 **reviewer 질문**: determinism/bufferability와 gpf는 cxl.mem 예약 필드에 얹자는 **아이디어 스케치일 뿐**, 실제 비트 인코딩·컨트롤러 구현·성능 평가가 하나도 없다. host가 **어떤 힌트를 언제 세울지**(컴파일러? 런타임? pmdk?)의 정책, 힌트 오분류 시 correctness(nb인데 bf로 표기하면 persistence 깨짐), 예약 필드 소모의 표준화 경로가 전부 미정. 따라서 '§5의 긴 지연을 이 힌트로 완화할 수 있다'는 주장은 **검증되지 않은 채** 남는다.\n\n**저자 방어**: 본문이 'suggest ... and debate how these additional states can be beneficial'로 명시적 **discussion 성격** — position paper의 열린 제안이다. 그럼에도 '두 번째 기여 축이 미검증'은 남고, 실제로 **skybyte는 이 문제를 힌트가 아니라 context switch로 다르게 풀어** 이 제안 경로의 미완결을 방증한다. we suggest two additional states, determinism and bufferability, and debate how these additional states can be beneficial to handle the pcie storage in expanding the host's cpu memory with cxl."},{"id":"node_026","lx":100,"ly":1780,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1780,"searchText":"⚠️ 아쉬운 점: mld는 분할(pooling)일 뿐 — 여러 host 공유 coherence가 scope 밖 **reviewer 질문**: §6의 'virtualize each storage device to be shared by different hosts'는 실은 **각 mld를 한 host에 전용 매핑하는 분할(pooling)**이지, 여러 host가 같은 hdm 영역을 동시에 coherent하게 쓰는 **sharing이 아니다**. 저자 자신이 mld 분할이 backend/internal dram 병렬성을 깎아 per-mld 대역폭을 떨어뜨린다고 인정. 그렇다면 진짜 disaggregation의 핵심(공유 데이터의 **host 간 일관성**)이 빠져 있다 — 'shared'라는 단어가 오해를 부른다.\n\n**저자 방어**: 2022년 **cxl 2.0** 시점엔 device-side back-invalidate(hdm-db, cxl 3.0)가 아직 없어 **host 간 sharing coherence 자체가 프로토콜 밖** — 그래서 pooling까지가 정당한 scope. → 이 누락 지점이 정확히 내 연구 gap(아래 🧭)이자 skybyte도 single-host로 남긴 자리. a disadvantage of multi-host vhs can be bandwidth sharing and/or traffic congestion. to support mlds, pcie storage may require partitioning the underlying backend and internal drams, lowering the level of parallelism, and this can unfortunately reduce the bandwidth of each mld."},{"id":"node_027","lx":100,"ly":2060,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2060,"searchText":"🔀 왜 type-3인가 — type-2도 갈 수 있었는데 (역설계) 설계자라면 storage-integrated expander에 세 갈래가 있다: **(a) type-3**(.io+.mem, hdm만), **(b) type-2**(.io+.cache+.mem, hdm+연산), (c) type-1.\n\n**(b) type-2는 실제로 매력적 갈래였다** — 저자 스스로 'type 2 can probably be a good option for utilizing hdm and/or integrating data processing capabilities into the storage'라 인정한다. computational storage(연산을 ssd로) 흐름과도 정합.\n\n**그런데 버린다**: (1) rp당 device 1개→비확장, (2) 매 i/o cache-state 확인, (3) storage 연산의 host 허가. 즉 저자는 **'storage side가 host cpu cache까지 coherent하게 관리할 필요는 없다'**(내부 dram 관리 ≠ host cache coherence)는 관찰로 type-2의 cxl.cache를 통째로 잘라낸다.\n\n**저자가 안 판 갈래(gap 후보)**: '연산형 cxl-ssd(type-2)에서 확장성·허가 오버헤드를 완화하는' 방향 = computational cxl-ssd의 열린 설계공간. **좁힌 기준**: 결론은 어디까지나 **'순수 memory expansion 목적'** 하에서만 type-3가 dominant — 목적이 in-storage compute면 저울이 달라진다. type 2 can probably be a good option for utilizing hdm and/or integrating data processing capabilities into the storage by being aware of the semantics of host cpus. in this paper, we however advocate type 3 for a storage-integrated memory expander in cxl."},{"id":"node_028","lx":100,"ly":2340,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2340,"searchText":"📐 p/l: 기존 pcie bar 접근 = non-cacheable 강제 (관점 p → 구조적 한계 l → cxl의 p″) | 해법 | 관점 (문제를 본 렌즈) | 결과로 남는 것 |\n|---|---|---|\n| **pcie bar expander** (2b-ssd, nvme) | **p**: ssd를 host의 *peripheral / i/o device*로 봄 → bar로의 memory 요청을 storage가 **반드시 가로채야** 함 | **l(구조적)**: x86이 pcie 접근을 **non-cacheable로 강제** → cpu cache 원천 봉쇄, storage가 메모리 계층에서 배제 |\n| **cxl-ssd** (이 논문) | **p″**: ssd를 host와 **같은 coherent domain의 memory**로 봄 | 접근이 **cacheable** → cpu cache 계층에 편입, non-cacheable l 소멸 |\n\n**l의 핵심(성능이 아니라 관점의 귀결)**: 느려서가 아니다. storage를 *peripheral*로 보는 관점이면 cpu가 요청을 캐시하는 순간 **storage가 요청 도착을 못 잡아 system failure / storage disconnection** 위험 → 그래서 x86이 **구조적으로 non-cacheable일 수밖에** 없다. 관점 p를 'peripheral'→'coherent memory'(p″)로 바꾸는 것만으로 l 전체가 사라진다 — 이 논문의 novelty가 p vs p″ 대비에서 나온다는 증거. x86 instruction set architectures of both intel and amd do not allow pcie-related memory requests to be cached at the cpu side. unfortunately, this nature enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy and disables them from taking advantage of cpu caches."},{"id":"node_029","lx":100,"ly":2620,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2620,"searchText":"📍 위치: cxl-ssd 비전(개념) → skybyte가 구현, directcxl·flatflash 계보 hotstorage 2022의 이 글은 **'cxl-ssd' 좌표(type-3 + storage 힌트)를 세운 개념/비전** 노드다. 같은 **kaist camelab** 계보에서 역할이 분담된다:\n\n- **개념/비전 (여기)**: 무엇을·왜 — block을 byte로, type-3가 옳다, storage 물성을 힌트로.\n- **하드웨어 실증**: [[directcxl - direct access, high-performance memory disaggregation]] — 실물 cxl.mem 분해 프로토타입.\n- **구현 (co-design)**: [[skybyte]] (hpca'25) — type-3 memory-semantic cxl-ssd를 os·hw co-design으로 실제 설계.\n- **개념적 뿌리**: [[flatflash - exploiting the byte-accessibility of ssds within a unified memory-storage hierarchy]] — byte-accessible ssd의 통합 메모리-스토리지 계층(본문 [10]으로 직접 인용).\n\n즉 이 논문 = **비전(무엇을·왜)**, 나머지 = **실증/구현(어떻게)**. 'hotstorage가 vision을 던지고 상위 venue(isca/hpca/asplos)가 그 vision을 받아 실증한다'는 workshop의 역할이 이 계보로 확인된다. "},{"id":"node_030","lx":100,"ly":2900,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2900,"searchText":"🧭 내 연구: mld 분할(pooling) → 공유(sharing) coherence p′ 이 논문이 남긴 **l**(위 ⚠️: mld는 storage를 분할해 각 조각을 한 host에 줄 뿐) = **여러 host가 같은 hdm을 동시에 공유할 때의 host 간 coherence**가 통째로 빠짐.\n\n내 관점 **p′** = *pooling을 sharing으로* — **directory + device back-invalidate(hdm-db, cxl 3.0)**로 공유 cxl-ssd 영역의 일관성·write log 최신성·promotion 순서를 재정의. determinism/bufferability 같은 storage 힌트도 '공유 상황에서 **누가** 어떤 힌트를 세우나'로 다시 물어야 한다.\n\np′는 refs의 l에서 직접 유도됨(억지 novelty 아님). *상세 전개는 기존 「내 연구방향: mld 분할(pooling) → 공유(sharing) coherence」 노드에 위임 — 여기선 reviewer가 짚은 scope 누락(위 ⚠️)에서 p′가 도출되는 사슬만 명시.* "}];
+var NODES_DATA = [{"id":"node_001","lx":660,"ly":300,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":300,"title":"Killer Application","content":"이 논문은 **'CXL-SSD'라는 개념을 정립한 비전/포지션 논문**이다. 값싸고 대용량인 **PCIe block storage를, CXL로 host CPU에 붙여 byte-addressable working memory로** 바꾸자고 논증한다.\n\n**Killer application 1 — block을 byte로, non-cacheable을 cacheable로**: PCIe로 SSD 내부 DRAM을 BAR로 노출해도 x86이 그 접근을 **non-cacheable로 강제**해 성능이 무너진다. CXL은 cache-coherent라 이 접근을 **cacheable**로 만들어 storage를 메모리 계층에 편입시킨다.\n\n**Killer application 2 — 왜 Type-3인가의 논거**: 세 device type 중 **Type-3가 storage-integrated memory expander에 최적**임을 3가지 이유(확장성·CXL.cache 오버헤드·host 허가)로 논증 → SkyByte류 CXL-SSD가 Type-3인 근거.\n\n**Killer application 3 — storage 물성을 위한 프로토콜 힌트**: GC 지연·persistence를 다루도록 CXL.mem 예약 필드에 **determinism/bufferability** 힌트를 달자고 제안.\n\nFPGA 투영: 고locality에서 CXL가 PCIe 대비 **129.5×**, 평균 **3×** 빠르고 DRAM에 근접.","originalTitle":"","originalText":"we advocate that CXL can open a new door that changes PCIe storage's block interface to a memory-like, byte interface.","toggles":[]},{"id":"node_002","lx":660,"ly":600,"children":["node_007","node_020","node_028"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":600,"title":"필요한 이유 (Why It's Needed)","content":"PCIe storage가 byte-addressable memory가 되는 건 **오랜 꿈**이다(2B-SSD·NVMe가 SSD 내부 DRAM을 BAR로 노출; 내부 DRAM을 backend flash의 write-back cache로 써 긴 지연 은닉).\n\n그런데 **결정적 벽**: PCIe 대역폭은 far memory로 충분(Gen5/6 16× = 63~121 GB/s)한데도, PCIe는 storage를 **peripheral**로 취급해 CPU가 BAR로의 `load`/`store`를 **non-cacheable**로 해야 한다. x86(Intel/AMD)은 PCIe 메모리 요청을 캐시하면 **시스템 실패·storage 단절** 위험이 있어 아예 금지한다.\n\n결과: non-cacheable 접근이 성능을 크게 떨어뜨리고, **storage-integrated memory expander가 메모리 계층에서 배제**되며 CPU cache를 못 쓴다. 이게 CXL이 필요한 이유 — cache-coherent라 이 접근을 cacheable로 만든다.","originalTitle":"","originalText":"this non-cacheable characteristic severely degrades the performance of all memory accesses targeting the BARs ... enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy.","toggles":[]},{"id":"node_003","lx":660,"ly":900,"children":["node_008","node_009","node_010","node_011","node_013","node_014","node_021","node_022","node_023","node_027"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":900,"title":"해결책 (Solution)","content":"PCIe storage를 CXL로 host 메모리에 편입시키되, **Type-3**로 하고 storage 물성을 힌트로 다룬다.\n\n**1. 세 protocol / 세 type**: CXL.io(기본, PCIe·FlexBus), CXL.cache(device가 host mem 캐시), CXL.mem(host가 HDM 접근) → Type-1/2/3 정의.\n\n**2. ★ Type-3 옹호**: Type-2 대비 (i) RP당 device 1개 제한 없이 **확장** 가능, (ii) CXL.cache 풀피처의 **매 I/O cache-state 확인 오버헤드** 없음, (iii) storage-side 연산의 **host 허가** 불필요.\n\n**3. storage-side 최소 수정**: 기존 PCIe endpoint 로직 재활용 + NVMe controller를 CXL.mem read/write로 단순화 → 대부분 SSD가 minor 수정으로 Type-3 지원.\n\n**4. 시스템 통합**: 부팅 시 BAR/HDM을 **cacheable 시스템 메모리**에 매핑, RP가 remap offset 동기화. load/store → CXL flit → controller가 firmware와 협력 서비스.\n\n**5. disaggregation & storage 힌트**: switch/multi-switch/VH + MLD(16)로 multi-host 분해, **determinism/bufferability**로 GC·persistence 제어.","originalTitle":"","originalText":"we advocate Type 3 for a storage-integrated memory expander in CXL. There are three reasons why we believe that Type 3 devices are better than Type 2 devices for the storage-integrated memory expander.","toggles":[]},{"id":"node_004","lx":660,"ly":1200,"children":["node_012","node_024"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1200,"title":"결과 (Results)","content":"상용 CXL가 없어 **FPGA 프로토타입**으로 투영: 자작 **RISC-V O3 dual-core**(128KB L1, 4MB L2) host + **OpenExpress 32GB NVMe**(16nm FPGA, backend=Z-NAND emul) storage, PCIe backplane. 비교: DRAM-only / PCIe expander / CXL. Workload = **Apex-Map**(locality param $\\alpha$, 64B, 512M inst).\n\n| 케이스 | 결과 |\n|---|---|\n| Best ($\\alpha=0.001$, 고locality) | CXL가 PCIe 대비 **129.5×**↓, DRAM에 근접 |\n| Average | CXL가 PCIe 대비 **3×**↓ (DRAM 대비 9.3× 나쁨) |\n| Worst ($\\alpha=1$, 완전 랜덤) | CXL가 DRAM 대비 84.1× 나쁨, PCIe 대비 **1.6×**↑ |\n\n핵심 메시지: **non-cacheable을 극복한 CXL은 고locality에서 DRAM급**, 랜덤에서만 flash 지연이 노출. 대부분 워크로드는 고locality라 대용량 이득이 크다.","originalTitle":"","originalText":"While most memory requests in this test are hit from the CPU caches, PCIe cannot take any advantage of the host CPU caches, thereby exhibiting 129.5x longer latency than CXL.","toggles":[]},{"id":"node_005","lx":660,"ly":1500,"children":["node_015","node_016","node_025","node_026","node_029","node_030"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1500,"title":"결론 (Conclusion)","content":"CXL을 **memory expander 관점**에서 보고, block semantic을 byte semantic으로 옮기는 여러 구성을 탐색한 논문. 결론: CXL은 PCIe storage를 값싼 대용량 working memory로 편입시키는 실용적 길이며, **Type-3 + storage-aware 힌트(determinism/bufferability)**가 그 핵심.\n\n**의의**: **'CXL-SSD' 개념의 정립** — [[SkyByte]](Type-3 memory-semantic CXL-SSD)가 이 비전을 실제 co-design으로 구현한다. determinism/bufferability(storage 물성을 host에 힌트로 노출)는 SkyByte의 coordinated context switch(긴 flash 지연을 host에 알림)와 같은 transparent co-design 사고.\n\n**한계**: (1) 성능 투영이 Apex-Map 합성 + FPGA emul(실 워크로드·실 CXL 실리콘 부재). (2) determinism/bufferability는 **제안**일 뿐 표준·구현 미완. (3) ★ MLD는 storage를 **분할**해 각 host에 줄 뿐, **여러 host가 같은 영역을 coherent하게 공유**하는 것은 다루지 않음(pooling≠sharing). (4) MLD 분할이 backend/internal DRAM 병렬성을 깎아 per-MLD 대역폭 저하.","originalTitle":"","originalText":"This paper examines CXL from a memory expander viewpoint and explores different configurations to transfer PCIe's block semantic to memory-compatible byte semantic.","toggles":[]},{"id":"node_006","lx":1180,"ly":180,"children":["node_017"],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":180,"title":"non-cacheable BAR의 벽 → CXL로 cacheable","content":"PCIe로도 SSD 내부 DRAM을 BAR로 노출하면 byte `load`/`store`는 된다. 그러나 x86(Intel/AMD)은 PCIe 주소공간으로의 메모리 요청을 캐시하면 **시스템 실패·storage 단절** 위험이 있어 **non-cacheable로 강제**한다(BAR는 host가 storage에 '무엇을 요청/제어'하는지 알리는 인터페이스라, 캐시되면 storage가 요청 도착을 못 잡음).\n\n결과: BAR 접근 성능이 크게 무너지고 storage-integrated expander가 **메모리 계층에서 배제**된다. **CXL은 cache-coherent interconnect라 PCIe 주소공간으로의 load/store를 cacheable로** 만들어 이 벽을 정확히 없앤다 — 이게 'CXL이 storage에 필요한' 단 하나의 핵심 이유.","originalTitle":"","originalText":"If CPU can cache/buffer the memory requests targeting the PCIe address space, there is no way for the PCIe storage to catch their arrivals. This can introduce an unexpected situation such as a system failure or storage disconnection.","toggles":[]},{"id":"node_017","lx":1710,"ly":180,"children":["node_018"],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":180,"title":"초록의 coherence는 Type-1 coherence와 다른가? — 방향·주체가 다름","content":"초록: *'CXL manages data coherency mainly between CPU memory spaces and memory on attached devices'* — 이 coherence는 **Type-1의 coherence와 방향·주체가 다르다.**\n\n초록 문장은 먼저 CXL의 **일반적 coherence 우산**(CXL.io+.cache+.mem이 한 coherent domain)을 가리킨다. 하지만 이 논문이 CXL-SSD를 **Type-3**로 만들 때 실제로 쓰는 coherence는 그 우산 중 **한쪽**이다.\n\n| 축 | Type-1 coherence | 이 논문 (CXL-SSD = Type-3) |\n|---|---|---|\n| 프로토콜 | **CXL.cache** | **CXL.mem** |\n| 누가 누구 메모리를 캐시 | **device가 host 메모리를** | **host가 device HDM을** |\n| 방향 | device $\\rightarrow$ host | host $\\rightarrow$ device |\n| 관리 주체 | device가 **능동 caching agent**(snoop 참여) | **host가 관리 (HDM-H)**, device는 CXL.cache 미사용 |\n| 목적 | 가속기가 host 데이터를 coherent하게 | storage HDM을 **cacheable working memory**로 |\n\n**핵심**: Type-3 CXL-SSD의 device는 **CXL.cache를 아예 안 쓴다**(§3). 그래서 여기 coherence는 'device가 coherence 참여자가 되는 것'이 아니라, **host CPU가 device의 HDM을 캐시할 때 그 캐시를 host가 일관되게 유지**하는 것 — single-host면 **HDM-H(host-only coherent)**. 이 논문의 진짜 win도 'device를 caching agent로'가 아니라 **PCIe에선 non-cacheable이던 storage 접근을 cacheable로** 만든 것(「non-cacheable BAR의 벽」 노드와 직결).\n\n**두 축 관점**: Type-1 = **축 A의 'device가 host를 캐시'** 방향, 이 논문 = **host가 device HDM을 캐시**(single-host라 host-managed HDM-H). 둘 다 single-host지만 방향·주체가 반대다. 여러 host가 같은 HDM을 공유하는 **축 B(back-invalidate, HDM-DB)**는 또 별개 — 「내 연구방향」 노드 참조.","originalTitle":"","originalText":"CXL manages data coherency mainly between CPU memory spaces and memory on attached devices.","toggles":[]},{"id":"node_018","lx":2240,"ly":180,"children":["node_019"],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":180,"title":"coherence의 두 scope: intra-host(항상·자동) vs inter-host(sharing·back-invalidate)","content":"'sharing 없이도 coherence가 있나?'에서 헷갈리는 이유 — coherence는 **복사본이 있으면** 필요한데, 그 복사본이 **한 host 안**이냐 **host들 사이**냐로 **scope가 갈린다.**\n\n| | intra-host (한 host 안) | inter-host (host들 사이) |\n|---|---|---|\n| 복사본 | host 코어 캐시 ↔ 그 host가 보는 메모리(local DRAM / device HDM) | host A 캐시 ↔ host B 캐시 (같은 shared 영역) |\n| 언제 | **항상** (single-host도) | **sharing할 때만** |\n| 누가 | host home agent가 **자동**(MESI) | **device가 back-invalidate**(HDM-DB, CXL 3.0) |\n| 비용 | 공짜처럼 보임 | 비쌈 $\\rightarrow$ 연구 frontier |\n\n**Hello Bytes 초록 case(Type-3, single-host)** = 왼쪽. host 캐시 ↔ device HDM 복사본은 있지만 host가 하나라 inter-host는 없음 $\\rightarrow$ **HDM-H(host-managed)**로 자동 처리. 그래서 'sharing 없이도 coherence가 있다'가 성립(단 그건 intra-host scope).\n\n**여러 host가 같은 HDM을 공유(sharing)** = 오른쪽. host A·B에 같은 라인 복사본이 생겨 **inter-host coherence**가 새로 켜진다 $\\rightarrow$ device가 directory+back-invalidate로. pooling(독립·분할)엔 없고 sharing에만 있는 층 = **내 연구**(「내 연구방향」 노드).\n\n**정밀 표현**: '독립(unshared) 접근이면 coherence 불필요'는 정확히는 **'inter-host(cross-host) coherence 불필요'**다. intra-host coherence는 sharing 여부와 무관하게 하드웨어가 **늘** 본다(공짜라 안 보일 뿐). 즉 네 모델('shared되는 순간 host간 coherence를 봐야 한다')은 **오른쪽 열에서 정확히 맞다.**","originalTitle":"","originalText":"CXL manages data coherency mainly between CPU memory spaces and memory on attached devices.","toggles":[]},{"id":"node_019","lx":2240,"ly":520,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":520,"title":"intra-host / inter-host란? — 'host' = 하나의 coherency domain","content":"**host** = 하나의 CPU 시스템 = **하나의 coherency domain**(자기 코어들 + 캐시들을 home agent가 일관되게 관리하는 단위). CXL에서 'host 하나'는 보통 하나의 CXL root port를 가진 하나의 서버/소켓 복합체다.\n\n- **intra-host(호스트 내부)**: 그 **한 host의 경계 안** — 코어들·캐시들·그 host가 매핑한 메모리(local DRAM이든 device HDM이든). 여기 coherence는 host home agent가 **자동**(MESI).\n- **inter-host(호스트 간)**: **서로 다른 host들 사이** — 각자 **별개 coherency domain**. 이들을 잇는 선/프로토콜이 원래 없어서, 여러 host가 같은 메모리를 캐시하면 그 사이 coherence는 누군가 **새로 놓아야** 한다(CXL 3.0 device back-invalidate).\n\n**핵심 경계**: coherence domain은 **host 경계에서 끊긴다.** 그래서 'intra'는 하드웨어가 늘 공짜로 처리하고, 'inter'는 CXL이 새로 풀어야 하는 문제.\n\n**일반 패턴**: '한 단위 **안**(intra) vs 단위**들 사이**(inter)'라는 구분은 CXL만의 것이 아니다 — parallelism에서도 **intra-node/inter-node**(NVLink vs network), **intra-layer/inter-layer**(TP vs PP)로 똑같이 나타난다. 의미는 동일(within vs between), 표현만 다름. $\\rightarrow$ Parallelism 노트 참조.","originalTitle":"","originalText":"","toggles":[]},{"id":"node_007","lx":1180,"ly":480,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":480,"title":"byte-addressability는 오랜 꿈 + 내부 DRAM = write-back cache","content":"PCIe storage에 byte-addressability를 주는 건 오랜 목표다 — 2B-SSD·NVMe 표준이 SSD **내부 DRAM/buffer를 BAR로** 노출해 host가 local memory처럼 load/store하게 한다. 그리고 그 내부 DRAM을 backend block media(**Z-NAND/Flash/Optane**)의 **write-back inclusive cache**로 써서 긴 backend 지연을 숨긴다.\n\n즉 하드웨어적 재료(byte 인터페이스 + 내부 DRAM cache)는 이미 있다. 빠진 것은 그 접근을 **CPU cache에 태우는 것**인데, 그게 바로 non-cacheable 벽(왼쪽 노드) 때문에 막혀 있었다.","originalTitle":"","originalText":"It is a long-standing dream for PCIe storage to have byte-addressability and be a part of working memory devices ... they can use the internal memory/buffer as a write-back inclusive cache of the backend.","toggles":[]},{"id":"node_008","lx":1180,"ly":780,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":780,"title":"세 protocol과 세 device type","content":"CXL의 세 sub-protocol과 그 조합으로 정의되는 세 type:\n\n| Protocol | 역할 |\n|---|---|\n| **CXL.io** | 기본(모든 device 필수). PCIe 기능·FlexBus, 비coherent I/O |\n| **CXL.cache** | device가 host 메모리를 coherent 캐시 |\n| **CXL.mem** | host가 device HDM을 load/store |\n\n| Type | 프로토콜 | 성격 |\n|---|---|---|\n| **1** | .io+.cache | 로컬 캐시만(내부 DRAM 없음), TPU류 |\n| **2** | .io+.cache+.mem | HDM+연산, host↔device 양방향 coherent |\n| **3** | .io+.mem | HDM만(연산 없음), 순수 memory expander |\n\nType-3는 CXL.cache를 안 쓰지만 CXL.mem의 read/write로 HDM 확장이 된다. CXL.io는 device-side에서 관리해 다양한 I/O 수요 수용.","originalTitle":"","originalText":"CXL provides three different sub-protocols, i) CXL.io, ii) CXL.mem, and iii) CXL.cache, which can also define three different types of CXL devices (Type 1 ~ Type 3).","toggles":[]},{"id":"node_009","lx":1180,"ly":930,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":930,"title":"★ 왜 Type-3인가 — 3가지 이유 (vs Type-2)","content":"저자가 storage-integrated memory expander로 **Type-3를 옹호**하는 3가지 근거:\n\n**(1) 확장성**: Type-2는 연산집약 가속용이라 **CXL RP당 device 1개**만 연결 가능 → Type-3만큼 scalable하지 않다.\n\n**(2) CXL.cache 오버헤드**: Type-2의 풀피처(CXL.cache+.mem)는 매 `load`/`store`가 PCIe storage 연산복합체의 **cache 상태를 확인**해야 해서, I/O마다 여러 CXL transaction 발생 → 성능 저하.\n\n**(3) host 허가 비용**: Type-2의 CXL.cache는 host local memory와 HDM을 **모두 coherent 관리**하므로, storage-side 연산이 자기 메모리를 접근할 때마다 **host 허가**가 필요 → device I/O 성능이 오히려 악화.\n\n→ 이게 SkyByte를 비롯한 CXL-SSD가 **Type-3인 1차 논거**. (우리가 대화로 정리한 'Type-2는 왜 안 되나'의 원출처.)","originalTitle":"","originalText":"only one device (per CXL RP) can be connected to a host system, which makes Type 2 devices not scalable as Type 3 devices can do.","toggles":[]},{"id":"node_010","lx":1180,"ly":1080,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1080,"title":"Storage-side 최소 수정으로 Type-3 지원","content":"PCIe storage는 이미 **PCIe endpoint + NVMe controller**로 요청을 파싱하고 데이터를 옮긴다. 따라서 Type-3 지원의 HW 변경은 작다: (a) 기존 **PCIe endpoint 로직을 재활용**해 CXL transaction packet formatting·CXL.io 제어, (b) 기존 **NVMe controller의 command parsing·page copy 기능을 단순화**해 CXL.mem read/write 인터페이스 구현, (c) **firmware가 내부 DRAM + backend block media 관리**. NVMe 스펙은 controller를 firmware/hardware 어느 쪽으로도 구현 가능케 하므로, CXL.mem read/write는 hardware로 자동화하고 내부 DRAM 관리는 firmware로 두는 게 낫다.","originalTitle":"","originalText":"a hardware change at the storage side can be simple, which in turn makes most storage devices easily support Type 3 with a minor modification.","toggles":[]},{"id":"node_011","lx":1180,"ly":1260,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1260,"title":"시스템 통합 흐름 (BAR/HDM 매핑 → flit)","content":"부팅 시 host가 RP에 연결된 CXL device를 enumerate하고, CXL **BAR + HDM** 크기를 받아 **cacheable 시스템 메모리**에 매핑한다. HDM이 device가 원래 관리하던 주소와 다른 곳에 매핑되므로, **CXL RP가 CXL controller에 remap offset을 동기화**한다(target storage의 CXL capability/config 영역에 기록).\n\napp이 HDM(=시스템 메모리)에 load/store → **CXL RP가 CXL flit 생성** → CXL.mem으로 storage controller에 전달 → endpoint+CXL controller가 flit 파싱해 command·target address 추출 → **firmware와 협력해 데이터 서비스**.","originalTitle":"","originalText":"When an application loads or stores data on the system memory (mapped to HDM), CXL RP generates a message, called CXL flit, and sends it to the target's CXL storage controller via CXL.mem.","toggles":[]},{"id":"node_013","lx":1180,"ly":1410,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1410,"title":"Disaggregation 3토폴로지 + MLD(16) + multi-host","content":"storage를 컴퓨팅에서 분해하는 세 구성(Fig.3): **(a) Switch**(DSP→각 storage, USP→host RP; switch 레인 64~128 → 16-lane storage 4~8개), **(b) Multi-switch**(top switch가 host RP+하위 브리지, leaf switch가 다수 storage; network 최대 **4PB**), **(c) Virtual Hierarchy(VH)**(FM crossbar가 host↔storage 경로 기억 → 완전 분해).\n\n**Multi-host + storage 가상화**: 각 storage를 **MLD(multiple logical device, 최대 16)**로 논리 분할, 각 MLD가 자기 HDM을 서로 다른 host에 매핑(물리 storage처럼). **단점**: 대역폭 공유·트래픽 혼잡, backend/internal DRAM 분할로 **병렬성·per-MLD 대역폭 저하**. (우리가 정리한 MLD 논의의 원출처.)","originalTitle":"","originalText":"CXL allows a system to logically split each endpoint into multiple Type 3 devices (up to 16), called multiple logical device (MLD). Thus, we can make each MLD define its own HDM, which can be mapped to a different place of any host of system memory.","toggles":[]},{"id":"node_014","lx":1180,"ly":1560,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1560,"title":"Storage 힌트: determinism / bufferability (+ GPF)","content":"Type-3는 memory pooling용이라 storage 특유의 **(i) latency fluctuation(GC 등 internal task)**, **(ii) data persistence** 문제가 남는다. 저자는 CXL.mem **예약 필드**에 두 힌트를 달자고 제안:\n\n- **Determinism**: `DT`(internal task 개입 없이 즉시 서비스) / `ND`(fire-and-forget → storage가 GC 등 스케줄 가능).\n- **Bufferability**: `BF`(SSD 내부 DRAM에 캐시/버퍼 허용) / `NB`(persistence first-class → block media 기록).\n\n조합(BF+DT/BF+ND/NB+DT/NB+ND) + **GPF(global persistent flush)**로 DB 로깅·트랜잭션·lock 시나리오 최적화(예: 로그는 BF+ND로 버퍼링, commit 시 GPF+NB+DT). loads는 대개 DT, prefetch엔 BF. **storage 물성을 host가 힌트로 조종**하는 co-design 사고 — SkyByte의 방향과 통한다.","originalTitle":"","originalText":"we suggest two simple features, i) determinism and ii) bufferability, which can be annotated to CXL messages and hint the host semantic to the underlying CXL controllers.","toggles":[]},{"id":"node_012","lx":1180,"ly":1740,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1740,"title":"Apex-Map 투영: PCIe 대비 129.5×(best)/3×(avg), DRAM 근접","content":"Apex-Map(locality $\\alpha$)으로 DRAM/PCIe/CXL 비교(Fig.2):\n\n- **Best($\\alpha=0.001$)**: 대부분 CPU cache hit → PCIe는 cache를 못 써 CXL 대비 **129.5×** 긴 지연. CXL ≈ DRAM.\n- **Average**: CXL가 PCIe 대비 **3×** 빠름. DRAM 대비 9.3× 나쁘지만 block storage 감안 시 합리적.\n- **Worst($\\alpha=1$, 완전 랜덤)**: CXL가 Z-NAND 지연을 못 숨겨 DRAM 대비 84.1× 나쁨. 그래도 PCIe 대비 **1.6×**(PCIe는 BAR 요청을 동기 처리).\n\n결론: non-cacheable을 극복한 CXL은 **고locality에서 DRAM급**, 랜덤에서만 flash 지연 노출. §7의 힌트로 이 긴 지연을 완화할 수 있다고 주장.","originalTitle":"","originalText":"CXL is also better than PCIe by 3x for the average case. Note that, even though the performance of CXL is 9.3x worse than that of DRAM, we believe it is still in a reasonable range by considering the fact that CXL leverages the block storage.","toggles":[]},{"id":"node_015","lx":1180,"ly":1920,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1920,"title":"계보/발표축: 'CXL-SSD' 개념의 정립 → SkyByte 구현","content":"이 논문은 **'CXL-SSD'라는 개념과 그 설계 좌표(Type-3, storage 힌트)를 처음 세운** 글이고, [[SkyByte]]는 그 비전을 **실제 co-design으로 구현**한 관계다.\n\n- **개념(여기)**: Type-3가 옳다 + determinism/bufferability로 storage 물성을 host에 힌트.\n- **구현(SkyByte)**: Type-3 CXL-SSD + coordinated context switch(긴 flash 지연을 host에 알림) + cacheline write log.\n\ndeterminism/bufferability와 SkyByte의 context switch는 **같은 transparent co-design 사고**(storage 내부 상태를 host에 노출해 함께 최적화). 내 **'SSD 이중역할 × transparent co-design'** 발표축의 **개념적 원점** — 그리고 우리가 대화로 정리한 Type 1/2/3·MLD·pooling 논의가 전부 여기서 출발한다([[CXL Overview]]에 정리).","originalTitle":"","originalText":"","toggles":[]},{"id":"node_016","lx":1710,"ly":1920,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1920,"title":"내 연구방향: MLD 분할(pooling) → 공유(sharing) coherence","content":"이 논문의 multi-host는 **MLD로 storage를 분할**해 각 조각을 다른 host에 주는 것 — 즉 **pooling(분할)**이지 **sharing(공유)**이 아니다. 여러 host가 **같은 HDM 영역을 동시에** coherent하게 쓰는 시나리오는 다루지 않는다(각 MLD는 한 host 전용).\n\n내 방향(multi-node coherence)은 정확히 그 다음 — MLD 분할을 넘어 **공유된 CXL-SSD 영역**에서 host 간 캐시 일관성을 어떻게 보장할지(**directory + back-invalidate, HDM-DB, CXL 3.0**). determinism/bufferability 같은 storage 힌트도 **공유 상황에서 누가 어떤 힌트를 세우나**로 재정의된다. 즉 이 논문의 개념 프레임(Type-3·힌트·MLD)을 multi-host coherent 공유로 확장하는 게 gap. → [[CXL Multi-node Coherence]], [[CXL Overview]]","originalTitle":"","originalText":"","toggles":[]},{"id":"node_020","lx":100,"ly":100,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"title":"🏛️ 학회: HotStorage 2022 — 도발적 vision/position 보상, 평가 부재 관대","content":"HotStorage는 도발적 **vision/position** paper를 위한 workshop이다. 완성된 평가·실측보다 **새 문제 프레이밍·통찰**을 보상하고 평가 부재엔 관대하되, **통찰·문제 프레이밍이 약하면 탈락**한다.\n\n이 글은 **single-author 7-page position paper**로, 상용 CXL 실리콘도 없던 2022년에 'PCIe block storage를 CXL로 byte-addressable memory expander로' 재정의하며 **'CXL-SSD'라는 개념 좌표(Type-3 + storage 힌트)**를 처음 세웠다. §1은 이 논문 전체를 4개 질문(why/how/which-type/what-to-improve)으로 프레이밍한다.\n\n**판단 축 세팅**: 그래서 아래 ✅는 **'개념 정립·문제 프레이밍의 날카로움'** 축에서, ⚠️는 **'제안일 뿐 구현·표준·실측 부재'** 축에서 읽어야 한다. HotStorage taste에선 후자가 치명적 감점이 아니라 **예상된 것** — position paper의 정상 범위다. 반대로 통찰이 평범했다면 여기서 떨어졌을 것.","originalTitle":"","originalText":"Even though CXL manages data coherency mainly between CPU memory spaces and memory on attached devices, we argue that it can also be useful to reform existing block storage as cost-efficient, large-scale working memory.","toggles":[]},{"id":"node_021","lx":100,"ly":380,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":380,"title":"✅ 잘한 점: non-cacheable BAR의 벽을 정확히 짚고 CXL=cacheable로 압축","content":"reviewer가 산 지점 = **문제 프레이밍의 정확성**. '왜 지금껏 PCIe SSD를 memory로 못 썼나'를 대역폭 부족이 아니라 **x86이 PCIe 접근을 non-cacheable로 강제**하는 것으로 지목한다. 대역폭 가설은 수치로 먼저 배제(PCIe Gen5/6 = 63~121 GB/s로 far memory에 충분)하고, 그 위에서 CXL의 단 하나의 본질적 기여를 **'그 접근을 cacheable로'**로 압축.\n\n이 한 통찰이 논문 전체 argument의 축이다 — §5의 129.5× 실험도 결국 'PCIe는 CPU cache를 못 쓴다'는 이 명제의 정량 증거일 뿐. HotStorage가 보상하는 **'기존 문제를 새 각도로 재정의'**에 정확히 부합해, 단순 CXL hype가 아니라 **한 문장으로 반증 가능한 명제**로 vision을 세운 게 강점.","originalTitle":"","originalText":"This non-cacheable characteristic severely degrades the performance of all memory accesses targeting the BARs ... this nature enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy and disables them from taking advantage of CPU caches.","toggles":[]},{"id":"node_022","lx":100,"ly":660,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":660,"title":"✅ 잘한 점: Type-3 선택을 3개 구조적 논거로 정당화 (position인데 반증 가능하게)","content":"position paper의 설득력은 '왜 이 설계점인가'를 얼마나 촘촘히 논증하느냐다. 저자는 Type-3를 **선언하지 않고** Type-2와의 대비로 3개 **구조적** 논거를 든다: (1) 확장성(RP당 device 1개 제한), (2) CXL.cache 풀피처의 매 I/O cache-state 확인 오버헤드, (3) storage 연산의 host 허가 비용.\n\n(논거의 *내용*은 기존 「왜 Type-3인가」 노드 소관 — 여기선 **reviewer 관점**만.) vision paper인데도 device type 선택을 **확장성·오버헤드·허가**의 세 축으로 나눠 **각각 반박 가능한 형태**로 못박은 점이 이 논문을 hype에서 구분한 accept 근거. 그리고 이 논증이 SkyByte 등 후속이 'CXL-SSD=Type-3'를 채택할 때 인용하는 1차 근거가 됐다(개념적 파급력).","originalTitle":"","originalText":"There are three reasons why we believe that Type 3 devices are better than Type 2 devices for the storage-integrated memory expander.","toggles":[]},{"id":"node_023","lx":100,"ly":940,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":940,"title":"✅ 잘한 점: determinism/bufferability — vision을 실행 가능한 프로토콜 어젠다로 내림","content":"'SSD를 memory로 쓰자'에 그치지 않고, memory pooling용 Type-3가 storage로선 못 다루는 **두 물성(GC latency fluctuation, persistence)**을 짚고, CXL.mem **예약 필드에 DT/ND·BF/NB 힌트**를 얹자는 구체 메커니즘까지 제안한다. reviewer가 좋게 볼 지점 = vision을 **'그래서 프로토콜을 이렇게 바꾸면'**까지 내려 후속 연구 어젠다로 만든 것.\n\n이 **transparent co-design 씨앗**(storage 내부 상태를 host에 힌트로 노출)이 곧 SkyByte의 coordinated context switch(긴 flash 지연을 host에 알림)로 이어진다 — 즉 이 노드는 논문의 '두 번째 기여 축'이자, 개념이 실제 구현으로 번지는 접점.","originalTitle":"","originalText":"we suggest two simple features, i) determinism and ii) bufferability, which can be annotated to CXL messages and hint the host semantic to the underlying CXL controllers.","toggles":[]},{"id":"node_024","lx":100,"ly":1220,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1220,"title":"⚠️ 아쉬운 점: 성능 근거가 Apex-Map 합성 + FPGA Z-NAND emul (실 워크로드·실 CXL 부재)","content":"**reviewer 질문**: 129.5×/3× 이득이 실제 애플리케이션에서도 나오나? locality 파라미터 $\\alpha$를 스윕하는 **Apex-Map은 합성 벤치**일 뿐, DB·graph·KVS 같은 실 워크로드 trace가 없다. 게다가 CXL 실리콘이 없어 **RISC-V O3 core + OpenExpress NVMe를 FPGA로 emul, backend도 Z-NAND emul** — CXL flit latency 모델의 신뢰도는? worst-case($\\alpha=1$)는 DRAM 대비 84.1× 나쁜데, '실 워크로드의 locality는 best쪽'이라는 건 저자 믿음('we believe')에 기댄다.\n\n**저자 방어**: 저자 스스로 §5에서 'somewhat disappointed', §8에서 'performance projection is imperfect'라 인정하고, HotStorage는 **상용 CXL 부재 시점의 vision paper**라 정량 rigor보다 방향 제시가 목적 — venue taste상 예상된 약점이지 reject 사유가 아니다.","originalTitle":"","originalText":"We are somewhat disappointed with the results as CXL's worst-case latency characteristics are far away from DRAM's behaviors. However, most workloads exhibit high locality except for a specific application like graph processing.","toggles":[]},{"id":"node_025","lx":100,"ly":1500,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1500,"title":"⚠️ 아쉬운 점: DT/BF는 제안일 뿐 — 인코딩·구현·평가·정책 전부 미정","content":"**reviewer 질문**: determinism/bufferability와 GPF는 CXL.mem 예약 필드에 얹자는 **아이디어 스케치일 뿐**, 실제 비트 인코딩·컨트롤러 구현·성능 평가가 하나도 없다. host가 **어떤 힌트를 언제 세울지**(컴파일러? 런타임? PMDK?)의 정책, 힌트 오분류 시 correctness(NB인데 BF로 표기하면 persistence 깨짐), 예약 필드 소모의 표준화 경로가 전부 미정. 따라서 '§5의 긴 지연을 이 힌트로 완화할 수 있다'는 주장은 **검증되지 않은 채** 남는다.\n\n**저자 방어**: 본문이 'suggest ... and debate how these additional states can be beneficial'로 명시적 **discussion 성격** — position paper의 열린 제안이다. 그럼에도 '두 번째 기여 축이 미검증'은 남고, 실제로 **SkyByte는 이 문제를 힌트가 아니라 context switch로 다르게 풀어** 이 제안 경로의 미완결을 방증한다.","originalTitle":"","originalText":"we suggest two additional states, determinism and bufferability, and debate how these additional states can be beneficial to handle the PCIe storage in expanding the host's CPU memory with CXL.","toggles":[]},{"id":"node_026","lx":100,"ly":1780,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1780,"title":"⚠️ 아쉬운 점: MLD는 분할(pooling)일 뿐 — 여러 host 공유 coherence가 scope 밖","content":"**reviewer 질문**: §6의 'virtualize each storage device to be shared by different hosts'는 실은 **각 MLD를 한 host에 전용 매핑하는 분할(pooling)**이지, 여러 host가 같은 HDM 영역을 동시에 coherent하게 쓰는 **sharing이 아니다**. 저자 자신이 MLD 분할이 backend/internal DRAM 병렬성을 깎아 per-MLD 대역폭을 떨어뜨린다고 인정. 그렇다면 진짜 disaggregation의 핵심(공유 데이터의 **host 간 일관성**)이 빠져 있다 — 'shared'라는 단어가 오해를 부른다.\n\n**저자 방어**: 2022년 **CXL 2.0** 시점엔 device-side back-invalidate(HDM-DB, CXL 3.0)가 아직 없어 **host 간 sharing coherence 자체가 프로토콜 밖** — 그래서 pooling까지가 정당한 scope. → 이 누락 지점이 정확히 내 연구 gap(아래 🧭)이자 SkyByte도 single-host로 남긴 자리.","originalTitle":"","originalText":"A disadvantage of multi-host VHs can be bandwidth sharing and/or traffic congestion. To support MLDs, PCIe storage may require partitioning the underlying backend and internal DRAMs, lowering the level of parallelism, and this can unfortunately reduce the bandwidth of each MLD.","toggles":[]},{"id":"node_027","lx":100,"ly":2060,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2060,"title":"🔀 왜 Type-3인가 — Type-2도 갈 수 있었는데 (역설계)","content":"설계자라면 storage-integrated expander에 세 갈래가 있다: **(A) Type-3**(.io+.mem, HDM만), **(B) Type-2**(.io+.cache+.mem, HDM+연산), (C) Type-1.\n\n**(B) Type-2는 실제로 매력적 갈래였다** — 저자 스스로 'Type 2 can probably be a good option for utilizing HDM and/or integrating data processing capabilities into the storage'라 인정한다. computational storage(연산을 SSD로) 흐름과도 정합.\n\n**그런데 버린다**: (1) RP당 device 1개→비확장, (2) 매 I/O cache-state 확인, (3) storage 연산의 host 허가. 즉 저자는 **'storage side가 host CPU cache까지 coherent하게 관리할 필요는 없다'**(내부 DRAM 관리 ≠ host cache coherence)는 관찰로 Type-2의 CXL.cache를 통째로 잘라낸다.\n\n**저자가 안 판 갈래(gap 후보)**: '연산형 CXL-SSD(Type-2)에서 확장성·허가 오버헤드를 완화하는' 방향 = computational CXL-SSD의 열린 설계공간. **좁힌 기준**: 결론은 어디까지나 **'순수 memory expansion 목적'** 하에서만 Type-3가 dominant — 목적이 in-storage compute면 저울이 달라진다.","originalTitle":"","originalText":"Type 2 can probably be a good option for utilizing HDM and/or integrating data processing capabilities into the storage by being aware of the semantics of host CPUs. In this paper, we however advocate Type 3 for a storage-integrated memory expander in CXL.","toggles":[]},{"id":"node_028","lx":100,"ly":2340,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2340,"title":"📐 P/L: 기존 PCIe BAR 접근 = non-cacheable 강제 (관점 P → 구조적 한계 L → CXL의 P″)","content":"| 해법 | 관점 (문제를 본 렌즈) | 결과로 남는 것 |\n|---|---|---|\n| **PCIe BAR expander** (2B-SSD, NVMe) | **P**: SSD를 host의 *peripheral / I/O device*로 봄 → BAR로의 memory 요청을 storage가 **반드시 가로채야** 함 | **L(구조적)**: x86이 PCIe 접근을 **non-cacheable로 강제** → CPU cache 원천 봉쇄, storage가 메모리 계층에서 배제 |\n| **CXL-SSD** (이 논문) | **P″**: SSD를 host와 **같은 coherent domain의 memory**로 봄 | 접근이 **cacheable** → CPU cache 계층에 편입, non-cacheable L 소멸 |\n\n**L의 핵심(성능이 아니라 관점의 귀결)**: 느려서가 아니다. storage를 *peripheral*로 보는 관점이면 CPU가 요청을 캐시하는 순간 **storage가 요청 도착을 못 잡아 system failure / storage disconnection** 위험 → 그래서 x86이 **구조적으로 non-cacheable일 수밖에** 없다. 관점 P를 'peripheral'→'coherent memory'(P″)로 바꾸는 것만으로 L 전체가 사라진다 — 이 논문의 novelty가 P vs P″ 대비에서 나온다는 증거.","originalTitle":"","originalText":"x86 instruction set architectures of both Intel and AMD do not allow PCIe-related memory requests to be cached at the CPU side. Unfortunately, this nature enforces the storage-integrated memory expanders be excluded from the conventional memory hierarchy and disables them from taking advantage of CPU caches.","toggles":[]},{"id":"node_029","lx":100,"ly":2620,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2620,"title":"📍 위치: CXL-SSD 비전(개념) → SkyByte가 구현, DirectCXL·FlatFlash 계보","content":"HotStorage 2022의 이 글은 **'CXL-SSD' 좌표(Type-3 + storage 힌트)를 세운 개념/비전** 노드다. 같은 **KAIST CAMELab** 계보에서 역할이 분담된다:\n\n- **개념/비전 (여기)**: 무엇을·왜 — block을 byte로, Type-3가 옳다, storage 물성을 힌트로.\n- **하드웨어 실증**: [[DirectCXL - Direct Access, High-Performance Memory Disaggregation]] — 실물 CXL.mem 분해 프로토타입.\n- **구현 (co-design)**: [[SkyByte]] (HPCA'25) — Type-3 memory-semantic CXL-SSD를 OS·HW co-design으로 실제 설계.\n- **개념적 뿌리**: [[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]] — byte-accessible SSD의 통합 메모리-스토리지 계층(본문 [10]으로 직접 인용).\n\n즉 이 논문 = **비전(무엇을·왜)**, 나머지 = **실증/구현(어떻게)**. 'HotStorage가 vision을 던지고 상위 venue(ISCA/HPCA/ASPLOS)가 그 vision을 받아 실증한다'는 workshop의 역할이 이 계보로 확인된다.","originalTitle":"","originalText":"","toggles":[]},{"id":"node_030","lx":100,"ly":2900,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2900,"title":"🧭 내 연구: MLD 분할(pooling) → 공유(sharing) coherence P′","content":"이 논문이 남긴 **L**(위 ⚠️: MLD는 storage를 분할해 각 조각을 한 host에 줄 뿐) = **여러 host가 같은 HDM을 동시에 공유할 때의 host 간 coherence**가 통째로 빠짐.\n\n내 관점 **P′** = *pooling을 sharing으로* — **directory + device back-invalidate(HDM-DB, CXL 3.0)**로 공유 CXL-SSD 영역의 일관성·write log 최신성·promotion 순서를 재정의. determinism/bufferability 같은 storage 힌트도 '공유 상황에서 **누가** 어떤 힌트를 세우나'로 다시 물어야 한다.\n\nP′는 refs의 L에서 직접 유도됨(억지 novelty 아님). *상세 전개는 기존 「내 연구방향: MLD 분할(pooling) → 공유(sharing) coherence」 노드에 위임 — 여기선 reviewer가 짚은 scope 누락(위 ⚠️)에서 P′가 도출되는 사슬만 명시.*","originalTitle":"","originalText":"","toggles":[]}];
 var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":"핵심 벽"},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_003","target":"node_008","type":"line","label":""},{"source":"node_003","target":"node_009","type":"line","label":"핵심"},{"source":"node_003","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_004","target":"node_012","type":"line","label":""},{"source":"node_005","target":"node_015","type":"line","label":"발표"},{"source":"node_005","target":"node_016","type":"line","label":"내 연구"},{"source":"node_015","target":"node_016","type":"line","label":"연결"},{"source":"node_013","target":"node_016","type":"line","label":"MLD→공유"},{"source":"node_006","target":"node_017","type":"line","label":"coherence 구분"},{"source":"node_017","target":"node_008","type":"line","label":"Type별"},{"source":"node_017","target":"node_018","type":"line","label":"두 scope"},{"source":"node_018","target":"node_016","type":"line","label":"inter-host=내 연구"},{"source":"node_018","target":"node_019","type":"line","label":"용어 정의"},{"source":"node_002","target":"node_020","type":"line","label":"분석"},{"source":"node_003","target":"node_021","type":"line","label":"분석"},{"source":"node_003","target":"node_022","type":"line","label":"분석"},{"source":"node_003","target":"node_023","type":"line","label":"분석"},{"source":"node_004","target":"node_024","type":"line","label":"분석"},{"source":"node_005","target":"node_025","type":"line","label":"분석"},{"source":"node_005","target":"node_026","type":"line","label":"분석"},{"source":"node_003","target":"node_027","type":"line","label":"분석"},{"source":"node_002","target":"node_028","type":"line","label":"분석"},{"source":"node_005","target":"node_029","type":"line","label":"분석"},{"source":"node_005","target":"node_030","type":"line","label":"분석"}];
+var NODE_TEMPLATES = {"main_topic":"Main topic","method":"Method","result":"Result","claim":"Claim","question":"Question","gap":"Gap / Idea","reference":"Reference","memo":"Memo"};
 var HEADER_H = 36;
+
+// Collapse/Expand 라벨 필터 드롭다운 채우기 (에디터의 라벨 필터와 동일한 옵션/동작)
+(function populateFilterSelect() {
+  var sel = document.getElementById('tb-filter');
+  var noneOpt = document.createElement('option');
+  noneOpt.value = ''; noneOpt.textContent = 'None';
+  sel.appendChild(noneOpt);
+  Object.keys(NODE_TEMPLATES).forEach(function(key) {
+    var opt = document.createElement('option');
+    opt.value = key; opt.textContent = NODE_TEMPLATES[key];
+    sel.appendChild(opt);
+  });
+})();
 
 var vp = document.getElementById('viewport');
 var canvas = document.getElementById('canvas');
@@ -406,6 +432,7 @@ window.addEventListener('resize', function() {
     tx = r.width / 2 - cxw * scale;
     ty = r.height / 2 - cyw * scale;
     applyTransform();
+    updateZoomLineWeights();
   }
   lastVW = r.width; lastVH = r.height;
 });
@@ -421,6 +448,7 @@ vp.addEventListener('wheel', function(e) {
   ty = my - (my - ty) * (ns / scale);
   scale = ns;
   applyTransform();
+  updateZoomLineWeights();
 }, { passive: false });
 
 // Canvas pan
@@ -518,6 +546,9 @@ function onTitleClick(e, titleEl) {
   for (var i = 0; i < NODES_DATA.length; i++) {
     if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
   }
+  // 접혀 있는 동안엔 .ng-content가 display:none이라 측정이 전부 0으로 나와 More
+  // 버튼이 필요없다고 잘못 판단되므로, 다시 보이게 될 때 이 노드만 재측정
+  if (expanding) applyContentCaps(nodeEl);
   setTimeout(recomputePositions, 0);
   // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
   if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
@@ -585,7 +616,7 @@ function syncMinHeight(el, expand) {
   el.style.minHeight = (expand && minH) ? minH + 'px' : '';
 }
 
-function applyFold(nodeIds, expand) {
+function applyFold(nodeIds, expand, after) {
   nodeIds.forEach(function(id) {
     var el = document.getElementById('node-' + id);
     if (!el) return;
@@ -598,7 +629,7 @@ function applyFold(nodeIds, expand) {
       if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
     }
   });
-  setTimeout(recomputePositions, 0);
+  setTimeout(function() { recomputePositions(); if (after) after(); }, 0);
 }
 
 // Recompute positions when <details> toggles change node height.
@@ -608,7 +639,17 @@ canvas.addEventListener('toggle', function() {
 }, true);
 
 // Toolbar: context-aware expand/collapse
+// 라벨 필터: None이면 기존 동작 그대로. 특정 타입이면 Collapse는 항상 전체 접음,
+// Expand는 그 타입 노드만 펼치고 나머지는 강제로 접음 (부모/자식 관계 무시, 에디터와 동일 규칙)
 function doExpand() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    var matching = [], rest = [];
+    NODES_DATA.forEach(function(n) { (n.template === filter ? matching : rest).push(n.id); });
+    applyFold(rest, false);
+    applyFold(matching, true);
+    return;
+  }
   if (selectedNodeId) {
     applyFold(getExpandDescendants(selectedNodeId, true), true);
   } else {
@@ -621,12 +662,81 @@ function doExpand() {
     applyFold(toExpand, true);
   }
 }
+// 전체 collapse(선택 없이, 또는 필터가 걸려 있어도 결국 전체)일 때만 자동으로
+// Fit View — 선택 서브트리만 접을 땐 사용자가 보던 영역을 유지해야 하므로 대상에서
+// 제외 (에디터와 동일 규칙).
 function doCollapse() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
+    return;
+  }
   if (selectedNodeId) {
     applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
   } else {
-    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
   }
+}
+
+// 드롭된 노드의 raw 위치(lx/ly)를 형제들 사이에서 실제로 어디 떨어졌는지에 맞춰 다시
+// 계산한다. onUp이 그냥 "드롭된 렌더 좌표를 그대로 저장"하면, 그 렌더 좌표는 raw 좌표와
+// 전혀 다른 좌표계(레이아웃 알고리즘이 raw를 대폭 재배치하는 게 이 알고리즘의 존재
+// 이유)라 형제들의 raw ly 범위를 완전히 벗어나는 경우가 흔하고, 그 결과 다음 재배치 때
+// 항상 맨 위/맨 아래로 튕기는 것처럼 보인다(에디터에서도 같은 버그가 있었음). 드롭 시점의
+// DOM 위치(형제들은 이 드래그 동안 한 번도 안 움직였으므로 여전히 정확한 배치 상태를
+// 반영함)를 기준으로 어느 두 형제 사이에 놓였는지 찾아 그 사이 값으로 raw ly를 맞춘다.
+function reconcileDroppedPosition(nodeId, nodeDatum) {
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+  var tree = buildHopTreeJs();
+  var parentId = tree.parentOf[nodeId];
+  if (!parentId) return;
+
+  function findRootId(fromId) {
+    var cur = fromId, visited = {};
+    while (!visited[cur]) {
+      visited[cur] = true;
+      var n = nodeMap[cur];
+      if (!n) return cur;
+      if (n.isMain) return cur;
+      var p = tree.parentOf[cur];
+      if (!p) return cur;
+      cur = p;
+    }
+    return cur;
+  }
+  var root = nodeMap[findRootId(nodeId)];
+  function sideOfNode(n) { return (root && n.lx >= root.lx) ? 1 : -1; }
+  var draggedSide = sideOfNode(nodeDatum);
+
+  var sameSideSiblings = [];
+  NODES_DATA.forEach(function(n) {
+    if (n.id === nodeId) return;
+    if (tree.parentOf[n.id] === parentId && sideOfNode(n) === draggedSide) sameSideSiblings.push(n.id);
+  });
+  if (sameSideSiblings.length === 0) return;
+
+  var draggedRenderY = nodeDatum.ly;
+  var ordered = sameSideSiblings.map(function(sid) {
+    var el = document.getElementById('node-' + sid);
+    var ry = el ? (parseFloat(el.style.top) || 0) : nodeMap[sid].ly;
+    return { id: sid, renderY: ry };
+  }).sort(function(a, b) { return a.renderY - b.renderY; });
+
+  var belowIdx = -1;
+  for (var i = 0; i < ordered.length; i++) {
+    if (ordered[i].renderY > draggedRenderY) { belowIdx = i; break; }
+  }
+  var newY;
+  if (belowIdx === -1) newY = nodeMap[ordered[ordered.length - 1].id].ly + 1;
+  else if (belowIdx === 0) newY = nodeMap[ordered[0].id].ly - 1;
+  else newY = (nodeMap[ordered[belowIdx - 1].id].ly + nodeMap[ordered[belowIdx].id].ly) / 2;
+
+  // lx도 드래그 중 렌더 좌표가 raw에 섞여 들어가 오염됐을 수 있으므로, 같은 side 형제의
+  // raw lx를 빌려 바로잡는다(side 전환처럼 형제가 없는 경우는 건드리지 않음).
+  nodeDatum.lx = nodeMap[sameSideSiblings[0]].lx;
+  nodeDatum.ly = newY;
+  nodeDatum.naturalY = newY;
 }
 
 // Tag drag handle
@@ -658,192 +768,285 @@ function onNodeTagMousedown(e, nodeEl) {
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
     nodeEl.classList.remove('ng-dragging');
-    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
-    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+    // 드롭된 렌더 좌표를 일단 그대로 저장한 뒤, 형제들 사이 실제 위치에 맞춰 raw로
+    // 재해석한다(reconcileDroppedPosition — 위 참고, 렌더 좌표를 raw에 그대로 쓰면 안
+    // 되는 이유).
+    if (moved) {
+      lastWasDrag = true;
+      if (nodeDatum) {
+        nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly;
+        reconcileDroppedPosition(nodeId, nodeDatum);
+      }
+      setTimeout(recomputePositions, 0);
+    }
   }
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
 }
 
+// Canvas.tsx의 computeRenderPositions와 완전히 동일한 hop-tree bottom-up/top-down
+// 알고리즘의 vanilla JS 이식 — 예전엔 X 겹침 기준 union-find 컬럼 + 그리디 Y-패킹이라는
+// 완전히 다른(더 오래된) 알고리즘을 썼는데, 그 방식은 hop depth 개념이 없어서 브랜치마다
+// hop-1/hop-2가 서로 다른 X에서 시작하는 문제가 있었음(사용자가 Grid 오버레이로 직접
+// 확인해서 발견 — "hop1과 hop2 가로 시작 위치가 동일하지 않아서"). 에디터와 정확히 같은
+// 결과가 나오도록 알고리즘 자체를 교체.
 function recomputePositions() {
-  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
-  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
-
   var nodeMap = {};
   NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
 
   function getH(n) {
     var el = document.getElementById('node-' + n.id);
     if (el) return el.offsetHeight;
-    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
     return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
   }
   function getW(n) {
     var el = document.getElementById('node-' + n.id);
     return el ? el.offsetWidth : (n.nodeWidth || 432);
   }
-  function isConn(aId, bId) {
-    var a = nodeMap[aId], b = nodeMap[bId];
-    if (!a || !b) return false;
-    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
-    return EDGES.some(function(e) {
-      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+
+  var tree = buildHopTreeJs();
+
+  // main topic(백본) 기준 좌/우 — 세로 배치(아래)와 가로 정렬(Pass 4) 양쪽에서 왼쪽/오른쪽
+  // 자식을 독립적으로 다루기 위해 먼저 계산해둔다.
+  var sideOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) { sideOf[n.id] = 0; return; }
+    var root = nodeMap[tree.rootOf[n.id]];
+    sideOf[n.id] = n.lx >= root.lx ? 1 : -1;
+  });
+
+  // 각 부모의 자식들을 저장된 상대 Y(디자인 의도상 순서) 기준으로 정렬
+  var childrenOf = {};
+  NODES_DATA.forEach(function(n) {
+    var p = tree.parentOf[n.id];
+    if (!p) return;
+    (childrenOf[p] = childrenOf[p] || []).push(n.id);
+  });
+  Object.keys(childrenOf).forEach(function(pid) {
+    var parent = nodeMap[pid];
+    childrenOf[pid].sort(function(a, b) {
+      return (nodeMap[a].ly - parent.ly) - (nodeMap[b].ly - parent.ly);
+    });
+  });
+
+  // 형제 그룹을 부모의 원래 Y 기준 위/아래로, 그리고 좌/우(side)로 분리한다. 왼쪽/오른쪽
+  // 자식은 서로 다른 X에 그려져 세로 공간을 절대 공유하지 않으므로 독립적으로 계산해야
+  // 한쪽이 커질 때 반대쪽 분기점까지 같이 밀리는 걸 막는다. above 배열은 reverse해서
+  // "부모와 가장 가까운 것부터" 순서로 맞춘다 — kids는 상대 Y 오름차순 정렬이라 below
+  // 그룹(부모에서 멀어지는 방향으로 순서대로 진행)엔 그대로 맞지만, above 그룹은 같은
+  // 진행 방향(위로 멀어짐)인데 오름차순이면 가장 먼 자식이 배열 맨 앞이라 오히려 부모와
+  // 가장 가깝게 배치되고 그다음이 더 멀리 밀리는 식으로 시각적 순서가 뒤집힌다.
+  function splitByOriginalSide(parentId, side) {
+    var parent = nodeMap[parentId];
+    var kids = (childrenOf[parentId] || []).filter(function(k) { return sideOf[k] === side; });
+    var above = kids.filter(function(k) { return nodeMap[k].ly < parent.ly; }).reverse();
+    return {
+      below: kids.filter(function(k) { return nodeMap[k].ly >= parent.ly; }),
+      above: above,
+    };
+  }
+
+  // main topic끼리(백본)만 20px 기준, 그 외(hop 자식)는 항상 30px 기준
+  function gapFor(a, b) {
+    var base = (a.isMain && b.isMain) ? 20 : 30;
+    return (getH(a) > HEADER_H || getH(b) > HEADER_H) ? 48 : base;
+  }
+
+  // ── bottom-up: 각 서브트리가 자기 중심 기준 위/아래로 필요한 공간 ──
+  var infoCache = {};
+  function stackSize(group, parentNode) {
+    if (!group.length) return 0;
+    var total = 0;
+    for (var i = 0; i < group.length; i++) {
+      var kid = nodeMap[group[i]];
+      var prev = i === 0 ? parentNode : nodeMap[group[i - 1]];
+      total += gapFor(prev, kid);
+      var kInfo = layoutInfo(group[i]);
+      total += kInfo.above + kInfo.below;
+    }
+    return total;
+  }
+
+  // above+below 블록을 부모 중심에 맞추기 위한 분기점 이동량(shift). 이상적으로는
+  // (belowSize-aboveSize)/2만큼 옮기면 블록 전체가 정확히 부모 중심에 오지만, 양쪽에 다
+  // 형제가 있는 상태에서 두 그룹 크기 차이가 크면(예: 3:1 이상) 그 이동량이 큰 쪽 그룹의
+  // "부모와 가장 가까운 자식"을 부모 중심 반대편으로 밀어버린다(below의 첫 자식이 부모
+  // 보다 위에 렌더되는 등, 자식이 부모를 시각적으로 뛰어넘는 버그). 두 그룹이 다 있을
+  // 때만, "더 큰 쪽의 첫 자식이 부모 중심을 넘지 않는 한도"로 이동량을 clamp한다.
+  function splitShift(id, side) {
+    var node = nodeMap[id];
+    var split = splitByOriginalSide(id, side);
+    var above = split.above, below = split.below;
+    var belowSize = stackSize(below, node);
+    var aboveSize = stackSize(above, node);
+    var shift = (belowSize - aboveSize) / 2;
+    if (above.length > 0 && below.length > 0) {
+      if (shift > 0) {
+        var firstBelow = nodeMap[below[0]];
+        var firstBelowInfo = layoutInfo(below[0]);
+        shift = Math.min(shift, gapFor(node, firstBelow) + firstBelowInfo.above);
+      } else if (shift < 0) {
+        var firstAbove = nodeMap[above[0]];
+        var firstAboveInfo = layoutInfo(above[0]);
+        shift = Math.max(shift, -(gapFor(node, firstAbove) + firstAboveInfo.below));
+      }
+    }
+    return { above: above, below: below, belowSize: belowSize, aboveSize: aboveSize, shift: shift };
+  }
+
+  function layoutInfo(id) {
+    if (infoCache[id]) return infoCache[id];
+    var node = nodeMap[id];
+    var ownHalf = getH(node) / 2;
+    // side별로 독립적으로 above+below 블록을 재센터링하므로, 이 노드가 자기 부모에게
+    // 보고하는 "필요 공간"도 side별로 따로 구해서(왼쪽·오른쪽은 세로 공간을 안 겹치므로
+    // 더하지 않고 더 많이 필요한 쪽 기준) splitShift가 clamp한 실제 shift를 반영한다 —
+    // 안 그러면 assign()이 실제로 만드는 위치와 어긋나 다른 클러스터와 겹칠 수 있다.
+    var aboveReach = 0, belowReach = 0;
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      aboveReach = Math.max(aboveReach, s.aboveSize + s.shift);
+      belowReach = Math.max(belowReach, s.belowSize - s.shift);
+    });
+    var info = { above: Math.max(ownHalf, aboveReach), below: Math.max(ownHalf, belowReach) };
+    infoCache[id] = info;
+    return info;
+  }
+
+  // ── top-down: center Y 확정 ──
+  var centerY = {};
+  function assign(id, cy) {
+    var node = nodeMap[id];
+    centerY[id] = cy;
+    // 왼쪽/오른쪽을 완전히 독립적으로 배치한다 — stackSize가 같은 side의 형제끼리만
+    // 더해지므로 한쪽 크기가 반대쪽 분기점에 영향을 주지 않는다.
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      var below = s.below, above = s.above;
+      var split = cy - s.shift;
+
+      var cursor = split;
+      for (var i = 0; i < below.length; i++) {
+        var kid = nodeMap[below[i]];
+        var kInfo = layoutInfo(below[i]);
+        var prev = i === 0 ? node : nodeMap[below[i - 1]];
+        cursor += gapFor(prev, kid) + kInfo.above;
+        assign(below[i], cursor);
+        cursor += kInfo.below;
+      }
+      cursor = split;
+      for (var j = 0; j < above.length; j++) {
+        var kid2 = nodeMap[above[j]];
+        var kInfo2 = layoutInfo(above[j]);
+        var prev2 = j === 0 ? node : nodeMap[above[j - 1]];
+        cursor -= gapFor(prev2, kid2) + kInfo2.below;
+        assign(above[j], cursor);
+        cursor -= kInfo2.above;
+      }
     });
   }
 
-  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
-  var par = {};
-  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
-  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
-  for (var i = 0; i < NODES_DATA.length; i++) {
-    for (var j = i + 1; j < NODES_DATA.length; j++) {
-      var a = NODES_DATA[i], b = NODES_DATA[j];
+  // ── 루트 시퀀싱: X 범위가 겹치는 루트끼리만 그룹으로 묶어 원래 순서(Y)대로 배치 ──
+  var roots = NODES_DATA.filter(function(n) { return tree.isRoot[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rootFind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rootFind(p); rootPar[id] = r; return r;
+  }
+  for (var ri = 0; ri < roots.length; ri++) {
+    for (var rj = ri + 1; rj < roots.length; rj++) {
+      var a = roots[ri], b = roots[rj];
       if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
-        var ra = find(a.id), rb = find(b.id);
-        if (ra !== rb) par[ra] = rb;
+        var fa = rootFind(a.id), fb = rootFind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
       }
     }
   }
-  var colMap = {};
-  NODES_DATA.forEach(function(n) {
-    var root = find(n.id);
-    if (!colMap[root]) colMap[root] = [];
-    colMap[root].push(n);
+  var rootGroups = {};
+  roots.forEach(function(r) {
+    var g = rootFind(r.id);
+    (rootGroups[g] = rootGroups[g] || []).push(r);
   });
-
-  // 컬럼을 min X 오름차순(왼→오)으로 정렬
-  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
-    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
-    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
-    return minXA - minXB;
+  Object.keys(rootGroups).forEach(function(gk) {
+    var group = rootGroups[gk];
+    group.sort(function(a, b) { return (a.ly - b.ly) || (a.lx - b.lx); });
+    var cursorBottom = -Infinity;
+    for (var i = 0; i < group.length; i++) {
+      var root = group[i];
+      var info = layoutInfo(root.id);
+      var naturalCenter = root.ly + getH(root) / 2;
+      var gap = i === 0 ? 0 : gapFor(group[i - 1], root);
+      var cy = i === 0 ? naturalCenter : Math.max(naturalCenter, cursorBottom + gap + info.above);
+      assign(root.id, cy);
+      cursorBottom = (centerY[root.id] !== undefined ? centerY[root.id] : cy) + info.below;
+    }
   });
 
   var renderY = {};
-
-  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
-  function getEffY(node) {
-    var effY = node.ly;
-    NODES_DATA.forEach(function(other) {
-      if (renderY[other.id] === undefined) return;
-      if (!isConn(node.id, other.id)) return;
-      var otherRY = renderY[other.id];
-      var otherH = getH(other);
-      var otherBottom = otherRY + otherH;
-      var otherPush = Math.max(0, otherRY - other.ly);
-      if (otherH > HEADER_H && otherBottom > node.ly) {
-        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
-        effY = Math.max(effY, otherBottom + 48);
-      } else {
-        // 접힌 상태: Y 이동 delta만 전파
-        effY = Math.max(effY, node.ly + otherPush);
-      }
-    });
-    return effY;
-  }
-
-  // 컬럼별 그리디 패킹 (왼→오)
-  columns.forEach(function(col) {
-    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
-    var effYMap = {};
-    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
-
-    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
-    col.sort(function(a, b) {
-      var ea = effYMap[a.id], eb = effYMap[b.id];
-      return ea !== eb ? ea - eb : a.ly - b.ly;
-    });
-
-    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
-    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
-    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
-    var placed = [];
-    col.forEach(function(node) {
-      var h = getH(node);
-      var baseGap = node.isMain ? 20 : 30;
-      var y = effYMap[node.id];
-      var moved = true;
-      while (moved) {
-        moved = false;
-        for (var pi = 0; pi < placed.length; pi++) {
-          var p = placed[pi];
-          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
-          if (!overlapX) continue;
-          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
-          if (y < p.y + p.h + gap && y + h + gap > p.y) {
-            y = p.y + p.h + gap;
-            moved = true;
-          }
-        }
-      }
-      renderY[node.id] = y;
-      placed.push({ node: node, y: y, h: h });
-    });
+  NODES_DATA.forEach(function(n) {
+    var cy = centerY[n.id] !== undefined ? centerY[n.id] : (n.ly + getH(n) / 2);
+    renderY[n.id] = cy - getH(n) / 2;
   });
 
-  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
-  var lineBySource = {};
-  EDGES.forEach(function(e) {
-    if (e.type !== 'line') return;
-    if (!lineBySource[e.source]) lineBySource[e.source] = [];
-    lineBySource[e.source].push(e.target);
-  });
-  Object.keys(lineBySource).forEach(function(srcId) {
-    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
-    if (targetIds.length < 2) return;
-    var xGroups = [];
-    targetIds.forEach(function(id) {
-      var el = document.getElementById('node-' + id);
-      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
-      var placed = false;
-      for (var gi = 0; gi < xGroups.length; gi++) {
-        var firstId = xGroups[gi][0];
-        var fEl = document.getElementById('node-' + firstId);
-        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
-        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
-      }
-      if (!placed) xGroups.push([id]);
-    });
-    xGroups.forEach(function(grp) {
-      if (grp.length < 2) return;
-      var grpSorted = grp.map(function(id) {
-        var el = document.getElementById('node-' + id);
-        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
-      }).sort(function(a, b) { return a.y - b.y; });
-      for (var i = 1; i < grpSorted.length; i++) {
-        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
-        var newY = Math.max(grpSorted[i].y, minY);
-        grpSorted[i].y = newY;
-        renderY[grpSorted[i].id] = newY;
-      }
-    });
-  });
+  // ── hop tier(깊이)별 X 정렬 — 같은 depth의 모든 노드가 항상 같은 X에서 시작 ──
+  var MIN_HOP_GAP = 750, COL_PAD = 60;
+  // main topic(백본)도 hop1/hop2처럼 하나의 세로줄로 자동 정렬 — depth 0 노드는 raw
+  // 좌표를 그대로 쓰지 않고, main topic들 중 가장 왼쪽(raw x 최소값)으로 전부 통일한다.
+  // depth 0에는 main topic 외에 연결 끊긴 고아 노드도 섞이므로 n.isMain으로 필터링
+  // (고아 노드는 원래 자유 좌표 유지).
+  var mainTopicAnchorX = 0;
+  var mainTopicXs = NODES_DATA.filter(function(n) { return n.isMain; }).map(function(n) { return n.lx; });
+  if (mainTopicXs.length > 0) mainTopicAnchorX = Math.min.apply(null, mainTopicXs);
 
-  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
-  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
-  var H_GAP = 60;
-  var renderX = {};
-  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
-  byX.forEach(function(node) {
-    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
-    var nH = getH(node);
-    var nW = getW(node);
-    var x = node.lx;
-    var moved = true;
-    while (moved) {
-      moved = false;
-      for (var oi = 0; oi < byX.length; oi++) {
-        var other = byX[oi];
-        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
-        if (ox === undefined || other.id === node.id) continue;
-        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
-        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
-        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
-          x = ox + getW(other) + H_GAP;
-          moved = true;
-        }
-      }
+  var maxDepth = 0;
+  NODES_DATA.forEach(function(n) { maxDepth = Math.max(maxDepth, tree.depthOf[n.id] || 0); });
+  // 전역에서 가장 넓은 main topic 폭 — 어느 main topic 하나가 표 등으로 넓어지면, 그
+  // main topic 자신의 왼쪽·오른쪽 hop1 간격이 똑같이 유지되는 것은 물론(오른쪽 변만
+  // 넓어지므로 오른쪽 계산에만 필요), 다른(안 넓어진) main topic들의 hop1도 전부 같은
+  // 만큼 같이 밀려서 hop1 열이 문서 전체에서 계속 나란히 정렬돼야 한다. "이 브랜치 자신의
+  // 폭"이 아니라 "전역에서 제일 넓은 main topic의 폭"을 모든 브랜치의 오른쪽 오프셋에
+  // 똑같이 더한다 — 표가 없는 보통 상황(모든 main topic 폭이 같음)에서는 이 값이 곧 자기
+  // 폭과 같아서 좌우 간격이 정확히 MIN_HOP_GAP으로 대칭이다. 왼쪽은 main topic이 아무리
+  // 넓어져도 왼쪽 변 자체는 움직이지 않으므로 항상 고정 MIN_HOP_GAP.
+  var globalWidestMainTopic = 0;
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) globalWidestMainTopic = Math.max(globalWidestMainTopic, getW(n));
+  });
+  var colOffset = {};
+  [1, -1].forEach(function(side) {
+    var offset = side === 1 ? globalWidestMainTopic + MIN_HOP_GAP : MIN_HOP_GAP;
+    var prevMaxWidth = 0;
+    for (var d = 1; d <= maxDepth; d++) {
+      if (d > 1) offset += Math.max(MIN_HOP_GAP, prevMaxWidth + COL_PAD);
+      colOffset[d + ':' + side] = offset;
+      var widest = 0;
+      NODES_DATA.forEach(function(n) {
+        if (tree.depthOf[n.id] === d && sideOf[n.id] === side) widest = Math.max(widest, getW(n));
+      });
+      prevMaxWidth = widest;
     }
-    renderX[node.id] = x;
+  });
+  var renderX = {};
+  NODES_DATA.forEach(function(n) {
+    var depth = tree.depthOf[n.id] || 0;
+    if (depth === 0) { renderX[n.id] = n.isMain ? mainTopicAnchorX : n.lx; return; }
+    var side = sideOf[n.id] || 1;
+    var root = nodeMap[tree.rootOf[n.id]];
+    // root가 main topic이면(항상 그렇진 않음 — 연결 끊긴 고아 노드도 자기 자손의 root가
+    // 될 수 있음) raw 좌표가 아니라 위에서 통일한 mainTopicAnchorX를 기준 삼아야, main
+    // topic 자신의 렌더 위치와 그 hop 자식들의 렌더 위치가 서로 어긋나지 않는다.
+    var rootX = root.isMain ? mainTopicAnchorX : root.lx;
+    var offset = colOffset[depth + ':' + side];
+    if (offset === undefined) offset = depth * MIN_HOP_GAP;
+    // offset은 "root와 가장 가까운 쪽 모서리"까지의 거리다. side=1(오른쪽)은 그 모서리가
+    // 곧 CSS left(카드의 왼쪽 변)라 그대로 쓰면 되지만, side=-1(왼쪽)은 root와 가장 가까운
+    // 모서리가 카드의 오른쪽 변이므로, CSS left를 구하려면 거기서 카드 너비만큼 더 빼야
+    // 한다(왼쪽 형제들의 "왼쪽 변"만 정렬되고 main topic과 가까운 "오른쪽 변"은 카드
+    // 너비에 따라 들쭉날쭉해지는 걸 막기 위함).
+    var nearRootEdge = rootX + side * offset;
+    renderX[n.id] = side === 1 ? nearRootEdge : nearRootEdge - getW(n);
   });
 
   NODES_DATA.forEach(function(n) {
@@ -856,6 +1059,177 @@ function recomputePositions() {
   routesDirty=true;
   drawEdges(true);
   scheduleEdgeRefine();
+  drawGrid();
+}
+
+// ── main topic(백본) 기준 hop 트리 — Canvas.tsx의 buildHopTree와 동일한 규칙
+// (main_topic은 항상 루트, 그 외는 children[]/edge로 찾은 부모에 귀속, 부모를 못
+// 찾으면 독립 루트). 디버그 격자와 Ctrl+F 검색의 BFS 정렬 둘 다 이 트리를 공유한다
+// (레이아웃 재구현마다 두 곳이 서로 다른 로직으로 어긋나는 것을 피하기 위함 — 에디터
+// 쪽에서 layoutInfo/assign이 따로 놀아서 겹침 버그가 났던 것과 같은 종류의 실수를
+// 여기서도 반복하지 않기 위함).
+function buildHopTreeJs() {
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  function parentIdOf(nodeId) {
+    var byChildren = null;
+    NODES_DATA.forEach(function(n) {
+      if (!byChildren && (n.children || []).indexOf(nodeId) !== -1) byChildren = n.id;
+    });
+    if (byChildren) return byChildren;
+    var byEdge = null;
+    EDGES.forEach(function(e) { if (!byEdge && e.target === nodeId) byEdge = e.source; });
+    if (byEdge) return byEdge;
+    // 포트를 반대 방향(새 노드 → 기존 노드)으로 끌어 만든 엣지는 source/target이 뒤바뀐
+    // 채로 저장돼 있을 수 있다(source=이 노드, target=main topic) — Canvas.tsx의
+    // buildHopTree와 동일하게, 이런 기존 데이터도 여기서 인식해줘야 에디터와 같은
+    // 트리 구조가 나온다(안 그러면 이 노드가 잘못 독립 루트로 취급됨).
+    var reversedToMain = null;
+    EDGES.forEach(function(e) {
+      if (!reversedToMain && e.source === nodeId && nodeById[e.target] && nodeById[e.target].isMain) reversedToMain = e.target;
+    });
+    return reversedToMain;
+  }
+  var isRoot = {}, parentOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (n.isMain) { isRoot[n.id] = true; return; }
+    var p = parentIdOf(n.id);
+    if (p && nodeById[p]) parentOf[n.id] = p; else isRoot[n.id] = true;
+  });
+  var depthOf = {}, rootOf = {};
+  function computeDepth(id) {
+    if (depthOf[id] !== undefined) return;
+    if (isRoot[id]) { depthOf[id] = 0; rootOf[id] = id; return; }
+    computeDepth(parentOf[id]);
+    depthOf[id] = depthOf[parentOf[id]] + 1;
+    rootOf[id] = rootOf[parentOf[id]];
+  }
+  NODES_DATA.forEach(function(n) { computeDepth(n.id); });
+  return { isRoot: isRoot, parentOf: parentOf, depthOf: depthOf, rootOf: rootOf };
+}
+
+// ── 디버그 격자 — Canvas.tsx의 computeGridLines와 동일한 규칙(가로선: main topic
+// 클러스터 경계, 세로선: hop depth별 X 경계). recomputePositions()가 이제 에디터와
+// 동일한 hop-tree 레이아웃 알고리즘을 쓰지만, 격자 자체는 그 계산 결과에 의존하지
+// 않고 현재 DOM에 실제로 그려진 위치(el.style.left/top + offsetWidth/offsetHeight)를
+// 그대로 읽어서 계산하므로 어떤 배치 알고리즘을 쓰든 항상 실제 렌더 결과와 일치한다.
+var showGrid = false;
+function computeGridLinesJs() {
+  var tree = buildHopTreeJs();
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  var rectById = {};
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) rectById[n.id] = { x: parseFloat(el.style.left) || 0, y: parseFloat(el.style.top) || 0, w: el.offsetWidth, h: el.offsetHeight };
+  });
+  function rootIsMain(id) {
+    var r = nodeById[tree.rootOf[id]];
+    return !!(r && r.isMain);
+  }
+
+  // 가로선: main topic 클러스터(자신+hop 자손 전체)의 Y 범위 경계
+  var clusterYRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var root = tree.rootOf[n.id];
+    var top = rect.y, bottom = rect.y + rect.h;
+    if (!clusterYRange[root]) clusterYRange[root] = { min: top, max: bottom };
+    else { clusterYRange[root].min = Math.min(clusterYRange[root].min, top); clusterYRange[root].max = Math.max(clusterYRange[root].max, bottom); }
+  });
+  var roots = NODES_DATA.filter(function(n) { return tree.depthOf[n.id] === 0 && clusterYRange[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rfind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rfind(p); rootPar[id] = r; return r;
+  }
+  for (var i = 0; i < roots.length; i++) {
+    for (var j = i + 1; j < roots.length; j++) {
+      var a = roots[i], b = roots[j];
+      var ra = rectById[a.id], rb = rectById[b.id];
+      if (!ra || !rb) continue;
+      if (ra.x < rb.x + rb.w && rb.x < ra.x + ra.w) {
+        var fa = rfind(a.id), fb = rfind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
+      }
+    }
+  }
+  var groups = {};
+  roots.forEach(function(r) {
+    var g = rfind(r.id);
+    (groups[g] = groups[g] || []).push(r);
+  });
+  var hLines = [];
+  Object.keys(groups).forEach(function(gk) {
+    var group = groups[gk];
+    group.sort(function(a, b) { return (rectById[a.id] ? rectById[a.id].y : 0) - (rectById[b.id] ? rectById[b.id].y : 0); });
+    for (var k = 1; k < group.length; k++) {
+      var prevR = clusterYRange[group[k - 1].id], curR = clusterYRange[group[k].id];
+      hLines.push((prevR.max + curR.min) / 2);
+    }
+  });
+
+  // 세로선: hop depth별 X 범위 경계 (main topic 기준 좌/우 방향 분리)
+  var depthSideXRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var d = tree.depthOf[n.id];
+    var rootRect = rectById[tree.rootOf[n.id]];
+    var side = d === 0 ? 0 : (rootRect && rect.x >= rootRect.x ? 1 : -1);
+    var key = d + ':' + side;
+    var left = rect.x, right = rect.x + rect.w;
+    if (!depthSideXRange[key]) depthSideXRange[key] = { min: left, max: right };
+    else { depthSideXRange[key].min = Math.min(depthSideXRange[key].min, left); depthSideXRange[key].max = Math.max(depthSideXRange[key].max, right); }
+  });
+  var vLines = [];
+  var mainRange = depthSideXRange['0:0'];
+  if (mainRange) {
+    [1, -1].forEach(function(side) {
+      var prev = mainRange, d = 1;
+      while (depthSideXRange[d + ':' + side]) {
+        var cur = depthSideXRange[d + ':' + side];
+        if (side === 1 && cur.min > prev.max) vLines.push((prev.max + cur.min) / 2);
+        else if (side === -1 && prev.min > cur.max) vLines.push((cur.max + prev.min) / 2);
+        prev = cur; d++;
+      }
+    });
+  }
+  return { hLines: hLines, vLines: vLines };
+}
+// data-base-sw/-dash: 확대/축소해도 화면상 두께가 유지되도록(에디터의 WireLayer
+// zoom 보정과 동일 규칙) zoom=1 기준 값을 기록해두고, updateZoomLineWeights()가
+// 현재 scale에 맞춰 실제 stroke-width/dasharray를 매번 다시 계산한다.
+function svgGridLine(x1, y1, x2, y2, stroke) {
+  var l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+  l.setAttribute('stroke', stroke);
+  l.setAttribute('data-base-sw', '1.5');
+  l.setAttribute('data-base-dash', '6 4');
+  l.setAttribute('opacity', '0.55');
+  return l;
+}
+function drawGrid() {
+  var svg = document.getElementById('grid-svg');
+  svg.innerHTML = '';
+  if (!showGrid) { svg.style.display = 'none'; return; }
+  svg.style.display = '';
+  var lines = computeGridLinesJs();
+  lines.vLines.forEach(function(x) { svg.appendChild(svgGridLine(x, 0, x, 10000, '#22c55e')); });
+  lines.hLines.forEach(function(y) { svg.appendChild(svgGridLine(0, y, 10000, y, '#f97316')); });
+  updateZoomLineWeights();
+}
+function toggleGrid() {
+  showGrid = !showGrid;
+  var btn = document.getElementById('tb-grid-btn');
+  if (showGrid) { btn.style.background = '#2563eb'; btn.style.color = '#fff'; btn.style.borderColor = '#1d4ed8'; }
+  else { btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }
+  drawGrid();
 }
 
 // Edge drawing
@@ -1066,66 +1440,24 @@ function routeEdgesGrid(reqs,rects){
   });
   return out;
 }
-function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
-function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+// 확대(zoom>=100%)면 기본 두께, 축소(zoom<100%)면 화면상 두께가 유지되도록 반비례로
+// 키움(에디터의 WireLayer.tsx의 zc = zoom<1 ? 1/zoom : 1 과 동일 규칙). 레이아웃이
+// 안 바뀌는 순수 줌 조작(wheel)에서는 경로를 다시 그리지 않고 이미 그려진 요소들의
+// stroke-width/dasharray만 갱신 — 가볍고, wheel마다 A* 재계산할 필요가 없음.
+function updateZoomLineWeights() {
+  var zc = scale < 1 ? 1 / scale : 1;
+  document.querySelectorAll('[data-base-sw]').forEach(function(el) {
+    var base = parseFloat(el.getAttribute('data-base-sw'));
+    el.setAttribute('stroke-width', String(base * zc));
+  });
+  document.querySelectorAll('[data-base-dash]').forEach(function(el) {
+    var parts = el.getAttribute('data-base-dash').split(' ').map(Number);
+    el.setAttribute('stroke-dasharray', parts.map(function(p) { return p * zc; }).join(' '));
+  });
+}
 function drawEdges(fast) {
   var svg=document.getElementById('wire-svg');
   svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
-
-  // Group line edges by source for bus routing
-  var lineBySource={};
-  EDGES.forEach(function(e){
-    if(e.type!=='line') return;
-    if(!lineBySource[e.source]) lineBySource[e.source]=[];
-    lineBySource[e.source].push(e);
-  });
-
-  var busDrawn={};
-
-  // Bus routing: one source → multiple line targets all on the same side (right)
-  Object.keys(lineBySource).forEach(function(srcId){
-    var group=lineBySource[srcId];
-    if(group.length<2) return;
-    var srcEl=document.getElementById('node-'+srcId);
-    if(!srcEl) return;
-    var sr=getNodeRect(srcEl);
-    var targets=[];
-    group.forEach(function(e){
-      var tEl=document.getElementById('node-'+e.target);
-      if(!tEl) return;
-      targets.push({e:e,r:getNodeRect(tEl)});
-    });
-    if(targets.length<2) return;
-    // 모든 타겟의 왼쪽 끝이 source 오른쪽 끝 + 40px 이상일 때만 bus (에디터와 조건 통일)
-    var allRight=targets.every(function(t){return t.r.x>sr.x+sr.w+40;});
-    if(!allRight) return;
-
-    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
-    var srcAnchorY=sr.cy;
-    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
-    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
-    var busMinY=Math.min(srcAnchorY,minTY);
-    var busMaxY=Math.max(srcAnchorY,maxTY);
-
-    // 세대 하이라이트: 루트가 source거나 타겟 중 하나면 트렁크(공용 구간)도 빨간색
-    var srcSel=srcId===genRootId;
-    var groupHl=srcSel||targets.some(function(t){return t.e.target===genRootId;});
-    var trunkColor=groupHl?'#ef4444':'#888', trunkW=groupHl?'2.5':'1.5';
-
-    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','ng-eg');
-    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,trunkColor,trunkW));
-    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,trunkColor,trunkW));
-    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,trunkColor));
-    targets.forEach(function(t){
-      var tHl=srcSel||t.e.target===genRootId;
-      var branchColor=tHl?'#ef4444':'#888';
-      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,branchColor,tHl?'2.5':'1.5'));
-      g.appendChild(svgCirc(t.r.x,t.r.cy,4,branchColor));
-      busDrawn[t.e.source+'-'+t.e.target]=true;
-    });
-    svg.appendChild(g);
-  });
 
   // 노드 rect 캐시 (엣지 라우팅 장애물 검사용 — drawEdges 1회당 1회만 DOM 조회)
   var rectById={};
@@ -1134,12 +1466,32 @@ function drawEdges(fast) {
     if(el) rectById[n.id]=getNodeRect(el);
   });
 
-  // 같은 source에서 나가거나 같은 target으로 모이는 비-버스 엣지 분산 오프셋 (합산)
+  // hop 자식(line) 엣지: 버스 라우팅도, A*/커브 라우팅도 없이 그냥 평범한 직선
+  // (에디터 WireLayer.tsx와 동일 — 예전엔 "같은 source에서 나가는 line 엣지 여럿을
+  // 세로 트렁크로 묶는 버스 라우팅"이 있었는데, 에디터가 이미 그걸 버리고 순수 직선으로
+  // 바꾼 지 오래라 여기만 안 따라와 있었음). 포트는 항상 좌/우만 강제 — getBestPorts처럼
+  // top/bottom까지 유클리드 최솟값으로 고르면, 타겟이 부모 중심에서 수직으로 많이
+  // 떨어진 형제 하나만 포트가 top/bottom으로 뒤집혀 다른 형제 선을 가로질러 지나가
+  // 버리는 문제가 있었다(사용자가 export html 스크린샷으로 재지적: "선이 왜 깔끔하게
+  // 정리되지 않은 거지" — 첫 main topic만 깔끔하고 나머지는 선이 교차해 보임).
+  function horizontalPorts(sr,tr){
+    var scx=sr.x+sr.w/2, tcx=tr.x+tr.w/2;
+    return tcx>=scx ? {sp:'right',tp:'left'} : {sp:'left',tp:'right'};
+  }
+  function portXY(r,name){
+    if(name==='right') return [r.x+r.w,r.cy];
+    if(name==='left') return [r.x,r.cy];
+    if(name==='bottom') return [r.cx,r.y+r.h];
+    return [r.cx,r.y];
+  }
+
+  // 같은 source에서 나가거나 같은 target으로 모이는 백본(arrow) 엣지 분산 오프셋(합산).
+  // hop 자식(line)은 이제 라우팅 없는 고정 직선이라 분산이 필요 없음(에디터와 동일 이유).
   var spreadByIdx={};
   (function(){
     var bySrc={},byTgt={};
     EDGES.forEach(function(e,idx){
-      if(busDrawn[e.source+'-'+e.target]) return;
+      if(e.type!=='arrow') return;
       if(!rectById[e.source]||!rectById[e.target]) return;
       (bySrc[e.source]=bySrc[e.source]||[]).push(idx);
       (byTgt[e.target]=byTgt[e.target]||[]).push(idx);
@@ -1156,14 +1508,15 @@ function drawEdges(fast) {
     add(byTgt,function(i){return rectById[EDGES[i].source].cy;});
   })();
 
-  // 그리드 A* 전역 라우팅 — 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
+  // 그리드 A* 전역 라우팅 — main topic 백본(arrow) 엣지만 대상(hop 자식은 고정 직선이라
+  // 라우팅 대상 아님, 에디터와 동일). 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
   // 레이아웃이 바뀌지 않은 재호출(하이라이트 색만 변경 등)은 캐시를 재사용해 즉시 처리
   var gridRoutes=null;
   if(!fast){
     if(routesDirty||!cachedRoutes){
       var reqs=[];
       EDGES.forEach(function(e,idx){
-        if(busDrawn[e.source+'-'+e.target]) return;
+        if(e.type!=='arrow') return;
         var sr3=rectById[e.source],tr3=rectById[e.target];
         if(!sr3||!tr3) return;
         var ports3=getBestPorts(sr3,tr3);
@@ -1180,57 +1533,65 @@ function drawEdges(fast) {
     gridRoutes=cachedRoutes;
   }
 
-  // Remaining edges: obstacle-avoiding curves
   EDGES.forEach(function(edge,edgeIdx){
-    if(busDrawn[edge.source+'-'+edge.target]) return;
     var sr2=rectById[edge.source], tr2=rectById[edge.target];
     if(!sr2||!tr2) return;
-    var ports=getBestPorts(sr2,tr2);
-    if(!ports) return;
-    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
-    var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
-    var ddl=dlen(srcP,tgtP)||1;
-    var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
-    var spread=spreadByIdx[edgeIdx]||0;
-    var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
-    var d;
-    if(gridPts&&gridPts.length>2){
-      // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
-      d=ptsToPath(spreadPts(gridPts,spread));
-    } else if(gridPts){
-      // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
-      var bend=Math.min(ddl*.45,150);
-      var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
-      var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
-      d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+
+    var d, sp, tp, strokeColor;
+    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
+    strokeColor=hl?'#ef4444':'#666';
+
+    if(edge.type!=='arrow'){
+      // hop 자식: 라우팅/커브 없이 좌/우 포트 사이 직선 그대로
+      var hp=horizontalPorts(sr2,tr2);
+      sp=portXY(sr2,hp.sp); tp=portXY(tr2,hp.tp);
+      d='M'+sp[0]+','+sp[1]+' L'+tp[0]+','+tp[1];
     } else {
-      // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
-      var obstacles=[];
-      Object.keys(rectById).forEach(function(nid){
-        if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
-      });
-      var pts=routeAround(srcP,tgtP,obstacles);
-      if(pts.length===2){
-        var bend2=Math.min(ddl*.45,150);
-        var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
-        var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
-        d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+      var ports=getBestPorts(sr2,tr2);
+      if(!ports) return;
+      sp=ports.sp.p; var spD=DIR[ports.sp.name]; tp=ports.tp.p; var tpD=DIR[ports.tp.name];
+      var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
+      var ddl=dlen(srcP,tgtP)||1;
+      var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
+      var spread=spreadByIdx[edgeIdx]||0;
+      var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
+      if(gridPts&&gridPts.length>2){
+        // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
+        d=ptsToPath(spreadPts(gridPts,spread));
+      } else if(gridPts){
+        // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
+        var bend=Math.min(ddl*.45,150);
+        var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
+        var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
+        d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
       } else {
-        d=ptsToPath(spreadPts(pts,spread));
+        // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
+        var obstacles=[];
+        Object.keys(rectById).forEach(function(nid){
+          if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
+        });
+        var pts=routeAround(srcP,tgtP,obstacles);
+        if(pts.length===2){
+          var bend2=Math.min(ddl*.45,150);
+          var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
+          var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
+          d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+        } else {
+          d=ptsToPath(spreadPts(pts,spread));
+        }
       }
     }
-    // 세대 하이라이트: 루트 노드와 직접 연결된 wire는 빨간색
-    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
-    var strokeColor=hl?'#ef4444':'#666';
+
     var g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','ng-eg');
     var path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('stroke-width',hl?'2.5':'1.5');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('data-base-sw',hl?'2.5':'1.5');
     if(edge.type==='arrow') path.setAttribute('marker-end',hl?'url(#arrow-hl)':'url(#arrow)');
     g.appendChild(path);
     if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill',strokeColor);g.appendChild(c);});}
     svg.appendChild(g);
   });
+  updateZoomLineWeights();
 }
 
 // Fit view
@@ -1245,6 +1606,7 @@ function fitView() {
   tx=(W-cw*scale)/2-(minX-40)*scale;
   ty=(H-ch*scale)/2-(minY-40)*scale;
   applyTransform();
+  updateZoomLineWeights();
 }
 
 // Lightbox
@@ -1342,12 +1704,39 @@ function closeDropdown(){
   document.getElementById('search-row').classList.remove('dropdown-open');
   kbIdx=-1;
 }
+// 매치 노드가 toggle 제목/내용 안에 있을 수도 있으므로 단순 concat 문자열이 아니라
+// title/content/original(제목+텍스트)/toggle(제목+내용) 각각을 개별로 확인 (에디터의
+// searchMatchNodes 필터와 동일한 규칙 — 이래야 selectSearchNode에서 어느 섹션을
+// 펼쳐야 하는지도 알 수 있음).
+function nodeMatchesQuery(n, q){
+  if((n.title||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.content||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalText||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalTitle||'').toLowerCase().indexOf(q)!==-1) return true;
+  return (n.toggles||[]).some(function(t){
+    return (t.title||'').toLowerCase().indexOf(q)!==-1 || (t.content||'').toLowerCase().indexOf(q)!==-1;
+  });
+}
 function doSearch(q){
   clearSearchHighlights();
   searchSelectedId=null;kbIdx=-1;
   var query=q.trim().toLowerCase();
   if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
-  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes=NODES_DATA.filter(function(n){return nodeMatchesQuery(n,query);});
+  // main topic BFS 순서로 정렬: 한 main topic의 모든 hop1, 모든 hop2, ... 를 다 훑은
+  // 뒤에야 다음 main topic으로 (에디터의 searchMatchNodes 정렬과 동일 규칙)
+  var tree=buildHopTreeJs();
+  var roots=NODES_DATA.filter(function(n){return tree.depthOf[n.id]===0;})
+    .sort(function(a,b){return (a.ly-b.ly)||(a.lx-b.lx);});
+  var rootIndex={};
+  roots.forEach(function(r,i){rootIndex[r.id]=i;});
+  searchMatchNodes.sort(function(a,b){
+    var ra=rootIndex[tree.rootOf[a.id]]||0, rb=rootIndex[tree.rootOf[b.id]]||0;
+    if(ra!==rb) return ra-rb;
+    var da=tree.depthOf[a.id]||0, db=tree.depthOf[b.id]||0;
+    if(da!==db) return da-db;
+    return (a.ly-b.ly)||(a.lx-b.lx);
+  });
   searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
   updateSearchCount();
   renderDropdown();
@@ -1393,6 +1782,7 @@ function selectSearchNode(id){
   searchSelectedId=id;
   var el=document.getElementById('node-'+id);
   if(el) el.classList.add('ng-search-active');
+  var q=document.getElementById('search-input').value.trim().toLowerCase();
   // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
   searchMatchNodes.forEach(function(n){
     var nodeEl=document.getElementById('node-'+n.id);
@@ -1403,7 +1793,19 @@ function selectSearchNode(id){
     for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
     if(!datum) return;
     if(n.id===id){
-      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;applyContentCaps(nodeEl);}
+      // 매치가 toggle 제목/내용 또는 original 제목/텍스트 안에 있을 수 있으므로,
+      // 접혀 있으면 펼쳐서 실제로 보이게 함 (에디터의 handleSelectSearchNode와 동일)
+      (n.toggles||[]).forEach(function(t){
+        if(q&&((t.title||'').toLowerCase().indexOf(q)!==-1||(t.content||'').toLowerCase().indexOf(q)!==-1)){
+          var togEl=nodeEl.querySelector('details.ng-toggle[data-toggle-id="'+t.id+'"]');
+          if(togEl&&!togEl.open) togEl.open=true;
+        }
+      });
+      if(q&&((n.originalTitle||'').toLowerCase().indexOf(q)!==-1||(n.originalText||'').toLowerCase().indexOf(q)!==-1)){
+        var origEl=nodeEl.querySelector('details.ng-original');
+        if(origEl&&!origEl.open) origEl.open=true;
+      }
     } else {
       if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
     }
@@ -1476,9 +1878,75 @@ function initKatex() {
   });
 }
 
+// 본문 높이 상한(More/Less) — NodeCard.tsx의 DEFAULT_CONTENT_MAX 로직을 그대로 이식.
+// .ng-content는 node.content 전용 클래스라서(toggle/original은 각각
+// .ng-toggle-body / .ng-orig-text 를 씀) 이 셀렉터만으로 이미 "content만" 범위가
+// 잡힌다 — 에디터와 동일하게 toggle/original에는 캡을 적용하지 않음.
+// scope를 주면 그 안의 .ng-content만 재측정(fold/unfold나 검색으로 처음 보이게
+// 될 때 — display:none 상태에서 측정하면 전부 0으로 나와서 버튼이 필요 없다고
+// 잘못 판단하기 때문에 다시 보이게 된 시점에 재측정이 필요함).
+var DEFAULT_CONTENT_MAX = 500;
+function applyContentCaps(scope) {
+  (scope || document).querySelectorAll('.ng-content').forEach(function(el) {
+    var measure = function() {
+      if (el.getAttribute('data-more-expanded') === '1') return;
+      var elTop = el.getBoundingClientRect().top;
+      var requiredBottom = 0;
+      el.querySelectorAll('table, img').forEach(function(media) {
+        var bottom = media.getBoundingClientRect().bottom - elTop;
+        if (bottom > requiredBottom) requiredBottom = bottom;
+      });
+      var max = Math.max(DEFAULT_CONTENT_MAX, Math.ceil(requiredBottom) + 8);
+      el.setAttribute('data-cap', String(max));
+      var needsBtn = el.scrollHeight > max + 1;
+      el.style.maxHeight = max + 'px';
+      el.style.overflowY = 'auto';
+      el.style.overflowX = 'hidden';
+      var next = el.nextElementSibling;
+      var btn = (next && next.classList.contains('ng-more-btn')) ? next : null;
+      if (needsBtn) {
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.className = 'ng-more-btn';
+          btn.textContent = '▼ More';
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var expanded = el.getAttribute('data-more-expanded') === '1';
+            if (expanded) {
+              el.removeAttribute('data-more-expanded');
+              el.style.maxHeight = el.getAttribute('data-cap') + 'px';
+              el.style.overflowY = 'auto';
+              el.style.overflowX = 'hidden';
+              btn.textContent = '▼ More';
+            } else {
+              el.setAttribute('data-more-expanded', '1');
+              el.style.maxHeight = '';
+              el.style.overflowY = '';
+              el.style.overflowX = '';
+              btn.textContent = '▲ Less';
+            }
+            setTimeout(function() { recomputePositions(); drawEdges(); }, 0);
+          });
+          el.parentNode.insertBefore(btn, el.nextSibling);
+        }
+      } else if (btn) {
+        btn.remove();
+      }
+    };
+    measure();
+    var imgs = Array.from(el.querySelectorAll('img'));
+    var pending = imgs.filter(function(img) { return !img.complete; });
+    pending.forEach(function(img) { img.addEventListener('load', measure); });
+  });
+}
+
 window.addEventListener('load', function() {
   // Render KaTeX first so node heights are accurate
   initKatex();
+  // scale는 아직 초기값 1이라(fitView가 아직 안 돌아서) getBoundingClientRect()
+  // 측정값이 캔버스 local 좌표와 일치함 — fitView 이후로 미루면 축소된 화면 픽셀을
+  // local px로 착각해서 캡 높이가 잘못 계산됨.
+  applyContentCaps();
   recomputePositions();
   drawEdges();
   fitView();
@@ -1488,7 +1956,7 @@ window.addEventListener('load', function() {
   if (pending === 0) return;
   function onImgSettle() {
     pending--;
-    if (pending <= 0) { recomputePositions(); drawEdges(); }
+    if (pending <= 0) { applyContentCaps(); recomputePositions(); drawEdges(); }
   }
   imgs.forEach(function(img) {
     if (!img.complete) {

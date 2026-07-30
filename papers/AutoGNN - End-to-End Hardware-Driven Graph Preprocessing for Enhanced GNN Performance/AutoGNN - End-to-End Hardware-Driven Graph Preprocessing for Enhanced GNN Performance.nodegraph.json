@@ -1,0 +1,1043 @@
+{
+  "version": "1.0.0",
+  "title": "AutoGNN: End-to-End Hardware-Driven Graph Preprocessing for Enhanced GNN Performance",
+  "created": "2026-07-28T00:54:42.000Z",
+  "modified": "2026-07-28T00:54:42.000Z",
+  "source": {
+    "pdf": "AutoGNN - End-to-End Hardware-Driven Graph Preprocessing for Enhanced GNN Performance.pdf",
+    "authors": "Seungkwan Kang, Seungjun Lee, Donghyun Gouk, Miryeong Kwon, Hyunkyu Choi, Junhyeok Jang, Sangwon Lee, Huiwon Choi, Jie Zhang, Wonil Choi, Mahmut Taylan Kandemir, Myoungsoo Jung (KAIST CAMEL, Panmnesia, Peking Univ., Hanyang Univ., Penn State)",
+    "venue": "HPCA 2026",
+    "doi": "arXiv:2602.00803",
+    "pages": 15
+  },
+  "nodeTemplates": {
+    "main_topic": {
+      "label": "Main topic",
+      "color": "#4B8BBE",
+      "icon": "file-text",
+      "shape": "sharp"
+    },
+    "method": {
+      "label": "Method",
+      "color": "#5C9E6E",
+      "icon": "cpu",
+      "shape": "sharp"
+    },
+    "result": {
+      "label": "Result",
+      "color": "#9B59B6",
+      "icon": "bar-chart-2",
+      "shape": "sharp"
+    },
+    "claim": {
+      "label": "Claim",
+      "color": "#E74C3C",
+      "icon": "alert-circle",
+      "shape": "sharp"
+    },
+    "question": {
+      "label": "Question",
+      "color": "#E5A835",
+      "icon": "help-circle",
+      "shape": "rounded"
+    },
+    "gap": {
+      "label": "Gap / Idea",
+      "color": "#1ABC9C",
+      "icon": "lightbulb",
+      "shape": "rounded"
+    },
+    "reference": {
+      "label": "Reference",
+      "color": "#95A5A6",
+      "icon": "book-open",
+      "shape": "rounded"
+    },
+    "memo": {
+      "label": "Memo",
+      "color": "#BDC3C7",
+      "icon": "edit-3",
+      "shape": "rounded"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "template": "main_topic",
+      "title": "Killer Application",
+      "content": "**GNN 서비스의 진짜 병목은 모델 연산이 아니라 전처리(graph preprocessing)다.**\n\n이 논문이 remarkable한 이유는 세 겹이다.\n\n**① 문제의 재정의 (re-framing)**: 대형 그래프에서 graph preprocessing이 end-to-end GNN 서비스 시간의 **90.8%**를 차지한다. 지금까지의 GNN 가속 연구는 aggregation/transformation(추론 연산)만 겨냥했고, 그 앞단의 **데이터 준비(data preparation)** 는 사각지대였다.\n\n**② 전처리 전 과정을 하드웨어로 end-to-end 자동화**: graph conversion(COO $\\rightarrow$ CSC 변환)과 graph sampling(이웃 표집)의 네 태스크 전부를 7nm FPGA 위에서 처음부터 끝까지 수행하고, GPU나 다른 GNN accelerator가 바로 소비할 수 있는 subgraph를 내놓는다. sampling만 가속하는 기존 FPGA 가속기와 갈리는 지점이 바로 이 **전 구간(from start to finish)** 이다.\n\n**③ 그래프 특성이 하드웨어를 결정한다 (hardware-driven)**: 전처리 병목은 그래프 크기와 시간에 따라 이동하므로, 입력 그래프를 프로파일링해 cost model로 UPE/SCR 구성을 고르고 런타임 **partial reconfiguration**으로 FPGA를 바꿔 낀다.\n\n결과: conventional(CPU) 전처리 대비 최대 $9.0\\times$, GPU-가속 전처리 대비 $2.1\\times$ (Abstract, p.1).",
+      "original": {
+        "text": "we find that preprocessing overhead for large graph datasets accounts for 90.8% of the total GNN service time from an end-to-end perspective",
+        "location": "§I, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "children": [
+        "node_006",
+        "node_007",
+        "node_008",
+        "node_009"
+      ],
+      "links": [
+        {
+          "type": "url",
+          "target": "https://arxiv.org/abs/2602.00803",
+          "label": "arXiv:2602.00803v1 (31 Jan 2026)"
+        }
+      ]
+    },
+    {
+      "id": "node_002",
+      "template": "main_topic",
+      "title": "필요한 이유 (Why)",
+      "content": "**왜 GPU로는 안 되는가 — 세 가지 실측 근거.**\n\n**① GPU를 써도 전처리가 남는다.** DGL(Deep Graph Library)이 이미 GPU로 전처리를 최적화했는데도, 전처리는 전체 inference 시간의 평균 **70%**를 차지한다. 게다가 그래프가 커질수록 이 비중은 더 커진다 — 전처리 부하는 그래프 크기에 비례해 늘지만, sampling 덕분에 inference 지연은 상대적으로 일정하기 때문이다 (§III-A, p.4).\n\n**② 원인은 atomic/lock에 의한 직렬화(serialization)다.** 전처리에는 counter 갱신과 map 갱신이 끼는데, 이것들은 mutual exclusion(atomic transaction, lock)을 요구한다. 논문이 재설계한 알고리즘을 CUDA 커널로 GPU에서 돌려도 평균 실행 시간의 **64.1%가 직렬 구간**으로 남고, GPU memory bandwidth는 평균 **30.3%**밖에 쓰이지 않는다 (§III-B, p.5).\n\n**③ 병목이 고정되어 있지 않다.** 500K edge 미만의 작은 그래프에서는 sampling(Selecting 33.8% + Reindexing 22.1%)이 지배하지만, 수천만~수십억 edge의 큰 그래프에서는 conversion, 특히 **Reshaping이 86.1%**(Ordering 1.8%)로 뒤집힌다. 심지어 같은 워크로드 안에서도 그래프가 성장하면 시간에 따라 병목이 이동한다 (§III-A, p.4).\n\n$\\Rightarrow$ 고정 구성(fixed configuration)의 가속기 하나로는 전 구간을 다 잡을 수 없다는 것이 **재구성형(reconfigurable) 하드웨어**의 논거가 된다.",
+      "original": {
+        "text": "Despite the use of GPU acceleration in DGL to optimize preprocessing, it still accounts for an average of 70% of the total inference time.",
+        "location": "§III-A, p.4"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "children": [
+        "node_010",
+        "node_011",
+        "node_012",
+        "node_013",
+        "node_014"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_003",
+      "template": "main_topic",
+      "title": "해결책 (Solution)",
+      "content": "**알고리즘 환원 $\\rightarrow$ 두 개의 재구성형 블록 $\\rightarrow$ 런타임 적응.** 세 층으로 쌓인 해법이다.\n\n**① 알고리즘 재설계 (§IV-A)**: 이질적인 네 전처리 태스크를 단 두 개의 공통 연산으로 환원한다.\n- **set-partitioning**: 조건을 만족하는 원소를 뽑아 새 집합으로 재배치 $\\rightarrow$ edge ordering(radix sort)과 unique random selection이 여기에 속한다. prefix-sum이 각 원소의 배타적 write index를 주므로 한 번의 pass로 scatter가 끝난다.\n- **set-counting**: 조건을 만족하는 원소의 개수를 셈 $\\rightarrow$ data reshaping(pointer array 생성)과 subgraph reindexing이 여기에 속한다. atomic counter와 hash map을 없앤다.\n\n**② 두 하드웨어 블록 (§IV-C)**:\n- **UPE (Unified Processing Element)** = prefix-sum logic + relocation logic. set-partitioning 담당. 하나의 로직으로 edge ordering과 selection을 **공유**하기 때문에 UPE를 놀리지 않고 자원을 최대로 쓴다.\n- **SCR (Single-Cycle Reducer)** = 수천 개의 comparator + adder tree(reshaper) 혹은 filter tree(reindexer). set-counting을 **한 사이클**에 끝내 GPU가 못 풀던 atomic 병목을 제거한다.\n\n**③ HW-shell / HW-kernel 분리와 런타임 재구성 (§IV-B, §V-B)**: 재구성 영역(HW-kernel: UPE 커널 + SCR 커널)과 고정 영역(HW-shell: PCIe controller, DMA, 내부 DRAM, FPP/ICAP controller)을 나누고, 미리 컴파일된 bitstream 중에서 cost model이 고른 것만 부분 재프로그램한다.\n\n[[IMG:fig03_autognn_architecture.png:700x292]]\n\n위 그림(Fig. 11)의 왼쪽이 (a) 전체 구조 — bitstream이 내부 DRAM에서 FPP controller를 거쳐 HW-kernel만 갈아끼운다는 점, 오른쪽이 (b) 호스트/GPU 인터페이스 — 대용량 COO를 scatter-gather descriptor로 끌어오는 **DMA-main**과, 작은 결과 subgraph를 GPU 메모리에 바로 꽂는 **DMA-bypass**(PCIe BAR MMIO)의 이원화다. 이 이원화가 있어야 \"전처리를 통째로 가속기 안에서 끝낸다\"는 Killer Application이 데이터 이동 비용에 잡아먹히지 않는다.",
+      "original": {
+        "text": "AutoGNN executes the entire preprocessing workflow, from start to finish, directly in hardware, producing a subgraph optimized for use by GPUs or other GNN accelerators.",
+        "location": "§I, p.1"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 600
+      },
+      "children": [
+        "node_015",
+        "node_016",
+        "node_017",
+        "node_018",
+        "node_019",
+        "node_020"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_004",
+      "template": "main_topic",
+      "title": "결과 (Results)",
+      "content": "**7nm Xilinx VPK180 FPGA(4.1M LUT) 프로토타입 · 11개 실제 그래프 데이터셋 · 2-layer GraphSAGE($k=10$) · 호스트는 128-core Xeon + RTX 3090.**\n\nCPU 기준으로 정규화한 end-to-end GNN inference 지연 감소:\n\n| 시스템 | CPU 대비 end-to-end 지연 감소 |\n|---|---|\n| GPU (DGL) | $3.4\\times$ |\n| GSamp (gSampler) | $4.5\\times$ |\n| FPGA (sampling-only 가속기) | $4.1\\times$ |\n| AutoPre (UPE 영역 정적 분할) | $7.3\\times$ |\n| StatPre (UPE 시분할 통합) | $8.4\\times$ |\n| **DynPre (런타임 partial reconfiguration)** | $\\mathbf{9.0\\times}$ |\n\n주목할 대비: GPU는 edge ordering 하나만 놓고 보면 CPU 대비 $3421\\times$ 빠르다. 그런데도 end-to-end는 $3.4\\times$에 그친다 — 나머지 전처리 태스크가 atomic 연산에 묶여 있기 때문이다. 이 격차가 곧 \"병렬성이 부족한 게 아니라 **동기화가 문제**\"라는 이 논문의 진단이 옳았다는 증거다.\n\n[[IMG:fig07_end_to_end_latency.png:680x315]]\n\nFig. 18은 데이터셋별(Citation / Interaction / Social / E-commerce) 정규화 지연을 stack으로 쪼갠 것이다. 막대 안의 주황색 **Transfer** 구간이 GPU와 sampling-only FPGA에서 크게 보이는 반면 AutoGNN 계열에서는 얇아지고(전처리를 한 장치 안에서 끝내므로), 붉은 마름모로 찍힌 **memory bandwidth utilization**은 오른쪽 축에서 GPU(평균 30.3%)보다 훨씬 높은 평균 59.8%를 가리킨다. 큰 e-commerce 그래프에서 91.6%까지 올라가는 것이 SCR이 sorted COO segment를 사이클당 하나씩 소비해 메모리 인터페이스를 포화시킨다는 설계 의도를 그대로 보여준다.",
+      "original": {
+        "text": "Compared to CPU, the GPU, GSamp, FPGA, AutoPre, StatPre, and DynPre systems reduce overall latency by 3.4×, 4.5×, 4.1×, 7.3×, 8.4×, and 9.0×, respectively.",
+        "location": "§VI-A, p.10"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 900
+      },
+      "children": [
+        "node_024",
+        "node_025",
+        "node_026",
+        "node_027",
+        "node_028",
+        "node_029"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_005",
+      "template": "main_topic",
+      "title": "결론 (Conclusion)",
+      "content": "**이 논문이 열어준 것**: GNN 가속의 전선을 \"모델 연산\"에서 \"데이터 준비\"로 옮겼다. preprocessing을 critical path에서 통째로 들어내면, GPU는 자기가 잘하는 dense 연산만 하면 된다. 성능($9.0\\times$ / $2.1\\times$), 전력(전처리 구간 $19.7\\times$ 낮은 소비전력), 비용 효율(저가 FPGA에서 $21.8\\times$)이 동시에 개선된다.\n\n**방법론적 기여**: \"이질적인 태스크들을 공통 연산으로 환원한 뒤, 그 연산에 맞는 최소 하드웨어를 만든다\"는 규칙 세우기(rule-making). set-partitioning $\\rightarrow$ prefix-sum + relocation logic, set-counting $\\rightarrow$ comparator + adder/filter tree. 4개의 서로 다른 태스크가 2개의 재구성형 블록으로 접힌다.\n\n**남는 것 (paper가 스스로 인정하거나 드러내는 지점)**:\n- 전처리 결과 subgraph는 결국 **명시적 transfer로 GPU 메모리에 복사**된다(약 2.8 ms, end-to-end의 1% 미만). 가속기 안에서 완결되지 않는다.\n- **재구성 지연 230 ms**가 존재하며, 그래프가 자주 바뀌지 않으면 회수되지 않는다.\n- 모델이 무거워질수록(GAT) 전처리 비중이 줄어 상대 이득이 $1.67\\times$까지 좁혀진다.\n- FPGA의 재구성 가능성에 의존하는 설계라, ASIC화하면 이 논문의 세 번째 기여(적응성)가 사라진다.",
+      "original": {
+        "text": "AutoGNN is an FPGA-based accelerator addressing bottlenecks in GNN preprocessing. Leveraging reconfigurable hardware and specialized components, AutoGNN accelerates tasks such as graph conversion and sampling.",
+        "location": "§VIII, p.12"
+      },
+      "contentExpanded": true,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 0,
+        "y": 1200
+      },
+      "children": [
+        "node_032",
+        "node_033",
+        "node_034",
+        "node_035"
+      ],
+      "links": [
+        {
+          "type": "url",
+          "target": "https://arxiv.org/abs/2602.00803",
+          "label": "arXiv:2602.00803v1"
+        }
+      ]
+    },
+    {
+      "id": "node_006",
+      "template": "method",
+      "title": "GNN preprocessing의 4-태스크 분해 (task decomposition)",
+      "content": "이 논문의 첫 번째 기여는 \"전처리\"라는 뭉뚱그려진 덩어리를 **네 개의 태스크**로 쪼갠 것이다 (§II-B, p.3).\n\n| 태스크 (task) | 소속 | 환원되는 공통 연산 | 담당 HW |\n|---|---|---|---|\n| Edge ordering | graph conversion | set-partitioning | UPE |\n| Data reshaping | graph conversion | set-counting | SCR |\n| Unique random selection | graph sampling | set-partitioning | UPE |\n| Subgraph reindexing | graph sampling | set-counting | SCR |\n\n**각 태스크가 하는 일**\n- **Edge ordering**: edge를 destination VID 기준 1차 정렬, source VID 기준 2차 정렬. 같은 destination을 가진 edge들이 연속으로 모인다.\n- **Data reshaping**: 정렬된 COO를 index array로 재해석하고, 새 destination VID가 나타날 때마다 시작 offset을 기록해 **pointer array**를 만든다. \"computationally intensive하고 최적화 여지가 적다\"고 논문이 명시한 부분.\n- **Unique random selection**: 각 hop에서 $k$개 이웃을 중복 없이(uniqueness) 무작위(randomness)로 뽑는다. 보통 동기화된 dictionary(map) 조회가 낀다.\n- **Subgraph reindexing**: 표집된 vertex들의 원본 VID를 새 VID로 재번호 매김. mutual exclusion 관리 때문에 지연이 붙는다.\n\n**분류의 의미**: §II-B는 요소 수 기준으로 \"대량 처리(ordering, reshaping) vs 소량이지만 빈번한 갱신(selection, reindexing)\"으로 나누고, §IV는 GPU 실측으로 비병렬 구간 기여도를 selection 27.9% / reshaping 41% / reindexing 31.1%로 정량화한다. 이 분류가 있어야 \"어디에 무슨 하드웨어를 붙일지\"가 정해진다 — Killer Application의 ③(hardware-driven)이 여기서 출발한다.",
+      "original": {
+        "text": "Our in-depth analysis classifies these tasks into parallelizable and non-parallelizable categories, enabling targeted acceleration strategies within a single preprocessing hardware architecture.",
+        "location": "§I, p.2"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": -120
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_007",
+      "template": "method",
+      "title": "end-to-end 하드웨어 워크플로 (dataflow)",
+      "content": "[[IMG:fig06_end_to_end_workflow.png:780x231]]\n\n**왼쪽(Fig. 14) — 전 구간 자동화된 dataflow**: 호스트에서 받은 COO graph가 ① UPE의 edge ordering $\\rightarrow$ ② SCR의 reshaping을 거쳐 **CSC graph**가 되고, ③ UPE의 uni-random selection $\\rightarrow$ ④ SCR의 subgraph reindexing으로 **COO subgraph**가 나온 뒤, ⑤ 다시 한 번 edge ordering + reshaping을 통과해 최종 **CSC subgraph**가 된다. 여기서 결정적인 관찰: graph conversion이 **두 번** 돈다. 원본 그래프용 한 번, 표집된 subgraph용 한 번 — 큰 그래프에서 Reshaping이 86.1%를 먹는 이유가 바로 이 이중 변환이다.\n\n**오른쪽(Fig. 15) — edge ordering의 4단계**: ① Concatenation(destination VID와 source VID를 64-bit 한 원소로 붙임) $\\rightarrow$ ② Splitting(UPE width 단위 chunk로 쪼개 각 UPE가 radix sort) $\\rightarrow$ ③ Merging(UPE로 merge sort) $\\rightarrow$ ④ Deconcatenation(다시 VID 쌍으로 분리).\n\n이 그림이 Killer Application에 직결되는 이유: 기존 FPGA sampling 가속기는 이 사슬의 한 칸만 담당해서 매 단계마다 host $\\leftrightarrow$ GPU $\\leftrightarrow$ FPGA 왕복이 생겼고, 그 데이터 이동이 end-to-end의 24.7%를 잡아먹었다. AutoGNN은 사슬 전체를 한 장치 안에 넣어 그 왕복 자체를 없앤다.",
+      "original": {
+        "text": "Figure 14 shows the end-to-end GNN preprocessing workflow fully automated in hardware.",
+        "location": "§V-A, p.7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": -40
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_008",
+      "template": "claim",
+      "title": "COO vs CSC — 표현 불일치(representation mismatch)가 전처리를 강제한다",
+      "content": "**COO (coordinate format, edge array)**: 각 edge를 (source VID, destination VID) 쌍으로 **정렬 없이** 저장. 갱신이 잦은 그래프에 적합하고, 저장 효율과 갱신 유연성 때문에 원본/애플리케이션 그래프는 대개 이 형태로 보관된다.\n\n**CSC (compressed sparse column)**: **pointer array + index array**의 vertex-centric 구조. pointer array의 index는 adjacency matrix의 column(= destination VID)에 대응하고, 그 값은 index array에서의 시작 offset이다. destination VID 하나를 주면 연결된 source VID들을 offset부터 다음 pointer까지 한 번에 긁어올 수 있어 **graph traversal에 효율적**이다.\n\n**불일치가 곧 비용**: GNN 서비스의 그래프 순회는 source에서 destination을 찾아가는 형태라 CSC를 선호하는데, 저장은 COO로 되어 있다. 그래서 **COO $\\rightarrow$ CSC 변환이 추론 전 필수 전처리**가 되고, 이것이 GNN preprocessing에서 가장 시간이 많이 걸리는 작업 중 하나가 된다.\n\n이건 알고리즘의 결함이 아니라 **두 표현의 목적이 다르기 때문에 생기는 구조적 세금**이다 — 그래서 소프트웨어 최적화로 사라지지 않고, 하드웨어로 흡수하는 것이 이 논문의 선택이다.",
+      "original": {
+        "text": "While COO is suitable for frequently updated graphs, CSC provides efficient graph traversal.",
+        "location": "§II-A, p.2"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 40
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_009",
+      "template": "memo",
+      "title": "왜 GPU도 ASIC도 아니고 FPGA인가 (design rationale)",
+      "content": "논문이 §I에서 밝히는 FPGA 선택의 논거는 정확히 두 개다.\n\n**① 전처리 연산량이 입력 그래프 특성에 따라 크게 변한다.** 관계(edge)가 많은 그래프는 graph conversion에 연산이 몰리고, 규모가 작은 데이터는 graph sampling이 지배한다. 고정 하드웨어는 한쪽에 맞추면 다른 쪽에서 손해를 본다 $\\rightarrow$ **재구성 가능성(reconfigurability)** 이 필요하다.\n\n**② 전처리에는 복잡한 동기화가 낀 result reduction이 대량으로 있다.** lock과 atomic transaction이 실행을 직렬화한다 $\\rightarrow$ FPGA의 **adder tree logic**이면 reduction을 $O(1)$ 시간에 끝낼 수 있다.\n\n**ASIC이 아닌 이유(논문의 인정)**: \"While FPGAs are generally slower than ASICs, AutoGNN's hardware design achieves high performance ... by fully exploiting FPGA resources\" (§IV-B, p.5). 즉 절대 속도를 포기하는 대신 **적응성**을 산 것이다. 그래프가 정적이라면 이 트레이드오프는 성립하지 않는다 — 논문이 §III-A에서 동적 그래프 데이터를 그렇게 공들여 보여준 이유가 여기에 있다.",
+      "original": {
+        "text": "FPGAs are well-suited to handle these computational dynamics by adapting to varied graph inputs and efficiently executing reduction operations. Its specialized components, such as adder tree logic, enable result reduction in O(1) time",
+        "location": "§I, p.1"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 120
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_010",
+      "template": "result",
+      "title": "전처리 비중과 태스크별 breakdown (Fig. 5, Fig. 6)",
+      "content": "[[IMG:fig01_preprocessing_overhead_breakdown.png:700x287]]\n\n**왼쪽(Fig. 5)**: 11개 실제 데이터셋을 edge 수 오름차순(PH $\\rightarrow$ TB)으로 놓고 전체 GNN 서비스 지연에서 Preprocess와 Inference가 차지하는 비율을 본 것. DGL이 GPU 가속을 쓰는데도 전처리가 평균 **70%**이고, 그래프가 커질수록 회색(Preprocess) 영역이 계속 자란다. 마지막 TB(Taobao, 400M edges)는 **OOM**으로 아예 실행되지 않는다.\n\n**오른쪽(Fig. 6)**: 그 전처리를 네 태스크로 쪼갠 것. 여기서 두 관찰이 나온다.\n- 어떤 태스크도 **모든 도메인에서 일관되게 지배하지 않는다**.\n- 지연 추세가 **입력 그래프 크기에 따라 달라진다**: 500K edge 미만에서는 Selecting 33.8% + Reindexing 22.1%(즉 sampling)가 지배하지만 그래프가 커지면 각각 7.5%p, 5.2%p 줄어든다. 반대로 수천만~수십억 edge에서는 Ordering 1.8%, **Reshaping 86.1%** 로 conversion이 뒤집어 잡는다.\n\n왜 중요한가: Killer Application ③(hardware-driven 적응)의 **실측 근거**가 바로 이 두 번째 관찰이다. 병목이 이동한다면 최적 하드웨어 구성도 이동한다 — 이것이 UPE/SCR 비율을 런타임에 바꾸는 DynPre의 존재 이유다.",
+      "original": {
+        "text": "First, no single task consistently dominates preprocessing time across all network domains. Second, latency trends vary with the size of the input graphs.",
+        "location": "§III-A, p.4"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 180
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_011",
+      "template": "result",
+      "title": "GPU 직렬화 정량화 — 64.1% serialized, BW 30.3% (Fig. 10)",
+      "content": "[[IMG:fig02_serialized_computation_gpu.png:635x300]]\n\n이 그림이 이 논문에서 가장 결정적인 실험이다. **논문이 새로 설계한 set-partitioning / set-counting 알고리즘을 그대로 CUDA 커널로 GPU(RTX 3090)에 올려서** 측정했다. 즉 \"알고리즘을 고쳤으면 GPU로도 되지 않느냐\"는 반론을 선제적으로 막는 실험이다.\n\n**(a) Execution breakdown**: 실행 시간을 Serialized / Parallelized로 나누면 평균 **64.1%가 직렬**로 남는다. 붉은 점으로 찍힌 memory bandwidth 활용률은 평균 **30.3%**에 불과하다.\n\n**(b) Serial tasks**: 그 비병렬 구간의 구성은 uni-random selection **27.9%**, data reshaping **41%**, subgraph reindexing **31.1%**.\n\n**해석**: 병렬성이 부족해서가 아니라 counter 변수와 map 구조를 여러 GPU thread가 공유하기 때문에 동시 실행이 제한된다. 알고리즘을 바꿔도 공유 자원 동기화라는 근본 제약은 범용 SIMT 하드웨어 위에서 사라지지 않는다 $\\rightarrow$ **전용 reduction 하드웨어(SCR)** 가 필요하다는 결론으로 곧장 이어진다.",
+      "original": {
+        "text": "64.1% of the overall execution time remains serialized, on average, resulting in low GPU resource utilization. Specifically, only 30.3% of the GPU's memory bandwidth is utilized on average",
+        "location": "§IV-A, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 260
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_012",
+      "template": "claim",
+      "title": "node explosion — sampling이 선택이 아니라 필수인 이유",
+      "content": "GNN은 layer마다 1-hop 이웃을 확장하며 aggregation과 transformation을 반복한다. 그래서 **layer 수와 node degree가 커지면 탐색해야 할 node 수가 지수적으로 증가**한다 — 이것이 **node explosion**이다. 고차수(high-degree) node를 한 번 밟으면 폭발은 더 커진다.\n\n논문이 드는 극단 사례: **Movie 데이터셋은 2-layer GNN에서 batch node에 따라 전체 그래프의 99%를 순회해야 할 수 있다**. Table II를 보면 MV는 node가 3.71K뿐인데 edge가 11.3M, 평균 degree가 **3052**다. degree가 곧 폭발 계수임을 보여주는 숫자다.\n\n**귀결**: 지연이 예측 불가능하게 튀면 autonomous driving, high-energy physics, recommendation system 같은 응용에서 **SLA(service-level agreement)** 를 지킬 수 없다. 그래서 각 hop에서 $k$개만 뽑는 graph sampling이 도입되고, 그 sampling 자체가 다시 전처리 비용이 된다. 즉 **node explosion을 막으려고 넣은 장치가 새로운 병목을 만든 구조** — AutoGNN은 이 두 번째 병목까지 하드웨어로 흡수한다.",
+      "original": {
+        "text": "For example, the Movie dataset may require traversing 99% of the total graph for a two-layer GNN, depending on the batch node.",
+        "location": "§II-A, p.3"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 340
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_013",
+      "template": "result",
+      "title": "동적 그래프에서 병목이 이동한다 (Fig. 7)",
+      "content": "같은 워크로드 안에서도 시간이 지나면 지배적 태스크가 바뀐다는 것을 보인 실험이다 (§III-A, p.4).\n\n| 데이터셋 | 도메인 | 일일 edge 증가율 | Reshaping이 Selecting을 추월하는 시점 |\n|---|---|---|---|\n| SO (StackOverflow) | social network | 0.52% / day | 약 400일 후 |\n| TB (Taobao) | e-commerce | 0.95% / day | 약 20일 후 |\n\n**메커니즘**: Reshaping은 계속 늘어나는 edge 수와 degree를 전부 처리해야 하지만, Selecting은 고정된 $k$ 값에 지연이 묶여 있다. 그래서 초반에는 Selecting이 지배하다가 시간이 흐르면 Reshaping이 역전한다.\n\n**왜 결정적인가**: 만약 그래프가 정적이라면 \"이 데이터셋에 맞는 최적 구성 하나\"를 오프라인에 찾아 ASIC으로 굳히면 된다. 그런데 실제 서비스 그래프는 계속 자라고, 그 성장 방향이 병목의 위치를 바꾼다. 논문은 여기에 더해 §VI-B에서 실제 서비스가 update ratio 0.5%에 도달하면 그래프를 재구축하며, 두 시간마다 평균 0.74%가 바뀐다는 데이터까지 붙여 **재구성이 자주 필요하다**는 것을 논증한다.",
+      "original": {
+        "text": "the number of edges in each dataset increases by 0.52% and 0.95% per day, respectively, highlighting the dynamic nature of these graphs",
+        "location": "§III-A, p.4"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -750,
+        "y": 300
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_014",
+      "template": "question",
+      "title": "atomic이 왜 \"근본\" 한계인가 — 알고리즘을 고쳐도 안 되는 지점",
+      "content": "**질문**: set-partitioning / set-counting으로 알고리즘을 다시 짰다면, 그 자체가 이미 atomic을 줄인 것 아닌가? 그런데도 왜 GPU로는 부족한가?\n\n**논문의 답 (§IV-A, p.5)**: 재설계된 알고리즘도 GPU에서 가속은 되지만, 전처리를 critical path에서 **완전히 들어내지는 못한다**. 이유는 counter 변수와 map 구조 같은 **공유 자원(shared resources)** 을 여러 thread에 걸쳐 동기화해야 하고, 그것이 전 thread의 동시 실행을 제약하기 때문이다.\n\n**구조적으로 보면**: GPU는 thread 수를 늘려 병렬성을 얻는 구조인데, reduction의 마지막 합류점은 결국 하나의 메모리 위치다. 반면 adder tree는 $n$개 입력을 $O(\\log n)$ 깊이의 **고정 배선 회로**로 합치므로 합류점 경합 자체가 존재하지 않는다:\n\n$$\\text{GPU: } T \\propto \\frac{n}{p} + T_{\\text{atomic}}(p) \\qquad \\text{vs} \\qquad \\text{adder tree: } T = O(1)\\ \\text{cycle (깊이 } O(\\log n)\\text{ 파이프라인)}$$\n\n**남는 질문**: 그렇다면 GPU의 warp-level primitive(예: shuffle 기반 reduction)나 cooperative group을 극한까지 쓴 구현은 얼마나 좁힐 수 있었을까? 논문은 CUDA 커널 구현의 세부 최적화 수준을 명시하지 않는다 — 64.1%라는 숫자가 \"GPU의 이론적 하한\"인지 \"이 구현의 값\"인지는 PDF만으로는 판별되지 않는다.",
+      "original": {
+        "text": "These limitations arise from the need to synchronize shared resources, such as the counter variables and map structures, across multiple GPU threads, which restricts the simultaneous execution of all threads.",
+        "location": "§IV-A, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -750,
+        "y": 380
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_015",
+      "template": "method",
+      "title": "set-partitioning — prefix-sum이 write index를 준다",
+      "content": "**정의**: 주어진 VID 배열을 각 원소를 평가해 두 개의 서로소 부분집합(disjoint subsets)으로 나누고, 원소를 그에 맞게 옮기는 연산 (§IV-A, p.5).\n\n**핵심 트릭**: 모든 원소를 훑는 대신 **prefix-sum 결과로 재배치**한다. prefix-sum은 조건을 만족하는 원소를 누적 카운트해 새 배열을 만드는데, 그 값이 곧 각 원소가 출력에서 가질 **배타적 write index(exclusive write index)** 다. 그러므로 충돌 검사 없이 한 번의 pass로 scatter가 끝난다.\n\n$$\\text{pos}(i) \\;=\\; \\sum_{j<i} \\mathbb{1}[\\,\\text{cond}(j)\\,] \\quad\\Longrightarrow\\quad \\text{out}[\\text{pos}(i)] \\leftarrow \\text{in}[i]$$\n\n**두 태스크에 동시에 적용된다**\n- **Edge ordering**: prefix-sum 값이 **radix bucket offset**이 된다. 그래프의 VID는 수는 많아도 **작고 연속된 정수 범위**라는 성질 때문에 radix sort가 적합하고, radix sort의 digit-wise pass가 바로 set-partitioning이다.\n- **Uni-random selection**: 정점을 sampled / unsampled 두 bucket으로 가른 뒤 **unsampled bucket에서만** 무작위로 뽑는다. 그러면 전체 공간을 훑지 않고도 uniqueness가 보장된다 (재선택 자체가 불가능해진다).\n\n**왜 이 환원이 중요한가**: 성격이 전혀 다른 두 태스크(정렬 / 표집)가 같은 회로로 처리 가능해진다 $\\rightarrow$ UPE 하나를 두 단계가 시분할로 나눠 쓸 수 있고, 그것이 StatPre가 LUT 활용률을 47%에서 82.2%로 올린 근거다.",
+      "original": {
+        "text": "both edge ordering and uni-random selection can be implemented using a common operation: extracting elements that satisfy specific conditions and organizing them into a new set [8], [46], called set-partitioning in this work.",
+        "location": "§III-B, p.4"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 480
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_016",
+      "template": "method",
+      "title": "set-counting — atomic counter와 hash map을 지운다",
+      "content": "**정의**: 집합의 모든 원소를 주어진 조건과 대조해 만족하는 개수를 세는 연산 (§IV-A, p.5).\n\n**Data reshaping에의 적용 — 관찰이 전부다**: pointer array의 index는 destination VID에 직접 대응하고, 그 index의 값은 **destination VID가 그 index보다 작은 원소의 수**다. 그러므로 pointer array의 각 항목을 서로 독립적으로 셀 수 있다.\n\n$$\\text{ptr}[v] \\;=\\; \\bigl|\\{\\,e \\in E \\;:\\; \\text{dst}(e) < v \\,\\}\\bigr|$$\n\n기존 방식은 정렬된 edge 배열을 훑으며 counter를 올리고 직전 edge의 destination VID를 갱신하는 것인데, **각 단계가 이전 단계에 의존하므로 순차 실행**이 강제된다. set-counting으로 보면 각 pointer 항목이 **동시에** 계산된다.\n\n**Subgraph reindexing에의 적용**: 보통 hash map으로 매핑 존재 여부를 확인하는데, hash map은 resize에 $O(n)$ 시간이 든다. 대신 (원본 VID / 재번호 VID) 두 배열을 두고, uni-random selection이 뽑은 VID를 조건으로 set-counting을 돌리면 **hash map 없이** 이미 재번호되었는지 판정할 수 있다.\n\n**핵심**: 여기서 없어지는 것은 연산량이 아니라 **의존성**이다. 순차 의존을 독립 카운팅으로 바꿔놓았기 때문에 비로소 수천 개 comparator를 동시에 때릴 수 있고, 그 하드웨어가 SCR이다.",
+      "original": {
+        "text": "The primary challenge in implementing this algorithm lies in its inherently mutually exclusive nature. Updating a counter variable typically requires atomic operations, which severely limit parallelism in these preprocessing tasks.",
+        "location": "§III-B, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 560
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_017",
+      "template": "method",
+      "title": "UPE 커널 마이크로아키텍처 (Unified Processing Element)",
+      "content": "[[IMG:fig04_upe_kernel_design.png:750x280]]\n\n**(a) UPE 커널**: UPE controller(입력/중간 결과를 scratchpad memory에 넣고 뺌) + 다수의 UPE + UPE scheduler(**scoreboard**로 각 UPE의 busy/idle을 추적해 데이터를 배분) 가 crossbar switch로 연결되고 scratchpad를 공유한다. UPE의 **개수와 크기(width)가 모두 재구성 대상**이다.\n\n**입력은 두 배열**: node array(VID)와 condition array(boolean).\n\n**(b) Prefix-sum logic**: condition array를 계층적 adder network에 넣어 **displacement array**를 만든다. 첫 layer가 배열 전·후반의 지역 합을 구하고 이후 layer들이 전파·결합한다. 깊이는 $O(\\log n)$ adder layer이고, **입력이 boolean이라 각 adder의 폭은 $\\log n$ bit면 충분**하다. 논문은 이 하드웨어가 한 사이클에 수백 개 원소를 처리할 수 있음을 관찰했다.\n\n**(c) Relocation logic**: node array는 condition array와 AND되어 조건 불만족 원소가 0으로 지워진 filtered node array가 되고, 이것이 displacement array에 따라 이동한다. 이동 거리를 **2의 거듭제곱으로 분해**해 $O(\\log n)$ routing layer에서 단계적으로 왼쪽으로 민다. 각 multiplexer는 1-bit select만 필요하고, 데이터 폭은 정렬 대상 원소 폭과 같다 — AutoGNN에서는 **VID 두 개를 담는 64 bit**.\n\n**구현 규모**: VPK180 기준 UPE는 최대 **240 instance**, 각 width **64 elements**까지 구성 가능하며, FPGA가 커지면 더 늘어난다.\n\n**Killer Application과의 연결**: 이 한 벌의 회로가 edge ordering의 radix pass와 sampling의 bucket 분할을 **둘 다** 수행한다. 하드웨어를 태스크별로 나눠 갖지 않기 때문에 FPGA 자원이 놀지 않는다.",
+      "original": {
+        "text": "We observed that this hardware can process hundreds of elements in a single cycle.",
+        "location": "§IV-C, p.6"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 640
+      },
+      "children": [
+        "node_021"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_018",
+      "template": "method",
+      "title": "SCR 커널 마이크로아키텍처 (Single-Cycle Reducer)",
+      "content": "[[IMG:fig05_scr_kernel_design.png:725x290]]\n\n**(a) SCR 커널**: 두 controller — **reshaper**(reshaping controller, COO와 중간 결과용 register 보유)와 **reindexer**(reindexing controller, 매핑 정보를 담는 SRAM bank 보유) — 가 AXI crossbar로 묶여 HW-shell에 단일 포트를 노출한다. 그 뒤로 **개수 재구성 가능한 SCR들**이 배치된다.\n\n**(b) SCR 구조**: comparator logic + reducer logic.\n- **reshaper 모드**: comparator가 입력 배열의 각 원소에서 target을 빼서 0 이상이면 양수를 출력한다(비교기 폭은 VID와 같은 **32 bit**). reducer는 **adder tree**로 그 1-bit 결과들을 합산해 CSC pointer array 값을 만든다. 동시 처리 원소 수가 $n$이면 adder 폭은 $\\log n$까지 필요하다.\n- **reindexer 모드**: reducer가 adder tree 대신 **filter tree(OR gate)** 다. 실제 값(재번호된 VID)과 검색 hit 여부를 함께 반환해야 하므로 폭이 **$32+1$ bit**다.\n\n**(c) Reindexer 동작**: SRAM bank에 (원본 VID / 재번호 VID) 두 배열을 두고, SCR이 원본 VID 존재 여부를 확인한다. **hit**이면 재번호 VID를 반환하고, **miss**면 counter를 증가시켜 그 값을 새 VID로 할당하고 매핑 쌍을 SRAM에 저장한다. hash map이 사라진 자리다.\n\n**reshaper의 스트리밍 규칙**: target VID 진행용 counter와 소비된 COO 원소 수 counter 두 개를 유지한다. target VID보다 **엄격히 큰** COO 원소를 만나면 그 target은 완료 처리하고 다음 VID로 넘어가며, target보다 작은 COO 원소는 더 기여할 수 없으므로 소비 처리한다. 소비가 일어나면 다음 COO segment를 버퍼로 당겨온다.\n\n**왜 결정적인가**: GPU가 64.1%를 직렬로 흘려보낸 그 구간(reshaping 41% + reindexing 31.1%)을 정확히 겨냥한 회로다. 수천 개 comparator가 한 사이클에 답을 내므로 **atomic이 존재할 자리 자체가 없다**.",
+      "original": {
+        "text": "The SCR overcomes these challenges by utilizing thousands of comparators and an adder/filter tree to aggregate the comparator outputs in a single cycle.",
+        "location": "§III-B, p.5"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 720
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_019",
+      "template": "method",
+      "title": "edge ordering workflow와 merge sort (Algorithm 1)",
+      "content": "**왜 chunk로 쪼개는가**: UPE는 동시에 처리하는 원소 수에 상한이 없지만, 원소 수를 늘리면 prefix-sum과 relocation logic의 **깊이가 깊어져 성능이 나빠진다**. 그래서 UPE controller가 COO를 UPE의 처리 용량(**UPE width**) 단위 chunk로 쪼갠 뒤 각 chunk에 radix sort를 돌린다.\n\n**4단계**: ① Concatenation(destination VID와 source VID를 한 원소로 결합) $\\rightarrow$ ② Splitting(UPE width 단위로 분할, 각 UPE가 독립 radix sort) $\\rightarrow$ ③ Merging(지역 정렬된 chunk들을 UPE로 병합) $\\rightarrow$ ④ Deconcatenation(다시 VID 쌍으로 분리).\n\n**Algorithm 1 (merge sorting using UPE)**: width $w$일 때\n1. 두 정렬 배열 A, B에서 각각 가장 작은 $w/2$ 원소를 읽어 버퍼에 담고 정렬한다.\n2. 버퍼 앞쪽 $w/2$개는 양쪽 배열을 통틀어 최소이므로 그대로 출력에 확정한다.\n3. 버퍼에 $w/2$개가 남으므로, A와 B의 **첫 원소를 비교해 더 작은 쪽에서만** 새로 $w/2$개를 읽어온다.\n\n$$\\text{throughput} \\;=\\; \\frac{w}{2}\\ \\text{elements per cycle}$$\n\n**전체 비용과의 연결**: 이 $w/2$ 처리율이 cost function의 $\\text{cycle}_{Ordering}$ 분모에 그대로 들어간다. 병합 라운드 수 $m=\\log_2(e/w_{upe})-1$과 곱해져 전체 정렬 사이클이 결정된다.",
+      "original": {
+        "text": "By repeating this process, arrays A and B can be merged at a rate of w/2 elements per cycle.",
+        "location": "§V-A, p.7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -750,
+        "y": 540
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_020",
+      "template": "method",
+      "title": "cost function (Table I) — 어떤 bitstream을 고를지 계산한다",
+      "content": "런타임에 호스트가 가벼운 그래프 메타데이터(node 수 $n$, edge 수 $e$)와 GNN 하이퍼파라미터(layer 수 $l$, 최대 표집 수 $k$, batch size $b$)를 모으고, 하드웨어 파라미터($n_{upe}, w_{upe}, n_{scr}, w_{scr}$)와 함께 세 개의 해석 모델(analytic model)에 넣어 **미리 컴파일된 bitstream 각각의 end-to-end 지연을 추정**한다 (§V-B, p.8).\n\n**Edge ordering** — 병합 라운드 수 $m$, 총 작업량 $m \\cdot e$를 UPE 총 처리율($n_{upe} \\cdot w_{upe}/2$)로 나눈 값:\n\n$$m=\\log_2\\!\\left(\\frac{e}{w_{upe}}\\right)-1, \\qquad \\text{cycle}_{Ordering}=\\frac{2 \\times m \\times e}{n_{upe} \\times w_{upe}}$$\n\n**Unique random selection** — UPE 하나가 step당 node 하나를 고르므로 step당 $n_{upe}$개:\n\n$$s = b \\times k^{\\,l+1} - 1, \\qquad \\text{cycle}_{Selecting}=\\frac{s}{n_{upe}}$$\n\n**Data reshaping** — SCR들이 COO 배열을 병렬로 훑어 pointer array를 만들며, COO 쪽 항과 CSC 쪽 항 중 **큰 쪽에 묶인다**:\n\n$$\\text{cycle}_{Reshaping}=\\max\\!\\left(\\frac{n}{n_{scr}},\\ \\frac{e}{w_{scr}}\\right)$$\n\n**두 단계 평가**: ① cost 관련 그래프 파라미터 산출은 AutoGNN이 graph conversion 중에 처리하고, ② 가용 bitstream 전부에 대한 점수 매기기는 호스트 라이브러리가 한다. 비용 계산 자체는 **0.1 ms 미만**으로 end-to-end의 0.1%도 되지 않는다.\n\n**해석**: $\\max(\\cdot)$ 형태가 말해주는 것 — reshaping은 SCR **개수**(CSC 쪽, node 수에 비례)와 SCR **폭**(COO 쪽, edge 수에 비례) 중 어느 쪽이 부족한지가 성능을 정한다. degree가 낮은 그래프(AX)는 slot 수를, degree가 높은 그래프는 slot 폭을 늘리는 것이 유리하다는 §VI-B의 실측과 정확히 일치한다.",
+      "original": {
+        "text": "In our evaluation, the cost computation took less than 0.1 ms, which is under 0.1% of the end-to-end latency.",
+        "location": "§V-B, p.8"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -750,
+        "y": 660
+      },
+      "children": [
+        "node_022",
+        "node_023"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_021",
+      "template": "method",
+      "title": "graph sampling 제어 경로 (node-wise / layer-wise 모두 지원)",
+      "content": "UPE controller가 source node들에서 $k$개를 uniqueness와 randomness를 지키며 고르는 절차다 (§V-A, p.7).\n\n**절차 (Fig. 16)**\n1. source node 수와 같은 길이의 **index array**를 만든다(각 원소가 source node의 index).\n2. $k$번 반복: unsampled 집합에서 새 random index를 뽑아 그 index에 대한 **one-hot condition**을 만들고, UPE의 set-partitioning으로 해당 원소를 **한 사이클에** 추출한다.\n3. controller는 **bitmap**을 유지해 추출된 index를 sampled로 표시한다 $\\rightarrow$ 재선택이 원천 차단되어 uniqueness가 보장된다.\n4. $k$개가 모이면 bitmap으로 condition array를 만들어 원본 source node 배열에 set-partitioning을 한 번 더 적용해 $k$-표집 이웃을 뽑아낸다.\n\n**두 표집 방식 모두 커버한다**\n- **node-wise sampling**: 이웃 배열마다 controller를 호출한다. 정확도가 높아 선호되는 방식.\n- **layer-wise sampling**: 한 layer의 모든 이웃 node 배열을 하나로 합친 뒤 controller를 한 번 호출해 layer당 $k$개를 고른다. 단계 수가 적어 빠르다.\n\n**자원 재사용의 묘**: 이 selection에 쓰이는 UPE는 **edge ordering에 썼던 바로 그 UPE**다. 두 단계가 데이터 의존 때문에 어차피 순차로 실행되므로, 같은 하드웨어를 시분할하면 놀고 있는 UPE가 없어진다 — StatPre가 AutoPre보다 빠른 이유가 이 한 문장이다.",
+      "original": {
+        "text": "To support layer-wise sampling methods [15], [39], [88], [102], all neighbor node arrays of a layer are first aggregated together as a single array; the UPE controller is then called for the aggregated array, selecting k nodes per layer.",
+        "location": "§V-A, p.7"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1500,
+        "y": 640
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_022",
+      "template": "method",
+      "title": "dynamic reconfiguration — 20개 bitstream과 230 ms",
+      "content": "**런타임 synthesis는 하지 않는다.** 합성 지연을 critical path에서 빼기 위해, 미리 컴파일된 소수의 bitstream 중에서 고르는 방식을 쓴다 (§V-B, p.8).\n\n**bitstream 생성 규칙**: UPE와 SCR 모두 개수와 폭이 파라미터다. 두 하드웨어 모두 **폭이 2의 거듭제곱일 때 가장 효율적**이므로, 큰 UPE(및 SCR) 하나짜리 bitstream에서 출발해 **폭을 반으로 줄이고 개수를 두 배로** 늘리며 RTL을 생성하고 Vivado로 오프라인 컴파일한다. 그 결과 UPE 10종 + SCR 10종 = **커널 bitstream 20종**.\n\n**조합 폭발을 막는 정적 분할**: UPE $\\times$ SCR 모든 조합을 컴파일하는 대신, 디바이스를 **70:30 고정 면적비**의 두 재구성 영역으로 나눈다. 덕분에 UPE 10종과 SCR 10종을 **따로** 컴파일해 두면 된다.\n\n| 항목 | 값 |\n|---|---|\n| bitstream 개수 / 크기 | 20종, 각 50 MB (총 1 GB) |\n| 상주 위치 | AutoGNN 내부 DRAM (부팅 시 staging) |\n| bitstream load 시간 | 3 ms |\n| ICAP FPGA 재구성 시간 | 225 ms (100 MHz) |\n| **총 재구성 지연** | **약 230 ms** |\n\nUPE와 SCR이 **분리된 재구성 영역**에 있으므로 바뀌어야 하는 영역만 재프로그램하면 되고, 그러면 재구성 비용이 대략 절반이 된다.\n\n**해석**: 이 230 ms가 곧 적응성의 가격표다. §VI-B 실측에서 MV $\\rightarrow$ SO로 그래프가 바뀔 때 0.23초를 지불하고 이후 처리율이 $2.9\\times$ 올라 전체 전처리 시간이 56% 줄었다 — 즉 **그래프가 충분히 오래 유지될 때만** 이익이 난다.",
+      "original": {
+        "text": "including 3 ms to load the bitstream from DRAM and 225 ms for FPGA reconfiguration through the Xilinx ICAP IP",
+        "location": "§V-B, p.8"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -1500,
+        "y": 620
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_023",
+      "template": "method",
+      "title": "소프트웨어 스택 — DGL 개조, AGNN-lib / AGNN-drv, DMA 경로",
+      "content": "**DGL(Deep Graph Library)을 수정**해 AutoGNN을 상용 GPU 기반 GNN inference 서비스에 끼워 넣었다. 인터페이스는 DGL과 동일하게 유지하고, `updategraph()`와 유사한 `uploadgraph()` 같은 그래프 관리 함수만 추가했다 (§V-B, p.8).\n\n**두 컴포넌트**\n- **AGNN-lib (user-level library)**: ① 그래프 I/O 관리, ② 하드웨어 재구성 여부 판단(cost function 평가 후 지연이 임계치를 넘으면 최적 UPE/SCR 프로파일 쌍의 key를 AutoGNN에 전달), ③ 전처리 태스크를 위한 AutoGNN과의 상호작용.\n- **AGNN-drv (kernel driver)**: `pci_ioremap_bar()`로 **DMA-main** 인터페이스를 잡고, 그래프 데이터에 대한 **scatter-gather list**용 PCIe descriptor를 만들어 그 주소를 DMA-main에 쓴다. AutoGNN이 descriptor를 참조해 그래프를 직접 끌어온다.\n\n**GPU와의 결정적 차이**: GPU는 모델 추론 중에 그래프 데이터셋을 해제해야 하므로 매 전처리 pass마다 호스트에서 전체 그래프를 다시 가져와야 한다. AutoGNN은 **이전 그래프를 디바이스 메모리에 유지**할 수 있어서 **갱신된 부분만** 읽어오면 된다. 대신 전처리된 subgraph를 GPU로 옮기는 추가 이동이 생기는데, 이미 표집된 subgraph라 원본보다 훨씬 작아(평균 $1230\\times$) 약 2.8 ms, end-to-end의 1% 미만이다.\n\n**해석**: 하드웨어 이득이 소프트웨어 통합에서 새는 것을 막는 장치들이다 — 인터페이스 호환성(DGL), 데이터 이동 최소화(증분 갱신), 그리고 재구성 판단의 자동화(cost function). Killer Application의 \"end-to-end\"는 회로만이 아니라 이 스택까지 포함해야 성립한다.",
+      "original": {
+        "text": "We modified the deep graph library (DGL) to integrate AutoGNN into GNN inference services using commodity GPUs (or hardware accelerators).",
+        "location": "§V-B, p.8"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -1500,
+        "y": 700
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_024",
+      "template": "result",
+      "title": "메모리 대역폭 활용률 — 59.8% vs GPU 30.3%",
+      "content": "DynPre의 memory bandwidth utilization은 평균 **59.8%**로 GPU baseline(평균 30.3%)의 약 두 배다 (§VI-A, p.10).\n\n| 구성 | 평균 memory BW 활용률 |\n|---|---|\n| GPU (RTX 3090, CUDA 커널) | 30.3% |\n| AutoGNN DynPre (전체 평균) | 59.8% |\n| AutoGNN DynPre (e-commerce 그래프) | 91.6% |\n\n**왜 올라가는가**: UPE와 SCR이 prefix-sum과 reduction을 각각 파이프라인 adder와 adder tree로 구현해 **직렬화된 atomic 연산을 단일 pass 커널로 대체**했기 때문이다. 활용률은 그래프가 커질수록 올라간다 — 큰 그래프는 sorted COO segment를 순차 소비하는 reshaping의 지연이 길어지는데, SCR은 각 segment를 **한 사이클에** 소비하므로 메모리 인터페이스를 완전히 포화시킬 수 있다.\n\n**Killer Application과의 연결**: 이 숫자가 \"GPU가 느린 이유는 연산력 부족이 아니라 **메모리를 못 먹기 때문**\"이라는 진단의 최종 확인이다. 같은 문제를 같은 메모리 계층에서 풀면서 대역폭 활용을 두 배로 올린 것이 곧 end-to-end $9.0\\times$의 물리적 원천이다.",
+      "original": {
+        "text": "AutoGNN sustains an average utilization of 59.8%, noticeably higher than the GPU baseline (30.3% on average).",
+        "location": "§VI-A, p.10"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 780
+      },
+      "children": [
+        "node_030"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_025",
+      "template": "result",
+      "title": "전력과 에너지 — 9.3 W vs 183 W",
+      "content": "| 지표 | GPU | AutoGNN (DynPre) | 비율 |\n|---|---|---|---|\n| 전처리 구간 소비전력 | 183 W | 9.3 W | $19.7\\times$ 낮음 |\n| end-to-end 총 에너지 | 기준 | — | 평균 $3.3\\times$ 낮음 |\n\n**왜 에너지 격차는 전력 격차보다 작은가**: 두 구성 모두 **GNN 모델 자체는 GPU에서 실행**하기 때문이다. 전처리만 FPGA로 옮겼으니 전력 이득은 전처리 구간에 국한되고, 나머지 이득은 DynPre가 만들어낸 **지연 감소**에서 나온다. 그래서 $19.7\\times$가 $3.3\\times$로 희석된다.\n\n**해석**: 이 두 숫자의 간격 자체가 이 논문의 범위를 정직하게 드러낸다 — AutoGNN은 GNN 추론 가속기가 아니라 **전처리 전용 가속기**이며, 전체 서비스에서의 이득은 전처리가 차지하던 비중(대형 그래프에서 90.8%, 평균 70%)에 비례해서만 회수된다. 모델이 무거워질수록(GAT) 이득이 줄어드는 §VI-B의 민감도 결과와 같은 이야기다.",
+      "original": {
+        "text": "During preprocessing, DynPre draws only 9.3W on the FPGA, whereas GPU dissipates 183W for the same workload",
+        "location": "§VI-A, p.10"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 860
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_026",
+      "template": "result",
+      "title": "LUT 활용률과 재구성 ablation (AutoPre / StatPre / DynPre)",
+      "content": "**세 변형의 차이**\n- **AutoPre**: UPE 영역을 ordering 전용 / selection 전용 두 sub-engine으로 **정적 분할**(LUT 예산 동일). UPE의 통합 능력을 일부러 포기한 구성.\n- **StatPre**: UPE 영역 전체를 **시분할(time-multiplexed)** 로 ordering과 selection이 공유.\n- **DynPre**: 여기에 **partial reconfiguration**으로 데이터셋마다 UPE/SCR 구성을 런타임 적응.\n\n| 구성 | 평균 LUT 활용률 | 비고 |\n|---|---|---|\n| AutoPre | 47% | 데이터 의존성 때문에 두 sub-engine이 순차 실행 $\\rightarrow$ 절반이 논다 |\n| StatPre | 82.2% | AutoPre 대비 $1.7\\times$ |\n\n**재구성 ablation (Fig. 22, §VI-B)**\n- **DynArea**(SCR:UPE 면적비를 데이터셋마다 최적화)는 StatPre의 고정 30:70 대비 이득이 **미미**했다 $\\rightarrow$ 그래서 면적비를 30:70으로 고정해 재구성 오버헤드를 크게 줄였다.\n- **DynSCR**(SCR 폭·slot 수 최적화)는 DynArea 대비 AX / SO / AM의 전처리 지연을 **23% / 51% / 15%** 줄였다.\n- **DynUPE**(UPE 폭·개수까지 최적화)는 DynSCR 대비 SO / AM을 추가로 **13% / 39%** 줄였다.\n\n**해석**: \"무엇을 재구성할 것인가\"에도 우선순위가 있다는 실증이다. 면적 분배는 거의 무의미하고, **SCR의 폭/slot 구성이 가장 큰 레버**다 — degree가 작은 AX는 slot 수를, 큰 그래프는 slot 폭을 키우는 것이 유리하다는 cost function의 $\\max(n/n_{scr},\\, e/w_{scr})$ 구조와 정확히 대응한다.",
+      "original": {
+        "text": "Because data dependencies force serial execution, the average LUT utilization is only 47%.",
+        "location": "§VI-B, p.11"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 940
+      },
+      "children": [
+        "node_031"
+      ],
+      "links": []
+    },
+    {
+      "id": "node_027",
+      "template": "result",
+      "title": "cost model 정확도 — SCR 98% / UPE 94%",
+      "content": "cost function이 실제로 쓸 만한지 검증한 실험이다 (Fig. 24, §VI-B, p.11).\n\n| 대상 | 조건 | 정확도 | 포착한 현상 |\n|---|---|---|---|\n| SCR 모듈 사이클 | slot 폭을 바꿔가며(AX, AM), slot 수 고정 | **98%** | 각 데이터셋의 **포화(saturation)** 지점 |\n| UPE 모듈 사이클 | UPE 폭을 바꿔가며(AM), ordering/selecting | **94%** | 포화 지점 $\\rightarrow$ 최적 UPE 구성 식별 가능 |\n\n**왜 \"포화를 포착한다\"가 핵심인가**: 폭을 무한정 늘려도 성능이 계속 오르지 않는다. SCR의 경우 slot 폭이 커지면 사이클당 읽는 edge 수가 늘어 slot 활용률이 오르지만, **사이클당 인식 가능한 node 수가 slot 개수에 묶여 있어서** 어느 폭 이상에서는 더 오르지 않는다. 모델이 이 꺾이는 점을 맞히지 못하면 재구성 결정이 무의미해진다.\n\n**신뢰 사슬**: cost model이 정확하다 $\\rightarrow$ 0.1 ms 안에 20개 bitstream을 점수 매길 수 있다 $\\rightarrow$ 230 ms 재구성을 **낭비 없이** 발동한다. Killer Application ③(hardware-driven 적응)이 실제로 동작한다는 증거는 결국 이 두 숫자에 걸려 있다.",
+      "original": {
+        "text": "Our model achieves 98% accuracy and captures each dataset's saturation.",
+        "location": "§VI-B, p.11"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -750,
+        "y": 840
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_028",
+      "template": "result",
+      "title": "모델·하이퍼파라미터 민감도 (GIN / GraphSAGE / GCN / GAT, layer, k)",
+      "content": "AM 데이터셋에서 GPU와 DynPre를 비교하며 세 축을 흔들었다 (Fig. 25, §VI-B, p.11).\n\n**① GNN 모델 (연산 강도 오름차순: GIN, GraphSAGE, GCN, GAT)**: 모델이 복잡해질수록 전처리 비중이 줄어 AutoGNN의 상대 이득이 좁아진다. 그래도 **가장 무거운 GAT에서도 전처리가 end-to-end의 51%**를 차지하고, DynPre는 GPU 대비 $1.67\\times$ 빠르다.\n\n**② layer 수 1 $\\rightarrow$ 6**: inference 지연은 $4.1\\times$, sampling 지연은 **$51.1\\times$** 늘어난다. 전처리 비중이 커지므로 DynPre의 상대 speedup은 $3.7\\times \\rightarrow 4.5\\times$로 오른다.\n\n**③ 표집 수 $k$ 증가**: sampling 지연이 $2.5\\times$ 증폭되고, DynPre의 GPU 대비 이득은 $2.6\\times$까지 오른다(스트리밍·경합 없는 sampler 덕분).\n\n**해석 — 두 방향으로 읽어야 한다**\n- 유리한 쪽: GNN이 깊어지고 이웃을 많이 볼수록 이 논문의 이득은 **커진다**. node explosion이 심해지는 방향이 곧 AutoGNN이 강해지는 방향이다.\n- 불리한 쪽: 모델 자체가 무거워지는 방향(GAT류, attention 기반)에서는 이득이 $1.67\\times$까지 줄어든다. \"전처리가 병목\"이라는 전제가 약해지면 결론도 같이 약해진다는 점을 논문이 스스로 드러낸 셈이다.",
+      "original": {
+        "text": "even for the most demanding model (GAT), preprocessing still accounts for 51% of the end-to-end latency, and DynPre delivers a 1.67× speedup over GPU",
+        "location": "§VI-B, p.11"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -750,
+        "y": 960
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_029",
+      "template": "result",
+      "title": "LUT 규모·가격 민감도 — 비용 효율(cost effectiveness)",
+      "content": "총 LUT 수와 FPGA 보드 가격대를 바꿔가며 GPU 대비 상대 성능을 본 실험이다 (Fig. 26, §VI-B, p.11).\n\n| 조건 | GPU 대비 성능 | 비용 효율 (성능/가격) |\n|---|---|---|\n| LUT 400K | $1.9\\times$ | — (RTX 3090과 대략 동가) |\n| LUT 4M | $9.6\\times$ | — |\n| 저가 FPGA | 평균 $1.2\\times$ | 평균 $21.8\\times$ |\n| 고가 FPGA | 평균 $7.6\\times$ | $1.67\\times \\sim 0.55\\times$ |\n\n**결정적 한 줄**: RTX 3090은 400K LUT짜리 Xilinx FPGA와 비슷한 가격대인데, 그 **동일 비용 지점에서 이미 $1.9\\times$** 빠르다. 즉 이 설계의 이득은 비싼 FPGA를 샀기 때문에 생긴 것이 아니다.\n\n**해석**: 소비자가 우선순위에 따라 고를 수 있다는 것이 요지다 — 비용 효율이 목적이면 저가 FPGA로 $21.8\\times$, 절대 성능이 목적이면 고가 FPGA로 $7.6\\times$. Killer Application을 배치(deployment) 관점에서 뒷받침하는 결과이며, 동시에 이 이득이 **자원량에 선형에 가깝게 스케일한다**(LUT $10\\times$ $\\rightarrow$ 성능 약 $5\\times$)는 점에서 UPE/SCR 설계가 자원을 실제로 소화하고 있음을 보여준다.",
+      "original": {
+        "text": "if they want cost effectiveness, a low-end FPGA will suffice; if they lean toward compute power, a high-end FPGA provides greater performance than GPUs.",
+        "location": "§VI-B, p.11"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": -750,
+        "y": 1040
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_030",
+      "template": "method",
+      "title": "평가 셋업과 데이터셋 (Table II, III, IV)",
+      "content": "**프로토타입**: 모든 모듈을 RTL로 구현해 7nm Xilinx **VPK180** FPGA(4.1M LUT)에 합성. Fig. 17의 floorplan 예시는 **SCR 8개 + UPE 32개** 구성이다. 호스트는 128-core Xeon(512 GB DDR5) + **RTX 3090**이며, 비교 대상 CPU/GPU 시스템도 같은 호스트를 쓴다.\n\n**모델/워크로드**: DGL 2.3.0 위의 **2-layer GraphSAGE**, node당 이웃 $k=10$, 2-hop subgraph로 추론, 추론 node 3000개. 하드웨어 기본 설정은 SCR resource 30%, SCR slot 1, UPE width 64.\n\n**데이터셋 11종** (OGB / DGL / PyG, 네 도메인) — 일부 발췌:\n\n| 도메인 | 데이터셋 | #Edges | #Nodes | Degree |\n|---|---|---|---|---|\n| Citation | Physics (PH) | 495K | 34.5K | 14.4 |\n| Citation | arxiv (AX) | 1.16M | 169K | 6.84 |\n| Interaction | Movie (MV) | 11.3M | 3.71K | 3052 |\n| Social | StackOver (SO) | 63.5M | 6.02M | 10.5 |\n| E-commerce | Amazon (AM) | 123M | 2.45M | 50.5 |\n| E-commerce | Taobao (TB) | 400M | 230K | 1744 |\n\n**baseline 알고리즘 (Table IV)**: Ordering = radix sort, Reshaping = histogram hashing, Selecting = reservoir sampling, Reindexing = histogram hashing.\n\n**왜 이 조합인가**: edge 수가 495K에서 400M까지 **세 자릿수 범위**로 퍼져 있고 degree도 6.84에서 3052까지 흩어져 있다. 이 분산 자체가 \"고정 구성 하나로는 못 잡는다\"는 주장을 실험적으로 성립시키는 조건이다 — MV(고차수 소형)와 AX(저차수)가 정반대의 최적 구성을 요구한다는 §VI-B 결과가 여기서 나온다.",
+      "original": {
+        "text": "We selected 11 graph datasets from OGB [37], DGL [79], and PyG [25].",
+        "location": "§VI, p.9"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1500,
+        "y": 780
+      },
+      "children": [],
+      "links": [
+        {
+          "type": "url",
+          "target": "https://tianchi.aliyun.com/dataset/649?lang=en-us",
+          "label": "Taobao user behavior dataset (ref [3])"
+        }
+      ]
+    },
+    {
+      "id": "node_031",
+      "template": "reference",
+      "title": "비교 대상과 관련 가속기 (§VI, §VII)",
+      "content": "**평가에 실제로 쓰인 baseline**\n- **GSamp** — gSampler [28]: dataflow IR로 컴파일되는 matrix-centric API에 fusion과 super-batching을 적용한 GPU 그래프 표집기. CPU 대비 $4.5\\times$.\n- **FPGA** — Gui et al.의 FPGA-HBM 기반 스트리밍 GNN sampler [29][30]: HBM을 뒤에 둔 stream-based sampler logic. **표집만** 구현하므로 graph conversion은 GPU에서 돌려야 하고, 그 때문에 전체 그래프가 GPU와 FPGA 사이를 오간다 $\\rightarrow$ **데이터 이동이 end-to-end의 24.7%**.\n- 기존 가속기 비교(Fig. 27): ordering용 merge-sort [72] / insertion-sort [6] 가속기와 selection용 FPGA sampler [30] / vector quantization 기반 FLAG [33]. Pure(단일 가속기가 FPGA 100% 점유) 대비 SCR / Auto / DynPre가 각각 $1.7\\times$ / $3.3\\times$ / $4.5\\times$.\n\n**§VII의 위치 선언**: GNN 가속기는 GPU 프레임워크, FPGA 구현, ASIC 설계로 많이 나왔지만 전부 **추론**에 집중하고 전처리 오버헤드를 무시했다. sorting, format processing, sampling을 겨냥한 가속기들도 있지만 **자원 대부분을 단일 기능에 쏟아** end-to-end 전처리에는 부적합하다는 것이 AutoGNN의 차별점 주장이다.\n\n**이 노드의 쓸모**: \"왜 기존 가속기를 조합하면 안 되는가\"에 대한 답이 Fig. 27에 정량으로 있다 — 한 단계만 빠르게 해도 나머지 단계와 **전송 오버헤드**가 전체를 붙잡는다.",
+      "original": {
+        "text": "Although some accelerator works target sorting [16], [47], [60], [68], format processing [69], or sampling [52], they devote most resources to a single function, thus unsuitable for end-to-end GNN preprocessing.",
+        "location": "§VII, p.12"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 1500,
+        "y": 940
+      },
+      "children": [],
+      "links": [
+        {
+          "type": "url",
+          "target": "https://doi.org/10.1109/ASAP61560.2024.00026",
+          "label": "Gui et al., FPGA-HBM streaming GNN sampler (ASAP 2024) — ref [30]"
+        },
+        {
+          "type": "url",
+          "target": "https://doi.org/10.1109/DAC63849.2025.11132631",
+          "label": "Han et al., FLAG (DAC 2025) — ref [33]"
+        }
+      ]
+    },
+    {
+      "id": "node_032",
+      "template": "gap",
+      "title": "마지막 2.8 ms — 전처리는 가속기 안에서 끝나지 않는다",
+      "content": "AutoGNN은 전처리를 **한 장치 안에서** 끝내지만, 그 결과물인 sampled subgraph는 결국 **GPU 메모리로 명시적으로 복사**되어야 한다. 논문이 제시하는 수치: 전송 지연 약 **2.8 ms**, end-to-end의 **1% 미만**(Fig. 20 기준으로는 잔여 전송 오버헤드 0.6%), subgraph가 원본보다 평균 $1230\\times$ 작기 때문에 무시할 수준이라는 논리다.\n\n**그런데 이 논리가 성립하는 조건**은 (a) 표집률이 충분히 낮아 subgraph가 작고, (b) 추론이 별도 장치(GPU)에서 일어난다는 것이다. layer 수나 $k$가 커져 subgraph가 커지면 이 항은 다시 자란다 — 실제로 §VI-B는 layer를 1에서 6으로 늘리면 sampling 지연이 $51.1\\times$ 커진다고 보고한다.\n\n**열린 아이디어(논문 밖 · 검증되지 않음)**: 이 전송이 PCIe DMA 복사이기 때문에 남는 비용이라면, 가속기와 GPU가 **주소 공간을 공유**하는 인터커넥트 위에서는 복사 대신 참조로 바뀔 수 있는가? 이 논문은 PCIe(DMA-main / DMA-bypass) 기반이고 coherent interconnect를 다루지 않으므로, 이는 논문의 주장이 아니라 독자의 질문이다. 판단하려면 (i) subgraph 크기 대비 전송 대역폭, (ii) GPU 커널이 subgraph를 소비하는 접근 패턴(순차 스트리밍인지 무작위인지)을 먼저 봐야 한다.",
+      "original": {
+        "text": "In typical GNN scenarios, this transfer latency is approximately 2.8 ms, accounting for less than 1% of the total end-to-end GNN latency.",
+        "location": "§V-B, p.9"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 1080
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_033",
+      "template": "question",
+      "title": "재구성 230 ms의 손익분기점은 어디인가?",
+      "content": "**논문이 제시하는 증거**\n- 재구성 비용: 약 **230 ms**(bitstream load 3 ms + ICAP 225 ms).\n- MV $\\rightarrow$ SO로 서로 다른 그래프가 연달아 들어오는 시나리오: 재구성이 **0.23초**를 더하지만 이후 처리율이 $2.9\\times$ 올라 전체 전처리 시간이 **56% 감소**.\n- 유사한 그래프 쌍 / 다른 그래프 쌍: StatPre 대비 각각 **14.6% / 46.1%** 감소.\n- 실제 서비스는 update ratio가 0.5%에 도달하면 그래프를 재구축하며, 두 시간마다 평균 0.74%가 바뀐다.\n\n**남는 질문**: 손익분기는 \"재구성 후 같은 구성으로 처리할 작업량\"이 결정한다. 230 ms를 회수하려면 재구성 이후의 전처리 이득이 그만큼 쌓여야 하는데, 논문은 **재구성 빈도가 높아지는 극단**(예: 서로 다른 그래프가 초 단위로 번갈아 도착하는 멀티테넌트 서비스)에서의 손익을 따로 보고하지 않는다. Fig. 31의 mixed-edge 실험(같은 카테고리 98.9%, 다른 카테고리 74.1% 감소)은 동시 추론을 다루지만 재구성 빈도 자체를 축으로 삼지는 않는다.\n\n**설계 관점의 함의**: AutoGNN은 이 위험을 **면적비를 30:70으로 고정**해 절반으로 줄이는 방식으로 완화했다(바뀌는 영역만 재프로그램). 즉 \"재구성 가능성\"을 최대로 쓰는 대신, **재구성 비용이 회수 가능한 범위로 자유도를 스스로 깎은** 설계다.",
+      "original": {
+        "text": "Many applications require real-time inference on diverse graphs that vary over time.",
+        "location": "§VI-B, p.12"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 1160
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_034",
+      "template": "gap",
+      "title": "일반성의 경계 — 어떤 GNN에서 이 논문이 약해지는가",
+      "content": "**전제가 강할수록 결론도 강하다**: AutoGNN의 이득은 \"전처리가 전체의 큰 비중\"이라는 전제에 비례한다. 논문이 직접 보고하는 감쇠 지점들:\n\n| 조건 | 전처리 비중 | DynPre의 GPU 대비 이득 |\n|---|---|---|\n| 대형 그래프 (일반) | 최대 90.8% | 최대 $9.0\\times$ (CPU 대비) |\n| GAT (가장 무거운 모델) | 51% | $1.67\\times$ |\n| layer 1 $\\rightarrow$ 6 | 증가 | $3.7\\times \\rightarrow 4.5\\times$ |\n\n**표집 방식 일반성**: node-wise [14][31]와 layer-wise [15][39][88][102] 표집 모두 UPE controller 호출 방식으로 지원한다고 논문이 명시하므로, GraphSAGE 계열 이외 모델에도 제어 경로는 열려 있다. 평가는 GIN / GraphSAGE / GCN / GAT 네 모델로 확인된다.\n\n**그러나 검증되지 않은 축**: (i) 표집 없이 full-graph로 도는 학습/추론(전처리 구조 자체가 달라진다), (ii) heterogeneous graph처럼 edge type이 여럿이라 CSC 하나로 안 끝나는 경우, (iii) 표집 알고리즘이 무작위가 아니라 **중요도 기반**(importance sampling)일 때의 set-partitioning 적용 가능성. PDF는 이들에 대해 결과를 제시하지 않는다 — 확장 가능성이 아니라 **미검증 영역**으로 남겨두는 것이 정직한 독법이다.",
+      "original": {
+        "text": "As the model complexity increases, the portion of GNN preprocessing decreases, narrowing AutoGNN's relative advantage.",
+        "location": "§VI-B, p.11"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 1240
+      },
+      "children": [],
+      "links": []
+    },
+    {
+      "id": "node_035",
+      "template": "question",
+      "title": "왜 SCR:UPE = 30:70 고정인가 — 자유도를 깎는 설계 결정",
+      "content": "**결정의 근거는 실측이다**: DynArea(데이터셋마다 SCR/UPE 면적 배분을 최적화)와 StatPre(모든 데이터셋에 SCR 30% 고정)를 비교했더니 **차이가 미미**했다. 그래서 면적비를 30:70으로 굳혔다 (§VI-B, p.11).\n\n**굳혀서 얻는 것**\n1. UPE $\\times$ SCR 조합을 전부 컴파일할 필요가 없어진다 $\\rightarrow$ UPE 10종 + SCR 10종 = **20개 bitstream**만 준비하면 된다(모든 조합이면 100종).\n2. 두 영역이 **분리된 재구성 영역**이 되므로 바뀌어야 하는 쪽만 재프로그램 $\\rightarrow$ 재구성 오버헤드가 대략 절반.\n\n**남는 질문**: 면적비의 이득이 미미했던 이유가 (a) 정말 최적점이 평평해서인지, (b) 평가한 11개 데이터셋이 우연히 비슷한 최적점을 가져서인지는 PDF만으로 구분되지 않는다. Table II를 보면 degree가 6.84(AX)에서 3052(MV)까지 흩어져 있어 (b)는 가능성이 낮아 보이지만, 논문은 면적비를 데이터셋 특성의 함수로 분석하지는 않는다.\n\n**읽는 각도**: 이것은 \"재구성 가능한 모든 것을 재구성한다\"가 아니라, **어느 축이 성능을 움직이는지 먼저 측정하고 나머지는 고정해 비용을 없애는** 절제된 설계다. DynSCR(SCR 폭/slot)이 가장 큰 레버였다는 ablation 결과와 짝을 이룬다.",
+      "original": {
+        "text": "Compared to DynArea, StatPre assigns 30% of the total LUT resources to the SCR module for every dataset, showing that adjusting the balance between the SCR and UPE modules brings negligible performance benefits.",
+        "location": "§VI-B, p.11"
+      },
+      "contentExpanded": false,
+      "originalExpanded": false,
+      "childrenExpanded": false,
+      "position": {
+        "x": 750,
+        "y": 1320
+      },
+      "children": [],
+      "links": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_001",
+      "source": "node_001",
+      "target": "node_002",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_002",
+      "source": "node_002",
+      "target": "node_003",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_003",
+      "source": "node_003",
+      "target": "node_004",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_004",
+      "source": "node_004",
+      "target": "node_005",
+      "type": "arrow",
+      "label": ""
+    },
+    {
+      "id": "edge_005",
+      "source": "node_001",
+      "target": "node_006",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_006",
+      "source": "node_001",
+      "target": "node_007",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_007",
+      "source": "node_001",
+      "target": "node_008",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_008",
+      "source": "node_001",
+      "target": "node_009",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_009",
+      "source": "node_002",
+      "target": "node_010",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_010",
+      "source": "node_002",
+      "target": "node_011",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_011",
+      "source": "node_002",
+      "target": "node_012",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_012",
+      "source": "node_002",
+      "target": "node_013",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_013",
+      "source": "node_002",
+      "target": "node_014",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_014",
+      "source": "node_003",
+      "target": "node_015",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_015",
+      "source": "node_003",
+      "target": "node_016",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_016",
+      "source": "node_003",
+      "target": "node_017",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_017",
+      "source": "node_003",
+      "target": "node_018",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_018",
+      "source": "node_003",
+      "target": "node_019",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_019",
+      "source": "node_003",
+      "target": "node_020",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_020",
+      "source": "node_017",
+      "target": "node_021",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_021",
+      "source": "node_020",
+      "target": "node_022",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_022",
+      "source": "node_020",
+      "target": "node_023",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_023",
+      "source": "node_004",
+      "target": "node_024",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_024",
+      "source": "node_004",
+      "target": "node_025",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_025",
+      "source": "node_004",
+      "target": "node_026",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_026",
+      "source": "node_004",
+      "target": "node_027",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_027",
+      "source": "node_004",
+      "target": "node_028",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_028",
+      "source": "node_004",
+      "target": "node_029",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_029",
+      "source": "node_024",
+      "target": "node_030",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_030",
+      "source": "node_026",
+      "target": "node_031",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_031",
+      "source": "node_005",
+      "target": "node_032",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_032",
+      "source": "node_005",
+      "target": "node_033",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_033",
+      "source": "node_005",
+      "target": "node_034",
+      "type": "line",
+      "label": ""
+    },
+    {
+      "id": "edge_034",
+      "source": "node_005",
+      "target": "node_035",
+      "type": "line",
+      "label": ""
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0.8
+  }
+}

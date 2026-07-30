@@ -18,24 +18,28 @@ body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFo
 #tb-row2::-webkit-scrollbar{display:none}
 #tb-row2>*{flex-shrink:0}
 #tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
-#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
-button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
-button:hover{background:#e8e8e8;border-color:#aaa}
+button{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;flex-shrink:0;box-shadow:0 1px 2px rgba(15,23,42,.06);transition:background .1s,color .1s,border-color .1s}
+button:hover{background:#2563eb;color:#fff;border-color:#1d4ed8}
+button:active{background:#1d4ed8;border-color:#1e40af}
+select{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:500;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.06)}
+select:hover{border-color:#93c5fd}
 .tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
 #viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
 #viewport.pan-drag{cursor:grabbing}
 #canvas{position:absolute;transform-origin:0 0}
 #wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
-.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#grid-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 15%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
 .ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
-.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:default;user-select:none}
 .ng-header:hover{background:rgba(0,0,0,.04)}
-.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
-.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
-.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px;font-size:14px}
 .ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-more-btn{display:block;width:100%;margin-top:4px;padding:3px 0;background:transparent;border:none;color:inherit;opacity:.55;font-size:10px;cursor:pointer;text-align:center;user-select:none}
 .ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
 .ng-img-wrap{margin:4px 0}
 .ng-table-wrap{overflow-x:auto;margin:6px 0}
@@ -95,14 +99,21 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 <div id="toolbar">
   <div id="tb-row1">
     <span id="tb-title">Demystifying Parallel and Distributed Deep Learning: An In-Depth Concurrency Analysis</span>
-    <span id="tb-source">Tal Ben-Nun, Torsten Hoefler (ETH Zurich) · ACM Computing Surveys (CSUR), 2019</span>
   </div>
   <div id="tb-row2">
+    <select id="tb-filter" title="Filter Collapse/Expand to one node type"></select>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected; all if a type filter is set) — collapsing everything also fits the view">📁 Collapse</button>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected; only the filtered type if a type filter is set)">📂 Expand</button>
     <button onclick="fitView()">Fit View</button>
-    <div class="tb-sep"></div>
-    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
-    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
-    <div class="tb-sep"></div>
+    <button id="tb-grid-btn" onclick="toggleGrid()" style="display:inline-flex;align-items:center;gap:4px" title="Toggle debug grid — vertical lines mark hop-level boundaries, horizontal lines mark main-topic cluster boundaries">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+      </svg>
+      Grid
+    </button>
     <div class="tb-sep"></div>
     <span id="tb-sel" style="opacity:.35">Click a node to select</span>
   </div>
@@ -118,6 +129,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <div id="search-drop"></div>
   </div>
   <div id="canvas">
+    <svg id="grid-svg" style="display:none"></svg>
     <svg id="wire-svg">
       <defs>
         <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -130,7 +142,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     </svg>
     <div class="ng-node" id="node-node_001" data-children="node_024" style="--color:#4B8BBE;border-radius:2px;left:100px;top:100px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">서베이의 스코프: 세 층위로 본 DNN 병렬성</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문은 240편의 관련 연구를 분석해서 딥러닝의 병렬성을 세 층위로 정리한다: (1) 단일 오퍼레이터(§4-5, convolution/FC/RNN 연산 자체를 어떻게 병렬화하는가), (2) 전체 네트워크 단위의 학습/추론(§6, data/model/pipeline/hybrid parallelism), (3) 분산 학습(§7, synchronization spectrum, parameter server vs decentralized, 압축, model consolidation, architecture search). 세 층위를 관통하는 공통 척도로 Work-Depth 모델(§2.5)을 사용해서, 서로 다른 병렬화 기법들의 concurrency를 정량적으로 비교한다.<br><br>논문 자체가 강조하듯 스코프는 '병렬/분산' 그 자체이지 DNN 아키텍처나 최적화 이론이 아니다 — 관련 다른 서베이(DNN 자체, 하드웨어 아키텍처)와 상호보완적 위치에 있다고 명시한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -138,7 +150,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_002" data-children="node_010,node_011,node_025" style="--color:#4B8BBE;border-radius:2px;left:100px;top:400px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">병렬 알고리즘 기초: DAG, Work-Depth, Allreduce 통신 하한</span>
   </div>
   <div class="ng-body"><div class="ng-content">모든 계산은 DAG(정점=연산, 간선=데이터 의존성)로 모델링된다. 그래프의 총 work $\mathbf{W}$(정점 수)와 depth $\mathbf{D}$(최장 경로 길이)로 계산 복잡도를 특징짓고, p개 프로세서에서의 실행시간은 $\min\{\mathbf{W}/p, \mathbf{D}\} \le T_p \le O(\mathbf{W}/p + \mathbf{D})$로 유계다. 평균 병렬성은 $\mathbf{W}/\mathbf{D}$.<br><br>DNN의 텐서 연산은 대부분 데이터-병렬적이고, summation(allreduce 등 reduction 연산)만 의존성을 만든다. 분산 환경에서 allreduce는 노드 간 대역폭이 로컬 메모리 대역폭보다 훨씬 낮기 때문에 가장 비용이 큰 연산으로 꼽힌다 — 단순화된 LogP 모델(point-to-point latency L, per-byte cost G, P개 머신)에서 tree 알고리즘의 통신시간은 $T_{tree} = 2\log_2(P)(L+\gamma m G)$이고, 중복 계산을 허용하지 않으면 이론적 하한은 더 강해진다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.5, p.9</span></summary>
@@ -146,7 +158,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_003" data-children="node_012" style="--color:#4B8BBE;border-radius:2px;left:100px;top:700px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">효율성 트레이드오프: 미니배치 크기, 일반화 vs 활용률</span>
   </div>
   <div class="ng-body"><div class="ng-content">SGD를 minibatch 단위로 실행하면 병렬성이 생기지만, minibatch 크기는 그 자체로 최적화 대상이다. 너무 작으면(region A) 하드웨어 병렬성을 못 살리고, 너무 크면(region C) 일반화 성능이 떨어진다 — 이 사이 어딘가(region B)가 실무적 최적점이다. 대규모 minibatch(8k, 32k, 심지어 64k)를 정확도 손실 없이 쓰려는 시도들은 학습률 워밍업, 배치-크기 기반 gradient variance 제어, 적응적 minibatch 증가 등으로 이 상한을 밀어올릴 뿐, 상한 자체를 없애지는 못한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.10</span></summary>
@@ -154,7 +166,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_004" data-children="node_013,node_014" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1000px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">단일 오퍼레이터 수준 병렬성: Convolution·FC·RNN</span>
   </div>
   <div class="ng-body"><div class="ng-content">FC layer는 GEMM(행렬곱)으로 직접 매핑되어 CUBLAS/MKL 같은 라이브러리로 최적화된다. Convolution은 직접 계산(Direct), im2col(Toeplitz 행렬로 변환 후 GEMM), FFT(주파수 영역 원소곱), Winograd(최소 필터링, 작은 커널 전용) 네 가지 방법이 있고 커널·이미지 크기에 따라 최적 방법이 갈린다 — '만능 최선'은 없다. RNN(LSTM/GRU)은 게이트 연산들을 하나의 fused kernel로 묶고, 레이어 간에는 파이프라이닝으로 동시성을 확보한다.<br><br>data layout(NCHW vs CHWN) 선택만으로도 최대 27.9배 성능 차이가 보고되는 등, 저수준 구현 디테일이 이론적 Work-Depth로는 안 잡히는 실제 성능을 좌우한다는 점을 저자들은 반복해서 강조한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.17</span></summary>
@@ -162,7 +174,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_005" data-children="node_015,node_016" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1300px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">전체 네트워크 병렬성: Data / Model / Pipeline / Hybrid</span>
   </div>
   <div class="ng-body"><div class="ng-content">Data parallelism은 미니배치를 프로세서에 나눠주고 gradient를 allreduce로 합친다 — 가장 널리 쓰이지만 Batch Normalization이 미니배치 전체에 걸친 동기화를 요구해 확장성 병목이 된다. Model parallelism은 뉴런·채널 차원으로 네트워크 자체를 쪼개 여러 프로세서에 배치 — 메모리는 아끼지만 레이어마다 통신이 필요하고, FC layer에서는 all-to-all 통신이 발생한다. Pipelining은 레이어 단위로 프로세서를 나눠 forward/backward/weight-update를 겹쳐 실행한다.<br><br>세 방식은 상호 배타적이지 않다 — DistBelief/Project Adam 같은 실제 시스템은 data parallelism(모델 복제본 간) + model parallelism(레이어 내 뉴런 분할) + pipelining(레이어 간)을 동시에 조합하는 hybrid parallelism을 쓴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.4, p.22</span></summary>
@@ -170,7 +182,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_006" data-children="node_017,node_018,node_022,node_023" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1600px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">분산 학습: Model Consistency 스펙트럼과 중앙화 방식</span>
   </div>
   <div class="ng-body"><div class="ng-content">분산 SGD에서 여러 training agent가 각자 파라미터 $w$의 사본을 들고 학습할 때, 모두가 항상 최신 $w$를 본다고 보장하면 'consistent'(synchronous), staleness를 허용하면 'inconsistent'(asynchronous, 대표적으로 HOGWILD)다. 스펙트럼 중간에 Stale-Synchronous Parallelism(SSP)이 있어 최대 staleness를 유계로 강제한다. 아키텍처 축으로는 parameter server(PS, 중앙집중) vs decentralized(allreduce 기반)로 나뉘며, PS는 fault tolerance·이질적 환경 대응에 유리하고 decentralized는 통신을 네트워크 전 경로에 분산시킬 수 있다.<br><br>실무에서는 32-50개 노드까지는 synchronous가 잘 확장되고, 그 이상 규모나 이질적 환경에서는 asynchronous/SSP가 선호된다는 관찰을 제시한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.1, p.24</span></summary>
@@ -178,7 +190,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_007" data-children="node_019,node_020" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1900px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">통신량 줄이기: 압축과 Model Consolidation</span>
   </div>
   <div class="ng-body"><div class="ng-content">통신 비용을 줄이는 두 축: (1) 메시지 개수를 줄이기(§7.1의 model consistency 완화), (2) 메시지 크기를 줄이기 — quantization(32비트를 더 적은 비트로, stochastic rounding으로 기댓값 보존)과 sparsification(작은 gradient는 아예 안 보냄, top-k 선택)이 대표적. Model consolidation은 아예 매 스텝 동기화를 포기하고, 학습 후(또는 아주 드물게) 여러 모델을 합치는 방식 — ensemble, knowledge distillation, model averaging(EASGD 등)이 있다.<br><br>이 스펙트럼(Fig 23)은 결국 §7.1의 model consistency 스펙트럼과 같은 축의 극단적 형태 — consolidation은 '동기화를 거의 하지 않는' 극단으로 볼 수 있다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.4, p.28</span></summary>
@@ -186,7 +198,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_008" data-children="node_021" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2200px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">메타-최적화: 하이퍼파라미터 탐색과 Neural Architecture Search</span>
   </div>
   <div class="ng-body"><div class="ng-content">학습 자체가 볼록하지 않은 최적화 문제이므로, 남는 계산 자원을 하이퍼파라미터 탐색(learning rate, momentum, staleness 등)이나 아키텍처 탐색에 쓸 수 있다. Architecture search는 세 갈래다: Sequential Model-Based Optimization(SMBO, 예: DARTS의 미분가능한 bi-level 최적화), Reinforcement Learning(정확도를 보상으로 삼아 레이어 구성을 액션으로), Evolutionary Algorithms(유전 인코딩+tournament selection). 모듈·블록의 self-similarity를 활용하면 탐색 공간을 계층적으로 줄일 수 있다.<br><br>Regularized Evolution(AmoebaNet)은 기존 수작업/RL 기반 탐색을 모두 능가하는 ImageNet 3.8% / CIFAR-10 2.13% 오차를 달성했다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.5.3, p.32</span></summary>
@@ -194,7 +206,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_009" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2500px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론: 컴파일러 최적화, 압축, 적응형 분산 시스템으로</span>
   </div>
   <div class="ng-body"><div class="ng-content">저자들의 마무리 진단: 단일 오퍼레이터 최적화는 이미 고도로 성숙했고(§5), 현재 연구는 레이어-간·전체-DNN 최적화(TensorFlow XLA, TVM, Tensor Comprehensions 같은 컴파일러가 그래프 전체를 fusion 등으로 변환, 최대 4배 속도향상)로 옮겨가고 있다. 모바일·엣지 배포를 위한 post-training compression도 계속 중요해질 것. 분산 학습 기법들은 표준 프로그래밍 인터페이스로 수렴 중이며, 클라우드의 elastic 노드 스케줄링과 진화적 최적화가 결합해 '적응적이고 financially-viable한' 최적화로 이어질 것으로 전망한다.<br><br>마지막으로, 현재 컴퓨터 비전 SOTA(AmoebaNet)가 이미 사람이 아니라 자동화된 architecture search의 산물이라는 사실을 들어, 수작업 튜닝이 점점 obsolete해질 것이라 전망하며 글을 맺는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§8, p.32</span></summary>
@@ -202,7 +214,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:550px;top:320px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">DAG 실행시간의 이론적 상·하한</span>
   </div>
   <div class="ng-body"><div class="ng-content">프로세서가 1개면 $T_1=\mathbf{W}$, 무한히 많으면 $T_\infty=\mathbf{D}$. 이 두 극단을 잇는 부등식이 실제 p개 프로세서에서의 실행시간을 위아래로 조인다 — 어떤 연산이든 병렬화의 이론적 최선은 depth로, 최악은 순차 실행(work)으로 결정된다는 뜻. 이 논문 전체에서 각 병렬화 기법을 비교하는 공통 잣대로 쓰인다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.5, p.8</span></summary>
@@ -210,16 +222,16 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_011" style="--color:#9B59B6;border-radius:2px;left:550px;top:480px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 4: 연산 종류별 Work-Depth 점근 복잡도</span>
   </div>
   <div class="ng-body"><div class="ng-content">활성화함수는 $O(NCHW)$ work에 $O(1)$ depth로 완전 병렬. FC layer는 $\nabla x$의 depth가 $O(\log C_{in})$까지 커진다. Convolution(direct)은 work이 커널·채널·이미지 크기에 곱셈적으로 늘지만 depth는 로그 스케일을 유지한다. 공통 패턴: work은 다항적으로 크지만 depth는 최대 log 오더라서, 이론적으로는 모든 DNN 연산이 프로세서 수에 선형으로 확장 가능하다는 것이 이 표의 핵심 메시지.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.13</span></summary>
-<div class="ng-orig-text">Table 4 shows that the work (W) performed in each layer asymptotically dominates the maximal operation dependency path (D), which is at most logarithmic in the parameters. This result reaffirms the state of the practice, in which parallelism plays a major part in the feasibility of evaluating and training DNNs.</div></details><details class="ng-toggle"><summary>Table 4 (발췌): Operator별 Work-Depth</summary>
+<div class="ng-orig-text">Table 4 shows that the work (W) performed in each layer asymptotically dominates the maximal operation dependency path (D), which is at most logarithmic in the parameters. This result reaffirms the state of the practice, in which parallelism plays a major part in the feasibility of evaluating and training DNNs.</div></details><details class="ng-toggle" data-toggle-id="toggle_001"><summary>Table 4 (발췌): Operator별 Work-Depth</summary>
 <div class="ng-toggle-body">| Operator | Eval | Work (W) | Depth (D) |<br>|---|---|---|---|<br>| Activation | y | O(NCHW) | O(1) |<br>| Fully Connected | ∇x | O(Cin·N·Cout) | O(log Cin) |<br>| Convolution (Direct) | y | O(N·Cout·Cin·H'·W'·Ky·Kx) | O(log Kx+log Ky+log Cin) |<br>| Pooling | y | O(NCHW) | O(log Kx+log Ky) |<br>| Batch Normalization | y | O(NCHW) | O(log N) |</div></details></div>
 </div>
 <div class="ng-node" id="node-node_012" style="--color:#9B59B6;border-radius:2px;left:550px;top:700px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">미니배치 크기의 이중효과: 수렴성 vs 활용률</span>
   </div>
   <div class="ng-body"><div class="ng-content">$f$의 gradient가 L-Lipschitz일 때 descent lemma를 SGD에 적용하면 큰 배치일수록 gradient variance 항이 커져서 수렴을 저해하는 부등식이 도출된다. 실제로 ResNet-50/ImageNet 실험(Fig 6b)에서도 minibatch가 대략 8k를 넘어서면 top-1 validation error가 눈에 띄게 나빠지는 것으로 보고된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3, p.10</span></summary>
@@ -227,16 +239,16 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:550px;top:920px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Convolution 4대 계산법의 Work-Depth 비교 (Table 6)</span>
   </div>
   <div class="ng-body"><div class="ng-content">Direct와 im2col은 이론적 Work-Depth가 동일하지만 im2col이 캐싱·메모리 재사용 덕에 실제로는 더 빠른 경우가 많다 — Work-Depth만으로는 절대 성능을 설명할 수 없다는 저자들의 핵심 지적이다. FFT는 큰 커널일수록 유리(GEMM 대비 최대 16배), Winograd는 3×3 같은 작은 커널 전용으로 곱셈 수를 줄인다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.16</span></summary>
-<div class="ng-orig-text">Note that for a single minibatch, it is enough to transform w once and reuse results. Experimental results have shown that the larger the convolution kernels are, the more beneficial FFT becomes, yielding up to 16× performance over the GEMM method</div></details><details class="ng-toggle"><summary>Table 6: Convolution 계산법별 Work-Depth</summary>
+<div class="ng-orig-text">Note that for a single minibatch, it is enough to transform w once and reuse results. Experimental results have shown that the larger the convolution kernels are, the more beneficial FFT becomes, yielding up to 16× performance over the GEMM method</div></details><details class="ng-toggle" data-toggle-id="toggle_002"><summary>Table 6: Convolution 계산법별 Work-Depth</summary>
 <div class="ng-toggle-body">| Method | Work (W) | Depth (D) |<br>|---|---|---|<br>| Direct | N·Cout·H'·W'·Cin·Ky·Kx | ⌈log2 Cin⌉+⌈log2 Ky⌉+⌈log2 Kx⌉ |<br>| im2col | N·Cout·H'·W'·Cin·Ky·Kx | ⌈log2 Cin⌉+⌈log2 Ky⌉+⌈log2 Kx⌉ |<br>| FFT | c·HWlog2(HW)·(Cout·Cin+N·Cin+N·Cout)+HWN·Cin·Cout | 2⌈log2 HW⌉+⌈log2 Cin⌉ |<br>| Winograd (m×m tiles, r×r 커널) | α(r²+αr+2α²+αm+m²)+Cout·Cin·P | 2⌈log2 r⌉+4⌈log2 α⌉+⌈log2 Cin⌉ |</div></details></div>
 </div>
 <div class="ng-node" id="node-node_014" style="--color:#9B59B6;border-radius:2px;left:550px;top:1080px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Persistent RNN 최대 30배, data layout 전치로 최대 27.9배</span>
   </div>
   <div class="ng-body"><div class="ng-content">Persistent RNNs는 RNN 유닛의 weight를 GPU 레지스터에 캐싱하고 GPU 커널을 'persistent'하게(자체 전역 동기화) 실행해서, 작은 minibatch·긴 시퀀스 조건에서 기존 대비 최대 약 30배 속도를 낸다 — GPU당 여러 TFLOP/s를 GEMM 없이 달성. 별도로, 단순히 데이터 레이아웃을 NCHW에서 CHWN으로 전치하는 것만으로도 단일 오퍼레이터 기준 최대 27.9배, AlexNet 전체 기준 5.6배의 성능 향상이 보고된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.4, p.18</span></summary>
@@ -244,7 +256,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_015" style="--color:#5C9E6E;border-radius:2px;left:550px;top:1220px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">BN의 동기화 병목과 Weight Normalization의 우회</span>
   </div>
   <div class="ng-body"><div class="ng-content">Batch Normalization은 미니배치 전체에 걸친 평균·분산을 계산해야 해서 완전한 동기화 지점이 된다 — data parallelism의 확장성을 해치는 대표 오퍼레이터. 실무에서는 최소 32개 샘플의 로컬 서브셋만으로 BN을 근사해 동기화를 로컬화한다. Weight Normalization은 가중치를 크기($g$)와 방향($v$)으로 재매개변수화해서 미니배치 간 의존성(depth) 자체를 $O(\log N)$에서 $O(1)$로 없앤다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1.1, p.19</span></summary>
@@ -252,7 +264,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:550px;top:1380px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Hybrid Parallelism 실측 스피드업 (AlexNet 등)</span>
   </div>
   <div class="ng-body"><div class="ng-content">AlexNet을 4-GPU에서 data 또는 model parallelism 단독으로 매핑하면 최선이 약 2.2배. Convolution엔 data parallelism, FC엔 model parallelism을 섞으면 8-GPU에서 최대 6.25배(정확도 손실 &lt;1%). 다른 hybrid 구현들도 4-GPU에서 3.1배를 재현했다. AMPNet은 fine-grained model parallelism을 비동기 스케줄링과 결합해 TensorFlow 대비 최대 3.94배.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.4, p.22</span></summary>
@@ -260,7 +272,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_017" style="--color:#E74C3C;border-radius:2px;left:550px;top:1520px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">PS든 decentralized든 결국 통신 대역폭·지연이 확장성을 결정</span>
   </div>
   <div class="ng-body"><div class="ng-content">PS 방식이든 decentralized(allreduce) 방식이든, 어느 쪽을 쓸지는 네트워크 토폴로지·대역폭·통신 지연·업데이트 빈도·fault tolerance 요구에 달려있다고 저자들은 명시적으로 프레이밍한다. allreduce는 이론적으로 reduce-then-broadcast와 동일한 시간이 걸리고, PS는 통신을 특정 노드로 집중시키는 대신 fault tolerance와 이질성 대응력을 얻는다 — 이 절 전체가 '통신 자원을 어떻게 배분하느냐'의 트레이드오프로 요약된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.2, p.24</span></summary>
@@ -268,7 +280,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_018" style="--color:#5C9E6E;border-radius:2px;left:550px;top:1680px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">HOGWILD / SSP: staleness 유계 수렴 조건</span>
   </div>
   <div class="ng-body"><div class="ng-content">HOGWILD는 잠금 없이 공유 파라미터를 여러 agent가 동시에 읽고·덮어쓰며 gradient를 누적하는 비동기 SGD로, atomic write + Lipschitz 연속미분 + 강볼록성 + 유계 staleness라는 조건 하에 수렴이 증명되어 있다. SSP는 이 staleness에 명시적 상한(maximal staleness)을 두고, 그 한도에 도달한 노드가 있으면 전역 동기화를 강제하는 절충안이다 — 이질적·느린 노드(straggler) 환경에서 특히 유리하다고 보고된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.1, p.24</span></summary>
@@ -276,7 +288,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_019" style="--color:#9B59B6;border-radius:2px;left:550px;top:1820px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">압축 수치: sparsification 최대 54배, 압축비 최대 2871배</span>
   </div>
   <div class="ng-body"><div class="ng-content">최초의 gradient sparsification 기법은 정적 threshold 이하 값을 아예 전송하지 않는 방식으로 80노드에서 최대 54배 속도향상, 오차 증가는 최대 1.8%에 그쳤다. 32비트 고정소수점 양자화까지 포함하면 비-convolutional DNN에서 압축비가 846~2871배에 달한다. Sparse allreduce 프레임워크 SparCML은 top-k 인덱스 압축 + 양자화로 잘 튜닝된 CNTK 구현 대비 20배 이상의 속도향상을 보고한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.3.2, p.27-28</span></summary>
@@ -284,7 +296,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_020" style="--color:#5C9E6E;border-radius:2px;left:550px;top:1980px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Knowledge Distillation과 EASGD</span>
   </div>
   <div class="ng-body"><div class="ng-content">Knowledge distillation은 2단계로 나눠 (1) 큰 네트워크 또는 앙상블을 정상적으로 학습, (2) 단일의 작은 네트워크가 그 출력을 모방하도록 학습 — 라벨 데이터 대신 앙상블 출력을 teacher로 쓰는 셈이다. 결과적으로 단일 모델이 10개 DNN 앙상블과 동등한 word error rate를 달성한 사례가 보고된다. EASGD는 각 agent의 파라미터 뷰와 PS의 평균 뷰 사이에 elastic force를 둬서, agent들이 평균에서 더 자유롭게 벗어나(탐색) 통신을 드물게 해도 되도록 만든다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.4.1, p.29</span></summary>
@@ -292,7 +304,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_021" style="--color:#9B59B6;border-radius:2px;left:550px;top:2200px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">ENAS: 파라미터 공유로 탐색 비용 1000배 절감</span>
   </div>
   <div class="ng-body"><div class="ng-content">ENAS는 탐색 공간에 속한 자식(child) 네트워크들이 파라미터를 공유하도록 해서, 매번 새로 처음부터 학습시키는 표준 NAS 대비 연산 비용을 세 자릿수(약 1000배) 줄인다. 이는 architecture search를 병렬성이 아니라 '재사용'으로 가속할 수 있음을 보여주는 사례.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.5.3, p.32</span></summary>
@@ -300,7 +312,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_022" style="--color:#1ABC9C;border-radius:22px;left:950px;top:1520px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">'통신 대역폭 병목' 프레임은 CXL/memory-fabric까지 안 간다</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문 전체에서 분산학습의 성능은 결국 인터커넥트의 latency·bandwidth·message-rate 세 지표로 수렴한다(§2.3.2, §7.2). PS냐 decentralized냐의 선택도 '네트워크 토폴로지, 대역폭, 통신 지연, 파라미터 업데이트 빈도'에 달려있다고 명시한다. 그런데 이 논문(2018)은 이 통신을 시종일관 네트워크(Ethernet/InfiniBand/MPI) 층위에서만 다루고, 로컬 메모리 대역폭과 네트워크 대역폭 사이의 격차를 언급하면서도(§2.5, allreduce 하한 유도부) 그 격차 자체를 좁히는 방향(예: CXL 기반 memory-fabric으로 노드 간 인터커넥트를 메모리 계층에 편입시키는 접근)은 스코프 밖이다. 내 관심사인 memory disaggregation·coherence는 정확히 이 '네트워크 대역폭 ≪ 로컬 메모리 대역폭' 격차를 좁히려는 시도로 읽힌다 — 이 서베이는 그 격차의 존재는 명확히 보여주지만, 해법은 논하지 않는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.5, p.9</span></summary>
@@ -308,7 +320,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_023" style="--color:#E5A835;border-radius:22px;left:950px;top:1720px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 20%,transparent);color:#E5A835">Question</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">HOGWILD/SSP의 수렴 증명, 비볼록 DNN에도 정말 유효한가?</span>
   </div>
   <div class="ng-body"><div class="ng-content">HOGWILD류 비동기 SGD의 수렴 증명은 (a) atomic write, (b) Lipschitz 연속미분+강볼록성, (c) staleness 유계라는 세 조건에 의존한다(§7.1). 그런데 DNN의 손실함수는 일반적으로 비볼록(non-convex)이다. 저자들도 이 갭을 명시적으로 다루지 않고 '희소 학습 문제(sparse learning problems)'라는 조건부로 넘어간다 — 실제 대규모 비볼록 DNN 학습에서 이 수렴 보장들이 어느 정도까지 근사적으로 유효한지 궁금하다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7.1, p.23</span></summary>
@@ -316,7 +328,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_024" style="--color:#95A5A6;border-radius:22px;left:950px;top:100px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 20%,transparent);color:#95A5A6">Reference</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">인접 서베이들: DNN 자체 / 스케일링 관점 / 하드웨어 아키텍처</span>
   </div>
   <div class="ng-body"><div class="ng-content">저자들이 관련 서베이로 명시적으로 언급한 것들: DNN 자체와 학습 알고리즘을 역사적 관점에서 다루는 서베이 3편, Bengio의 모델·최적화·데이터셋 관점 스케일링 서베이(비동기·희소 통신도 일부 다룸), DNN 연산자를 하드웨어에 매핑하는 아키텍처 서베이, FPGA 전용 서베이. 이 논문은 그중 '병렬·분산' 축만 전담해서 깊게 파는 위치에 있다고 스스로 자리매김한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1.1, p.2</span></summary>
@@ -324,7 +336,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_025" style="--color:#BDC3C7;border-radius:22px;left:950px;top:400px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방법과의 연결: 공통 척도로 병렬화 기법 비교하기</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문 전체가 하는 일은 결국 '각 병렬화 기법을 Work-Depth라는 공통 척도로 환산해서 비교 가능하게 만드는 것'이다. 내가 CXL·coherence 가설을 검증할 때도 비슷한 방법론이 쓸모 있을 것 같다 — HW 메커니즘(예: directory-based coherence vs snoop-based, 혹은 CXL의 다양한 캐싱 정책)마다 Work-Depth류 정량 모델을 세우면 '이 코히어런스 방식이 이 workload에 왜/언제 유리한가'를 풀 성능 시뮬레이션 없이도 1차로 걸러낼 수 있을 것.<br><br>다만 이 논문의 W-D 모델은 순수 계산 DAG 기준이라, 메모리 계층·coherence protocol의 상태 전이(예: MESI 전이 비용) 같은 것까지 그대로 확장되지는 않을 것 같다 — 그 확장이 실제로 필요한지, 필요하다면 무엇을 새 축으로 추가해야 하는지가 내 질문으로 남는다.</div></div>
@@ -336,9 +348,23 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
   <span id="lightbox-close" onclick="closeLightbox()">✕</span>
 </div>
 <script>
-var NODES_DATA = [{"id":"node_001","lx":100,"ly":100,"children":["node_024"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"서베이의 스코프: 세 층위로 본 dnn 병렬성 이 논문은 240편의 관련 연구를 분석해서 딥러닝의 병렬성을 세 층위로 정리한다: (1) 단일 오퍼레이터(§4-5, convolution/fc/rnn 연산 자체를 어떻게 병렬화하는가), (2) 전체 네트워크 단위의 학습/추론(§6, data/model/pipeline/hybrid parallelism), (3) 분산 학습(§7, synchronization spectrum, parameter server vs decentralized, 압축, model consolidation, architecture search). 세 층위를 관통하는 공통 척도로 work-depth 모델(§2.5)을 사용해서, 서로 다른 병렬화 기법들의 concurrency를 정량적으로 비교한다.\n\n논문 자체가 강조하듯 스코프는 '병렬/분산' 그 자체이지 dnn 아키텍처나 최적화 이론이 아니다 — 관련 다른 서베이(dnn 자체, 하드웨어 아키텍처)와 상호보완적 위치에 있다고 명시한다. in this survey, we describe the problem from a theoretical perspective, followed by approaches for its parallelization. we then review and model the different types of concurrency in dnns: from the single operator, through parallelism in network inference and training, to distributed deep learning."},{"id":"node_002","lx":100,"ly":400,"children":["node_010","node_011","node_025"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":400,"searchText":"병렬 알고리즘 기초: dag, work-depth, allreduce 통신 하한 모든 계산은 dag(정점=연산, 간선=데이터 의존성)로 모델링된다. 그래프의 총 work $\\mathbf{w}$(정점 수)와 depth $\\mathbf{d}$(최장 경로 길이)로 계산 복잡도를 특징짓고, p개 프로세서에서의 실행시간은 $\\min\\{\\mathbf{w}/p, \\mathbf{d}\\} \\le t_p \\le o(\\mathbf{w}/p + \\mathbf{d})$로 유계다. 평균 병렬성은 $\\mathbf{w}/\\mathbf{d}$.\n\ndnn의 텐서 연산은 대부분 데이터-병렬적이고, summation(allreduce 등 reduction 연산)만 의존성을 만든다. 분산 환경에서 allreduce는 노드 간 대역폭이 로컬 메모리 대역폭보다 훨씬 낮기 때문에 가장 비용이 큰 연산으로 꼽힌다 — 단순화된 logp 모델(point-to-point latency l, per-byte cost g, p개 머신)에서 tree 알고리즘의 통신시간은 $t_{tree} = 2\\log_2(p)(l+\\gamma m g)$이고, 중복 계산을 허용하지 않으면 이론적 하한은 더 강해진다. in multi-machine environments, these tables are distributed across the machines which participate in the overall reduction operation. due to the relatively low bandwidth between the machines (compared to local memory bandwidths), this operation is often most critical for distributed learning."},{"id":"node_003","lx":100,"ly":700,"children":["node_012"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":700,"searchText":"효율성 트레이드오프: 미니배치 크기, 일반화 vs 활용률 sgd를 minibatch 단위로 실행하면 병렬성이 생기지만, minibatch 크기는 그 자체로 최적화 대상이다. 너무 작으면(region a) 하드웨어 병렬성을 못 살리고, 너무 크면(region c) 일반화 성능이 떨어진다 — 이 사이 어딘가(region b)가 실무적 최적점이다. 대규모 minibatch(8k, 32k, 심지어 64k)를 정확도 손실 없이 쓰려는 시도들은 학습률 워밍업, 배치-크기 기반 gradient variance 제어, 적응적 minibatch 증가 등으로 이 상한을 밀어올릴 뿐, 상한 자체를 없애지는 못한다. overall, such works increase the upper bound on feasible minibatch sizes, but do not remove it."},{"id":"node_004","lx":100,"ly":1000,"children":["node_013","node_014"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1000,"searchText":"단일 오퍼레이터 수준 병렬성: convolution·fc·rnn fc layer는 gemm(행렬곱)으로 직접 매핑되어 cublas/mkl 같은 라이브러리로 최적화된다. convolution은 직접 계산(direct), im2col(toeplitz 행렬로 변환 후 gemm), fft(주파수 영역 원소곱), winograd(최소 필터링, 작은 커널 전용) 네 가지 방법이 있고 커널·이미지 크기에 따라 최적 방법이 갈린다 — '만능 최선'은 없다. rnn(lstm/gru)은 게이트 연산들을 하나의 fused kernel로 묶고, 레이어 간에는 파이프라이닝으로 동시성을 확보한다.\n\ndata layout(nchw vs chwn) 선택만으로도 최대 27.9배 성능 차이가 보고되는 등, 저수준 구현 디테일이 이론적 work-depth로는 안 잡히는 실제 성능을 좌우한다는 점을 저자들은 반복해서 강조한다. table 6 lists the concurrency characteristics of the aforementioned convolution implementations, using the work-depth model. from the table, we can see that each method exhibits different behavior... this coincides with experimental results, which show that there is no \"one-size-fits-all\" convolution method."},{"id":"node_005","lx":100,"ly":1300,"children":["node_015","node_016"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1300,"searchText":"전체 네트워크 병렬성: data / model / pipeline / hybrid data parallelism은 미니배치를 프로세서에 나눠주고 gradient를 allreduce로 합친다 — 가장 널리 쓰이지만 batch normalization이 미니배치 전체에 걸친 동기화를 요구해 확장성 병목이 된다. model parallelism은 뉴런·채널 차원으로 네트워크 자체를 쪼개 여러 프로세서에 배치 — 메모리는 아끼지만 레이어마다 통신이 필요하고, fc layer에서는 all-to-all 통신이 발생한다. pipelining은 레이어 단위로 프로세서를 나눠 forward/backward/weight-update를 겹쳐 실행한다.\n\n세 방식은 상호 배타적이지 않다 — distbelief/project adam 같은 실제 시스템은 data parallelism(모델 복제본 간) + model parallelism(레이어 내 뉴런 분할) + pipelining(레이어 간)을 동시에 조합하는 hybrid parallelism을 쓴다. the combination of multiple parallelism schemes can overcome the drawbacks of each scheme. below we overview successful instances of such hybrids."},{"id":"node_006","lx":100,"ly":1600,"children":["node_017","node_018","node_022","node_023"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1600,"searchText":"분산 학습: model consistency 스펙트럼과 중앙화 방식 분산 sgd에서 여러 training agent가 각자 파라미터 $w$의 사본을 들고 학습할 때, 모두가 항상 최신 $w$를 본다고 보장하면 'consistent'(synchronous), staleness를 허용하면 'inconsistent'(asynchronous, 대표적으로 hogwild)다. 스펙트럼 중간에 stale-synchronous parallelism(ssp)이 있어 최대 staleness를 유계로 강제한다. 아키텍처 축으로는 parameter server(ps, 중앙집중) vs decentralized(allreduce 기반)로 나뉘며, ps는 fault tolerance·이질적 환경 대응에 유리하고 decentralized는 통신을 네트워크 전 경로에 분산시킬 수 있다.\n\n실무에서는 32-50개 노드까지는 synchronous가 잘 확장되고, 그 이상 규모나 이질적 환경에서는 asynchronous/ssp가 선호된다는 관찰을 제시한다. in practical implementations, the prominently-used model consistency approaches are synchronous for up to 32–50 nodes, where the allreduce operation still scales nearly linearly; and asynchronous/ssp for larger clusters and heterogeneous environments"},{"id":"node_007","lx":100,"ly":1900,"children":["node_019","node_020"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1900,"searchText":"통신량 줄이기: 압축과 model consolidation 통신 비용을 줄이는 두 축: (1) 메시지 개수를 줄이기(§7.1의 model consistency 완화), (2) 메시지 크기를 줄이기 — quantization(32비트를 더 적은 비트로, stochastic rounding으로 기댓값 보존)과 sparsification(작은 gradient는 아예 안 보냄, top-k 선택)이 대표적. model consolidation은 아예 매 스텝 동기화를 포기하고, 학습 후(또는 아주 드물게) 여러 모델을 합치는 방식 — ensemble, knowledge distillation, model averaging(easgd 등)이 있다.\n\n이 스펙트럼(fig 23)은 결국 §7.1의 model consistency 스펙트럼과 같은 축의 극단적 형태 — consolidation은 '동기화를 거의 하지 않는' 극단으로 볼 수 있다. in this section, we discuss the far (inconsistent) end of the parameter consistency spectrum (shown in fig. 23) in distributed deep learning. in such cases, parameter updates are highly infrequent (or nonexistent), and thus precautions must be taken with the received values."},{"id":"node_008","lx":100,"ly":2200,"children":["node_021"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2200,"searchText":"메타-최적화: 하이퍼파라미터 탐색과 neural architecture search 학습 자체가 볼록하지 않은 최적화 문제이므로, 남는 계산 자원을 하이퍼파라미터 탐색(learning rate, momentum, staleness 등)이나 아키텍처 탐색에 쓸 수 있다. architecture search는 세 갈래다: sequential model-based optimization(smbo, 예: darts의 미분가능한 bi-level 최적화), reinforcement learning(정확도를 보상으로 삼아 레이어 구성을 액션으로), evolutionary algorithms(유전 인코딩+tournament selection). 모듈·블록의 self-similarity를 활용하면 탐색 공간을 계층적으로 줄일 수 있다.\n\nregularized evolution(amoebanet)은 기존 수작업/rl 기반 탐색을 모두 능가하는 imagenet 3.8% / cifar-10 2.13% 오차를 달성했다. amoebanets outperform all existing methods, including manually engineered dnns and rl-based searches, with 3.8% error for imagenet and 2.13% error for cifar-10 (compared to 5.29% and 3.62% on the best instances of densenet, see table 5)."},{"id":"node_009","lx":100,"ly":2500,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2500,"searchText":"결론: 컴파일러 최적화, 압축, 적응형 분산 시스템으로 저자들의 마무리 진단: 단일 오퍼레이터 최적화는 이미 고도로 성숙했고(§5), 현재 연구는 레이어-간·전체-dnn 최적화(tensorflow xla, tvm, tensor comprehensions 같은 컴파일러가 그래프 전체를 fusion 등으로 변환, 최대 4배 속도향상)로 옮겨가고 있다. 모바일·엣지 배포를 위한 post-training compression도 계속 중요해질 것. 분산 학습 기법들은 표준 프로그래밍 인터페이스로 수렴 중이며, 클라우드의 elastic 노드 스케줄링과 진화적 최적화가 결합해 '적응적이고 financially-viable한' 최적화로 이어질 것으로 전망한다.\n\n마지막으로, 현재 컴퓨터 비전 sota(amoebanet)가 이미 사람이 아니라 자동화된 architecture search의 산물이라는 사실을 들어, 수작업 튜닝이 점점 obsolete해질 것이라 전망하며 글을 맺는다. the world of deep learning is brimming with concurrency. nearly every aspect of training, from the computation of a convolution to the meta-optimization of dnn architectures, is inherently parallel."},{"id":"node_010","lx":550,"ly":320,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":320,"searchText":"dag 실행시간의 이론적 상·하한 프로세서가 1개면 $t_1=\\mathbf{w}$, 무한히 많으면 $t_\\infty=\\mathbf{d}$. 이 두 극단을 잇는 부등식이 실제 p개 프로세서에서의 실행시간을 위아래로 조인다 — 어떤 연산이든 병렬화의 이론적 최선은 depth로, 최악은 순차 실행(work)으로 결정된다는 뜻. 이 논문 전체에서 각 병렬화 기법을 비교하는 공통 잣대로 쓰인다. we can show that the execution time of such a dag on p processors is bounded by: min{w/p, d} ≤ tp ≤ o(w/p + d)"},{"id":"node_011","lx":550,"ly":480,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":480,"searchText":"table 4: 연산 종류별 work-depth 점근 복잡도 활성화함수는 $o(nchw)$ work에 $o(1)$ depth로 완전 병렬. fc layer는 $\\nabla x$의 depth가 $o(\\log c_{in})$까지 커진다. convolution(direct)은 work이 커널·채널·이미지 크기에 곱셈적으로 늘지만 depth는 로그 스케일을 유지한다. 공통 패턴: work은 다항적으로 크지만 depth는 최대 log 오더라서, 이론적으로는 모든 dnn 연산이 프로세서 수에 선형으로 확장 가능하다는 것이 이 표의 핵심 메시지. table 4 shows that the work (w) performed in each layer asymptotically dominates the maximal operation dependency path (d), which is at most logarithmic in the parameters. this result reaffirms the state of the practice, in which parallelism plays a major part in the feasibility of evaluating and training dnns."},{"id":"node_012","lx":550,"ly":700,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":700,"searchText":"미니배치 크기의 이중효과: 수렴성 vs 활용률 $f$의 gradient가 l-lipschitz일 때 descent lemma를 sgd에 적용하면 큰 배치일수록 gradient variance 항이 커져서 수렴을 저해하는 부등식이 도출된다. 실제로 resnet-50/imagenet 실험(fig 6b)에서도 minibatch가 대략 8k를 넘어서면 top-1 validation error가 눈에 띄게 나빠지는 것으로 보고된다. this indicates that a large minibatch (with adjusted learning rate) can increase the convergence rate (negative term), but along with it the gradient variance and learning rate, which causes the last term to hinder convergence."},{"id":"node_013","lx":550,"ly":920,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":920,"searchText":"convolution 4대 계산법의 work-depth 비교 (table 6) direct와 im2col은 이론적 work-depth가 동일하지만 im2col이 캐싱·메모리 재사용 덕에 실제로는 더 빠른 경우가 많다 — work-depth만으로는 절대 성능을 설명할 수 없다는 저자들의 핵심 지적이다. fft는 큰 커널일수록 유리(gemm 대비 최대 16배), winograd는 3×3 같은 작은 커널 전용으로 곱셈 수를 줄인다. note that for a single minibatch, it is enough to transform w once and reuse results. experimental results have shown that the larger the convolution kernels are, the more beneficial fft becomes, yielding up to 16× performance over the gemm method"},{"id":"node_014","lx":550,"ly":1080,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1080,"searchText":"persistent rnn 최대 30배, data layout 전치로 최대 27.9배 persistent rnns는 rnn 유닛의 weight를 gpu 레지스터에 캐싱하고 gpu 커널을 'persistent'하게(자체 전역 동기화) 실행해서, 작은 minibatch·긴 시퀀스 조건에서 기존 대비 최대 약 30배 속도를 낸다 — gpu당 여러 tflop/s를 gemm 없이 달성. 별도로, 단순히 데이터 레이아웃을 nchw에서 chwn으로 전치하는 것만으로도 단일 오퍼레이터 기준 최대 27.9배, alexnet 전체 기준 5.6배의 성능 향상이 보고된다. the approach attains up to ∼30× speedup over previous state-of-the-art for low minibatch sizes, performing on the order of multiple tflop/s per-gpu, even though it does not execute gemm operations"},{"id":"node_015","lx":550,"ly":1220,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1220,"searchText":"bn의 동기화 병목과 weight normalization의 우회 batch normalization은 미니배치 전체에 걸친 평균·분산을 계산해야 해서 완전한 동기화 지점이 된다 — data parallelism의 확장성을 해치는 대표 오퍼레이터. 실무에서는 최소 32개 샘플의 로컬 서브셋만으로 bn을 근사해 동기화를 로컬화한다. weight normalization은 가중치를 크기($g$)와 방향($v$)으로 재매개변수화해서 미니배치 간 의존성(depth) 자체를 $o(\\log n)$에서 $o(1)$로 없앤다. wn decreases the depth (d) of the operator from o(log n) to o(1), removing inter-dependencies within the minibatch. according to the authors, wn reduces the need for bn, achieving comparable accuracy using a simplified version of bn (without variance correction)."},{"id":"node_016","lx":550,"ly":1380,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1380,"searchText":"hybrid parallelism 실측 스피드업 (alexnet 등) alexnet을 4-gpu에서 data 또는 model parallelism 단독으로 매핑하면 최선이 약 2.2배. convolution엔 data parallelism, fc엔 model parallelism을 섞으면 8-gpu에서 최대 6.25배(정확도 손실 <1%). 다른 hybrid 구현들도 4-gpu에서 3.1배를 재현했다. ampnet은 fine-grained model parallelism을 비동기 스케줄링과 결합해 tensorflow 대비 최대 3.94배. one successful example applies a hybrid scheme applies data parallelism to the convolutional layer, and model parallelism to the fully connected part... using this hybrid approach, a speedup of up to 6.25× can be achieved for 8 gpus over one, with less than 1% accuracy loss"},{"id":"node_017","lx":550,"ly":1520,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1520,"searchText":"ps든 decentralized든 결국 통신 대역폭·지연이 확장성을 결정 ps 방식이든 decentralized(allreduce) 방식이든, 어느 쪽을 쓸지는 네트워크 토폴로지·대역폭·통신 지연·업데이트 빈도·fault tolerance 요구에 달려있다고 저자들은 명시적으로 프레이밍한다. allreduce는 이론적으로 reduce-then-broadcast와 동일한 시간이 걸리고, ps는 통신을 특정 노드로 집중시키는 대신 fault tolerance와 이질성 대응력을 얻는다 — 이 절 전체가 '통신 자원을 어떻게 배분하느냐'의 트레이드오프로 요약된다. the choice between designing a centralized and a decentralized network architecture for dnn training depends on multiple factors, including the network topology, bandwidth, communication latency, parameter update frequency, and desired fault tolerance."},{"id":"node_018","lx":550,"ly":1680,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1680,"searchText":"hogwild / ssp: staleness 유계 수렴 조건 hogwild는 잠금 없이 공유 파라미터를 여러 agent가 동시에 읽고·덮어쓰며 gradient를 누적하는 비동기 sgd로, atomic write + lipschitz 연속미분 + 강볼록성 + 유계 staleness라는 조건 하에 수렴이 증명되어 있다. ssp는 이 staleness에 명시적 상한(maximal staleness)을 두고, 그 한도에 도달한 노드가 있으면 전역 동기화를 강제하는 절충안이다 — 이질적·느린 노드(straggler) 환경에서 특히 유리하다고 보고된다. stale-synchronous parallelism (ssp) proposes a compromise between consistent and inconsistent models. in ssp (fig. 20d), the gradient staleness is enforced to be bounded by performing a global synchronization step after a maximal staleness may have been reached by one of the nodes."},{"id":"node_019","lx":550,"ly":1820,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1820,"searchText":"압축 수치: sparsification 최대 54배, 압축비 최대 2871배 최초의 gradient sparsification 기법은 정적 threshold 이하 값을 아예 전송하지 않는 방식으로 80노드에서 최대 54배 속도향상, 오차 증가는 최대 1.8%에 그쳤다. 32비트 고정소수점 양자화까지 포함하면 비-convolutional dnn에서 압축비가 846~2871배에 달한다. sparse allreduce 프레임워크 sparcml은 top-k 인덱스 압축 + 양자화로 잘 튜닝된 cntk 구현 대비 20배 이상의 속도향상을 보고한다. the first application of gradient sparsification prunes gradient values using a static threshold, below which an element should not be sent. results show up to 54× speedup for 80 nodes and even an up to 1.8% reduction in error."},{"id":"node_020","lx":550,"ly":1980,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1980,"searchText":"knowledge distillation과 easgd knowledge distillation은 2단계로 나눠 (1) 큰 네트워크 또는 앙상블을 정상적으로 학습, (2) 단일의 작은 네트워크가 그 출력을 모방하도록 학습 — 라벨 데이터 대신 앙상블 출력을 teacher로 쓰는 셈이다. 결과적으로 단일 모델이 10개 dnn 앙상블과 동등한 word error rate를 달성한 사례가 보고된다. easgd는 각 agent의 파라미터 뷰와 ps의 평균 뷰 사이에 elastic force를 둬서, agent들이 평균에서 더 자유롭게 벗어나(탐색) 통신을 드물게 해도 되도록 만든다. results show that the second network is easier to train on the ensemble than on a labeled dataset, attaining the same word error rate as an ensemble of 10 dnns."},{"id":"node_021","lx":550,"ly":2200,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2200,"searchText":"enas: 파라미터 공유로 탐색 비용 1000배 절감 enas는 탐색 공간에 속한 자식(child) 네트워크들이 파라미터를 공유하도록 해서, 매번 새로 처음부터 학습시키는 표준 nas 대비 연산 비용을 세 자릿수(약 1000배) 줄인다. 이는 architecture search를 병렬성이 아니라 '재사용'으로 가속할 수 있음을 보여주는 사례. enas, which significantly reduces computational time over nas (by three orders of magnitude) by sharing parameters across children dnns."},{"id":"node_022","lx":950,"ly":1520,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1520,"searchText":"'통신 대역폭 병목' 프레임은 cxl/memory-fabric까지 안 간다 이 논문 전체에서 분산학습의 성능은 결국 인터커넥트의 latency·bandwidth·message-rate 세 지표로 수렴한다(§2.3.2, §7.2). ps냐 decentralized냐의 선택도 '네트워크 토폴로지, 대역폭, 통신 지연, 파라미터 업데이트 빈도'에 달려있다고 명시한다. 그런데 이 논문(2018)은 이 통신을 시종일관 네트워크(ethernet/infiniband/mpi) 층위에서만 다루고, 로컬 메모리 대역폭과 네트워크 대역폭 사이의 격차를 언급하면서도(§2.5, allreduce 하한 유도부) 그 격차 자체를 좁히는 방향(예: cxl 기반 memory-fabric으로 노드 간 인터커넥트를 메모리 계층에 편입시키는 접근)은 스코프 밖이다. 내 관심사인 memory disaggregation·coherence는 정확히 이 '네트워크 대역폭 ≪ 로컬 메모리 대역폭' 격차를 좁히려는 시도로 읽힌다 — 이 서베이는 그 격차의 존재는 명확히 보여주지만, 해법은 논하지 않는다. due to the relatively low bandwidth between the machines (compared to local memory bandwidths), this operation is often most critical for distributed learning."},{"id":"node_023","lx":950,"ly":1720,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1720,"searchText":"hogwild/ssp의 수렴 증명, 비볼록 dnn에도 정말 유효한가? hogwild류 비동기 sgd의 수렴 증명은 (a) atomic write, (b) lipschitz 연속미분+강볼록성, (c) staleness 유계라는 세 조건에 의존한다(§7.1). 그런데 dnn의 손실함수는 일반적으로 비볼록(non-convex)이다. 저자들도 이 갭을 명시적으로 다루지 않고 '희소 학습 문제(sparse learning problems)'라는 조건부로 넘어간다 — 실제 대규모 비볼록 dnn 학습에서 이 수렴 보장들이 어느 정도까지 근사적으로 유효한지 궁금하다. based on foundations of distributed asynchronous sgd, the proofs impose that (a) write-accesses (adding gradients) are always atomic; (b) lipschitz continuous differentiability and strong convexity on fw; and (c) that the staleness, i.e., the maximal number of iterations between reading w and writing ∇w, is bounded."},{"id":"node_024","lx":950,"ly":100,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"searchText":"인접 서베이들: dnn 자체 / 스케일링 관점 / 하드웨어 아키텍처 저자들이 관련 서베이로 명시적으로 언급한 것들: dnn 자체와 학습 알고리즘을 역사적 관점에서 다루는 서베이 3편, bengio의 모델·최적화·데이터셋 관점 스케일링 서베이(비동기·희소 통신도 일부 다룸), dnn 연산자를 하드웨어에 매핑하는 아키텍처 서베이, fpga 전용 서베이. 이 논문은 그중 '병렬·분산' 축만 전담해서 깊게 파는 위치에 있다고 스스로 자리매김한다. surveys of hardware architectures mostly focus on the computational side of training rather than the optimization. this includes a recent survey that reviews computation techniques for dnn operators (layer types) and mapping computations to hardware, exploiting inherent parallelism."},{"id":"node_025","lx":950,"ly":400,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":400,"searchText":"내 연구방법과의 연결: 공통 척도로 병렬화 기법 비교하기 이 논문 전체가 하는 일은 결국 '각 병렬화 기법을 work-depth라는 공통 척도로 환산해서 비교 가능하게 만드는 것'이다. 내가 cxl·coherence 가설을 검증할 때도 비슷한 방법론이 쓸모 있을 것 같다 — hw 메커니즘(예: directory-based coherence vs snoop-based, 혹은 cxl의 다양한 캐싱 정책)마다 work-depth류 정량 모델을 세우면 '이 코히어런스 방식이 이 workload에 왜/언제 유리한가'를 풀 성능 시뮬레이션 없이도 1차로 걸러낼 수 있을 것.\n\n다만 이 논문의 w-d 모델은 순수 계산 dag 기준이라, 메모리 계층·coherence protocol의 상태 전이(예: mesi 전이 비용) 같은 것까지 그대로 확장되지는 않을 것 같다 — 그 확장이 실제로 필요한지, 필요하다면 무엇을 새 축으로 추가해야 하는지가 내 질문으로 남는다. "}];
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":100,"children":["node_024"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"title":"서베이의 스코프: 세 층위로 본 DNN 병렬성","content":"이 논문은 240편의 관련 연구를 분석해서 딥러닝의 병렬성을 세 층위로 정리한다: (1) 단일 오퍼레이터(§4-5, convolution/FC/RNN 연산 자체를 어떻게 병렬화하는가), (2) 전체 네트워크 단위의 학습/추론(§6, data/model/pipeline/hybrid parallelism), (3) 분산 학습(§7, synchronization spectrum, parameter server vs decentralized, 압축, model consolidation, architecture search). 세 층위를 관통하는 공통 척도로 Work-Depth 모델(§2.5)을 사용해서, 서로 다른 병렬화 기법들의 concurrency를 정량적으로 비교한다.\n\n논문 자체가 강조하듯 스코프는 '병렬/분산' 그 자체이지 DNN 아키텍처나 최적화 이론이 아니다 — 관련 다른 서베이(DNN 자체, 하드웨어 아키텍처)와 상호보완적 위치에 있다고 명시한다.","originalTitle":"","originalText":"In this survey, we describe the problem from a theoretical perspective, followed by approaches for its parallelization. We then review and model the different types of concurrency in DNNs: from the single operator, through parallelism in network inference and training, to distributed deep learning.","toggles":[]},{"id":"node_002","lx":100,"ly":400,"children":["node_010","node_011","node_025"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":400,"title":"병렬 알고리즘 기초: DAG, Work-Depth, Allreduce 통신 하한","content":"모든 계산은 DAG(정점=연산, 간선=데이터 의존성)로 모델링된다. 그래프의 총 work $\\mathbf{W}$(정점 수)와 depth $\\mathbf{D}$(최장 경로 길이)로 계산 복잡도를 특징짓고, p개 프로세서에서의 실행시간은 $\\min\\{\\mathbf{W}/p, \\mathbf{D}\\} \\le T_p \\le O(\\mathbf{W}/p + \\mathbf{D})$로 유계다. 평균 병렬성은 $\\mathbf{W}/\\mathbf{D}$.\n\nDNN의 텐서 연산은 대부분 데이터-병렬적이고, summation(allreduce 등 reduction 연산)만 의존성을 만든다. 분산 환경에서 allreduce는 노드 간 대역폭이 로컬 메모리 대역폭보다 훨씬 낮기 때문에 가장 비용이 큰 연산으로 꼽힌다 — 단순화된 LogP 모델(point-to-point latency L, per-byte cost G, P개 머신)에서 tree 알고리즘의 통신시간은 $T_{tree} = 2\\log_2(P)(L+\\gamma m G)$이고, 중복 계산을 허용하지 않으면 이론적 하한은 더 강해진다.","originalTitle":"","originalText":"In multi-machine environments, these tables are distributed across the machines which participate in the overall reduction operation. Due to the relatively low bandwidth between the machines (compared to local memory bandwidths), this operation is often most critical for distributed learning.","toggles":[]},{"id":"node_003","lx":100,"ly":700,"children":["node_012"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":700,"title":"효율성 트레이드오프: 미니배치 크기, 일반화 vs 활용률","content":"SGD를 minibatch 단위로 실행하면 병렬성이 생기지만, minibatch 크기는 그 자체로 최적화 대상이다. 너무 작으면(region A) 하드웨어 병렬성을 못 살리고, 너무 크면(region C) 일반화 성능이 떨어진다 — 이 사이 어딘가(region B)가 실무적 최적점이다. 대규모 minibatch(8k, 32k, 심지어 64k)를 정확도 손실 없이 쓰려는 시도들은 학습률 워밍업, 배치-크기 기반 gradient variance 제어, 적응적 minibatch 증가 등으로 이 상한을 밀어올릴 뿐, 상한 자체를 없애지는 못한다.","originalTitle":"","originalText":"Overall, such works increase the upper bound on feasible minibatch sizes, but do not remove it.","toggles":[]},{"id":"node_004","lx":100,"ly":1000,"children":["node_013","node_014"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1000,"title":"단일 오퍼레이터 수준 병렬성: Convolution·FC·RNN","content":"FC layer는 GEMM(행렬곱)으로 직접 매핑되어 CUBLAS/MKL 같은 라이브러리로 최적화된다. Convolution은 직접 계산(Direct), im2col(Toeplitz 행렬로 변환 후 GEMM), FFT(주파수 영역 원소곱), Winograd(최소 필터링, 작은 커널 전용) 네 가지 방법이 있고 커널·이미지 크기에 따라 최적 방법이 갈린다 — '만능 최선'은 없다. RNN(LSTM/GRU)은 게이트 연산들을 하나의 fused kernel로 묶고, 레이어 간에는 파이프라이닝으로 동시성을 확보한다.\n\ndata layout(NCHW vs CHWN) 선택만으로도 최대 27.9배 성능 차이가 보고되는 등, 저수준 구현 디테일이 이론적 Work-Depth로는 안 잡히는 실제 성능을 좌우한다는 점을 저자들은 반복해서 강조한다.","originalTitle":"","originalText":"Table 6 lists the concurrency characteristics of the aforementioned convolution implementations, using the Work-Depth model. From the table, we can see that each method exhibits different behavior... This coincides with experimental results, which show that there is no \"one-size-fits-all\" convolution method.","toggles":[]},{"id":"node_005","lx":100,"ly":1300,"children":["node_015","node_016"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1300,"title":"전체 네트워크 병렬성: Data / Model / Pipeline / Hybrid","content":"Data parallelism은 미니배치를 프로세서에 나눠주고 gradient를 allreduce로 합친다 — 가장 널리 쓰이지만 Batch Normalization이 미니배치 전체에 걸친 동기화를 요구해 확장성 병목이 된다. Model parallelism은 뉴런·채널 차원으로 네트워크 자체를 쪼개 여러 프로세서에 배치 — 메모리는 아끼지만 레이어마다 통신이 필요하고, FC layer에서는 all-to-all 통신이 발생한다. Pipelining은 레이어 단위로 프로세서를 나눠 forward/backward/weight-update를 겹쳐 실행한다.\n\n세 방식은 상호 배타적이지 않다 — DistBelief/Project Adam 같은 실제 시스템은 data parallelism(모델 복제본 간) + model parallelism(레이어 내 뉴런 분할) + pipelining(레이어 간)을 동시에 조합하는 hybrid parallelism을 쓴다.","originalTitle":"","originalText":"The combination of multiple parallelism schemes can overcome the drawbacks of each scheme. Below we overview successful instances of such hybrids.","toggles":[]},{"id":"node_006","lx":100,"ly":1600,"children":["node_017","node_018","node_022","node_023"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1600,"title":"분산 학습: Model Consistency 스펙트럼과 중앙화 방식","content":"분산 SGD에서 여러 training agent가 각자 파라미터 $w$의 사본을 들고 학습할 때, 모두가 항상 최신 $w$를 본다고 보장하면 'consistent'(synchronous), staleness를 허용하면 'inconsistent'(asynchronous, 대표적으로 HOGWILD)다. 스펙트럼 중간에 Stale-Synchronous Parallelism(SSP)이 있어 최대 staleness를 유계로 강제한다. 아키텍처 축으로는 parameter server(PS, 중앙집중) vs decentralized(allreduce 기반)로 나뉘며, PS는 fault tolerance·이질적 환경 대응에 유리하고 decentralized는 통신을 네트워크 전 경로에 분산시킬 수 있다.\n\n실무에서는 32-50개 노드까지는 synchronous가 잘 확장되고, 그 이상 규모나 이질적 환경에서는 asynchronous/SSP가 선호된다는 관찰을 제시한다.","originalTitle":"","originalText":"In practical implementations, the prominently-used model consistency approaches are synchronous for up to 32–50 nodes, where the allreduce operation still scales nearly linearly; and asynchronous/SSP for larger clusters and heterogeneous environments","toggles":[]},{"id":"node_007","lx":100,"ly":1900,"children":["node_019","node_020"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1900,"title":"통신량 줄이기: 압축과 Model Consolidation","content":"통신 비용을 줄이는 두 축: (1) 메시지 개수를 줄이기(§7.1의 model consistency 완화), (2) 메시지 크기를 줄이기 — quantization(32비트를 더 적은 비트로, stochastic rounding으로 기댓값 보존)과 sparsification(작은 gradient는 아예 안 보냄, top-k 선택)이 대표적. Model consolidation은 아예 매 스텝 동기화를 포기하고, 학습 후(또는 아주 드물게) 여러 모델을 합치는 방식 — ensemble, knowledge distillation, model averaging(EASGD 등)이 있다.\n\n이 스펙트럼(Fig 23)은 결국 §7.1의 model consistency 스펙트럼과 같은 축의 극단적 형태 — consolidation은 '동기화를 거의 하지 않는' 극단으로 볼 수 있다.","originalTitle":"","originalText":"In this section, we discuss the far (inconsistent) end of the parameter consistency spectrum (shown in Fig. 23) in distributed deep learning. In such cases, parameter updates are highly infrequent (or nonexistent), and thus precautions must be taken with the received values.","toggles":[]},{"id":"node_008","lx":100,"ly":2200,"children":["node_021"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2200,"title":"메타-최적화: 하이퍼파라미터 탐색과 Neural Architecture Search","content":"학습 자체가 볼록하지 않은 최적화 문제이므로, 남는 계산 자원을 하이퍼파라미터 탐색(learning rate, momentum, staleness 등)이나 아키텍처 탐색에 쓸 수 있다. Architecture search는 세 갈래다: Sequential Model-Based Optimization(SMBO, 예: DARTS의 미분가능한 bi-level 최적화), Reinforcement Learning(정확도를 보상으로 삼아 레이어 구성을 액션으로), Evolutionary Algorithms(유전 인코딩+tournament selection). 모듈·블록의 self-similarity를 활용하면 탐색 공간을 계층적으로 줄일 수 있다.\n\nRegularized Evolution(AmoebaNet)은 기존 수작업/RL 기반 탐색을 모두 능가하는 ImageNet 3.8% / CIFAR-10 2.13% 오차를 달성했다.","originalTitle":"","originalText":"AmoebaNets outperform all existing methods, including manually engineered DNNs and RL-based searches, with 3.8% error for ImageNet and 2.13% error for CIFAR-10 (compared to 5.29% and 3.62% on the best instances of DenseNet, see Table 5).","toggles":[]},{"id":"node_009","lx":100,"ly":2500,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2500,"title":"결론: 컴파일러 최적화, 압축, 적응형 분산 시스템으로","content":"저자들의 마무리 진단: 단일 오퍼레이터 최적화는 이미 고도로 성숙했고(§5), 현재 연구는 레이어-간·전체-DNN 최적화(TensorFlow XLA, TVM, Tensor Comprehensions 같은 컴파일러가 그래프 전체를 fusion 등으로 변환, 최대 4배 속도향상)로 옮겨가고 있다. 모바일·엣지 배포를 위한 post-training compression도 계속 중요해질 것. 분산 학습 기법들은 표준 프로그래밍 인터페이스로 수렴 중이며, 클라우드의 elastic 노드 스케줄링과 진화적 최적화가 결합해 '적응적이고 financially-viable한' 최적화로 이어질 것으로 전망한다.\n\n마지막으로, 현재 컴퓨터 비전 SOTA(AmoebaNet)가 이미 사람이 아니라 자동화된 architecture search의 산물이라는 사실을 들어, 수작업 튜닝이 점점 obsolete해질 것이라 전망하며 글을 맺는다.","originalTitle":"","originalText":"The world of deep learning is brimming with concurrency. Nearly every aspect of training, from the computation of a convolution to the meta-optimization of DNN architectures, is inherently parallel.","toggles":[]},{"id":"node_010","lx":550,"ly":320,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":320,"title":"DAG 실행시간의 이론적 상·하한","content":"프로세서가 1개면 $T_1=\\mathbf{W}$, 무한히 많으면 $T_\\infty=\\mathbf{D}$. 이 두 극단을 잇는 부등식이 실제 p개 프로세서에서의 실행시간을 위아래로 조인다 — 어떤 연산이든 병렬화의 이론적 최선은 depth로, 최악은 순차 실행(work)으로 결정된다는 뜻. 이 논문 전체에서 각 병렬화 기법을 비교하는 공통 잣대로 쓰인다.","originalTitle":"","originalText":"we can show that the execution time of such a DAG on p processors is bounded by: min{W/p, D} ≤ Tp ≤ O(W/p + D)","toggles":[]},{"id":"node_011","lx":550,"ly":480,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":480,"title":"Table 4: 연산 종류별 Work-Depth 점근 복잡도","content":"활성화함수는 $O(NCHW)$ work에 $O(1)$ depth로 완전 병렬. FC layer는 $\\nabla x$의 depth가 $O(\\log C_{in})$까지 커진다. Convolution(direct)은 work이 커널·채널·이미지 크기에 곱셈적으로 늘지만 depth는 로그 스케일을 유지한다. 공통 패턴: work은 다항적으로 크지만 depth는 최대 log 오더라서, 이론적으로는 모든 DNN 연산이 프로세서 수에 선형으로 확장 가능하다는 것이 이 표의 핵심 메시지.","originalTitle":"","originalText":"Table 4 shows that the work (W) performed in each layer asymptotically dominates the maximal operation dependency path (D), which is at most logarithmic in the parameters. This result reaffirms the state of the practice, in which parallelism plays a major part in the feasibility of evaluating and training DNNs.","toggles":[{"id":"toggle_001","title":"Table 4 (발췌): Operator별 Work-Depth","content":"| Operator | Eval | Work (W) | Depth (D) |\n|---|---|---|---|\n| Activation | y | O(NCHW) | O(1) |\n| Fully Connected | ∇x | O(Cin·N·Cout) | O(log Cin) |\n| Convolution (Direct) | y | O(N·Cout·Cin·H'·W'·Ky·Kx) | O(log Kx+log Ky+log Cin) |\n| Pooling | y | O(NCHW) | O(log Kx+log Ky) |\n| Batch Normalization | y | O(NCHW) | O(log N) |"}]},{"id":"node_012","lx":550,"ly":700,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":700,"title":"미니배치 크기의 이중효과: 수렴성 vs 활용률","content":"$f$의 gradient가 L-Lipschitz일 때 descent lemma를 SGD에 적용하면 큰 배치일수록 gradient variance 항이 커져서 수렴을 저해하는 부등식이 도출된다. 실제로 ResNet-50/ImageNet 실험(Fig 6b)에서도 minibatch가 대략 8k를 넘어서면 top-1 validation error가 눈에 띄게 나빠지는 것으로 보고된다.","originalTitle":"","originalText":"This indicates that a large minibatch (with adjusted learning rate) can increase the convergence rate (negative term), but along with it the gradient variance and learning rate, which causes the last term to hinder convergence.","toggles":[]},{"id":"node_013","lx":550,"ly":920,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":920,"title":"Convolution 4대 계산법의 Work-Depth 비교 (Table 6)","content":"Direct와 im2col은 이론적 Work-Depth가 동일하지만 im2col이 캐싱·메모리 재사용 덕에 실제로는 더 빠른 경우가 많다 — Work-Depth만으로는 절대 성능을 설명할 수 없다는 저자들의 핵심 지적이다. FFT는 큰 커널일수록 유리(GEMM 대비 최대 16배), Winograd는 3×3 같은 작은 커널 전용으로 곱셈 수를 줄인다.","originalTitle":"","originalText":"Note that for a single minibatch, it is enough to transform w once and reuse results. Experimental results have shown that the larger the convolution kernels are, the more beneficial FFT becomes, yielding up to 16× performance over the GEMM method","toggles":[{"id":"toggle_002","title":"Table 6: Convolution 계산법별 Work-Depth","content":"| Method | Work (W) | Depth (D) |\n|---|---|---|\n| Direct | N·Cout·H'·W'·Cin·Ky·Kx | ⌈log2 Cin⌉+⌈log2 Ky⌉+⌈log2 Kx⌉ |\n| im2col | N·Cout·H'·W'·Cin·Ky·Kx | ⌈log2 Cin⌉+⌈log2 Ky⌉+⌈log2 Kx⌉ |\n| FFT | c·HWlog2(HW)·(Cout·Cin+N·Cin+N·Cout)+HWN·Cin·Cout | 2⌈log2 HW⌉+⌈log2 Cin⌉ |\n| Winograd (m×m tiles, r×r 커널) | α(r²+αr+2α²+αm+m²)+Cout·Cin·P | 2⌈log2 r⌉+4⌈log2 α⌉+⌈log2 Cin⌉ |"}]},{"id":"node_014","lx":550,"ly":1080,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1080,"title":"Persistent RNN 최대 30배, data layout 전치로 최대 27.9배","content":"Persistent RNNs는 RNN 유닛의 weight를 GPU 레지스터에 캐싱하고 GPU 커널을 'persistent'하게(자체 전역 동기화) 실행해서, 작은 minibatch·긴 시퀀스 조건에서 기존 대비 최대 약 30배 속도를 낸다 — GPU당 여러 TFLOP/s를 GEMM 없이 달성. 별도로, 단순히 데이터 레이아웃을 NCHW에서 CHWN으로 전치하는 것만으로도 단일 오퍼레이터 기준 최대 27.9배, AlexNet 전체 기준 5.6배의 성능 향상이 보고된다.","originalTitle":"","originalText":"The approach attains up to ∼30× speedup over previous state-of-the-art for low minibatch sizes, performing on the order of multiple TFLOP/s per-GPU, even though it does not execute GEMM operations","toggles":[]},{"id":"node_015","lx":550,"ly":1220,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1220,"title":"BN의 동기화 병목과 Weight Normalization의 우회","content":"Batch Normalization은 미니배치 전체에 걸친 평균·분산을 계산해야 해서 완전한 동기화 지점이 된다 — data parallelism의 확장성을 해치는 대표 오퍼레이터. 실무에서는 최소 32개 샘플의 로컬 서브셋만으로 BN을 근사해 동기화를 로컬화한다. Weight Normalization은 가중치를 크기($g$)와 방향($v$)으로 재매개변수화해서 미니배치 간 의존성(depth) 자체를 $O(\\log N)$에서 $O(1)$로 없앤다.","originalTitle":"","originalText":"WN decreases the depth (D) of the operator from O(log N) to O(1), removing inter-dependencies within the minibatch. According to the authors, WN reduces the need for BN, achieving comparable accuracy using a simplified version of BN (without variance correction).","toggles":[]},{"id":"node_016","lx":550,"ly":1380,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1380,"title":"Hybrid Parallelism 실측 스피드업 (AlexNet 등)","content":"AlexNet을 4-GPU에서 data 또는 model parallelism 단독으로 매핑하면 최선이 약 2.2배. Convolution엔 data parallelism, FC엔 model parallelism을 섞으면 8-GPU에서 최대 6.25배(정확도 손실 <1%). 다른 hybrid 구현들도 4-GPU에서 3.1배를 재현했다. AMPNet은 fine-grained model parallelism을 비동기 스케줄링과 결합해 TensorFlow 대비 최대 3.94배.","originalTitle":"","originalText":"One successful example applies a hybrid scheme applies data parallelism to the convolutional layer, and model parallelism to the fully connected part... Using this hybrid approach, a speedup of up to 6.25× can be achieved for 8 GPUs over one, with less than 1% accuracy loss","toggles":[]},{"id":"node_017","lx":550,"ly":1520,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1520,"title":"PS든 decentralized든 결국 통신 대역폭·지연이 확장성을 결정","content":"PS 방식이든 decentralized(allreduce) 방식이든, 어느 쪽을 쓸지는 네트워크 토폴로지·대역폭·통신 지연·업데이트 빈도·fault tolerance 요구에 달려있다고 저자들은 명시적으로 프레이밍한다. allreduce는 이론적으로 reduce-then-broadcast와 동일한 시간이 걸리고, PS는 통신을 특정 노드로 집중시키는 대신 fault tolerance와 이질성 대응력을 얻는다 — 이 절 전체가 '통신 자원을 어떻게 배분하느냐'의 트레이드오프로 요약된다.","originalTitle":"","originalText":"The choice between designing a centralized and a decentralized network architecture for DNN training depends on multiple factors, including the network topology, bandwidth, communication latency, parameter update frequency, and desired fault tolerance.","toggles":[]},{"id":"node_018","lx":550,"ly":1680,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1680,"title":"HOGWILD / SSP: staleness 유계 수렴 조건","content":"HOGWILD는 잠금 없이 공유 파라미터를 여러 agent가 동시에 읽고·덮어쓰며 gradient를 누적하는 비동기 SGD로, atomic write + Lipschitz 연속미분 + 강볼록성 + 유계 staleness라는 조건 하에 수렴이 증명되어 있다. SSP는 이 staleness에 명시적 상한(maximal staleness)을 두고, 그 한도에 도달한 노드가 있으면 전역 동기화를 강제하는 절충안이다 — 이질적·느린 노드(straggler) 환경에서 특히 유리하다고 보고된다.","originalTitle":"","originalText":"Stale-Synchronous Parallelism (SSP) proposes a compromise between consistent and inconsistent models. In SSP (Fig. 20d), the gradient staleness is enforced to be bounded by performing a global synchronization step after a maximal staleness may have been reached by one of the nodes.","toggles":[]},{"id":"node_019","lx":550,"ly":1820,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1820,"title":"압축 수치: sparsification 최대 54배, 압축비 최대 2871배","content":"최초의 gradient sparsification 기법은 정적 threshold 이하 값을 아예 전송하지 않는 방식으로 80노드에서 최대 54배 속도향상, 오차 증가는 최대 1.8%에 그쳤다. 32비트 고정소수점 양자화까지 포함하면 비-convolutional DNN에서 압축비가 846~2871배에 달한다. Sparse allreduce 프레임워크 SparCML은 top-k 인덱스 압축 + 양자화로 잘 튜닝된 CNTK 구현 대비 20배 이상의 속도향상을 보고한다.","originalTitle":"","originalText":"The first application of gradient sparsification prunes gradient values using a static threshold, below which an element should not be sent. Results show up to 54× speedup for 80 nodes and even an up to 1.8% reduction in error.","toggles":[]},{"id":"node_020","lx":550,"ly":1980,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1980,"title":"Knowledge Distillation과 EASGD","content":"Knowledge distillation은 2단계로 나눠 (1) 큰 네트워크 또는 앙상블을 정상적으로 학습, (2) 단일의 작은 네트워크가 그 출력을 모방하도록 학습 — 라벨 데이터 대신 앙상블 출력을 teacher로 쓰는 셈이다. 결과적으로 단일 모델이 10개 DNN 앙상블과 동등한 word error rate를 달성한 사례가 보고된다. EASGD는 각 agent의 파라미터 뷰와 PS의 평균 뷰 사이에 elastic force를 둬서, agent들이 평균에서 더 자유롭게 벗어나(탐색) 통신을 드물게 해도 되도록 만든다.","originalTitle":"","originalText":"Results show that the second network is easier to train on the ensemble than on a labeled dataset, attaining the same word error rate as an ensemble of 10 DNNs.","toggles":[]},{"id":"node_021","lx":550,"ly":2200,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2200,"title":"ENAS: 파라미터 공유로 탐색 비용 1000배 절감","content":"ENAS는 탐색 공간에 속한 자식(child) 네트워크들이 파라미터를 공유하도록 해서, 매번 새로 처음부터 학습시키는 표준 NAS 대비 연산 비용을 세 자릿수(약 1000배) 줄인다. 이는 architecture search를 병렬성이 아니라 '재사용'으로 가속할 수 있음을 보여주는 사례.","originalTitle":"","originalText":"ENAS, which significantly reduces computational time over NAS (by three orders of magnitude) by sharing parameters across children DNNs.","toggles":[]},{"id":"node_022","lx":950,"ly":1520,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1520,"title":"'통신 대역폭 병목' 프레임은 CXL/memory-fabric까지 안 간다","content":"이 논문 전체에서 분산학습의 성능은 결국 인터커넥트의 latency·bandwidth·message-rate 세 지표로 수렴한다(§2.3.2, §7.2). PS냐 decentralized냐의 선택도 '네트워크 토폴로지, 대역폭, 통신 지연, 파라미터 업데이트 빈도'에 달려있다고 명시한다. 그런데 이 논문(2018)은 이 통신을 시종일관 네트워크(Ethernet/InfiniBand/MPI) 층위에서만 다루고, 로컬 메모리 대역폭과 네트워크 대역폭 사이의 격차를 언급하면서도(§2.5, allreduce 하한 유도부) 그 격차 자체를 좁히는 방향(예: CXL 기반 memory-fabric으로 노드 간 인터커넥트를 메모리 계층에 편입시키는 접근)은 스코프 밖이다. 내 관심사인 memory disaggregation·coherence는 정확히 이 '네트워크 대역폭 ≪ 로컬 메모리 대역폭' 격차를 좁히려는 시도로 읽힌다 — 이 서베이는 그 격차의 존재는 명확히 보여주지만, 해법은 논하지 않는다.","originalTitle":"","originalText":"Due to the relatively low bandwidth between the machines (compared to local memory bandwidths), this operation is often most critical for distributed learning.","toggles":[]},{"id":"node_023","lx":950,"ly":1720,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1720,"title":"HOGWILD/SSP의 수렴 증명, 비볼록 DNN에도 정말 유효한가?","content":"HOGWILD류 비동기 SGD의 수렴 증명은 (a) atomic write, (b) Lipschitz 연속미분+강볼록성, (c) staleness 유계라는 세 조건에 의존한다(§7.1). 그런데 DNN의 손실함수는 일반적으로 비볼록(non-convex)이다. 저자들도 이 갭을 명시적으로 다루지 않고 '희소 학습 문제(sparse learning problems)'라는 조건부로 넘어간다 — 실제 대규모 비볼록 DNN 학습에서 이 수렴 보장들이 어느 정도까지 근사적으로 유효한지 궁금하다.","originalTitle":"","originalText":"Based on foundations of distributed asynchronous SGD, the proofs impose that (a) write-accesses (adding gradients) are always atomic; (b) Lipschitz continuous differentiability and strong convexity on fw; and (c) that the staleness, i.e., the maximal number of iterations between reading w and writing ∇w, is bounded.","toggles":[]},{"id":"node_024","lx":950,"ly":100,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"title":"인접 서베이들: DNN 자체 / 스케일링 관점 / 하드웨어 아키텍처","content":"저자들이 관련 서베이로 명시적으로 언급한 것들: DNN 자체와 학습 알고리즘을 역사적 관점에서 다루는 서베이 3편, Bengio의 모델·최적화·데이터셋 관점 스케일링 서베이(비동기·희소 통신도 일부 다룸), DNN 연산자를 하드웨어에 매핑하는 아키텍처 서베이, FPGA 전용 서베이. 이 논문은 그중 '병렬·분산' 축만 전담해서 깊게 파는 위치에 있다고 스스로 자리매김한다.","originalTitle":"","originalText":"Surveys of hardware architectures mostly focus on the computational side of training rather than the optimization. This includes a recent survey that reviews computation techniques for DNN operators (layer types) and mapping computations to hardware, exploiting inherent parallelism.","toggles":[]},{"id":"node_025","lx":950,"ly":400,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":400,"title":"내 연구방법과의 연결: 공통 척도로 병렬화 기법 비교하기","content":"이 논문 전체가 하는 일은 결국 '각 병렬화 기법을 Work-Depth라는 공통 척도로 환산해서 비교 가능하게 만드는 것'이다. 내가 CXL·coherence 가설을 검증할 때도 비슷한 방법론이 쓸모 있을 것 같다 — HW 메커니즘(예: directory-based coherence vs snoop-based, 혹은 CXL의 다양한 캐싱 정책)마다 Work-Depth류 정량 모델을 세우면 '이 코히어런스 방식이 이 workload에 왜/언제 유리한가'를 풀 성능 시뮬레이션 없이도 1차로 걸러낼 수 있을 것.\n\n다만 이 논문의 W-D 모델은 순수 계산 DAG 기준이라, 메모리 계층·coherence protocol의 상태 전이(예: MESI 전이 비용) 같은 것까지 그대로 확장되지는 않을 것 같다 — 그 확장이 실제로 필요한지, 필요하다면 무엇을 새 축으로 추가해야 하는지가 내 질문으로 남는다.","originalTitle":"","originalText":"","toggles":[]}];
 var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_005","target":"node_006","type":"arrow","label":""},{"source":"node_006","target":"node_007","type":"arrow","label":""},{"source":"node_007","target":"node_008","type":"arrow","label":""},{"source":"node_008","target":"node_009","type":"arrow","label":""},{"source":"node_002","target":"node_010","type":"line","label":""},{"source":"node_002","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_004","target":"node_013","type":"line","label":""},{"source":"node_004","target":"node_014","type":"line","label":""},{"source":"node_005","target":"node_015","type":"line","label":""},{"source":"node_005","target":"node_016","type":"line","label":""},{"source":"node_006","target":"node_017","type":"line","label":""},{"source":"node_006","target":"node_018","type":"line","label":""},{"source":"node_007","target":"node_019","type":"line","label":""},{"source":"node_007","target":"node_020","type":"line","label":""},{"source":"node_008","target":"node_021","type":"line","label":""},{"source":"node_006","target":"node_022","type":"line","label":"gap"},{"source":"node_006","target":"node_023","type":"line","label":""},{"source":"node_001","target":"node_024","type":"line","label":"참고"},{"source":"node_002","target":"node_025","type":"line","label":"내 연구"}];
+var NODE_TEMPLATES = {"main_topic":"Main topic","method":"Method","result":"Result","claim":"Claim","question":"Question","gap":"Gap / Idea","reference":"Reference","memo":"Memo"};
 var HEADER_H = 36;
+
+// Collapse/Expand 라벨 필터 드롭다운 채우기 (에디터의 라벨 필터와 동일한 옵션/동작)
+(function populateFilterSelect() {
+  var sel = document.getElementById('tb-filter');
+  var noneOpt = document.createElement('option');
+  noneOpt.value = ''; noneOpt.textContent = 'None';
+  sel.appendChild(noneOpt);
+  Object.keys(NODE_TEMPLATES).forEach(function(key) {
+    var opt = document.createElement('option');
+    opt.value = key; opt.textContent = NODE_TEMPLATES[key];
+    sel.appendChild(opt);
+  });
+})();
 
 var vp = document.getElementById('viewport');
 var canvas = document.getElementById('canvas');
@@ -372,6 +398,7 @@ window.addEventListener('resize', function() {
     tx = r.width / 2 - cxw * scale;
     ty = r.height / 2 - cyw * scale;
     applyTransform();
+    updateZoomLineWeights();
   }
   lastVW = r.width; lastVH = r.height;
 });
@@ -387,6 +414,7 @@ vp.addEventListener('wheel', function(e) {
   ty = my - (my - ty) * (ns / scale);
   scale = ns;
   applyTransform();
+  updateZoomLineWeights();
 }, { passive: false });
 
 // Canvas pan
@@ -484,6 +512,9 @@ function onTitleClick(e, titleEl) {
   for (var i = 0; i < NODES_DATA.length; i++) {
     if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
   }
+  // 접혀 있는 동안엔 .ng-content가 display:none이라 측정이 전부 0으로 나와 More
+  // 버튼이 필요없다고 잘못 판단되므로, 다시 보이게 될 때 이 노드만 재측정
+  if (expanding) applyContentCaps(nodeEl);
   setTimeout(recomputePositions, 0);
   // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
   if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
@@ -551,7 +582,7 @@ function syncMinHeight(el, expand) {
   el.style.minHeight = (expand && minH) ? minH + 'px' : '';
 }
 
-function applyFold(nodeIds, expand) {
+function applyFold(nodeIds, expand, after) {
   nodeIds.forEach(function(id) {
     var el = document.getElementById('node-' + id);
     if (!el) return;
@@ -564,7 +595,7 @@ function applyFold(nodeIds, expand) {
       if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
     }
   });
-  setTimeout(recomputePositions, 0);
+  setTimeout(function() { recomputePositions(); if (after) after(); }, 0);
 }
 
 // Recompute positions when <details> toggles change node height.
@@ -574,7 +605,17 @@ canvas.addEventListener('toggle', function() {
 }, true);
 
 // Toolbar: context-aware expand/collapse
+// 라벨 필터: None이면 기존 동작 그대로. 특정 타입이면 Collapse는 항상 전체 접음,
+// Expand는 그 타입 노드만 펼치고 나머지는 강제로 접음 (부모/자식 관계 무시, 에디터와 동일 규칙)
 function doExpand() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    var matching = [], rest = [];
+    NODES_DATA.forEach(function(n) { (n.template === filter ? matching : rest).push(n.id); });
+    applyFold(rest, false);
+    applyFold(matching, true);
+    return;
+  }
   if (selectedNodeId) {
     applyFold(getExpandDescendants(selectedNodeId, true), true);
   } else {
@@ -587,12 +628,81 @@ function doExpand() {
     applyFold(toExpand, true);
   }
 }
+// 전체 collapse(선택 없이, 또는 필터가 걸려 있어도 결국 전체)일 때만 자동으로
+// Fit View — 선택 서브트리만 접을 땐 사용자가 보던 영역을 유지해야 하므로 대상에서
+// 제외 (에디터와 동일 규칙).
 function doCollapse() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
+    return;
+  }
   if (selectedNodeId) {
     applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
   } else {
-    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
   }
+}
+
+// 드롭된 노드의 raw 위치(lx/ly)를 형제들 사이에서 실제로 어디 떨어졌는지에 맞춰 다시
+// 계산한다. onUp이 그냥 "드롭된 렌더 좌표를 그대로 저장"하면, 그 렌더 좌표는 raw 좌표와
+// 전혀 다른 좌표계(레이아웃 알고리즘이 raw를 대폭 재배치하는 게 이 알고리즘의 존재
+// 이유)라 형제들의 raw ly 범위를 완전히 벗어나는 경우가 흔하고, 그 결과 다음 재배치 때
+// 항상 맨 위/맨 아래로 튕기는 것처럼 보인다(에디터에서도 같은 버그가 있었음). 드롭 시점의
+// DOM 위치(형제들은 이 드래그 동안 한 번도 안 움직였으므로 여전히 정확한 배치 상태를
+// 반영함)를 기준으로 어느 두 형제 사이에 놓였는지 찾아 그 사이 값으로 raw ly를 맞춘다.
+function reconcileDroppedPosition(nodeId, nodeDatum) {
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+  var tree = buildHopTreeJs();
+  var parentId = tree.parentOf[nodeId];
+  if (!parentId) return;
+
+  function findRootId(fromId) {
+    var cur = fromId, visited = {};
+    while (!visited[cur]) {
+      visited[cur] = true;
+      var n = nodeMap[cur];
+      if (!n) return cur;
+      if (n.isMain) return cur;
+      var p = tree.parentOf[cur];
+      if (!p) return cur;
+      cur = p;
+    }
+    return cur;
+  }
+  var root = nodeMap[findRootId(nodeId)];
+  function sideOfNode(n) { return (root && n.lx >= root.lx) ? 1 : -1; }
+  var draggedSide = sideOfNode(nodeDatum);
+
+  var sameSideSiblings = [];
+  NODES_DATA.forEach(function(n) {
+    if (n.id === nodeId) return;
+    if (tree.parentOf[n.id] === parentId && sideOfNode(n) === draggedSide) sameSideSiblings.push(n.id);
+  });
+  if (sameSideSiblings.length === 0) return;
+
+  var draggedRenderY = nodeDatum.ly;
+  var ordered = sameSideSiblings.map(function(sid) {
+    var el = document.getElementById('node-' + sid);
+    var ry = el ? (parseFloat(el.style.top) || 0) : nodeMap[sid].ly;
+    return { id: sid, renderY: ry };
+  }).sort(function(a, b) { return a.renderY - b.renderY; });
+
+  var belowIdx = -1;
+  for (var i = 0; i < ordered.length; i++) {
+    if (ordered[i].renderY > draggedRenderY) { belowIdx = i; break; }
+  }
+  var newY;
+  if (belowIdx === -1) newY = nodeMap[ordered[ordered.length - 1].id].ly + 1;
+  else if (belowIdx === 0) newY = nodeMap[ordered[0].id].ly - 1;
+  else newY = (nodeMap[ordered[belowIdx - 1].id].ly + nodeMap[ordered[belowIdx].id].ly) / 2;
+
+  // lx도 드래그 중 렌더 좌표가 raw에 섞여 들어가 오염됐을 수 있으므로, 같은 side 형제의
+  // raw lx를 빌려 바로잡는다(side 전환처럼 형제가 없는 경우는 건드리지 않음).
+  nodeDatum.lx = nodeMap[sameSideSiblings[0]].lx;
+  nodeDatum.ly = newY;
+  nodeDatum.naturalY = newY;
 }
 
 // Tag drag handle
@@ -624,192 +734,285 @@ function onNodeTagMousedown(e, nodeEl) {
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
     nodeEl.classList.remove('ng-dragging');
-    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
-    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+    // 드롭된 렌더 좌표를 일단 그대로 저장한 뒤, 형제들 사이 실제 위치에 맞춰 raw로
+    // 재해석한다(reconcileDroppedPosition — 위 참고, 렌더 좌표를 raw에 그대로 쓰면 안
+    // 되는 이유).
+    if (moved) {
+      lastWasDrag = true;
+      if (nodeDatum) {
+        nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly;
+        reconcileDroppedPosition(nodeId, nodeDatum);
+      }
+      setTimeout(recomputePositions, 0);
+    }
   }
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
 }
 
+// Canvas.tsx의 computeRenderPositions와 완전히 동일한 hop-tree bottom-up/top-down
+// 알고리즘의 vanilla JS 이식 — 예전엔 X 겹침 기준 union-find 컬럼 + 그리디 Y-패킹이라는
+// 완전히 다른(더 오래된) 알고리즘을 썼는데, 그 방식은 hop depth 개념이 없어서 브랜치마다
+// hop-1/hop-2가 서로 다른 X에서 시작하는 문제가 있었음(사용자가 Grid 오버레이로 직접
+// 확인해서 발견 — "hop1과 hop2 가로 시작 위치가 동일하지 않아서"). 에디터와 정확히 같은
+// 결과가 나오도록 알고리즘 자체를 교체.
 function recomputePositions() {
-  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
-  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
-
   var nodeMap = {};
   NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
 
   function getH(n) {
     var el = document.getElementById('node-' + n.id);
     if (el) return el.offsetHeight;
-    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
     return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
   }
   function getW(n) {
     var el = document.getElementById('node-' + n.id);
     return el ? el.offsetWidth : (n.nodeWidth || 432);
   }
-  function isConn(aId, bId) {
-    var a = nodeMap[aId], b = nodeMap[bId];
-    if (!a || !b) return false;
-    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
-    return EDGES.some(function(e) {
-      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+
+  var tree = buildHopTreeJs();
+
+  // main topic(백본) 기준 좌/우 — 세로 배치(아래)와 가로 정렬(Pass 4) 양쪽에서 왼쪽/오른쪽
+  // 자식을 독립적으로 다루기 위해 먼저 계산해둔다.
+  var sideOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) { sideOf[n.id] = 0; return; }
+    var root = nodeMap[tree.rootOf[n.id]];
+    sideOf[n.id] = n.lx >= root.lx ? 1 : -1;
+  });
+
+  // 각 부모의 자식들을 저장된 상대 Y(디자인 의도상 순서) 기준으로 정렬
+  var childrenOf = {};
+  NODES_DATA.forEach(function(n) {
+    var p = tree.parentOf[n.id];
+    if (!p) return;
+    (childrenOf[p] = childrenOf[p] || []).push(n.id);
+  });
+  Object.keys(childrenOf).forEach(function(pid) {
+    var parent = nodeMap[pid];
+    childrenOf[pid].sort(function(a, b) {
+      return (nodeMap[a].ly - parent.ly) - (nodeMap[b].ly - parent.ly);
+    });
+  });
+
+  // 형제 그룹을 부모의 원래 Y 기준 위/아래로, 그리고 좌/우(side)로 분리한다. 왼쪽/오른쪽
+  // 자식은 서로 다른 X에 그려져 세로 공간을 절대 공유하지 않으므로 독립적으로 계산해야
+  // 한쪽이 커질 때 반대쪽 분기점까지 같이 밀리는 걸 막는다. above 배열은 reverse해서
+  // "부모와 가장 가까운 것부터" 순서로 맞춘다 — kids는 상대 Y 오름차순 정렬이라 below
+  // 그룹(부모에서 멀어지는 방향으로 순서대로 진행)엔 그대로 맞지만, above 그룹은 같은
+  // 진행 방향(위로 멀어짐)인데 오름차순이면 가장 먼 자식이 배열 맨 앞이라 오히려 부모와
+  // 가장 가깝게 배치되고 그다음이 더 멀리 밀리는 식으로 시각적 순서가 뒤집힌다.
+  function splitByOriginalSide(parentId, side) {
+    var parent = nodeMap[parentId];
+    var kids = (childrenOf[parentId] || []).filter(function(k) { return sideOf[k] === side; });
+    var above = kids.filter(function(k) { return nodeMap[k].ly < parent.ly; }).reverse();
+    return {
+      below: kids.filter(function(k) { return nodeMap[k].ly >= parent.ly; }),
+      above: above,
+    };
+  }
+
+  // main topic끼리(백본)만 20px 기준, 그 외(hop 자식)는 항상 30px 기준
+  function gapFor(a, b) {
+    var base = (a.isMain && b.isMain) ? 20 : 30;
+    return (getH(a) > HEADER_H || getH(b) > HEADER_H) ? 48 : base;
+  }
+
+  // ── bottom-up: 각 서브트리가 자기 중심 기준 위/아래로 필요한 공간 ──
+  var infoCache = {};
+  function stackSize(group, parentNode) {
+    if (!group.length) return 0;
+    var total = 0;
+    for (var i = 0; i < group.length; i++) {
+      var kid = nodeMap[group[i]];
+      var prev = i === 0 ? parentNode : nodeMap[group[i - 1]];
+      total += gapFor(prev, kid);
+      var kInfo = layoutInfo(group[i]);
+      total += kInfo.above + kInfo.below;
+    }
+    return total;
+  }
+
+  // above+below 블록을 부모 중심에 맞추기 위한 분기점 이동량(shift). 이상적으로는
+  // (belowSize-aboveSize)/2만큼 옮기면 블록 전체가 정확히 부모 중심에 오지만, 양쪽에 다
+  // 형제가 있는 상태에서 두 그룹 크기 차이가 크면(예: 3:1 이상) 그 이동량이 큰 쪽 그룹의
+  // "부모와 가장 가까운 자식"을 부모 중심 반대편으로 밀어버린다(below의 첫 자식이 부모
+  // 보다 위에 렌더되는 등, 자식이 부모를 시각적으로 뛰어넘는 버그). 두 그룹이 다 있을
+  // 때만, "더 큰 쪽의 첫 자식이 부모 중심을 넘지 않는 한도"로 이동량을 clamp한다.
+  function splitShift(id, side) {
+    var node = nodeMap[id];
+    var split = splitByOriginalSide(id, side);
+    var above = split.above, below = split.below;
+    var belowSize = stackSize(below, node);
+    var aboveSize = stackSize(above, node);
+    var shift = (belowSize - aboveSize) / 2;
+    if (above.length > 0 && below.length > 0) {
+      if (shift > 0) {
+        var firstBelow = nodeMap[below[0]];
+        var firstBelowInfo = layoutInfo(below[0]);
+        shift = Math.min(shift, gapFor(node, firstBelow) + firstBelowInfo.above);
+      } else if (shift < 0) {
+        var firstAbove = nodeMap[above[0]];
+        var firstAboveInfo = layoutInfo(above[0]);
+        shift = Math.max(shift, -(gapFor(node, firstAbove) + firstAboveInfo.below));
+      }
+    }
+    return { above: above, below: below, belowSize: belowSize, aboveSize: aboveSize, shift: shift };
+  }
+
+  function layoutInfo(id) {
+    if (infoCache[id]) return infoCache[id];
+    var node = nodeMap[id];
+    var ownHalf = getH(node) / 2;
+    // side별로 독립적으로 above+below 블록을 재센터링하므로, 이 노드가 자기 부모에게
+    // 보고하는 "필요 공간"도 side별로 따로 구해서(왼쪽·오른쪽은 세로 공간을 안 겹치므로
+    // 더하지 않고 더 많이 필요한 쪽 기준) splitShift가 clamp한 실제 shift를 반영한다 —
+    // 안 그러면 assign()이 실제로 만드는 위치와 어긋나 다른 클러스터와 겹칠 수 있다.
+    var aboveReach = 0, belowReach = 0;
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      aboveReach = Math.max(aboveReach, s.aboveSize + s.shift);
+      belowReach = Math.max(belowReach, s.belowSize - s.shift);
+    });
+    var info = { above: Math.max(ownHalf, aboveReach), below: Math.max(ownHalf, belowReach) };
+    infoCache[id] = info;
+    return info;
+  }
+
+  // ── top-down: center Y 확정 ──
+  var centerY = {};
+  function assign(id, cy) {
+    var node = nodeMap[id];
+    centerY[id] = cy;
+    // 왼쪽/오른쪽을 완전히 독립적으로 배치한다 — stackSize가 같은 side의 형제끼리만
+    // 더해지므로 한쪽 크기가 반대쪽 분기점에 영향을 주지 않는다.
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      var below = s.below, above = s.above;
+      var split = cy - s.shift;
+
+      var cursor = split;
+      for (var i = 0; i < below.length; i++) {
+        var kid = nodeMap[below[i]];
+        var kInfo = layoutInfo(below[i]);
+        var prev = i === 0 ? node : nodeMap[below[i - 1]];
+        cursor += gapFor(prev, kid) + kInfo.above;
+        assign(below[i], cursor);
+        cursor += kInfo.below;
+      }
+      cursor = split;
+      for (var j = 0; j < above.length; j++) {
+        var kid2 = nodeMap[above[j]];
+        var kInfo2 = layoutInfo(above[j]);
+        var prev2 = j === 0 ? node : nodeMap[above[j - 1]];
+        cursor -= gapFor(prev2, kid2) + kInfo2.below;
+        assign(above[j], cursor);
+        cursor -= kInfo2.above;
+      }
     });
   }
 
-  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
-  var par = {};
-  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
-  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
-  for (var i = 0; i < NODES_DATA.length; i++) {
-    for (var j = i + 1; j < NODES_DATA.length; j++) {
-      var a = NODES_DATA[i], b = NODES_DATA[j];
+  // ── 루트 시퀀싱: X 범위가 겹치는 루트끼리만 그룹으로 묶어 원래 순서(Y)대로 배치 ──
+  var roots = NODES_DATA.filter(function(n) { return tree.isRoot[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rootFind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rootFind(p); rootPar[id] = r; return r;
+  }
+  for (var ri = 0; ri < roots.length; ri++) {
+    for (var rj = ri + 1; rj < roots.length; rj++) {
+      var a = roots[ri], b = roots[rj];
       if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
-        var ra = find(a.id), rb = find(b.id);
-        if (ra !== rb) par[ra] = rb;
+        var fa = rootFind(a.id), fb = rootFind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
       }
     }
   }
-  var colMap = {};
-  NODES_DATA.forEach(function(n) {
-    var root = find(n.id);
-    if (!colMap[root]) colMap[root] = [];
-    colMap[root].push(n);
+  var rootGroups = {};
+  roots.forEach(function(r) {
+    var g = rootFind(r.id);
+    (rootGroups[g] = rootGroups[g] || []).push(r);
   });
-
-  // 컬럼을 min X 오름차순(왼→오)으로 정렬
-  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
-    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
-    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
-    return minXA - minXB;
+  Object.keys(rootGroups).forEach(function(gk) {
+    var group = rootGroups[gk];
+    group.sort(function(a, b) { return (a.ly - b.ly) || (a.lx - b.lx); });
+    var cursorBottom = -Infinity;
+    for (var i = 0; i < group.length; i++) {
+      var root = group[i];
+      var info = layoutInfo(root.id);
+      var naturalCenter = root.ly + getH(root) / 2;
+      var gap = i === 0 ? 0 : gapFor(group[i - 1], root);
+      var cy = i === 0 ? naturalCenter : Math.max(naturalCenter, cursorBottom + gap + info.above);
+      assign(root.id, cy);
+      cursorBottom = (centerY[root.id] !== undefined ? centerY[root.id] : cy) + info.below;
+    }
   });
 
   var renderY = {};
-
-  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
-  function getEffY(node) {
-    var effY = node.ly;
-    NODES_DATA.forEach(function(other) {
-      if (renderY[other.id] === undefined) return;
-      if (!isConn(node.id, other.id)) return;
-      var otherRY = renderY[other.id];
-      var otherH = getH(other);
-      var otherBottom = otherRY + otherH;
-      var otherPush = Math.max(0, otherRY - other.ly);
-      if (otherH > HEADER_H && otherBottom > node.ly) {
-        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
-        effY = Math.max(effY, otherBottom + 48);
-      } else {
-        // 접힌 상태: Y 이동 delta만 전파
-        effY = Math.max(effY, node.ly + otherPush);
-      }
-    });
-    return effY;
-  }
-
-  // 컬럼별 그리디 패킹 (왼→오)
-  columns.forEach(function(col) {
-    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
-    var effYMap = {};
-    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
-
-    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
-    col.sort(function(a, b) {
-      var ea = effYMap[a.id], eb = effYMap[b.id];
-      return ea !== eb ? ea - eb : a.ly - b.ly;
-    });
-
-    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
-    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
-    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
-    var placed = [];
-    col.forEach(function(node) {
-      var h = getH(node);
-      var baseGap = node.isMain ? 20 : 30;
-      var y = effYMap[node.id];
-      var moved = true;
-      while (moved) {
-        moved = false;
-        for (var pi = 0; pi < placed.length; pi++) {
-          var p = placed[pi];
-          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
-          if (!overlapX) continue;
-          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
-          if (y < p.y + p.h + gap && y + h + gap > p.y) {
-            y = p.y + p.h + gap;
-            moved = true;
-          }
-        }
-      }
-      renderY[node.id] = y;
-      placed.push({ node: node, y: y, h: h });
-    });
+  NODES_DATA.forEach(function(n) {
+    var cy = centerY[n.id] !== undefined ? centerY[n.id] : (n.ly + getH(n) / 2);
+    renderY[n.id] = cy - getH(n) / 2;
   });
 
-  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
-  var lineBySource = {};
-  EDGES.forEach(function(e) {
-    if (e.type !== 'line') return;
-    if (!lineBySource[e.source]) lineBySource[e.source] = [];
-    lineBySource[e.source].push(e.target);
-  });
-  Object.keys(lineBySource).forEach(function(srcId) {
-    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
-    if (targetIds.length < 2) return;
-    var xGroups = [];
-    targetIds.forEach(function(id) {
-      var el = document.getElementById('node-' + id);
-      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
-      var placed = false;
-      for (var gi = 0; gi < xGroups.length; gi++) {
-        var firstId = xGroups[gi][0];
-        var fEl = document.getElementById('node-' + firstId);
-        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
-        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
-      }
-      if (!placed) xGroups.push([id]);
-    });
-    xGroups.forEach(function(grp) {
-      if (grp.length < 2) return;
-      var grpSorted = grp.map(function(id) {
-        var el = document.getElementById('node-' + id);
-        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
-      }).sort(function(a, b) { return a.y - b.y; });
-      for (var i = 1; i < grpSorted.length; i++) {
-        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
-        var newY = Math.max(grpSorted[i].y, minY);
-        grpSorted[i].y = newY;
-        renderY[grpSorted[i].id] = newY;
-      }
-    });
-  });
+  // ── hop tier(깊이)별 X 정렬 — 같은 depth의 모든 노드가 항상 같은 X에서 시작 ──
+  var MIN_HOP_GAP = 750, COL_PAD = 60;
+  // main topic(백본)도 hop1/hop2처럼 하나의 세로줄로 자동 정렬 — depth 0 노드는 raw
+  // 좌표를 그대로 쓰지 않고, main topic들 중 가장 왼쪽(raw x 최소값)으로 전부 통일한다.
+  // depth 0에는 main topic 외에 연결 끊긴 고아 노드도 섞이므로 n.isMain으로 필터링
+  // (고아 노드는 원래 자유 좌표 유지).
+  var mainTopicAnchorX = 0;
+  var mainTopicXs = NODES_DATA.filter(function(n) { return n.isMain; }).map(function(n) { return n.lx; });
+  if (mainTopicXs.length > 0) mainTopicAnchorX = Math.min.apply(null, mainTopicXs);
 
-  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
-  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
-  var H_GAP = 60;
-  var renderX = {};
-  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
-  byX.forEach(function(node) {
-    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
-    var nH = getH(node);
-    var nW = getW(node);
-    var x = node.lx;
-    var moved = true;
-    while (moved) {
-      moved = false;
-      for (var oi = 0; oi < byX.length; oi++) {
-        var other = byX[oi];
-        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
-        if (ox === undefined || other.id === node.id) continue;
-        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
-        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
-        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
-          x = ox + getW(other) + H_GAP;
-          moved = true;
-        }
-      }
+  var maxDepth = 0;
+  NODES_DATA.forEach(function(n) { maxDepth = Math.max(maxDepth, tree.depthOf[n.id] || 0); });
+  // 전역에서 가장 넓은 main topic 폭 — 어느 main topic 하나가 표 등으로 넓어지면, 그
+  // main topic 자신의 왼쪽·오른쪽 hop1 간격이 똑같이 유지되는 것은 물론(오른쪽 변만
+  // 넓어지므로 오른쪽 계산에만 필요), 다른(안 넓어진) main topic들의 hop1도 전부 같은
+  // 만큼 같이 밀려서 hop1 열이 문서 전체에서 계속 나란히 정렬돼야 한다. "이 브랜치 자신의
+  // 폭"이 아니라 "전역에서 제일 넓은 main topic의 폭"을 모든 브랜치의 오른쪽 오프셋에
+  // 똑같이 더한다 — 표가 없는 보통 상황(모든 main topic 폭이 같음)에서는 이 값이 곧 자기
+  // 폭과 같아서 좌우 간격이 정확히 MIN_HOP_GAP으로 대칭이다. 왼쪽은 main topic이 아무리
+  // 넓어져도 왼쪽 변 자체는 움직이지 않으므로 항상 고정 MIN_HOP_GAP.
+  var globalWidestMainTopic = 0;
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) globalWidestMainTopic = Math.max(globalWidestMainTopic, getW(n));
+  });
+  var colOffset = {};
+  [1, -1].forEach(function(side) {
+    var offset = side === 1 ? globalWidestMainTopic + MIN_HOP_GAP : MIN_HOP_GAP;
+    var prevMaxWidth = 0;
+    for (var d = 1; d <= maxDepth; d++) {
+      if (d > 1) offset += Math.max(MIN_HOP_GAP, prevMaxWidth + COL_PAD);
+      colOffset[d + ':' + side] = offset;
+      var widest = 0;
+      NODES_DATA.forEach(function(n) {
+        if (tree.depthOf[n.id] === d && sideOf[n.id] === side) widest = Math.max(widest, getW(n));
+      });
+      prevMaxWidth = widest;
     }
-    renderX[node.id] = x;
+  });
+  var renderX = {};
+  NODES_DATA.forEach(function(n) {
+    var depth = tree.depthOf[n.id] || 0;
+    if (depth === 0) { renderX[n.id] = n.isMain ? mainTopicAnchorX : n.lx; return; }
+    var side = sideOf[n.id] || 1;
+    var root = nodeMap[tree.rootOf[n.id]];
+    // root가 main topic이면(항상 그렇진 않음 — 연결 끊긴 고아 노드도 자기 자손의 root가
+    // 될 수 있음) raw 좌표가 아니라 위에서 통일한 mainTopicAnchorX를 기준 삼아야, main
+    // topic 자신의 렌더 위치와 그 hop 자식들의 렌더 위치가 서로 어긋나지 않는다.
+    var rootX = root.isMain ? mainTopicAnchorX : root.lx;
+    var offset = colOffset[depth + ':' + side];
+    if (offset === undefined) offset = depth * MIN_HOP_GAP;
+    // offset은 "root와 가장 가까운 쪽 모서리"까지의 거리다. side=1(오른쪽)은 그 모서리가
+    // 곧 CSS left(카드의 왼쪽 변)라 그대로 쓰면 되지만, side=-1(왼쪽)은 root와 가장 가까운
+    // 모서리가 카드의 오른쪽 변이므로, CSS left를 구하려면 거기서 카드 너비만큼 더 빼야
+    // 한다(왼쪽 형제들의 "왼쪽 변"만 정렬되고 main topic과 가까운 "오른쪽 변"은 카드
+    // 너비에 따라 들쭉날쭉해지는 걸 막기 위함).
+    var nearRootEdge = rootX + side * offset;
+    renderX[n.id] = side === 1 ? nearRootEdge : nearRootEdge - getW(n);
   });
 
   NODES_DATA.forEach(function(n) {
@@ -822,6 +1025,177 @@ function recomputePositions() {
   routesDirty=true;
   drawEdges(true);
   scheduleEdgeRefine();
+  drawGrid();
+}
+
+// ── main topic(백본) 기준 hop 트리 — Canvas.tsx의 buildHopTree와 동일한 규칙
+// (main_topic은 항상 루트, 그 외는 children[]/edge로 찾은 부모에 귀속, 부모를 못
+// 찾으면 독립 루트). 디버그 격자와 Ctrl+F 검색의 BFS 정렬 둘 다 이 트리를 공유한다
+// (레이아웃 재구현마다 두 곳이 서로 다른 로직으로 어긋나는 것을 피하기 위함 — 에디터
+// 쪽에서 layoutInfo/assign이 따로 놀아서 겹침 버그가 났던 것과 같은 종류의 실수를
+// 여기서도 반복하지 않기 위함).
+function buildHopTreeJs() {
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  function parentIdOf(nodeId) {
+    var byChildren = null;
+    NODES_DATA.forEach(function(n) {
+      if (!byChildren && (n.children || []).indexOf(nodeId) !== -1) byChildren = n.id;
+    });
+    if (byChildren) return byChildren;
+    var byEdge = null;
+    EDGES.forEach(function(e) { if (!byEdge && e.target === nodeId) byEdge = e.source; });
+    if (byEdge) return byEdge;
+    // 포트를 반대 방향(새 노드 → 기존 노드)으로 끌어 만든 엣지는 source/target이 뒤바뀐
+    // 채로 저장돼 있을 수 있다(source=이 노드, target=main topic) — Canvas.tsx의
+    // buildHopTree와 동일하게, 이런 기존 데이터도 여기서 인식해줘야 에디터와 같은
+    // 트리 구조가 나온다(안 그러면 이 노드가 잘못 독립 루트로 취급됨).
+    var reversedToMain = null;
+    EDGES.forEach(function(e) {
+      if (!reversedToMain && e.source === nodeId && nodeById[e.target] && nodeById[e.target].isMain) reversedToMain = e.target;
+    });
+    return reversedToMain;
+  }
+  var isRoot = {}, parentOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (n.isMain) { isRoot[n.id] = true; return; }
+    var p = parentIdOf(n.id);
+    if (p && nodeById[p]) parentOf[n.id] = p; else isRoot[n.id] = true;
+  });
+  var depthOf = {}, rootOf = {};
+  function computeDepth(id) {
+    if (depthOf[id] !== undefined) return;
+    if (isRoot[id]) { depthOf[id] = 0; rootOf[id] = id; return; }
+    computeDepth(parentOf[id]);
+    depthOf[id] = depthOf[parentOf[id]] + 1;
+    rootOf[id] = rootOf[parentOf[id]];
+  }
+  NODES_DATA.forEach(function(n) { computeDepth(n.id); });
+  return { isRoot: isRoot, parentOf: parentOf, depthOf: depthOf, rootOf: rootOf };
+}
+
+// ── 디버그 격자 — Canvas.tsx의 computeGridLines와 동일한 규칙(가로선: main topic
+// 클러스터 경계, 세로선: hop depth별 X 경계). recomputePositions()가 이제 에디터와
+// 동일한 hop-tree 레이아웃 알고리즘을 쓰지만, 격자 자체는 그 계산 결과에 의존하지
+// 않고 현재 DOM에 실제로 그려진 위치(el.style.left/top + offsetWidth/offsetHeight)를
+// 그대로 읽어서 계산하므로 어떤 배치 알고리즘을 쓰든 항상 실제 렌더 결과와 일치한다.
+var showGrid = false;
+function computeGridLinesJs() {
+  var tree = buildHopTreeJs();
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  var rectById = {};
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) rectById[n.id] = { x: parseFloat(el.style.left) || 0, y: parseFloat(el.style.top) || 0, w: el.offsetWidth, h: el.offsetHeight };
+  });
+  function rootIsMain(id) {
+    var r = nodeById[tree.rootOf[id]];
+    return !!(r && r.isMain);
+  }
+
+  // 가로선: main topic 클러스터(자신+hop 자손 전체)의 Y 범위 경계
+  var clusterYRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var root = tree.rootOf[n.id];
+    var top = rect.y, bottom = rect.y + rect.h;
+    if (!clusterYRange[root]) clusterYRange[root] = { min: top, max: bottom };
+    else { clusterYRange[root].min = Math.min(clusterYRange[root].min, top); clusterYRange[root].max = Math.max(clusterYRange[root].max, bottom); }
+  });
+  var roots = NODES_DATA.filter(function(n) { return tree.depthOf[n.id] === 0 && clusterYRange[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rfind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rfind(p); rootPar[id] = r; return r;
+  }
+  for (var i = 0; i < roots.length; i++) {
+    for (var j = i + 1; j < roots.length; j++) {
+      var a = roots[i], b = roots[j];
+      var ra = rectById[a.id], rb = rectById[b.id];
+      if (!ra || !rb) continue;
+      if (ra.x < rb.x + rb.w && rb.x < ra.x + ra.w) {
+        var fa = rfind(a.id), fb = rfind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
+      }
+    }
+  }
+  var groups = {};
+  roots.forEach(function(r) {
+    var g = rfind(r.id);
+    (groups[g] = groups[g] || []).push(r);
+  });
+  var hLines = [];
+  Object.keys(groups).forEach(function(gk) {
+    var group = groups[gk];
+    group.sort(function(a, b) { return (rectById[a.id] ? rectById[a.id].y : 0) - (rectById[b.id] ? rectById[b.id].y : 0); });
+    for (var k = 1; k < group.length; k++) {
+      var prevR = clusterYRange[group[k - 1].id], curR = clusterYRange[group[k].id];
+      hLines.push((prevR.max + curR.min) / 2);
+    }
+  });
+
+  // 세로선: hop depth별 X 범위 경계 (main topic 기준 좌/우 방향 분리)
+  var depthSideXRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var d = tree.depthOf[n.id];
+    var rootRect = rectById[tree.rootOf[n.id]];
+    var side = d === 0 ? 0 : (rootRect && rect.x >= rootRect.x ? 1 : -1);
+    var key = d + ':' + side;
+    var left = rect.x, right = rect.x + rect.w;
+    if (!depthSideXRange[key]) depthSideXRange[key] = { min: left, max: right };
+    else { depthSideXRange[key].min = Math.min(depthSideXRange[key].min, left); depthSideXRange[key].max = Math.max(depthSideXRange[key].max, right); }
+  });
+  var vLines = [];
+  var mainRange = depthSideXRange['0:0'];
+  if (mainRange) {
+    [1, -1].forEach(function(side) {
+      var prev = mainRange, d = 1;
+      while (depthSideXRange[d + ':' + side]) {
+        var cur = depthSideXRange[d + ':' + side];
+        if (side === 1 && cur.min > prev.max) vLines.push((prev.max + cur.min) / 2);
+        else if (side === -1 && prev.min > cur.max) vLines.push((cur.max + prev.min) / 2);
+        prev = cur; d++;
+      }
+    });
+  }
+  return { hLines: hLines, vLines: vLines };
+}
+// data-base-sw/-dash: 확대/축소해도 화면상 두께가 유지되도록(에디터의 WireLayer
+// zoom 보정과 동일 규칙) zoom=1 기준 값을 기록해두고, updateZoomLineWeights()가
+// 현재 scale에 맞춰 실제 stroke-width/dasharray를 매번 다시 계산한다.
+function svgGridLine(x1, y1, x2, y2, stroke) {
+  var l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+  l.setAttribute('stroke', stroke);
+  l.setAttribute('data-base-sw', '1.5');
+  l.setAttribute('data-base-dash', '6 4');
+  l.setAttribute('opacity', '0.55');
+  return l;
+}
+function drawGrid() {
+  var svg = document.getElementById('grid-svg');
+  svg.innerHTML = '';
+  if (!showGrid) { svg.style.display = 'none'; return; }
+  svg.style.display = '';
+  var lines = computeGridLinesJs();
+  lines.vLines.forEach(function(x) { svg.appendChild(svgGridLine(x, 0, x, 10000, '#22c55e')); });
+  lines.hLines.forEach(function(y) { svg.appendChild(svgGridLine(0, y, 10000, y, '#f97316')); });
+  updateZoomLineWeights();
+}
+function toggleGrid() {
+  showGrid = !showGrid;
+  var btn = document.getElementById('tb-grid-btn');
+  if (showGrid) { btn.style.background = '#2563eb'; btn.style.color = '#fff'; btn.style.borderColor = '#1d4ed8'; }
+  else { btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }
+  drawGrid();
 }
 
 // Edge drawing
@@ -1032,66 +1406,24 @@ function routeEdgesGrid(reqs,rects){
   });
   return out;
 }
-function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
-function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+// 확대(zoom>=100%)면 기본 두께, 축소(zoom<100%)면 화면상 두께가 유지되도록 반비례로
+// 키움(에디터의 WireLayer.tsx의 zc = zoom<1 ? 1/zoom : 1 과 동일 규칙). 레이아웃이
+// 안 바뀌는 순수 줌 조작(wheel)에서는 경로를 다시 그리지 않고 이미 그려진 요소들의
+// stroke-width/dasharray만 갱신 — 가볍고, wheel마다 A* 재계산할 필요가 없음.
+function updateZoomLineWeights() {
+  var zc = scale < 1 ? 1 / scale : 1;
+  document.querySelectorAll('[data-base-sw]').forEach(function(el) {
+    var base = parseFloat(el.getAttribute('data-base-sw'));
+    el.setAttribute('stroke-width', String(base * zc));
+  });
+  document.querySelectorAll('[data-base-dash]').forEach(function(el) {
+    var parts = el.getAttribute('data-base-dash').split(' ').map(Number);
+    el.setAttribute('stroke-dasharray', parts.map(function(p) { return p * zc; }).join(' '));
+  });
+}
 function drawEdges(fast) {
   var svg=document.getElementById('wire-svg');
   svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
-
-  // Group line edges by source for bus routing
-  var lineBySource={};
-  EDGES.forEach(function(e){
-    if(e.type!=='line') return;
-    if(!lineBySource[e.source]) lineBySource[e.source]=[];
-    lineBySource[e.source].push(e);
-  });
-
-  var busDrawn={};
-
-  // Bus routing: one source → multiple line targets all on the same side (right)
-  Object.keys(lineBySource).forEach(function(srcId){
-    var group=lineBySource[srcId];
-    if(group.length<2) return;
-    var srcEl=document.getElementById('node-'+srcId);
-    if(!srcEl) return;
-    var sr=getNodeRect(srcEl);
-    var targets=[];
-    group.forEach(function(e){
-      var tEl=document.getElementById('node-'+e.target);
-      if(!tEl) return;
-      targets.push({e:e,r:getNodeRect(tEl)});
-    });
-    if(targets.length<2) return;
-    // 모든 타겟의 왼쪽 끝이 source 오른쪽 끝 + 40px 이상일 때만 bus (에디터와 조건 통일)
-    var allRight=targets.every(function(t){return t.r.x>sr.x+sr.w+40;});
-    if(!allRight) return;
-
-    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
-    var srcAnchorY=sr.cy;
-    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
-    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
-    var busMinY=Math.min(srcAnchorY,minTY);
-    var busMaxY=Math.max(srcAnchorY,maxTY);
-
-    // 세대 하이라이트: 루트가 source거나 타겟 중 하나면 트렁크(공용 구간)도 빨간색
-    var srcSel=srcId===genRootId;
-    var groupHl=srcSel||targets.some(function(t){return t.e.target===genRootId;});
-    var trunkColor=groupHl?'#ef4444':'#888', trunkW=groupHl?'2.5':'1.5';
-
-    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','ng-eg');
-    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,trunkColor,trunkW));
-    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,trunkColor,trunkW));
-    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,trunkColor));
-    targets.forEach(function(t){
-      var tHl=srcSel||t.e.target===genRootId;
-      var branchColor=tHl?'#ef4444':'#888';
-      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,branchColor,tHl?'2.5':'1.5'));
-      g.appendChild(svgCirc(t.r.x,t.r.cy,4,branchColor));
-      busDrawn[t.e.source+'-'+t.e.target]=true;
-    });
-    svg.appendChild(g);
-  });
 
   // 노드 rect 캐시 (엣지 라우팅 장애물 검사용 — drawEdges 1회당 1회만 DOM 조회)
   var rectById={};
@@ -1100,12 +1432,32 @@ function drawEdges(fast) {
     if(el) rectById[n.id]=getNodeRect(el);
   });
 
-  // 같은 source에서 나가거나 같은 target으로 모이는 비-버스 엣지 분산 오프셋 (합산)
+  // hop 자식(line) 엣지: 버스 라우팅도, A*/커브 라우팅도 없이 그냥 평범한 직선
+  // (에디터 WireLayer.tsx와 동일 — 예전엔 "같은 source에서 나가는 line 엣지 여럿을
+  // 세로 트렁크로 묶는 버스 라우팅"이 있었는데, 에디터가 이미 그걸 버리고 순수 직선으로
+  // 바꾼 지 오래라 여기만 안 따라와 있었음). 포트는 항상 좌/우만 강제 — getBestPorts처럼
+  // top/bottom까지 유클리드 최솟값으로 고르면, 타겟이 부모 중심에서 수직으로 많이
+  // 떨어진 형제 하나만 포트가 top/bottom으로 뒤집혀 다른 형제 선을 가로질러 지나가
+  // 버리는 문제가 있었다(사용자가 export html 스크린샷으로 재지적: "선이 왜 깔끔하게
+  // 정리되지 않은 거지" — 첫 main topic만 깔끔하고 나머지는 선이 교차해 보임).
+  function horizontalPorts(sr,tr){
+    var scx=sr.x+sr.w/2, tcx=tr.x+tr.w/2;
+    return tcx>=scx ? {sp:'right',tp:'left'} : {sp:'left',tp:'right'};
+  }
+  function portXY(r,name){
+    if(name==='right') return [r.x+r.w,r.cy];
+    if(name==='left') return [r.x,r.cy];
+    if(name==='bottom') return [r.cx,r.y+r.h];
+    return [r.cx,r.y];
+  }
+
+  // 같은 source에서 나가거나 같은 target으로 모이는 백본(arrow) 엣지 분산 오프셋(합산).
+  // hop 자식(line)은 이제 라우팅 없는 고정 직선이라 분산이 필요 없음(에디터와 동일 이유).
   var spreadByIdx={};
   (function(){
     var bySrc={},byTgt={};
     EDGES.forEach(function(e,idx){
-      if(busDrawn[e.source+'-'+e.target]) return;
+      if(e.type!=='arrow') return;
       if(!rectById[e.source]||!rectById[e.target]) return;
       (bySrc[e.source]=bySrc[e.source]||[]).push(idx);
       (byTgt[e.target]=byTgt[e.target]||[]).push(idx);
@@ -1122,14 +1474,15 @@ function drawEdges(fast) {
     add(byTgt,function(i){return rectById[EDGES[i].source].cy;});
   })();
 
-  // 그리드 A* 전역 라우팅 — 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
+  // 그리드 A* 전역 라우팅 — main topic 백본(arrow) 엣지만 대상(hop 자식은 고정 직선이라
+  // 라우팅 대상 아님, 에디터와 동일). 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
   // 레이아웃이 바뀌지 않은 재호출(하이라이트 색만 변경 등)은 캐시를 재사용해 즉시 처리
   var gridRoutes=null;
   if(!fast){
     if(routesDirty||!cachedRoutes){
       var reqs=[];
       EDGES.forEach(function(e,idx){
-        if(busDrawn[e.source+'-'+e.target]) return;
+        if(e.type!=='arrow') return;
         var sr3=rectById[e.source],tr3=rectById[e.target];
         if(!sr3||!tr3) return;
         var ports3=getBestPorts(sr3,tr3);
@@ -1146,57 +1499,65 @@ function drawEdges(fast) {
     gridRoutes=cachedRoutes;
   }
 
-  // Remaining edges: obstacle-avoiding curves
   EDGES.forEach(function(edge,edgeIdx){
-    if(busDrawn[edge.source+'-'+edge.target]) return;
     var sr2=rectById[edge.source], tr2=rectById[edge.target];
     if(!sr2||!tr2) return;
-    var ports=getBestPorts(sr2,tr2);
-    if(!ports) return;
-    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
-    var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
-    var ddl=dlen(srcP,tgtP)||1;
-    var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
-    var spread=spreadByIdx[edgeIdx]||0;
-    var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
-    var d;
-    if(gridPts&&gridPts.length>2){
-      // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
-      d=ptsToPath(spreadPts(gridPts,spread));
-    } else if(gridPts){
-      // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
-      var bend=Math.min(ddl*.45,150);
-      var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
-      var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
-      d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+
+    var d, sp, tp, strokeColor;
+    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
+    strokeColor=hl?'#ef4444':'#666';
+
+    if(edge.type!=='arrow'){
+      // hop 자식: 라우팅/커브 없이 좌/우 포트 사이 직선 그대로
+      var hp=horizontalPorts(sr2,tr2);
+      sp=portXY(sr2,hp.sp); tp=portXY(tr2,hp.tp);
+      d='M'+sp[0]+','+sp[1]+' L'+tp[0]+','+tp[1];
     } else {
-      // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
-      var obstacles=[];
-      Object.keys(rectById).forEach(function(nid){
-        if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
-      });
-      var pts=routeAround(srcP,tgtP,obstacles);
-      if(pts.length===2){
-        var bend2=Math.min(ddl*.45,150);
-        var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
-        var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
-        d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+      var ports=getBestPorts(sr2,tr2);
+      if(!ports) return;
+      sp=ports.sp.p; var spD=DIR[ports.sp.name]; tp=ports.tp.p; var tpD=DIR[ports.tp.name];
+      var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
+      var ddl=dlen(srcP,tgtP)||1;
+      var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
+      var spread=spreadByIdx[edgeIdx]||0;
+      var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
+      if(gridPts&&gridPts.length>2){
+        // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
+        d=ptsToPath(spreadPts(gridPts,spread));
+      } else if(gridPts){
+        // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
+        var bend=Math.min(ddl*.45,150);
+        var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
+        var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
+        d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
       } else {
-        d=ptsToPath(spreadPts(pts,spread));
+        // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
+        var obstacles=[];
+        Object.keys(rectById).forEach(function(nid){
+          if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
+        });
+        var pts=routeAround(srcP,tgtP,obstacles);
+        if(pts.length===2){
+          var bend2=Math.min(ddl*.45,150);
+          var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
+          var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
+          d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+        } else {
+          d=ptsToPath(spreadPts(pts,spread));
+        }
       }
     }
-    // 세대 하이라이트: 루트 노드와 직접 연결된 wire는 빨간색
-    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
-    var strokeColor=hl?'#ef4444':'#666';
+
     var g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','ng-eg');
     var path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('stroke-width',hl?'2.5':'1.5');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('data-base-sw',hl?'2.5':'1.5');
     if(edge.type==='arrow') path.setAttribute('marker-end',hl?'url(#arrow-hl)':'url(#arrow)');
     g.appendChild(path);
     if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill',strokeColor);g.appendChild(c);});}
     svg.appendChild(g);
   });
+  updateZoomLineWeights();
 }
 
 // Fit view
@@ -1211,6 +1572,7 @@ function fitView() {
   tx=(W-cw*scale)/2-(minX-40)*scale;
   ty=(H-ch*scale)/2-(minY-40)*scale;
   applyTransform();
+  updateZoomLineWeights();
 }
 
 // Lightbox
@@ -1308,12 +1670,39 @@ function closeDropdown(){
   document.getElementById('search-row').classList.remove('dropdown-open');
   kbIdx=-1;
 }
+// 매치 노드가 toggle 제목/내용 안에 있을 수도 있으므로 단순 concat 문자열이 아니라
+// title/content/original(제목+텍스트)/toggle(제목+내용) 각각을 개별로 확인 (에디터의
+// searchMatchNodes 필터와 동일한 규칙 — 이래야 selectSearchNode에서 어느 섹션을
+// 펼쳐야 하는지도 알 수 있음).
+function nodeMatchesQuery(n, q){
+  if((n.title||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.content||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalText||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalTitle||'').toLowerCase().indexOf(q)!==-1) return true;
+  return (n.toggles||[]).some(function(t){
+    return (t.title||'').toLowerCase().indexOf(q)!==-1 || (t.content||'').toLowerCase().indexOf(q)!==-1;
+  });
+}
 function doSearch(q){
   clearSearchHighlights();
   searchSelectedId=null;kbIdx=-1;
   var query=q.trim().toLowerCase();
   if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
-  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes=NODES_DATA.filter(function(n){return nodeMatchesQuery(n,query);});
+  // main topic BFS 순서로 정렬: 한 main topic의 모든 hop1, 모든 hop2, ... 를 다 훑은
+  // 뒤에야 다음 main topic으로 (에디터의 searchMatchNodes 정렬과 동일 규칙)
+  var tree=buildHopTreeJs();
+  var roots=NODES_DATA.filter(function(n){return tree.depthOf[n.id]===0;})
+    .sort(function(a,b){return (a.ly-b.ly)||(a.lx-b.lx);});
+  var rootIndex={};
+  roots.forEach(function(r,i){rootIndex[r.id]=i;});
+  searchMatchNodes.sort(function(a,b){
+    var ra=rootIndex[tree.rootOf[a.id]]||0, rb=rootIndex[tree.rootOf[b.id]]||0;
+    if(ra!==rb) return ra-rb;
+    var da=tree.depthOf[a.id]||0, db=tree.depthOf[b.id]||0;
+    if(da!==db) return da-db;
+    return (a.ly-b.ly)||(a.lx-b.lx);
+  });
   searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
   updateSearchCount();
   renderDropdown();
@@ -1359,6 +1748,7 @@ function selectSearchNode(id){
   searchSelectedId=id;
   var el=document.getElementById('node-'+id);
   if(el) el.classList.add('ng-search-active');
+  var q=document.getElementById('search-input').value.trim().toLowerCase();
   // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
   searchMatchNodes.forEach(function(n){
     var nodeEl=document.getElementById('node-'+n.id);
@@ -1369,7 +1759,19 @@ function selectSearchNode(id){
     for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
     if(!datum) return;
     if(n.id===id){
-      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;applyContentCaps(nodeEl);}
+      // 매치가 toggle 제목/내용 또는 original 제목/텍스트 안에 있을 수 있으므로,
+      // 접혀 있으면 펼쳐서 실제로 보이게 함 (에디터의 handleSelectSearchNode와 동일)
+      (n.toggles||[]).forEach(function(t){
+        if(q&&((t.title||'').toLowerCase().indexOf(q)!==-1||(t.content||'').toLowerCase().indexOf(q)!==-1)){
+          var togEl=nodeEl.querySelector('details.ng-toggle[data-toggle-id="'+t.id+'"]');
+          if(togEl&&!togEl.open) togEl.open=true;
+        }
+      });
+      if(q&&((n.originalTitle||'').toLowerCase().indexOf(q)!==-1||(n.originalText||'').toLowerCase().indexOf(q)!==-1)){
+        var origEl=nodeEl.querySelector('details.ng-original');
+        if(origEl&&!origEl.open) origEl.open=true;
+      }
     } else {
       if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
     }
@@ -1442,9 +1844,75 @@ function initKatex() {
   });
 }
 
+// 본문 높이 상한(More/Less) — NodeCard.tsx의 DEFAULT_CONTENT_MAX 로직을 그대로 이식.
+// .ng-content는 node.content 전용 클래스라서(toggle/original은 각각
+// .ng-toggle-body / .ng-orig-text 를 씀) 이 셀렉터만으로 이미 "content만" 범위가
+// 잡힌다 — 에디터와 동일하게 toggle/original에는 캡을 적용하지 않음.
+// scope를 주면 그 안의 .ng-content만 재측정(fold/unfold나 검색으로 처음 보이게
+// 될 때 — display:none 상태에서 측정하면 전부 0으로 나와서 버튼이 필요 없다고
+// 잘못 판단하기 때문에 다시 보이게 된 시점에 재측정이 필요함).
+var DEFAULT_CONTENT_MAX = 500;
+function applyContentCaps(scope) {
+  (scope || document).querySelectorAll('.ng-content').forEach(function(el) {
+    var measure = function() {
+      if (el.getAttribute('data-more-expanded') === '1') return;
+      var elTop = el.getBoundingClientRect().top;
+      var requiredBottom = 0;
+      el.querySelectorAll('table, img').forEach(function(media) {
+        var bottom = media.getBoundingClientRect().bottom - elTop;
+        if (bottom > requiredBottom) requiredBottom = bottom;
+      });
+      var max = Math.max(DEFAULT_CONTENT_MAX, Math.ceil(requiredBottom) + 8);
+      el.setAttribute('data-cap', String(max));
+      var needsBtn = el.scrollHeight > max + 1;
+      el.style.maxHeight = max + 'px';
+      el.style.overflowY = 'auto';
+      el.style.overflowX = 'hidden';
+      var next = el.nextElementSibling;
+      var btn = (next && next.classList.contains('ng-more-btn')) ? next : null;
+      if (needsBtn) {
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.className = 'ng-more-btn';
+          btn.textContent = '▼ More';
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var expanded = el.getAttribute('data-more-expanded') === '1';
+            if (expanded) {
+              el.removeAttribute('data-more-expanded');
+              el.style.maxHeight = el.getAttribute('data-cap') + 'px';
+              el.style.overflowY = 'auto';
+              el.style.overflowX = 'hidden';
+              btn.textContent = '▼ More';
+            } else {
+              el.setAttribute('data-more-expanded', '1');
+              el.style.maxHeight = '';
+              el.style.overflowY = '';
+              el.style.overflowX = '';
+              btn.textContent = '▲ Less';
+            }
+            setTimeout(function() { recomputePositions(); drawEdges(); }, 0);
+          });
+          el.parentNode.insertBefore(btn, el.nextSibling);
+        }
+      } else if (btn) {
+        btn.remove();
+      }
+    };
+    measure();
+    var imgs = Array.from(el.querySelectorAll('img'));
+    var pending = imgs.filter(function(img) { return !img.complete; });
+    pending.forEach(function(img) { img.addEventListener('load', measure); });
+  });
+}
+
 window.addEventListener('load', function() {
   // Render KaTeX first so node heights are accurate
   initKatex();
+  // scale는 아직 초기값 1이라(fitView가 아직 안 돌아서) getBoundingClientRect()
+  // 측정값이 캔버스 local 좌표와 일치함 — fitView 이후로 미루면 축소된 화면 픽셀을
+  // local px로 착각해서 캡 높이가 잘못 계산됨.
+  applyContentCaps();
   recomputePositions();
   drawEdges();
   fitView();
@@ -1454,7 +1922,7 @@ window.addEventListener('load', function() {
   if (pending === 0) return;
   function onImgSettle() {
     pending--;
-    if (pending <= 0) { recomputePositions(); drawEdges(); }
+    if (pending <= 0) { applyContentCaps(); recomputePositions(); drawEdges(); }
   }
   imgs.forEach(function(img) {
     if (!img.complete) {

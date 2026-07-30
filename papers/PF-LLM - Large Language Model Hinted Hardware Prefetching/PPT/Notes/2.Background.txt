@@ -1,0 +1,150 @@
+# Prefetcher ensemble
+- Prefetcher ensemble의 구성
+오래 시간 검증되 HW prefetche를 sub prefetcher로 
+orchestraction layer로 구성됨
+
+- ochestration layer의 역할 
+orchestration layer는 여러 서브 prefecther를 관리하고 
+전체 ensemble이 코어에 마치 단일 prefetcher처럼 동일한 인터페이스를 노출하도록 함
+
+--------
+- prefetcher interface의 구성 
+demand 요청을 input으로 하고 
+prefetch 요청을 output port로 전송됨
+
+cf. inputs (for training the prefetcher)
+
+- orchestration layer의 필요성
+여러 개의 서로 다른 prefetcher가 ensemble로 결합될 경우
+prefetcher간의 상호 작용 및 자원 경합을 관리하기 위해 전용 
+orchestraction layer가 필요함 -> 자원 경합이 어디서 발생하는가?
+
+- orchestraction layer의 역할: 두 가지 기본적인 결정
+1) demand 요청이 도착하면, 그림 2(a)에서 표시된 것처럼 이 요청을 하나 이상의 sub prefetcher 중 
+어느 것으로 라우팅해야 할지 결정
+
+2) 하나 이상의 sub prefetcher가 prefetch 요청을 발행하면, 그림 2(b)에 표시된 것처럼 메모리 계층 구조의 다음 래벨로 발행될 요청을 선택
+-> 발행되는 요청은 항상 하나인가?
+
+- 기존 orchestraction layer의 역할, 접근 방식
+한가지 결정 [13, 19]
+
+두가지 결정 모두 [13]
+
+--------
+- 기존 접근 방식의 한계점
+정교한 프리패처에 대한 적응성이 떨어진다는 점
+
+Pythia[6]와 같은 정교한 최신 prefetcher가 적용될 대 기존 orchestraction 알고리즘[19, 22]은
+내부 상태를 방해하고 고급 sub prefetcher의 복잡한 패턴 감지를 방해하여 심각한 성능 저하가 생길 수 있다
+-> 내부 상태를 왜 방해하고
+-> 고급 sub prefetcher의 복잡한 패턴 감지를 왜 방해하고
+-> [6] 과 [19, 22]의 관계
+
+
+고급 prefetcher ensemble을 효과적으로 관리하려면
+각 구성 요소의 입력 및 출력에 대해서 fine grained와 context aware한 제어가 필요함; section 6 Evaluation
+
+-------
+본 연구에서는 
+prefeching 정도를 orchestraction layer의 핵심 제어 파라미터로 활용하여 prefetching의 적극성을 관리한다
+-> prefetching의 적극성이란 무엇인가?
+
+섹션 4에서 논의된 다른 메커니즘과 결합된 이 제어는 
+단순한 prefetcher와 정교한 prefetcher 모두의 기능을 활용할 수 있는 효과적인 앙상블을 만드는 데 필수적이다; section 4 
+
+
+# Offline vs. Online prefetching
+HW prefetcher는 복잡성 제약에 직면
+5Ghz clock 주파수로 작동하는 최신 CPU 코어에서 prefetching 결정을 위한 시간 옛나은 종종 나노초 미만 수준이다
+
+이러한 지연 시간 요구 사항은 엄격한 코어 영역 및 전력 제약 조건과 함께 online prefetching을 저렴한 로직을 사용하는 
+간단한 알고리즘으로 제한한다
+
+결과적으로 이러한 알고리즘은 더 긴 프로그램 컨텍스트를 분석하거나 더 많은 정보를 바탕으로 결정을 내릴 여유가 없다.
+
+Offline prefetchers는 더 큰 컴퓨팅 예산을 활용하여 보다 정확한 prefetch 결정을 내리는 방법으로 연구되고 있다.
+이러한 예산을 활용하는 두 가지 주요 방법
+    1. 컴파일러 기반 접근 방식
+    2. 프로파일 기반 접근 방식
+
+
+# 컴파일러 기반 접근 방식 과 문제점
+컴파일러 기반 접근 방식[9]은 컴파일 시간에 프리패치 명령어를 배치할 위치를 결정하기 위해 수동으로 설계된 휴리스틱에 의존한다.
+이 접근 방식은 기준선 대비 개선을 보여주지만, 그 효과는 휴리스틱을 설꼐하는 설계하는 인간 전문가에 달려 있다.
+
+일반적으로 이러한 휴리스틱은 특정 코드 패턴에 의해 트리거되므로 프로그램 수준에서 prefetching 결정에 대해 추론할 수 있는 능력이 부족하고 
+더 복잡한 코드 구조에 적응할 수 없다.
+
+
+# 프로파일 기반 접근 방식 과 문제점
+프로파일 기반 최적화 접근 방식은 효과적인 정책을 찾을 때까지 prefetching 결정에 대한 가상 시나리오 정보를 수집하기 위해 프로그램을 한 번 이상 
+컴파일하고 프로파일링합니다.
+PGO는 광범위한 프로그램에서 뛰어난 성능을 보여주지만, 핵심적인 문제는 올바른 프로파일 정보를 수집하기 위해 프로그램의 입력 데이터가 필요하다는 점인데,
+이는 항상 사용 가능한 것은 아닙니다.
+
+프로그램의 입력이 알려지지 않았거나 크게 변하는 경우 PGO는 적용할 수 없다.
+
+
+# 두 방식 모두에 해당하는 공통된 문제점
+
+application이 비공개 소스이고 binary만 이용 가능한 경우, 두 offline 방식의 prefetching 분석을 적용할 수 없다
+
+
+
+===========================
+Q. inputs (for training the prefetcher), 여기서 training the prefetcher가 의미하는 바가 무엇이지?
+    A. 머신러닝에서의 training과 다른 개념
+    prefetcher가 demand 접근 스트림을 지켜보면서 내부 상태를 업데이트 하는 것
+
+Q. 자원 경합이 어디서 발생하는가?
+    Q. ensemble과 orchestraction layer는 별개의 문제가 아닌가?
+        "
+        A prefetcher’s interface includes the demand requests as
+        inputs (for training the prefetcher) and an output port where
+        the prefetch requests are been issued from. When multi-
+        ple, distinct prefetchers are combined into an ensemble, a
+        dedicated orchestration layer is required to manage their
+        interactions and resource contention.
+        "
+        A. 
+        논문의 오류
+        ensemble = sub-prefetchers + orchestraction layer
+
+        다음 문장에서 정의에서 이미 들어있다는 것을 필요하다라고 하면 순환 논증
+
+
+            Q. orchestraction layer가 없는 ensemble은 무엇일까?
+                A. 
+                orchestraction 없는 ensemble의 대조군
+
+
+
+Q. MSHR이 무엇인지?
+
+
+Q. compiler-based의 경우 recompile을 할 필요가 없는데 왜 저렇게 작성된 것일까?
+    A. 
+    Compiler-based approaches [9] rely on manually designed
+    heuristics to determine where to place prefetch instructions
+    at compile time. 
+
+    The profile-guided optimization (PGO) approaches [36?
+    ], on the other hand, compile and profile a program one or
+    more times 
+
+    Furthermore, both compiler-based and profile-guided ap-
+    proaches rely on the recompilation of a program to inject
+    prefetching instructions or hints. I
+
+
+Q. online, offline은 ensemble을 가정 위에 있는 것인가? -> 아니다 
+
+
+
+------------------------
+흐름 분석
+ 
+        HW / SW
+online
+offline 

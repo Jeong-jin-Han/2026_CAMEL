@@ -1,0 +1,700 @@
+prefetch를 왜 하는지
+
+그것의 부작용은 무엇인지
+-----------------
+무엇을 
+
+왜 [목적]
+
+언제
+
+어떻게 
+
+-----------------
+
+각각에 대해서 애니메이션을 만드는 것이 목적
+
+stride/stream/next line / compiler-based
+
+
+==== 4개 축 정의 (발표 도입 · 비유/논문용어 없이 · 시스템 용어) ====
+
+축1. HW / SW — prefetch 요청을 누가 생성하는가
+  - HW: prefetch 요청을 하드웨어 회로가 생성. 캐시·메모리 접근을 관찰해
+        자동 발행. 명령어 스트림에 prefetch 명령을 추가하지 않음.
+  - SW: prefetch 요청을 소프트웨어 명령어로 명시. 컴파일러 또는 프로그래머가
+        ISA의 prefetch 명령을 코드에 삽입.
+  기준: 요청 생성 주체 = 하드웨어 회로 / 소프트웨어 명령어.
+
+축2. Offline / Online — 예측 정보를 언제 확정하는가
+  - Online : 예측에 쓰는 상태를 실행 중 관찰한 접근으로 갱신.
+             학습과 예측이 같은 실행 안에서 진행.
+  - Offline: 예측에 쓰는 정보를 실행 이전(컴파일·프로파일링·사전 학습)에 확정.
+             실행 중에는 갱신 없이 사용.
+  기준: 예측 정보 확정 시점 = 실행 전 / 실행 중.
+
+축3. PC-localized / non-PC-localized — 예측 상태를 무엇으로 인덱싱하는가
+  예측 상태 관리는 3분할 (정진 지적: 인덱싱 없는 경우가 별도로 존재):
+  - PC로 인덱싱      : 예측 상태를 PC(명령어 주소)로 저장·조회.
+                       load 명령어별로 별도 상태.                    예) Stride(RPT)
+  - 주소/영역으로 인덱싱: 예측 상태를 접근 주소·영역으로 저장·조회.
+                       명령어 구분 없이 주소 기준.                   예) AMPM, Bingo
+  - 인덱싱 없음(stateless): 저장 테이블 조회 없이 직전 주소 시퀀스만
+                       즉석에서 보고 예측.                          예) Next-line, Stream
+  기준: 예측 상태의 인덱싱 키 = PC / 주소 / (없음).
+  묶어서 non-PC = "PC로 인덱싱 안 함" = {주소 인덱싱} + {인덱싱 없음}.
+  => Next-line/Stream은 인덱싱 없음(가장 단순, 테이블 HW 불필요). PC도 주소도 아님.
+
+축4. 단일접근 / cross접근 — 예측을 무엇으로 "표현"하나 (규칙형 / 집합형)
+  ("history 기반"이란 표현은 피함: Stream도 직전 몇 개를 봐서 혼동. 기준을
+   "무엇을 보나"가 아니라 "예측을 어떻게 표현하나"로 둠.)
+  - 단일접근(규칙형) : 예측이 하나의 규칙(보폭 +64, 방향 +1)으로 표현됨.
+                       예측 상태 O(1)(직전 주소 + 보폭).
+  - cross접근(집합형): 예측이 여러 접근 위치의 집합({1,4,7,9})으로 표현됨.
+                       예측 상태 O(영역)(그 집합 전체).
+  기준: 예측 표현 = 규칙 하나 / 위치들의 집합. (= 상태 O(1) / O(영역))
+
+  [★ Stream은 왜 단일접근? (history 아니라 "표현"으로 보면 명확)]
+                    예측 표현                        종류
+    Stream          "+1 순차" 규칙 하나              규칙형 -> 단일접근
+    Stride          "보폭 +64" 규칙 하나             규칙형 -> 단일접근
+    cross(SMS)      집합 {1,4,7,9} 통째              집합형 -> cross접근
+  - Stream: 예측이 "순차" 규칙 하나로 표현됨 -> 규칙형. (직전 몇 개는 규칙 확인용일 뿐)
+  - cross : 예측이 집합 그 자체 -> 압축(규칙화) 불가 -> 집합형.
+  => 판별: 예측이 규칙 하나로 표현되면 단일접근(Stream/Stride),
+           위치 집합으로만 표현되면 cross접근(SMS/Bingo).
+     "과거를 보냐(history)"가 아니라 "예측을 규칙으로 표현하냐 집합으로 표현하냐".
+
+  [정진 분류: history를 "얼마나/어떻게" 쓰나 → 다듬으면 2분할]
+    정진 3분할:  ① history 전체 사용   ② 단순화된 history 사용   ③ 사용 안 함
+    다듬음:      ②③은 같은 편(둘 다 O(1)로 압축) → 단일접근 / ①만 cross접근
+      압축 가능(단일접근)
+        · 보폭으로 압축        → Stride    (②)
+        · 순차로 압축          → Stream    (②, "사용 안 함" 아니라 순차규칙으로 압축)
+        · 압축 필요없는 고정규칙 → Next-line (③ 극단, 아예 history 안 봄)
+      압축 불가(cross접근)
+        · 접근 집합 {1,4,7,9} 통째 필요 → SMS, Bingo   (①)
+    => 한 축으로: history가 규칙으로 압축되나(단일접근) / 집합 전체 필요한가(cross).
+       정진 "단순화"와 "사용 안 함"은 압축된다는 점에서 한 편(단일접근),
+       Next-line은 그 극단(압축이 필요없는 고정규칙).
+
+  [네 축은 독립 — 각 prefetcher는 각 축에서 값 하나씩]
+                HW/SW  offline/online  PC-localized?     단일/cross
+    Stride      HW     online          PC-localized      단일접근
+    Stream      HW     online          non-PC-localized  단일접근
+    Next-line   HW     online          무상태(무관)       단일접근
+    compiler    SW     offline         무관(명시)         무관(명시)
+
+
+======== prefetcher를 나누는 3개 축 (독립적, 조합 가능) ========
+
+축1. HW / SW  = "누가 예측·발행하나"
+  - HW: 하드웨어 prefetcher가 실행 중 접근을 보고 자동으로 prefetch 발행.
+        프로그램 수정 X, 투명. (대부분의 prefetcher)
+  - SW: 컴파일러/프로그래머가 코드에 prefetch 명령(예: __builtin_prefetch)을
+        삽입. 사람/컴파일러가 "여기서 미리 가져와" 지정.
+  => 기준: 예측 주체가 하드웨어냐(자동) 소프트웨어냐(명시).
+
+축2. Offline / Online = "언제 패턴을 학습하나"
+  - Online : 실행 중(runtime)에 접근을 관찰하며 그때그때 학습·예측. (대부분 HW)
+  - Offline: 실행 전 미리(프로파일링/학습된 모델)로 패턴을 준비해두고 사용.
+             예) 프로파일 기반, ML 모델 미리 학습.
+  => 기준: 학습이 실행 전(미리)이냐 실행 중(그때그때)이냐.
+     (PF-LLM: LLM이 offline으로 힌트 생성 -> HW가 online으로 사용, 혼합)
+
+축3. PC-localized / non-PC-localized = "상태를 무엇을 키로 저장하나"
+  - PC-localized     : PC(명령 주소)별 서랍에 저장 -> "이 load 명령이 만드는 패턴"
+  - non-PC-localized : 메모리 영역/주소 기준 저장 -> "이 region의 패턴"(여러 명령 걸침)
+  => 기준: "누가(어느 명령) 접근했나"로 나누냐 vs "주소 흐름"만 보냐.
+
+  [3축 독립] 한 prefetcher가 (HW, online, PC-localized)처럼 각 축에서 하나씩.
+    예) Stride = HW · online · PC-localized
+        Next-line = HW · online · 무상태(PC/non-PC 무의미)
+        PF-LLM = 힌트 offline(SW-ish) + 사용 online(HW) · PC-localized
+
+-------------------------------------------------------------
+
+PC localized/non PC localized 방식 (상세)
+
+  [기준] prefetcher가 패턴 상태(history)를 "무엇을 키로" 저장하나
+    - PC-localized     : PC(명령 주소)별로 저장 → "이 load 명령이 만드는 패턴"
+    - non-PC-localized : 메모리 영역/주소 기준으로 저장 → "이 region에서 일어나는 패턴" (여러 명령 걸침)
+
+  [분류]
+    - PC-localized     : Stride(RPT), Pythia, Bingo, SMS
+    - non-PC-localized : AMPM, Sandbox, DSPatch, MLOP, Power7, Stream, Next-Line
+
+  [왜 중요한가]
+    - filtering 취약성과 연결: non-PC(region 기반)는 "전체 demand 스트림"이 필요 →
+      filtering이 조각을 빼면 region 모델이 토막나 깨짐 (§5.1 "brittle")
+    - PF-LLM은 힌트를 virtual PC로 인덱싱(PHT) → PC-localized 사고방식과 정합
+
+  [★핵심 통찰 — 정교함 ≠ non-PC-localized]
+    - 논문이 "정교(advanced)"라 한 5개(Pythia,Bingo,DSPatch,Sandbox,SMS) 중
+      Pythia/Bingo/SMS는 오히려 PC-localized.
+    - 즉 "정교함"의 진짜 기준은 PC-localized 여부가 아니라
+      내부 상태의 복잡도(RL / TAGE / bit-vector history)를 쌓느냐.
+    - §6.4의 "region 전체 추적" 서술은 spatial 계열(DSPatch/Sandbox)에만 맞고
+      Pythia(RL)/Bingo에는 안 맞음.
+
+단일 접근 vs cross 접근 ver1 
+
+  [기준] 상태/예측을 무엇으로부터 만드나 (= filtering 취약성의 뿌리)
+    - 단일 접근(single-access): 단일 접근 or 인접 접근의 단순 관계(stride=현재-직전,
+      next-line)에서 예측. 여러 라인의 상관 기록 불필요. filtering에 강건.
+    - cross access: 여러 접근/영역 전체에 걸친 상관(co-occurring 라인 집합, region
+      access-map, bit-vector footprint)을 추적. 전체 스트림 필요. filtering에 취약(brittle).
+
+  [8개 prefetcher 분석 결과] (각 논문 노트 근거, 병렬 분석)
+  ┌──────────┬──────────────────┬──────┬──────────────────────────────────────┐
+  │Prefetcher│ 판정             │ 신뢰 │ 근거(노트)                            │
+  ├──────────┼──────────────────┼──────┼──────────────────────────────────────┤
+  │ Pythia   │ 단일 접근        │ med  │ state feature=PC+delta(최근 접근차) 기반.│
+  │          │                  │      │ RL로 상관 학습하나 예측 신호는 delta. │
+  │ Bingo    │ cross access     │ high │ page 접근 footprint(bit-vector)를 history│
+  │          │                  │      │ table로 상관 추적.                     │
+  │ SMS      │ cross access     │ high │ region(수KB)의 co-occurring 라인 집합을│
+  │          │                  │      │ bit-vector로 PHT에 기록.              │
+  │ DSPatch  │ cross access     │ high │ page별 spatial bit-pattern(함께 접근된 │
+  │          │                  │      │ 라인) 두 버전 관리.                   │
+  │ Sandbox  │ 단일 접근        │ med  │ 후보 offset을 개별 채점(Bloom filter), │
+  │          │                  │      │ BOP류 고정 offset. 상관집합 아님.     │
+  │ AMPM     │ cross access     │ high │ zone별 per-line access-map에 다수 stride│
+  │          │                  │      │ 병렬 매칭.                            │
+  │ MLOP     │ cross access     │ med  │ 점수화가 zone 전체 access-map(bit-vector)│
+  │          │                  │      │ 에 의존. offset계열이나 map 필요.     │
+  │ Power7   │ 단일 접근        │ high │ 고정 stride/순차 stream 감지. 상관맵 X.│
+  └──────────┴──────────────────┴──────┴──────────────────────────────────────┘
+
+  [정리 표: 단일 접근 vs cross access × PC-localized 여부]
+                    단일 접근            cross access
+    PC-localized    Stride, Pythia       Bingo, SMS
+    non-PC-localized Next-line, Power7,   AMPM, MLOP, DSPatch, Sandbox*
+                     Sandbox*
+    (* Sandbox: offset 개별채점이라 단일 접근으로 판정. 단 전역 Bloom filter가
+       region-wide 평가면이라 애매(med). 초안의 cross 분류와 다름.)
+
+  [★ 초안과 달라진 점 - 재검토 필요]
+    - Pythia: 초안 cross -> 분석 단일 접근(med). RL이 상관 "학습"이나 입력 feature는
+      delta 기반. §6.4 "region 전체 추적"이 Pythia엔 안 맞는다는 위 통찰과 일치.
+    - Sandbox: 초안 cross -> 분석 단일 접근(med). BOP류 고정 offset 채점.
+    => 이 둘은 med 신뢰도라, 논문 원문(§ 해당 부분)에서 filtering 취약성 서술을
+       직접 확인 권장. AMPM/MLOP은 region access-map 의존이라 cross(신규 분류).
+
+단일 접근 vs cross 접근 ver2
+
+  ========== stride/stream/next-line 기반 (논문 prefetcher 말고 단순한 것으로) ==========
+
+  먼저 답 두 개:
+  - Next-line은 PC-localized인가? → N. 상태가 아예 없음(stateless). "직전주소 X → X+1"이 전부라
+    PC별로 저장할 게 없음. PC-localized도 non-PC도 아닌 "무상태" 특수케이스.
+  - "PC마다 내부상태 training해서 PC-localized인가?" → Y, 바로 그것. PC-localized = PC별 서랍에
+    각 PC의 학습상태를 쌓는 것. Stride의 RPT가 정확히 그럼.
+
+  ---- 축1: 단일접근 vs cross접근 = "예측에 몇 개를 봐야 하나" ----
+
+  Stride 예: a[i]가 64B씩 건너뜀 → 접근 1000 → 1064 → 1128 → 1192 ...
+    보폭 알아내기: 1000(모름) → 1064(1064-1000=+64 후보) → 1128(+64 확정)
+    ★일단 보폭 확정 후엔: 직전주소 1개 + 보폭 1개면 다음 예측(1192→1256). 과거 전체 기록 불필요.
+    → 단일접근.
+
+  SMS류(cross) 대비: 한 영역에서 [1000,1024,1080,1096]처럼 불규칙하게 흩어진 곳을 씀.
+    보폭이 일정하지 않아 "직전+보폭"으로 못 맞힘. 그 영역 접근 여러 개를 "다 모아야" 지도 완성.
+    → cross접근.
+
+  | prefetcher | 예측에 필요한 것                             | 종류      |
+  | Next-line  | 직전주소 1개 (규칙 고정: 항상 +1)             | 단일접근  |
+  | Stride     | 직전주소 1개 + 보폭 1개 (보폭학습 2번, 예측 1개) | 단일접근  |
+  | Stream     | 순차확인(2~3번) 후엔 직전위치 1개             | 단일접근  |
+  | SMS류      | 영역의 흩어진 여러 접근을 다 모아야 완성       | cross접근 |
+
+  핵심: 단일접근 = "직전 몇 개 + 간단한 규칙(보폭)"으로 예측. 규칙 하나라 조각나도 복구됨.
+        cross접근 = "흩어진 여러 접근을 모아야 그림"이라 조각 하나 빠지면 구멍남(= brittle).
+
+  ---- 축2: PC-localized vs non-PC = "학습상태를 무엇별로 서랍에 넣나" ----
+
+  같은 stride라도 "서랍을 무엇으로 나누냐"가 다름:
+
+  PC-localized stride (교과서 RPT):
+    load 명령이 여럿 → PC=0x400(배열A순회)=보폭+64, PC=0x480(배열B순회)=보폭+8
+    RPT 표(PC별 서랍): [0x400]→마지막주소·보폭+64  /  [0x480]→마지막주소·보폭+8
+    "누가(어느 명령이) 접근했나"로 서랍 나눔. 0x400·0x480 섞여 실행돼도 각자 서랍이라 안 헷갈림.
+    = 정진 표현 "PC마다 내부상태 training" 그대로.
+
+  non-PC-localized stride (주소 기반):
+    명령이 누구든 무시하고 "주소 흐름"만 봄: 1000,1064,1128,5000,1192,5008...
+    "어느 명령이 했는지" 안 보고 "주소공간에서 무슨 일이 일어나나"만 추적.
+
+  | 방식             | 서랍의 키 | 질문                       |
+  | PC-localized     | PC(명령)  | "이 명령이 만드는 패턴은?"  |
+  | non-PC-localized | 주소/영역 | "이 주소 근처의 패턴은?"    |
+
+  ---- 두 축은 독립 → 네 칸 다 존재 (헷갈림의 근원) ----
+
+  |                  | 단일접근        | cross접근              |
+  | PC-localized     | Stride(RPT)     | Bingo, SMS, Pythia     |
+  | non-PC-localized | (드묾)          | DSPatch, Sandbox       |
+  | 무상태           | Next-line       | —                      |
+
+  ★Stride가 증명: PC-localized(서랍을 PC로 나눔) 이면서 동시에 단일접근(예측엔 직전1개+보폭).
+    "PC로 나눈다"(축2)와 "예측에 여러 개 필요"(축1)는 서로 다른 얘기 → 두 축은 별개.
+
+
+  ========== non-PC-localized 중 간단한 것 (쉬운 순, 발표 도입용) ==========
+
+  간단 ──────────────────────────────────→ 복잡
+  Next-line  Stream       Stride(non-PC)    AMPM/MLOP
+  (무상태)   (순차+방향)   (보폭 학습)        (region access-map)
+  ──────────── 단일접근 ────────────       ──── cross접근 ────
+
+  1) Next-line (가장 간단, 무상태)
+     직전 주소 X -> X+1(다음 블록) 무조건 prefetch.
+     상태 없음, PC 안 봄. 규칙 1개("항상 다음"). 순차 접근에만 맞음.
+
+  2) Stream (순차 스트림)
+     연속 블록 감지(X,X+1,X+2..) -> 그 방향으로 여러 블록 앞서 prefetch.
+     주소 흐름만 봄(명령 무시)=non-PC. Next-line보다 나음(방향 확인 후 degree↑).
+     Power7이 이 계열.
+
+  3) Stride(non-PC 버전)
+     주소 흐름의 보폭 감지(1000,1064,1128 -> +64) -> 다음 예측 1192.
+     ⚠️ 교과서 stride는 보통 PC-localized(RPT). non-PC는 "명령 무시, 주소만" 버전.
+
+  => 발표 도입 추천: Next-line -> Stream 순서로 "명령 안 보고 주소 흐름만"(non-PC)을
+     점진적으로. 셋 다 단일접근(직전 몇 개+단순 규칙)이라 쉬움.
+     복잡한 non-PC(AMPM/MLOP)는 region access-map 쓰는 cross접근.
+
+
+  ========== PC-localized 중 간단한 것 (단일접근 / cross접근) ==========
+
+  간단 ──────────────────────────────────→ 복잡
+  Stride(RPT)   SMS           Bingo          Pythia
+  단일접근      cross(간단)    cross(다중키)   단일접근이나 RL(복잡)
+
+  [PC-localized × 단일접근] = Stride (RPT) ★ 가장 간단, 대표
+    RPT(Reference Prediction Table) = PC별 서랍
+      [PC 0x400] -> 마지막주소, 보폭     ← load 명령마다 자기 서랍
+    load 실행 -> 그 PC 서랍 조회 -> "직전주소 + 보폭"으로 다음 예측.
+    - PC-localized: PC별 상태 저장(서랍 나눔)
+    - 단일접근: 예측엔 직전주소 1개 + 보폭 1개(과거 전체 불필요)
+    => 교과서적 stride. PC-localized의 제일 간단한 형태.
+
+  [PC-localized × cross접근] = SMS ★ cross 중 가장 직관적
+    트리거 PC로 서랍 나눔(PC-localized) + 영역의 여러 라인을 bit-vector로(cross)
+      PC 0x400이 영역 진입 -> 그 영역에서 [1,4,7]번 라인 접근됨 기록(bit-vector)
+      -> 다음에 같은 PC가 트리거 -> 그 라인들 한꺼번에 prefetch.
+    - PC-localized: 트리거 PC에 묶어 저장
+    - cross접근: 한 라인 아니라 영역의 라인 집합(footprint)을 봐야 함
+    => cross 중 제일 이해 쉬움 (Bingo=다중키 조회, Pythia=RL로 더 복잡).
+
+  [대조 한 줄]
+    Stride = "직전+보폭"(단일접근)을 PC별로 학습.
+    SMS    = "영역의 라인 집합"(cross)을 PC별로 학습.
+    둘 다 PC-localized(서랍=PC)지만, 예측에 1개 보냐 여러 개 모으냐가 축1 차이.
+
+ensemble 방식
+--------------------
+논문에서 고려한 모든 prefetching 방식에 대해서 정리한 표
+
+표헤더 Prefetcher 방식 Target access pattern PF Degree
+
+논문에서 언급한 advanced가 어떤 것에 해당하는지
+Pythia, Bingo, DSPatch, Sandbox, SMS
+
+단일 prefetcher 
+===== 8개 prefetcher 분류 (원논문 병렬 정독) =====
+
+| Prefetcher | HW/SW       | offline/online | PC-localized?    | 핵심 인식 방식                                      |
+|------------|-------------|----------------|------------------|----------------------------------------------------|
+| Pythia     | HW          | online         | PC-localized     | 여러 prefetch 후보 중 각 상황(직전 주소차·PC 등)에서 어떤 후보가 성능(정확도·대역폭)에 도움됐는지 점수표를 실행 중 갱신해 점수 높은 후보 선택 (시행착오 학습)    |
+| Bingo      | HW          | online         | PC-localized     | 페이지를 처음 건드릴 때 그 페이지에서 과거에 함께 접근됐던 캐시라인 집합을 기록표에서 조회해 미리 가져옴 (조회 키를 구체적~일반적으로 여러 개 두고 가장 잘 맞는 기록 사용) |
+| SMS        | HW          | online         | PC-localized     | 한 영역(수 KB)에서 첫 접근 뒤 어느 캐시라인들이 뒤따라 접근되는지를 라인별 on/off로 기록(트리거 PC에 묶어) → 재현 시 그 라인들을 한꺼번에 미리 가져옴 |
+| DSPatch    | HW          | online         | non-PC-localized | 페이지별로 함께 접근되는 라인 기록을 두 버전(넓게 잡는 것/정확히 잡는 것)으로 관리 → 런타임 대역폭 여유에 따라 하나 골라 prefetch 양 조절 |
+| Sandbox    | HW          | online         | non-PC-localized | 여러 후보 보폭(offset)을 실제 메모리 접근 없이 '이 offset이었으면 맞았을지'만 가상으로 채점 → 점수 높은 offset만 실제 prefetch    |
+| AMPM       | HW          | online         | non-PC-localized | 메모리를 구역으로 나눠 각 라인의 접근/prefetch 상태를 지도로 기록 → 그 지도에서 여러 보폭을 동시에 대조해 규칙적으로 이어질 라인들을 한 번에 예측        |
+| MLOP       | HW          | online         | non-PC-localized | 여러 후보 offset마다 여러 '앞서 보는 거리'에서 얼마나 자주 맞는지 점수를 매겨 → 적중률·적시성을 함께 높이는 offset들을 골라 여러 거리로 미리 가져옴  |
+| Power7     | HW+SW재구성 | online         | non-PC-localized | 칩에 내장된 순차 스트림 prefetcher의 공격성을 제어하는 레지스터를, 실행 중 소프트웨어가 성능(IPC)을 보며 여러 설정으로 바꿔가며 최적값 선택  |
+
+Q. TAGE식이 무엇인지?
+    A. TAgged GEometric history length — 원래 branch predictor의 최강 기법.
+    - 여러 개의 테이블을 두되, 각 테이블이 "서로 다른 길이의 history"로 인덱싱됨
+      (기하급수적 길이: 2, 4, 8, 16... → geometric).
+    - 조회 시 여러 테이블을 동시에 보고, "가장 긴 history로 매칭된 것"을 채택.
+    - 짧은 history로도 맞으면 빠르게, 긴 문맥이 필요하면 긴 테이블이 잡아줌 → 짧고 긴 패턴 모두 커버.
+    - tag를 붙여 오탐(다른 문맥이 같은 인덱스에 매핑) 방지.
+    - Bingo가 이 방식 차용: 하나의 통합 테이블을 PC+Address(긴 문맥)~PC+Offset(짧은 문맥) 여러 event로
+      조회 → 가장 긴 매칭 event로 prefetch. (branch predictor 기법을 prefetcher로 이식)
+
+Q. DSCR이 무엇을 의미하는 것인지?
+    A. Data Stream Control Register — IBM POWER 아키텍처의 HW prefetcher 제어 레지스터.
+    - HW stream prefetcher의 공격성(depth, stride 등)을 SW가 이 레지스터에 값을 써서 조정.
+    - Power7 논문: runtime이 32개 DSCR 설정을 탐색하며 task type별 최적 설정을 IPC 기준으로 선택.
+    - 즉 "HW prefetcher를 SW가 런타임에 재구성하는" 손잡이 = offline/online·HW/SW 2x2에서
+      Power7이 "HW + SW재구성"인 이유가 이 레지스터.
+
+
+ensemble prefetcher
+
+===== Ensemble 3종 비교 (원논문 정독) =====
+
+|              | Bandit                     | DOL                          | Alecto                          |
+|--------------|----------------------------|------------------------------|---------------------------------|
+| HW/SW        | HW                         | HW                           | HW                              |
+| online/off   | online                     | online                       | online                          |
+| orchestration| 여러 후보 정책을 두고 각 정책의 성능(IPC)을 | 고정 배선 로직이 각 메모리 명령을 세 컴포넌트에 | 어느 prefetcher를 쓸지 선택 + 어떤 demand |
+|              | 누적 점수로 비교해 좋은 정책 선택(가끔 딴 것도 시험) | 순서대로 넘겨 담당 여부 판정 | 요청을 어느 prefetcher에 보낼지 실행 중 배분 |
+| 무엇을 조율  | 기존 prefetcher들           | 3 컴포넌트(순차/포인터/조밀) 역할 분업 | prefetcher 선택 + demand 요청 배분 |
+|              |                            |                              |                                 |
+| sub 개수     | 기존것(next-line/stride..) | 3개 (순차/포인터/조밀)       | 기본 3개(순차+보폭+공간)        |
+| PC-centric?  | ✗ (요청자 구분 없이 전체를  | ✓ (각 컴포넌트가 '이 명령(PC)이 | ✓ (요청자(PC)별로 어느 prefetcher가 |
+|              | 하나로 보고 정책 선택)      | 내 담당 패턴인지'로 판정)    | 맞는지 표에 기록 → 그 PC 요청만 전달) |
+
+- Alecto·DOL 둘 다 확실히 PC-centric → PF-LLM §6.4 "PC-centric online policy" 규정 정확.
+- Bandit은 PC-centric 아님 → PF-LLM이 §6.4에서 Alecto·DOL만 지목한 것과 일관.
+
+===== ★정진님 관찰: §6.4가 두 축을 뭉갬 (발표 핵심) =====
+관찰: §6.4는 "PC-centric이 non-PC-localized spatial prefetcher를 망친다"는데,
+     정작 filtering 제외 5개는 PC-localized가 더 많음(Pythia/Bingo/SMS 3 vs DSPatch/Sandbox 2).
+
+원인 = §6.4가 서로 직교하는 두 축을 한 단어로 합침:
+  축1 (인덱싱 키)   : prefetcher가 상태를 무엇으로 인덱싱 — PC vs region
+  축2 (상태 범위)   : 그 상태가 몇 접근에 걸침 — 단일접근 vs cross-access(여러 접근)
+  → 둘은 배타적이 아님. Bingo=PC로 인덱싱(축1) 하지만 그 밑에 page footprint 저장(축2).
+    SMS=PC+offset 인덱싱 + region bit-vector. Pythia=PC feature + RL 학습. (전부 PC-localized인데 cross-access)
+
+브리틀함의 진짜 기준 = 축2 (cross-access 상태), 축1(PC 인덱싱)이 아님:
+  "전체 demand 스트림이 있어야 상태 완성" → PC 단위 filtering이 그 상태를 조각냄 → 깨짐.
+  (Bingo가 PC로 인덱싱하든 말든, PC 단위로 demand를 걸러내면 footprint에 구멍남)
+
+§6.4 오류: "non-PC-localized라서 망친다"(축1로 설명) ← 틀림.
+정답: "cross-access 상태(축2)를 PC-centric filtering이 조각내서 망친다".
+      메커니즘은 맞으나 라벨("non-PC-localized")이 부정확 → 보호 5개 다수가 PC-localized라 어긋남.
+
+===== 발표 논리 4단계 =====
+1. Alecto/DOL 왜 실패: 둘 다 PC-centric orchestrator → PC 단위로 demand gating/allocation/filtering
+   (Alecto=Allocation/Sample Table PC 인덱싱, DOL=isStridePC/isPtrPC 판정)
+2. 왜 sophisticated prefetcher를 망침: 이들은 여러 접근 걸친 상태(Bingo=footprint/SMS=bit-vector/Pythia=RL)를
+   쌓는데, PC 단위 filtering이 그 상태를 조각냄
+3. §6.4 서술 흠: 이걸 "non-PC-localized"라 부르나 실제 기준은 cross-access 상태(축2)지 인덱싱 키(축1) 아님.
+   증거=보호 5개 중 3개(Pythia/Bingo/SMS)가 PC-localized → 정진님 관찰
+4. PF-LLM 해법: offline 힌트가 "이 5개는 filtering 제외"를 미리 알아 조각냄 방지
+
+(상세 방법론: 각 md 참조 — 22, Alecto/Alecto.md · 19, DOL/DOL.md · 13, Bandit/Bandit.md)
+
+===== [기초] cross-access가 무엇인가 (표 이해용) =====
+질문: prefetcher가 예측하려면 몇 번의 접근을 봐야 하나?
+
+- 단일접근(single-access): 접근 하나만 보고 바로 예측. 지난 기록 불필요.
+    예) Next-line: "X 접근 → X+1 가져와". X 하나면 끝.
+- cross-access(여러 접근): 여러 접근을 모아야 패턴이 완성됨.
+    예) SMS: region에서 [X, X+8, X+24, X+40]을 다 봐야 "이 region은 이 4곳을 쓴다" 패턴 완성.
+        접근 하나만으론 아무것도 못 함.
+
+비유: 단일접근="다음 단어" 예측(직전 하나) / cross-access="문장 전체" 이해(여러 단어 모아야 뜻).
+
+왜 중요: filtering("이 prefetcher한텐 어떤 접근 안 보여줌")과 만나면 갈림.
+  - 단일접근: 접근 하나 빼도 나머지 각자 예측 → 멀쩡.
+  - cross-access: [X, X+8, __, X+40] → 패턴에 구멍 → 깨짐 (= 논문의 "brittle").
+    (문장에서 단어 하나 지우면 뜻 무너지는 것과 같음)
+
+===== [혼동 주의] 두 축은 별개 (정진님 관찰의 근원) =====
+  축1 (인덱싱 키)  : 상태를 무엇으로 "찾나" — PC(명령) vs region(주소)
+  축2 (상태 범위)  : 예측에 몇 접근 필요 — 단일접근 vs cross-access
+→ 둘은 배타적이 아님!
+  Bingo 예: 인덱싱 키=PC(축1: PC-localized) 이지만 그 밑에 page footprint 저장(축2: cross-access).
+            즉 "PC로 서랍 찾되, 서랍 안엔 여러 접근의 그림을 담음".
+→ 논문은 축2(cross-access)를 설명하며 축1 단어("non-PC-localized")를 잘못 씀.
+   실제 취약 5개 중 Pythia/Bingo/SMS는 PC-localized인데도 cross-access라 취약.
+   ★취약함의 진짜 기준 = 축2(cross-access)지 축1(PC 인덱싱) 아님.
+
+
+-----++-----
+
+===== 8개 prefetcher 분류 (원논문 병렬 정독) =====
+
+| Prefetcher | HW/SW       | offline/online | PC-localized?    | 핵심 인식 방식                                      |
+|------------|-------------|----------------|------------------|----------------------------------------------------|
+| Pythia     | HW          | online         | PC-localized     | 여러 prefetch 후보 중 각 상황(직전 주소차·PC 등)에서 어떤 후보가 성능(정확도·대역폭)에 도움됐는지 점수표를 실행 중 갱신해 점수 높은 후보 선택 (시행착오 학습)    |
+| Bingo      | HW          | online         | PC-localized     | 페이지를 처음 건드릴 때 그 페이지에서 과거에 함께 접근됐던 캐시라인 집합을 기록표에서 조회해 미리 가져옴 (조회 키를 구체적~일반적으로 여러 개 두고 가장 잘 맞는 기록 사용) |
+| SMS        | HW          | online         | PC-localized     | 한 영역(수 KB)에서 첫 접근 뒤 어느 캐시라인들이 뒤따라 접근되는지를 라인별 on/off로 기록(트리거 PC에 묶어) → 재현 시 그 라인들을 한꺼번에 미리 가져옴 |
+| DSPatch    | HW          | online         | non-PC-localized | 페이지별로 함께 접근되는 라인 기록을 두 버전(넓게 잡는 것/정확히 잡는 것)으로 관리 → 런타임 대역폭 여유에 따라 하나 골라 prefetch 양 조절 |
+| Sandbox    | HW          | online         | non-PC-localized | 여러 후보 보폭(offset)을 실제 메모리 접근 없이 '이 offset이었으면 맞았을지'만 가상으로 채점 → 점수 높은 offset만 실제 prefetch    |
+| AMPM       | HW          | online         | non-PC-localized | 메모리를 구역으로 나눠 각 라인의 접근/prefetch 상태를 지도로 기록 → 그 지도에서 여러 보폭을 동시에 대조해 규칙적으로 이어질 라인들을 한 번에 예측        |
+| MLOP       | HW          | online         | non-PC-localized | 여러 후보 offset마다 여러 '앞서 보는 거리'에서 얼마나 자주 맞는지 점수를 매겨 → 적중률·적시성을 함께 높이는 offset들을 골라 여러 거리로 미리 가져옴  |
+| Power7     | HW+SW재구성 | online         | non-PC-localized | 칩에 내장된 순차 스트림 prefetcher의 공격성을 제어하는 레지스터를, 실행 중 소프트웨어가 성능(IPC)을 보며 여러 설정으로 바꿔가며 최적값 선택  |
+
+
+===== 통합 표 (단일/cross 접근 열 추가 + Stride/Stream/Next Line 포함) =====
+   (단일접근=예측이 규칙 하나로 압축 / cross=예측이 위치 집합 그대로 필요)
+   (표현 기준: 예측 상태를 무엇으로 인덱싱 = PC/주소/무상태, cf 축4 정의)
+
+| Prefetcher | HW/SW       | offline/online | PC-localized?    | 단일/cross | 핵심 인식 방식                                      |
+|------------|-------------|----------------|------------------|-----------|----------------------------------------------------|
+| Next Line  | HW          | online         | 무상태(non-PC)    | 단일접근   | 직전 접근 블록의 다음 블록(X->X+1)을 무조건 미리 가져옴. 상태 없음, 규칙 1개 |
+| Stream     | HW          | online         | 무상태(non-PC)    | 단일접근   | 연속 블록(X,X+1,X+2..) 감지해 순차 스트림 확인 후 그 방향으로 여러 블록 앞서 가져옴 |
+| Stride     | HW          | online         | PC-localized     | 단일접근   | PC별로 직전주소·보폭(stride) 저장. 보폭이 일치하면 Addr+보폭 prefetch, 불일치면 보폭 갱신 |
+| Pythia     | HW          | online         | PC-localized     | 단일접근   | 여러 prefetch 후보 중 각 상황(직전 주소차·PC 등)에서 어떤 후보가 성능에 도움됐는지 점수표를 실행 중 갱신해 선택 (RL, delta 기반) |
+| Bingo      | HW          | online         | PC-localized     | cross접근  | 페이지에서 과거에 함께 접근됐던 캐시라인 집합(footprint)을 기록표에서 조회해 미리 가져옴 (다중 키) |
+| SMS        | HW          | online         | PC-localized     | cross접근  | 한 영역(수KB) 첫 접근 뒤 뒤따르는 캐시라인들을 라인별 on/off(bit-vector)로 트리거 PC에 묶어 기록→재현 |
+| DSPatch    | HW          | online         | non-PC-localized | cross접근  | 페이지별 함께 접근되는 라인 집합(bit-pattern)을 두 버전(넓게/정확히)으로 관리→대역폭 따라 선택 |
+| Sandbox    | HW          | online         | non-PC-localized | 단일접근   | 여러 후보 보폭(offset)을 가상 채점('맞았을지'만)→점수 높은 offset만 prefetch (BOP류 고정 offset) |
+| AMPM       | HW          | online         | non-PC-localized | cross접근  | 구역별 각 라인의 접근/prefetch 상태를 지도(access-map)로 기록→여러 보폭 동시 대조해 예측 |
+| MLOP       | HW          | online         | non-PC-localized | cross접근  | 여러 offset×여러 lookahead 거리에서 적중률 점수→적중률·적시성 높은 offset들 여러 거리로 (zone access-map 의존) |
+| Power7     | HW+SW재구성 | online         | non-PC-localized | 단일접근   | 순차/고정 stride 스트림 감지. 공격성을 SW(runtime)가 IPC 보며 재구성. (PF-LLM은 알고리즘만 사용, 재구성 X) |
+
+  [단일/cross 요약]
+    단일접근: Next Line, Stream, Stride, Pythia*, Sandbox, Power7
+             (예측이 규칙/보폭/단일원소로 압축됨. filtering에 강건)
+    cross접근: Bingo, SMS, DSPatch, AMPM, MLOP
+             (예측이 라인집합/access-map 통째 필요. filtering에 취약=brittle)
+    * Pythia는 med 신뢰(RL이나 delta 기반). Sandbox도 med(BOP류 offset).
+      -> 이 둘은 원논문 filtering 취약성 서술로 최종 확인 권장.
+
+  [네 칸 정리: 단일/cross × PC-localized]
+                    단일접근                cross접근
+    PC-localized    Stride, Pythia*         Bingo, SMS
+    non-PC-localized Sandbox, Power7        DSPatch, AMPM, MLOP
+    무상태(non-PC)   Next Line, Stream       -
+
+|              | Bandit                     | DOL                          | Alecto                          |
+|--------------|----------------------------|------------------------------|---------------------------------|
+| HW/SW        | HW                         | HW                           | HW                              |
+| online/off   | online                     | online                       | online                          |
+| orchestration| 여러 후보 정책을 두고 각 정책의 성능(IPC)을 | 고정 배선 로직이 각 메모리 명령을 세 컴포넌트에 | 어느 prefetcher를 쓸지 선택 + 어떤 demand |
+|              | 누적 점수로 비교해 좋은 정책 선택(가끔 딴 것도 시험) | 순서대로 넘겨 담당 여부 판정 | 요청을 어느 prefetcher에 보낼지 실행 중 배분 |
+| 무엇을 조율  | 기존 prefetcher들           | 3 컴포넌트(순차/포인터/조밀) 역할 분업 | prefetcher 선택 + demand 요청 배분 |
+|              |                            |                              |                                 |
+| sub 개수     | 기존것(next-line/stride..) | 3개 (순차/포인터/조밀)       | 기본 3개(순차+보폭+공간)        |
+| PC-centric?  | ✗ (요청자 구분 없이 전체를  | ✓ (각 컴포넌트가 '이 명령(PC)이 | ✓ (요청자(PC)별로 어느 prefetcher가 |
+|              | 하나로 보고 정책 선택)      | 내 담당 패턴인지'로 판정)    | 맞는지 표에 기록 → 그 PC 요청만 전달) |
+
+
+===== ensemble 통합 표 (sub-prefetcher 표와 동일 형식) =====
+   (ensemble=orchestrator라 "단일/cross" 대신 "조율 방식/PC-centric" 열)
+   (핵심 축: online 학습으로 "어느 sub에 라우팅/선택할지"를 결정 = PF-LLM이 대체하려는 대상)
+
+| Ensemble | HW/SW | offline/online | PC-centric?      | sub 개수/구성 | 조율(orchestration) 방식                              |
+|----------|-------|----------------|------------------|--------------|------------------------------------------------------|
+| Bandit   | HW    | online         | ✗ (전체 하나로)   | 3개: next-line, stride, stream | RL(Multi-Armed Bandit)이 각 후보의 성능(IPC)을 누적점수(reward)로 비교해 좋은 것 선택(가끔 탐험). MAB는 상태(PC/주소) 구분 못해 PC별 배정 X, 전체를 한 정책으로 |
+| DOL      | HW    | online         | ✓ (PC로 판정)     | 3개(TPC): T2(순차 stride, strided streams)/P1(포인터, pointer)/C1(조밀 region, dense spatial "carpet bombing") | hardwired 조합논리 coordinator가 각 메모리 명령을 컴포넌트에 순차 제시→각자 "이 PC 내 담당인가"(isStridePC/isPointerPC/isDensePC) 판정. 역할 분담(division of labor)으로 scope·accuracy를 decouple |
+| Alecto   | HW    | online         | ✓ (PC별 기록)     | 기본 3개: GS(global stride)/CS(cross-page stride)/PMP(spatial). P개로 선형 확장(temporal도) | PC별로 각 prefetcher의 accuracy를 Allocation Table에 기록→UI/IA/IB 상태전이로 선택 + demand 요청을 어느 prefetcher에 보낼지 미세 배분(DDRA) |
+
+  [sub-prefetcher vs ensemble 구분]
+    - sub-prefetcher(Stride/Bingo..) = "무엇을 prefetch할지" 예측기 (한 알고리즘)
+    - ensemble(Bandit/DOL/Alecto)     = "어느 sub를 언제 쓸지" 조율기 (메타 계층)
+    => ensemble은 sub들을 묶고 라우팅/선택. 그 orchestration 정책이 online 학습.
+
+  [★ PF-LLM과의 관계 = 이 표가 "극복 대상"]
+    - Bandit/DOL/Alecto의 조율 정책 = 전부 online 학습(trial-and-error) 의존.
+      -> (1) 수렴까지 느림 (2) 온칩 제약으로 단순 휴리스틱에 갇힘.
+    - Alecto = PF-LLM의 핵심 비교 대상(SOTA). PF-LLM은 최고 ensemble(Alecto) 대비 18.9%↑.
+    - PF-LLM = 이 orchestration(선택/라우팅)을 offline LLM 분석으로 대체
+      -> online 학습 없이 "PC별 oracle급" 정책 즉시 적용.
+    - 기존 online ensemble은 오히려 최고 단일 prefetcher보다 못한 경우도(Pythia 같은
+      정교한 sub의 내부 상태를 훈련 노이즈로 오염 -> PF-LLM은 demand filtering으로 보호).
+
+
+-----++-----
+
+---------------------
+특정 논문을찾아서 preftch degree를 어떻게 정의했는지에 대해서 알아보기
+
+---------------------
+3가지 metric에 대해서  애니메이션을 사용해서 tradeoff를 설명하며
+
+accuracy
+
+coverage 
+
+timeliness
+
+---------------------
+runtime prefetcher에서의 training에 대한 내용을 작성해주기
+
+
+============
+Q. offline인데 HW prefetching인 것과 online인데 SW prefetching인 것이 존재하는지 궁금하네
+    A.
+    핵심: 두 축은 직교. 네 칸 다 존재함.
+    축 정의:
+      offline/online = "결정을 언제 하나" (실행 전 / 실행 중)
+      SW/HW          = "어떻게 발행하나" (명령어 주입 / 전용 엔진)
+
+              SW 실행 (명령 주입)        HW 실행 (엔진)
+    offline   compiler-based, PGO       ★PF-LLM★, POWER7 재구성[29]
+    online    JIT 런타임 prefetch,       전통 HW prefetcher
+              Pin/DynamoRIO             (stride, Pythia...)
+
+    [offline + HW = Y, 존재]
+    - PF-LLM만의 칸이 아님. 이전에도 있었음:
+      · [29] Prat et al. "IBM POWER7 runtime guided HW prefetcher reconfiguration"
+        = 오프라인 프로파일로 HW prefetcher 설정 조정
+      · prefetch hint 명령을 컴파일러(offline)가 심고 HW 엔진이 소비
+    - → PF-LLM 신규성은 "칸을 채운 것"이 아니라 offline 분석을 LLM(코드 정독)으로 한 것
+      + 결정을 명령이 아닌 데이터(8bit 힌트)로 표현 → front-end 오버헤드 0 (발견 #9)
+
+    [online + SW = Y, 존재]
+    - JIT 런타임 prefetch 삽입: JVM/V8이 실행 중 hot코드 JIT하며 prefetch 명령 삽입
+      (compiler-based=offline과 달리, 런타임 프로파일 보고 결정 → online)
+    - Pin/DynamoRIO 동적 계측: 실행 중 코드 재작성하며 prefetch 삽입
+    - 앱이 런타임 상태 보고 조건부 prefetch() 호출
+
+    [주의: PF-LLM은 offline/online 둘 다 활동]
+    - offline: LLM이 orchestration 결정(어느 sub-prefetcher/degree/filter) 생성
+    - online : ① PHB 조회로 orchestration 세팅
+               ② 선택된 sub-prefetcher가 "어느 주소 prefetch"를 online에서 스스로 결정 ★
+               ③ sub-prefetcher 내부상태 training (online)
+    - "offline 접근"의 뜻 = 핵심 결정(orchestration)을 offline로 뺐다는 것.
+      sub-prefetcher의 주소 결정은 여전히 online. "online에 결정이 없다"가 아님.
+    - policy(orchestration)=offline / mechanism(주소발행)=online 으로 분리한 게 핵심.
+    - "zero runtime adaptation latency" = orchestration 학습 지연이 0 (Alecto는 이걸 online에서 함).
+
+Q. 논문에서 주장하는 정교한/고급 prefetcher의 기준은 무엇인가?
+
+  A. 
+  For demand request filtering, we
+  restrict that the demand request will never be filtered out
+  for the Pythia [6], Bingo [5], DSPatch [7], Sandbox [30], and
+  SMS [33] prefetchers, as they are sophisticated prefetchers
+  very brittle to demand request filtering. -> 경험적 사실이라는 것은 알 수 있으나, 이와 관련된 실험을 논문에서 찾아볼 수 없음
+
+
+  결과를 보니 Alecto와 DOL의 경우 -> 저자의 판단 
+  This performance degradation is a known limitation when
+  such PC-centric online policies are used to manage advanced,
+  non-PC-localized components like spatial prefetchers. Be-
+  cause these sub-prefetchers build intricate state by tracking
+  patterns across entire memory regions, not single instruc-
+  tion streams, the PC-based selection logic of methods like
+  Alecto disrupts their pattern detection by either polluting
+  their training with irrelevant demand requests or filtering
+  out key demand requests. 
+  -> 여기서 정교한/고급 prefetcher가 non PC-localized라고 했으나, 실제로 demand request filtering에 제외했던 
+  prefetcher의 수는 non PC-localized보다 PC-loacalized개수가 더 많았던 점이 신기했음
+
+  이 부분을 설명하기 위해서는 선행연구로 DOL과 Alecto에 대해서는 적어도 방법에 대해서 언급을 해야 할 필요성을 느낌
+
+
+Q. 정교함의 기준이 무엇인가? -> 저자는 non localized PC라 했지만 cross access가 더 적합한 표현이라고 생각한다. 
+  A. 저자가 지정한 prefetcher들에 대해서 보면 non localized PC인 것과 localized PC가 섞혀있기 때문에
+
+  "very brittle to demand request filtering"
+  filtering으로 조각나면 깨짐 = cross access라서
+
+  "build intricate state by tracking patterns across entire memory regions, not single instruction streams"
+  여러 접근에 걸친 상태 = cross access 
+
+                    단일 접근   | cross access  
+  PC-localized      Stride     Bingo, SMS, Pythia
+  non-PC-localized  Next-line  DSPatch, Sandbox
+
+
+Q. PF-LLM에서는 왜 load 명령어에 대해서만 prefetching을 하는 것이지 store도 cache를 쓰는 것은 맞는데
+load를 한 경우에 대해서만 prefetching하는게 더 좋아서 그런 것인가?
+    A.
+    맞음, load가 더 이득이라서. store는 캐시 쓰지만 prefetch 대상으로 덜 중요.
+
+    [핵심: load miss만 CPU를 stall시킴]
+      load  : 결과값을 기다림 -> 의존 명령이 block -> latency가 실행을 막음(critical path).
+              -> prefetch로 미리 가져오면 stall 제거 = 직접 성능 이득.
+      store : 값을 쓰고 끝, 결과 기다릴 필요 없음. store buffer가 흡수 ->
+              뒤 명령이 안 막힘(latency 숨겨짐). -> store miss는 이미 덜 아픔.
+      => load latency = 성능 병목, store latency = 이미 완화됨. 그래서 load 우선.
+
+    [store는 어차피 write-allocate라 캐시 옴]
+      store miss도 write-allocate로 블록을 캐시에 채움(cache.txt) -> 하지만
+      그건 "미리 가져오는 prefetch"가 아니라 demand 시점 처리. 급하지 않음.
+
+    [prefetch 관점 실무]
+      - 많은 프리페처가 load 스트림만 학습(store 섞으면 패턴 노이즈↑).
+      - store를 prefetch하면 RFO(ownership)까지 미리 뺏어 coherence 트래픽↑ 위험
+        (coherence prefetch 어려움과 같은 맥락).
+      - MSHR 예산 한정 -> 이득 큰 load에 몰아주는 게 효율적.
+
+    [PF-LLM 관점]
+      - 목표 = load miss latency 숨김(critical path). LLM 힌트도 load 접근 예측.
+      - MSHR은 목적지 레지스터로 load 결과를 기다리는 명령을 깨움(cache.txt) ->
+        prefetch가 그 load를 hit로 바꿔 의존 사슬 조기 진행.
+      => "store도 캐시 쓴다"는 맞지만, stall을 만드는 건 load라 prefetch는 load 타깃.
+
+    [보강: load만 하는 이유 = 두 축 모두 load 쪽]
+      ① 예측 가능성(정확도): load 스트림에 규칙(stride/순차/반복=locality)이 있어
+         다음 load를 맞출 수 있음. prefetcher는 load 접근 패턴을 입력으로 다음
+         load 대상을 예측 -> 입력도 예측대상도 load.
+         store는 "쓴 걸 곧 읽는다" 보장 약함 -> 예측 근거 약함.
+      ② 이득(효용): load miss만 CPU stall -> 숨기면 직접 이득. store는 store
+         buffer가 흡수해 덜 아픔.
+      => ①"예측되나?" + ②"숨겨서 이득 큰가?" 둘 다 load 쪽이라 load에 집중.
+         (뉘앙스: "load 주변"이 아니라 "load 접근의 패턴이 규칙적"이라 예측됨)
+
+
+Q. demand vs prefetch request 처리 경로? prefetcher는 prefetch만 만들고
+   나머지(demand)는 알아서 채워지나?
+    A. 맞음. 두 경로 분리 (prefetcher는 구경꾼+예측기).
+
+    [경로 분리]
+      demand load a[i] -> L1 조회
+        ├ [기본 처리] miss -> MSHR -> L2/DRAM fill -> L1 채움 (prefetcher 무관)
+        └ [관찰] 이 접근(주소/PC)을 prefetcher에 복사 전달
+                 -> 패턴 학습 -> "다음 a[i+K]" 예측 -> prefetch request 별도 발행
+      => demand fill = 캐시 기본 처리 담당 / prefetcher = prefetch request 생성만.
+
+    [둘 다 결국 L1로]
+      demand miss   -> fill -> L1 (demand로 채워짐)
+      prefetch miss -> fill -> L1 (prefetch bit 표시)
+      나중에 demand load a[i+K] -> HIT (prefetch 성공)
+
+    [경로 분리, 자원 공유]
+      경로: demand 처리 vs prefetch 생성 = 분리
+      자원: 같은 MSHR·같은 L1 = 공유 -> prefetch+demand miss <= MSHR(cache.txt)
+
+    [ChampSim] prefetcher_cache_operate(관찰) + prefetch_line(요청 생성)으로 분리 드러남.
+
+
+Q. prefetch로 가져온 데이터는 prefetcher를 거치나? L1로 직접?
+    A. prefetcher 안 거침. L1에 직접 fill.
+
+    [prefetcher = 주소 예측기지 데이터 통로/저장소 아님]
+                prefetcher가 다루는 것    데이터(64B 블록)
+      무엇      주소·패턴 상태(예측용)    실제 데이터
+      어디      prefetcher 내부 테이블    L1 data array
+      거침?     -                        prefetcher 안 거침
+
+    [흐름] prefetch_line(주소) -> PQ에 주소 넣음  ← prefetcher는 여기까지(주소만)
+           -> 캐시가 그 주소로 L2/DRAM fill 요청
+           -> 데이터 도착 -> fill 로직 -> L1 data array에 씀 (prefetch bit, prefetcher 무관)
+    => prefetch 데이터는 demand와 똑같은 fill 경로로 L1행. prefetcher는 예측 상태만 보관.
+
+
+Q. prefetcher 성능 지표(Accuracy/Coverage/Timeliness) - degree>1(1 miss에 여러
+   prefetch)이어도 성립? L(off-time)은 L1+L2 이중 카운트 아닌가?
+
+    [지표 정의] (이 슬라이드는 L2 관점 = M_L2 사용)
+      PB = prefetch request 총 개수
+      SP = 성공한 prefetch(demand가 써먹음) = on-time + off-time
+      L  = 늦게 온 것(off-time)
+      M_L2 = 실제 L2 miss 개수
+      Accuracy   = SP / PB           (낸 것 중 쓸모 있던 비율)
+      Coverage   = (SP-L)/((SP-L)+M_L2)  (막을 수 있던 miss 중 제때 막은 비율)
+      Timeliness = (SP-L)/SP         (성공 중 제때 온 비율)
+
+    [고민1: degree>1이어도 성립? -> O]
+      지표는 "prefetch request 개수" 단위. 1 miss에 N개 냈으면 PB에 N으로 셈.
+      degree↑ -> PB↑(그리고 보통 accuracy↓/coverage↑)로 반영될 뿐 지표 안 깨짐.
+      ★핵심(정진님 도달): 각 prefetch = "그게 없었으면 miss였을 개별 접근"에 대응.
+        on-time이면 그 접근이 hit -> 없었으면 miss. 성공을 "개별 prefetch"로 세니
+        degree와 무관. (레벨은 L2 관점이니 "L2 miss였을 것"으로 통일)
+
+    [고민2: L(off-time)이 L1+L2 이중 카운트?] -> 아님
+      - Coverage 분모 = (SP-L) + M_L2 = "prefetch 없었으면 났을 L2 miss".
+        (막은 것 SP-L) + (못 막은 것 M_L2), 둘은 배타적 -> 이중 X.
+      - L = 새 L2 miss가 아니라, 이미 발행된 prefetch가 in-flight인데 demand가
+        도착 -> 그 요청에 coalescing으로 합류(cache.txt secondary miss). 새 miss 아님.
+
+    [늦는 이유 = DRAM까지 감 (정진님 추론 맞음)]
+      L2에 있었으면 금방 와서 안 늦음. off-time = 데이터가 L2에도 없어 DRAM 왕복.
+      -> prefetch를 내도 demand를 못 따라잡음 = prefetch 근본 한계
+      -> 더 일찍 예측하는 정교한 prefetcher(PF-LLM) 필요 동기.
+
+    (주의) 이 지표가 L1 관점인지 L2 관점인지는 출처 논문 정의를 따라야 함.
+           슬라이드가 M_L2 쓰므로 L2 관점으로 통일 권장.

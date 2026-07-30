@@ -18,24 +18,28 @@ body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFo
 #tb-row2::-webkit-scrollbar{display:none}
 #tb-row2>*{flex-shrink:0}
 #tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
-#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
-button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
-button:hover{background:#e8e8e8;border-color:#aaa}
+button{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;flex-shrink:0;box-shadow:0 1px 2px rgba(15,23,42,.06);transition:background .1s,color .1s,border-color .1s}
+button:hover{background:#2563eb;color:#fff;border-color:#1d4ed8}
+button:active{background:#1d4ed8;border-color:#1e40af}
+select{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:500;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.06)}
+select:hover{border-color:#93c5fd}
 .tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
 #viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
 #viewport.pan-drag{cursor:grabbing}
 #canvas{position:absolute;transform-origin:0 0}
 #wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
-.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#grid-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 15%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
 .ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
-.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:default;user-select:none}
 .ng-header:hover{background:rgba(0,0,0,.04)}
-.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
-.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
-.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px;font-size:14px}
 .ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-more-btn{display:block;width:100%;margin-top:4px;padding:3px 0;background:transparent;border:none;color:inherit;opacity:.55;font-size:10px;cursor:pointer;text-align:center;user-select:none}
 .ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
 .ng-img-wrap{margin:4px 0}
 .ng-table-wrap{overflow-x:auto;margin:6px 0}
@@ -95,14 +99,21 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 <div id="toolbar">
   <div id="tb-row1">
     <span id="tb-title">TPP: Transparent Page Placement for CXL-Enabled Tiered-Memory</span>
-    <span id="tb-source">Hasan Al Maruf, Hao Wang, Abhishek Dhanotia, Johannes Weiner, Niket Agarwal, Pallab Bhattacharya, Chris Petersen, Mosharaf Chowdhury, Shobhit Kanaujia, Prakash Chauhan (Meta / Univ. of Michigan / NVIDIA) · ASPLOS 2023</span>
   </div>
   <div id="tb-row2">
+    <select id="tb-filter" title="Filter Collapse/Expand to one node type"></select>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected; all if a type filter is set) — collapsing everything also fits the view">📁 Collapse</button>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected; only the filtered type if a type filter is set)">📂 Expand</button>
     <button onclick="fitView()">Fit View</button>
-    <div class="tb-sep"></div>
-    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
-    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
-    <div class="tb-sep"></div>
+    <button id="tb-grid-btn" onclick="toggleGrid()" style="display:inline-flex;align-items:center;gap:4px" title="Toggle debug grid — vertical lines mark hop-level boundaries, horizontal lines mark main-topic cluster boundaries">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+      </svg>
+      Grid
+    </button>
     <div class="tb-sep"></div>
     <span id="tb-sel" style="opacity:.35">Click a node to select</span>
   </div>
@@ -118,6 +129,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <div id="search-drop"></div>
   </div>
   <div id="canvas">
+    <svg id="grid-svg" style="display:none"></svg>
     <svg id="wire-svg">
       <defs>
         <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -130,7 +142,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     </svg>
     <div class="ng-node" id="node-node_001" data-children="node_006" style="--color:#4B8BBE;border-radius:2px;left:660px;top:300px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
   </div>
   <div class="ng-body"><div class="ng-content">TPP가 푸는 문제: CXL-Memory가 OS에 <strong style="font-size:1.1em">CPU-less NUMA node</strong>로 보이는 tiered-memory에서, <strong style="font-size:1.1em">application 수정·사전지식 없이</strong> hot page는 빠른 local memory에, cold page는 느린 CXL-Memory에 두는 <strong style="font-size:1.1em">OS-level 투명 페이지 배치(transparent page placement)</strong>를 kernel 안에서 실현하는 것.<br><br><strong style="font-size:1.1em">Killer application 1 — hot page가 느린 tier에 갇히는(trapped) 문제 해결</strong>: 기본 Linux는 page의 active 상태를 안 보고 즉시 promote해 왕복(ping-pong)을 만들고, 동기 reclamation이 새 할당을 CXL로 밀어낸다. TPP는 이 두 병목을 없애 hot을 local에 유지.<br><br><strong style="font-size:1.1em">Killer application 2 — 경량·범용 온도 감지</strong>: 무거운 PEBS/IPT 대신 <strong style="font-size:1.1em">minor page fault + kernel LRU</strong>로 거의 zero-overhead, <strong style="font-size:1.1em">page-size agnostic</strong> 온도 감지.<br><br><strong style="font-size:1.1em">Killer application 3 — production 배포 가능성</strong>: Meta 4개 workload를 FPGA CXL 1.1 실기에서 검증, 패치 대부분이 <strong style="font-size:1.1em">Linux v5.18에 머지</strong> — 커널 릴리스로 전역 배포 가능.<br><br>결과: all-local ideal baseline과 <strong style="font-size:1.1em">&lt;1% gap</strong>, default Linux 대비 <strong style="font-size:1.1em">최대 18%</strong>, NUMA Balancing·AutoTiering 대비 <strong style="font-size:1.1em">5-17%</strong> 개선.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -138,7 +150,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_002" data-children="node_007,node_008,node_021,node_030" style="--color:#4B8BBE;border-radius:2px;left:660px;top:600px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
   </div>
   <div class="ng-body"><div class="ng-content">메모리는 Meta rack의 <strong style="font-size:1.1em">TCO 최대 33.3% · power 37.1%</strong>로 커졌고(Fig.3), homogeneous 서버 설계는 CPU-memory <strong style="font-size:1.1em">강결합</strong> 탓에 세대·용량·대역폭이 경직돼 stranded 자원을 낳는다.<br><br><strong style="font-size:1.1em">CXL</strong>[7]은 이를 풀어 DRAM-like 대역폭 + cache-line granular 접근의 <strong style="font-size:1.1em">중간 지연 tier</strong>(DRAM 대비 $+50\text{-}100$ns, $\approx 170\text{-}250$ns)를 만든다 — SW엔 CPU-less NUMA node로 보인다.<br><br>그런데 <strong style="font-size:1.1em">Linux 메모리 관리는 동종 DRAM-only 전제</strong>라 CXL tier에서 부진하다. 두 근원:<br><br><strong style="font-size:1.1em">(1) 동기 reclamation</strong>: local node가 차면 reclamation(swap page-out)이 critical path에서 돌고, 느린 그 동안 새 allocation이 <strong style="font-size:1.1em">CXL-node로 몰려</strong> 영구 정착.<br><br><strong style="font-size:1.1em">(2) trapped hot pages / ping-pong</strong>: 기본 NUMA Balancing이 active 상태 확인 없이 <strong style="font-size:1.1em">즉시 promote</strong> $\rightarrow$ hot page가 CXL에 갇히거나 왕복.<br><br>datacenter workload는 2분 내 할당의 <strong style="font-size:1.1em">55-80%가 idle</strong>이라 tiering 여지는 충분하다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.1-2</span></summary>
@@ -146,7 +158,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_003" data-children="node_009,node_010,node_011,node_012,node_013,node_028,node_029" style="--color:#4B8BBE;border-radius:2px;left:660px;top:900px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
   </div>
   <div class="ng-body"><div class="ng-content">TPP는 'hotter' page를 local에, 'colder' page를 CXL-Memory에 두는 <strong style="font-size:1.1em">kernel-space</strong> 메커니즘. 설계공간 <strong style="font-size:1.1em">4축</strong>(§5) + 저비용 온도 감지(§4):<br><br><strong style="font-size:1.1em">(a) 경량 demotion(§5.1)</strong>: reclamation 후보를 swap 대신 별도 demotion list로 모아 CXL-node로 <strong style="font-size:1.1em">비동기 migration</strong>(swapping보다 수 order 빠름). inactive부터 스캔.<br><br><strong style="font-size:1.1em">(b) Alloc/Reclaim 분리(§5.2)</strong>: '<strong style="font-size:1.1em">reclamation 정지</strong>' watermark와 '<strong style="font-size:1.1em">새 allocation</strong>' watermark를 분리 — free가 <strong style="font-size:1.1em">demotion_watermark</strong>까지 background reclaim, 새 allocation은 <strong style="font-size:1.1em">allocation_watermark</strong>만 넘으면 진행 $\rightarrow$ local에 <strong style="font-size:1.1em">free headroom</strong> 유지.<br><br><strong style="font-size:1.1em">(c) Active-LRU promotion(§5.3)</strong>: NUMA Balancing 증강, <strong style="font-size:1.1em">CXL-node만 sampling</strong>. faulted page가 <strong style="font-size:1.1em">active LRU에 있을 때만</strong> promote $\rightarrow$ ping-pong에 <strong style="font-size:1.1em">hysteresis</strong> 부여.<br><br><strong style="font-size:1.1em">(d) Page-type-aware allocation(§5.4)</strong>: <strong style="font-size:1.1em">file cache/tmpfs는 CXL 우선</strong>, <strong style="font-size:1.1em">anon은 local</strong> 선호.<br><br><strong style="font-size:1.1em">온도 감지(§4)</strong>: PEBS/IPT 대신 <strong style="font-size:1.1em">minor page fault + LRU</strong>로 page-size agnostic·저오버헤드.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.7</span></summary>
@@ -154,7 +166,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_004" data-children="node_014,node_015,node_016,node_022,node_023,node_024,node_025,node_026,node_027" style="--color:#4B8BBE;border-radius:2px;left:660px;top:1200px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">Linux v5.12에 통합. Pre-production x86 + <strong style="font-size:1.1em">FPGA CXL 1.1</strong> 확장 카드(CXL-Memory가 CPU-less NUMA node로 노출). Meta 4개 production workload(Web/Cache/DataWarehouse/Ads). 두 config: <strong style="font-size:1.1em">2:1</strong>(production 유사), <strong style="font-size:1.1em">1:4</strong>(스트레스).<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>항목</th><th>결과</th></tr></thead><tbody><tr><td>ideal all-local 대비</td><td><strong style="font-size:1.1em">&lt;1% gap</strong></td></tr><tr><td>default Linux 대비</td><td><strong style="font-size:1.1em">최대 18%</strong></td></tr><tr><td>NUMA Balancing·AutoTiering 대비</td><td><strong style="font-size:1.1em">5-17%</strong></td></tr><tr><td>Web1 2:1 default Linux</td><td>local 22% $\rightarrow$ throughput <strong style="font-size:1.1em">16.5%↓</strong> (TPP는 0.5%↓)</td></tr><tr><td>Cache2 1:4 default Linux</td><td><strong style="font-size:1.1em">18% throughput loss</strong> (TPP는 5%↓)</td></tr><tr><td>CXL 지연 변동 시 default</td><td>avg latency <strong style="font-size:1.1em">7×</strong>, loss <strong style="font-size:1.1em">2.2-2.8×</strong> vs TPP</td></tr><tr><td>active-LRU promotion</td><td>promotion rate <strong style="font-size:1.1em">11×↓</strong>, 성공률 <strong style="font-size:1.1em">48%↑</strong></td></tr></tbody></table></div><div class="ng-seg"><br>default는 hot의 22-25%를 CXL에 가두지만 TPP는 4-5%만. steady-state migration <strong style="font-size:1.1em">4-16MB/s</strong>로 CPU 부담 미미.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -162,7 +174,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_005" data-children="node_017,node_018,node_031,node_032" style="--color:#4B8BBE;border-radius:2px;left:660px;top:1500px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
   </div>
   <div class="ng-body"><div class="ng-content">TPP는 CXL-Memory를 <strong style="font-size:1.1em">한 host의 CPU-less NUMA node</strong>로 보는 tiered-memory에서, 사전지식 없이 hot/cold를 투명하게 배치하는 OS-level 메커니즘이다. 경량 demotion·alloc/reclaim 분리·active-LRU promotion·page-type-aware allocation으로 all-local ideal에 근접(&lt;1%), SOTA 대비 5-17% 개선하며 <strong style="font-size:1.1em">Linux v5.18에 머지</strong>돼 실전 배포된 첫 end-to-end CXL-Memory 시스템으로 자평.<br><br><strong style="font-size:1.1em">의의</strong>: OS/software 쪽 transparent placement의 대표작. [[SkyByte]](HPCA'25)는 같은 hot/cold 배치를 <strong style="font-size:1.1em">디바이스 하드웨어</strong>에서 하며, 그 대조군 <strong style="font-size:1.1em">SkyByte-CT</strong>가 바로 TPP류 OS baseline.<br><br><strong style="font-size:1.1em">한계 / 열린 질문</strong>: (1) <strong style="font-size:1.1em">single-host</strong> local↔CXL만 다룸 — CXL tier가 여러 host에 <strong style="font-size:1.1em">공유(pooling)</strong>되면 per-host 온도 모델이 깨짐. (2) promotion이 만든 로컬 사본이 공유 시 다른 host에 <strong style="font-size:1.1em">stale</strong>를 노출(cross-host invalidation 부재). (3) multi-tenant QoS·bandwidth-expansion은 future로만 언급.</div><details class="ng-original"><summary>Original <span class="ng-loc">§9, p.13</span></summary>
@@ -170,7 +182,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_006" style="--color:#E74C3C;border-radius:2px;left:1180px;top:180px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Chameleon 관측: anon&gt;file 온도 · 55-80% idle (배치의 근거)</span>
   </div>
   <div class="ng-body"><div class="ng-content">TPP 설계의 실증 토대는 <strong style="font-size:1.1em">Chameleon</strong>(경량 user-space 특성화 툴, PEBS 기반, CPU 오버헤드 코어당 <strong style="font-size:1.1em">3-5%</strong>)로 얻은 Meta 4-workload 관측이다.<br><br>- <strong style="font-size:1.1em">55-80% idle</strong>: 2분 interval 안에 할당 메모리의 절반 이상이 놀고 있음 $\rightarrow$ CXL로 offload 여지 큼.<br>- <strong style="font-size:1.1em">page type별 온도 차</strong>: <strong style="font-size:1.1em">anon page가 file page보다 뜨겁다</strong>(Web: anon 35-60% hot vs file 3-14% hot) $\rightarrow$ <strong style="font-size:1.1em">page-type-aware allocation의 근거</strong>.<br>- <strong style="font-size:1.1em">시간 안정성</strong>: 접근 패턴이 수분~수시간 안정 $\rightarrow$ kernel에서 배치 결정 가능.<br>- <strong style="font-size:1.1em">재접근</strong>: Web은 cold의 80%가 10분 내 재접근 $\rightarrow$ 무작위 offload 위험 $\rightarrow$ promotion 필요.<br>- <strong style="font-size:1.1em">동적성</strong>: (de)alloc으로 hot↔cold가 빠르게 뒤집힘 $\rightarrow$ <strong style="font-size:1.1em">정적 배치는 성능 악화</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.5</span></summary>
@@ -178,7 +190,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_007" style="--color:#E74C3C;border-radius:2px;left:1180px;top:480px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Trapped hot pages · ping-pong: default Linux의 핵심 병목</span>
   </div>
   <div class="ng-body"><div class="ng-content">TPP 동기의 심장. 기본 Linux의 두 결함:<br><br><strong style="font-size:1.1em">(1) 동기 reclamation이 CXL로 밀어냄</strong>: local이 차면 reclamation이 swap page-out을 critical path에서 수행 $\rightarrow$ 느려서 그 동안 새 allocation이 <strong style="font-size:1.1em">CXL-node로 몰려 영구 정착</strong>. Web1에서 default는 local 비우기가 TPP보다 <strong style="font-size:1.1em">44× 느림</strong>.<br><br><strong style="font-size:1.1em">(2) 상태 무시 promotion $\rightarrow$ ping-pong</strong>: NUMA hint fault 시 default NUMA Balancing이 page의 <strong style="font-size:1.1em">active 상태를 안 보고 즉시 promote</strong> $\rightarrow$ 드물게 쓰는 page도 올라가 곧 demotion 후보가 되는 왕복. 반대로 promotion이 아예 없으면 hot page가 <strong style="font-size:1.1em">CXL에 영영 갇힘(trapped)</strong>.<br><br>결과: default Linux는 hot의 22-25%를 CXL에 가둬 avg 지연 <strong style="font-size:1.1em">7×</strong>, throughput loss <strong style="font-size:1.1em">2.2-2.8×</strong>(vs TPP).</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.8</span></summary>
@@ -186,7 +198,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_008" style="--color:#95A5A6;border-radius:22px;left:1180px;top:660px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 20%,transparent);color:#95A5A6">Reference</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">선행/비교: NUMA Balancing · AutoTiering · TMO · Thermostat</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">TPP의 좌표를 정하는 핵심 인용:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>연구</th><th>관계</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">NUMA Balancing (AutoNUMA)</strong> [22]</td><td>TPP promotion의 토대 — minor page fault(NUMA hint fault). TPP가 이를 CXL 전용·active-LRU로 증강</td></tr><tr><td><strong style="font-size:1.1em">AutoTiering</strong> (Kim et al., ATC'21) [47]</td><td>주요 비교 대상 — background migration+NUMA balance이나 <strong style="font-size:1.1em">alloc/reclaim 미분리</strong>, timer 기반 hot 감지 비효율. 1:4에서 크래시</td></tr><tr><td><strong style="font-size:1.1em">TMO</strong> (Weiner et al., ASPLOS'22) [73]</td><td><strong style="font-size:1.1em">orthogonal·complementary</strong> — swap 기반 offload. TPP가 zswap을 demote-then-swap 2단계로 만들어 상호 보강</td></tr><tr><td><strong style="font-size:1.1em">Thermostat</strong> (Agarwal &amp; Wenisch, ASPLOS'17) [31]</td><td>2MB huge-page 전용 transparent 관리 — TPP의 page-size-agnostic 목표와 대비</td></tr><tr><td><strong style="font-size:1.1em">Pond</strong> (Li et al., ASPLOS'23) [52]</td><td>multi-host <strong style="font-size:1.1em">CXL memory pooling</strong> — 내 multi-node 방향의 인접작</td></tr></tbody></table></div></div><details class="ng-original"><summary>Original <span class="ng-loc">§6.3, p.11</span></summary>
@@ -194,7 +206,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_009" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:800px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§5.1 경량 demotion: swap이 아닌 async migration</span>
   </div>
   <div class="ng-body"><div class="ng-content">local node가 차면 기본 reclamation은 <strong style="font-size:1.1em">swap으로 page-out</strong> $\rightarrow$ 느려서 그 동안 새 allocation이 CXL-node로 몰린다.<br><br>TPP는 reclamation 후보를 swap 대신 <strong style="font-size:1.1em">별도 demotion list</strong>에 넣어 CXL-node로 <strong style="font-size:1.1em">비동기 migration</strong>한다 — NUMA node로의 migration은 swapping보다 <strong style="font-size:1.1em">수 order 빠르다</strong>. demoted page는 여전히 in-memory라 load/store로 접근 가능(swap의 major fault 회피).<br><br><strong style="font-size:1.1em">inactive page부터</strong> 스캔해 hot page가 실수로 내려갈 확률을 낮춤. migration 실패(예: CXL-node 저메모리) 시 기본 reclamation으로 fallback. 다중 CXL-node면 CPU 거리 기반 <strong style="font-size:1.1em">static 선택</strong>으로 충분.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1, p.7</span></summary>
@@ -202,7 +214,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:960px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§5.2 Alloc/Reclaim 분리: watermark로 free headroom 유지</span>
   </div>
   <div class="ng-body"><div class="ng-content">Linux는 zone별 min/low/high watermark를 둔다. free가 low 아래면 reclamation 시작 + 새 allocation은 high 채울 때까지 <strong style="font-size:1.1em">정지(halt)</strong> $\rightarrow$ 고할당률에서 reclamation이 못 따라가 CXL로 page가 몰린다.<br><br>TPP는 '<strong style="font-size:1.1em">reclamation 정지</strong>'와 '<strong style="font-size:1.1em">새 allocation 발생</strong>' 로직을 <strong style="font-size:1.1em">분리</strong>:<br><br>$$demotion\_watermark &gt; allocation\_watermark &gt; low\_watermark$$<br><br>- free가 <strong style="font-size:1.1em">demotion_watermark</strong>에 닿을 때까지 background reclamation을 계속 돌린다.<br>- 새 allocation은 <strong style="font-size:1.1em">allocation_watermark</strong>만 만족하면 진행.<br>- 항상 더 많이 reclaim해 local에 <strong style="font-size:1.1em">free headroom</strong> 유지 $\rightarrow$ (1) 짧고 뜨거운 새 할당을 local에 직접, (2) CXL의 trapped hot page promotion 수용.<br><br>공격성은 <strong style="font-size:1.1em">/proc/sys/vm/demote_scale_factor</strong>(기본 <strong style="font-size:1.1em">2%</strong>)로 조절. 효과: local allocation rate 95%tile <strong style="font-size:1.1em">1.6×</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, p.8</span></summary>
@@ -210,7 +222,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_011" data-children="node_019" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1120px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§5.3 Active-LRU promotion: ping-pong에 hysteresis</span>
   </div>
   <div class="ng-body"><div class="ng-content">압박으로 CXL에 간 page나 나중에 hot 된 demoted page를 안 올리면 hot이 <strong style="font-size:1.1em">CXL에 갇힌다(trapped)</strong>. TPP는 <strong style="font-size:1.1em">NUMA Balancing을 증강</strong> — kernel task가 각 node의 일부(기본 256MB)를 샘플, remote 접근 시 NUMA hint fault로 promote. 단 local의 hot을 옮기는 건 무의미하므로 <strong style="font-size:1.1em">CXL-node만 sampling</strong>(hint fault 오버헤드 절감).<br><br><strong style="font-size:1.1em">Ping-pong 해결</strong>: faulted page의 <strong style="font-size:1.1em">LRU age</strong>를 본다 — <strong style="font-size:1.1em">active LRU에 있을 때만</strong> promotion 후보(무조건 promote 금지). inactive면 accessed 표시 후 active로 옮기고 <strong style="font-size:1.1em">다음</strong> hint fault 때 승격 $\rightarrow$ <strong style="font-size:1.1em">hysteresis</strong> 부여. anon/file 별도 LRU라 type별 promotion rate 차등 $\rightarrow$ 수렴 가속.<br><br>효과: promotion rate <strong style="font-size:1.1em">11×↓</strong>, demote-후-재promote <strong style="font-size:1.1em">50%↓</strong>, promotion 성공률 <strong style="font-size:1.1em">48%↑</strong>(수렴은 5분 더 소요).</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.8</span></summary>
@@ -218,7 +230,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1280px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§5.4 Page-type-aware allocation: file→CXL, anon→local</span>
   </div>
   <div class="ng-body"><div class="ng-content">관측(Chameleon): <strong style="font-size:1.1em">anon이 file보다 뜨겁다</strong>. 그런데 production app은 warmup 중 file I/O로 잘 안 쓰이는 file cache를 많이 만들고, 이게 <strong style="font-size:1.1em">local을 점유해 anon을 CXL로 밀어낸다</strong>(나중에 promote 필요).<br><br>해결: 선택적 정책으로 <strong style="font-size:1.1em">file cache/tmpfs를 CXL-node에 우선 할당</strong>, <strong style="font-size:1.1em">anon은 local 정책 유지</strong>. hot 된 file cache는 promotion 후보가 되면 나중에 local로 올림.<br><br>효과: 작은 local + 크고 싼 CXL 구성에서도 all-local 성능 유지(Table 2): Web1 2:1 <strong style="font-size:1.1em">local 97%/throughput 99.5%</strong>, Cache1 1:4 <strong style="font-size:1.1em">85%/99.8%</strong>, Cache2 1:4 <strong style="font-size:1.1em">72%/98.5%</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.4, p.8</span></summary>
@@ -226,7 +238,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1440px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4 온도 감지: minor page fault + LRU (PEBS 아님)</span>
   </div>
   <div class="ng-body"><div class="ng-content">설계 3질문의 답 = <strong style="font-size:1.1em">kernel-space</strong> 구현 + <strong style="font-size:1.1em">경량 온도 감지</strong> + CXL을 <strong style="font-size:1.1em">main memory tier</strong>로(swap 아님).<br><br>왜 PEBS/IPT가 아닌가:<br>- <strong style="font-size:1.1em">PEBS</strong>: CPU 벤더 간 <strong style="font-size:1.1em">비표준</strong>, counter 제한, 상시 구동 부담 $\rightarrow$ TPP의 always-on 컴포넌트로 부적합.<br>- <strong style="font-size:1.1em">IPT/poisoning</strong>: accessed bit clear + TLB flush로 고빈도 감시 시 심한 slowdown.<br>- <strong style="font-size:1.1em">Thermostat</strong>[31]: 2MB huge-page 전용 $\rightarrow$ TPP 목표(<strong style="font-size:1.1em">page-size agnostic</strong>)에 안 맞음.<br><br>TPP의 선택:<br>- <strong style="font-size:1.1em">CXL-node의 hot 감지</strong> = NUMA Balancing의 <strong style="font-size:1.1em">minor page fault(NUMA hint fault)</strong>만 활용 $\rightarrow$ 오버헤드 낮게.<br>- <strong style="font-size:1.1em">local node의 cold 감지</strong> = Linux 기존 <strong style="font-size:1.1em">LRU</strong>로 충분(가상 zero-overhead).<br><br>(프로파일링 툴 Chameleon은 PEBS 기반이지만 이는 <strong style="font-size:1.1em">오프라인 특성화용</strong>이지 TPP의 런타임 경로가 아님.)</div><details class="ng-original"><summary>Original <span class="ng-loc">§4, p.6-7</span></summary>
@@ -234,7 +246,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1600px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">평가 셋업: FPGA CXL 1.1 + 2:1/1:4 config</span>
   </div>
   <div class="ng-body"><div class="ng-content">Linux v5.12에 TPP 통합. <strong style="font-size:1.1em">Pre-production x86 CPU + FPGA 기반 CXL 1.1</strong> 확장 카드 — CXL-Memory가 OS에 <strong style="font-size:1.1em">CPU-less NUMA node</strong>로 노출(현 FPGA 카드는 목표보다 ~250ns 높은 지연이라 기능 검증용). 성능 평가는 CXL 특성을 흉내낸 <strong style="font-size:1.1em">dual-socket</strong>(한 socket을 CPU-less memory node로)으로도 수행. baseline은 한 socket에 전 메모리를 몰아 <strong style="font-size:1.1em">all-local ideal</strong> 구성.<br><br>두 메모리 config (local:CXL 용량):<br>- <strong style="font-size:1.1em">2:1</strong>: 현 production 유사 — local이 hot working set 담당.<br>- <strong style="font-size:1.1em">1:4</strong>: 스트레스 — hot의 <strong style="font-size:1.1em">일부만</strong> local에 들어가 hot이 CXL로 강제됨.<br><br>metric = app throughput(주) + <strong style="font-size:1.1em">local node 트래픽 비율</strong>(보조). Meta 4 workload(Web/Cache/DataWarehouse/Ads). 실험에 disk swap 없음.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6, p.9</span></summary>
@@ -242,7 +254,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_015" style="--color:#9B59B6;border-radius:2px;left:1180px;top:1760px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">성과: ideal &lt;1%, Linux 18%, trapped hot의 대가 7×</span>
   </div>
   <div class="ng-body"><div class="ng-content">TPP는 hot을 local에 유지해 all-local ideal에 근접.<br><br>- <strong style="font-size:1.1em">Web1 (2:1)</strong>: default Linux는 local 비우기가 <strong style="font-size:1.1em">44× 느려</strong> 새 allocation이 CXL에 영구 정착 $\rightarrow$ local 트래픽 22%, throughput <strong style="font-size:1.1em">16.5%↓</strong>. TPP는 local 90%, 드롭 <strong style="font-size:1.1em">0.5%</strong>.<br>- <strong style="font-size:1.1em">Cache1/Cache2 (2:1)</strong>: default 3%·2% 드롭을 TPP가 99.9%·99.6%로 회복.<br>- <strong style="font-size:1.1em">Cache1 (1:4)</strong>: local 용량 20%로도 TPP는 hot anon 97%를 local로 $\rightarrow$ 트래픽 85%, 드롭 <strong style="font-size:1.1em">0.5%</strong>.<br>- <strong style="font-size:1.1em">Cache2 (1:4)</strong>: default <strong style="font-size:1.1em">18% loss</strong>(anon 14%만 local). TPP는 hot anon 80% 회복, CXL 트래픽 41%여도 드롭 <strong style="font-size:1.1em">5%</strong>.<br>- <strong style="font-size:1.1em">CXL 지연 변동</strong>: default는 hot의 22-25%가 CXL에 갇혀 avg 지연 <strong style="font-size:1.1em">7×</strong>, throughput loss <strong style="font-size:1.1em">2.2-2.8×</strong>(vs TPP). TPP는 4-5%만 CXL.<br><br>steady-state migration <strong style="font-size:1.1em">4-16MB/s(1-4K pages/s)</strong> — CXL 링크 대역폭보다 훨씬 낮음.</div><details class="ng-original"><summary>Original <span class="ng-loc">§6.1.3, p.10</span></summary>
@@ -250,7 +262,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_016" style="--color:#9B59B6;border-radius:2px;left:1180px;top:1920px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">SOTA 비교 + 컴포넌트 기여 (NUMA/AutoTiering/TMO)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">vs NUMA Balancing</strong>: local 압박 시 promotion 정지 $\rightarrow$ Web1 throughput <strong style="font-size:1.1em">17.2%↓</strong>(reclamation 42×·promotion 11× 느림, local 20%만); Cache1 1:4 local 46%, 10%↓.<br><br><strong style="font-size:1.1em">vs AutoTiering</strong>: 1:4에서 <strong style="font-size:1.1em">크래시</strong>(warmup 후 쿼리 시). 2:1에서도 TPP가 46% 작은 local로도 <strong style="font-size:1.1em">7% 우위</strong>.<br><br><strong style="font-size:1.1em">vs / with TMO</strong>: <strong style="font-size:1.1em">orthogonal·complementary</strong>. TPP가 zswap을 <strong style="font-size:1.1em">demote-then-swap 2단계</strong>로 만들어 semi-hot에 second chance $\rightarrow$ TMO의 process stall <strong style="font-size:1.1em">30%↓</strong>, memory saving <strong style="font-size:1.1em">3%↑</strong>. 반대로 TMO는 free headroom을 만들어 TPP migration 실패율 <strong style="font-size:1.1em">20$\rightarrow$5 pages/s</strong>.<br><br><strong style="font-size:1.1em">컴포넌트 기여</strong>(Cache1 1:4 case study):<br>- <strong style="font-size:1.1em">decoupling 없으면</strong> promotion 거의 정지(CXL trapped page 55% 트래픽 $\rightarrow$ 12%↓).<br>- <strong style="font-size:1.1em">active-LRU</strong> promotion: rate 11×↓, 성공률 48%↑.<br>- <strong style="font-size:1.1em">page-type-aware</strong>: Table 2대로 local 트래픽↑.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
@@ -258,7 +270,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_017" style="--color:#BDC3C7;border-radius:22px;left:1180px;top:2080px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">TPP vs SkyByte: software 배치 vs hardware 마이그레이션</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">TPP와 [[SkyByte]]는 <strong style="font-size:1.1em">같은 문제(hot/cold 배치)를 다른 층에서</strong> 푼다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th></th><th>TPP (ASPLOS'23)</th><th>SkyByte (HPCA'25)</th></tr></thead><tbody><tr><td>배치 주체</td><td><strong style="font-size:1.1em">OS/software</strong> (kernel)</td><td><strong style="font-size:1.1em">하드웨어</strong> (디바이스 내부)</td></tr><tr><td>온도 감지</td><td>minor page fault + LRU</td><td>HW counter</td></tr><tr><td>대상</td><td>CXL tiered-memory(Type-3)</td><td>memory-semantic <strong style="font-size:1.1em">CXL-SSD</strong></td></tr><tr><td>마이그레이션</td><td>async demotion + NUMA-balance promote</td><td>HW-assisted adaptive migration</td></tr><tr><td>비교 관계</td><td>—</td><td><strong style="font-size:1.1em">SkyByte-CT = TPP류 OS baseline</strong></td></tr></tbody></table></div><div class="ng-seg"><br>★ SkyByte는 자신의 adaptive migration을 <strong style="font-size:1.1em">TPP-style OS baseline(SkyByte-CT)</strong>과 겨룬다. 즉 TPP는 SkyByte가 &quot;왜 마이그레이션을 HW로 내렸나&quot;의 <strong style="font-size:1.1em">반대편 극단</strong> — OS가 온도·이주를 전담하고 디바이스는 dumb memory. 내 발표축 &quot;SSD 이중역할 × transparent co-design&quot;에서 <strong style="font-size:1.1em">software 끝</strong>을 표시하는 좌표.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -266,14 +278,14 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_018" data-children="node_020" style="--color:#1ABC9C;border-radius:22px;left:1180px;top:2240px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향: single-host 전제 — multi-node coherence가 빈칸</span>
   </div>
   <div class="ng-body"><div class="ng-content">TPP는 <strong style="font-size:1.1em">single-host</strong> tiered memory(한 host의 local↔CXL NUMA node)만 다룬다. page-temperature도, LRU도, watermark도, PG_demoted도 전부 <strong style="font-size:1.1em">단일 host 물리주소 공간</strong> 안 이야기다.<br><br>내 방향(<strong style="font-size:1.1em">multi-node CXL coherence</strong>)이 채울 빈칸: CXL tier가 <strong style="font-size:1.1em">여러 host에 공유(pooling)</strong>되는 순간 —<br>- <strong style="font-size:1.1em">온도 모델 붕괴</strong>: page 온도가 host마다 달라 배치 결정이 충돌. minor page fault는 <strong style="font-size:1.1em">remote host의 접근을 못 봄</strong>.<br>- <strong style="font-size:1.1em">promotion의 stale 문제</strong>: host A가 hot page를 자기 local로 promote(사본 생성)하면 host B는 <strong style="font-size:1.1em">stale</strong>를 봄 $\rightarrow$ cross-host invalidation 필요(<strong style="font-size:1.1em">CXL 3.0 back-invalidate / HDM-DB</strong>). TPP엔 없음.<br>- <strong style="font-size:1.1em">소유권</strong>: 공유 page의 demote/promote 권한을 누가 갖나?<br><br>즉 TPP의 '기법'(demotion·watermark·active-LRU)은 재사용하되 '문제 정의'를 <strong style="font-size:1.1em">single$\rightarrow$multi host</strong>로 다시 세우는 게 gap.</div></div>
 </div>
 <div class="ng-node" id="node-node_019" style="--color:#E5A835;border-radius:22px;left:1710px;top:1120px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 20%,transparent);color:#E5A835">Question</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">왜 'trap이 hot page를 가두는가': instant promotion의 함정</span>
   </div>
   <div class="ng-body"><div class="ng-content">default NUMA Balancing이 CXL 시스템에서 실패하는 근본 이유를 한 겹 더 파면:<br><br>기본 정책은 NUMA hint fault가 나면 <strong style="font-size:1.1em">active 상태 확인 없이 즉시 promote</strong>한다. CXL-node는 항상 압박 상태가 아니라, faulted page가 <strong style="font-size:1.1em">inactive LRU</strong>에 머물러 있어도 promotion 필터를 그냥 통과한다 $\rightarrow$ 드물게 쓰는 page까지 올라간다. 올라간 page는 곧 demotion 후보가 돼 다시 내려가는 <strong style="font-size:1.1em">ping-pong</strong>을 만들고, 이 불필요 트래픽이 local free space를 잠식해 진짜 hot page를 밀어낸다.<br><br>반대로 promotion을 아예 끄면 <strong style="font-size:1.1em">hot page가 CXL에 영영 갇힌다(trapped)</strong>. 두 실패 사이의 좁은 길을 TPP는 <strong style="font-size:1.1em">active-LRU 필터 + inactive→active 승격 후 지연 promote</strong>(hysteresis)로 통과한다. 이 tension이 TPP §5.3의 존재 이유.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.8</span></summary>
@@ -281,14 +293,14 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_020" style="--color:#1ABC9C;border-radius:22px;left:1710px;top:2240px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">공유 CXL tier에서 TPP의 온도/배치가 깨지는 지점</span>
   </div>
   <div class="ng-body"><div class="ng-content">구체 시나리오로 gap을 못박으면 — host A·B가 같은 CXL memory pool을 공유한다.<br><br>1. <strong style="font-size:1.1em">온도의 지역성 붕괴</strong>: A에겐 cold인 page가 B에겐 hot일 수 있다. TPP는 각 host가 자기 minor page fault로 온도를 재므로 <strong style="font-size:1.1em">한 host의 view만</strong> 반영 $\rightarrow$ A가 demote한 page를 B가 즉시 재접근.<br>2. <strong style="font-size:1.1em">promotion = 사본 = coherence 부담</strong>: A가 pool의 hot page를 자기 local DRAM으로 promote하면 물리 사본이 생긴다. 공유 전제에선 B가 그 page를 어떻게 보나? $\rightarrow$ <strong style="font-size:1.1em">directory/back-invalidate</strong>(CXL 3.0 HDM-DB)가 필요.<br>3. <strong style="font-size:1.1em">watermark의 무의미화</strong>: local free headroom은 host-local 개념 — pool 차원 압박 조율은 미정의.<br><br>$\rightarrow$ TPP의 kernel 메커니즘을 <strong style="font-size:1.1em">pool-aware coherent placement</strong>로 승격하는 것이 [[SkyByte]] 대비 내 차별점. (→ [[CXL Multi-node Coherence]], [[CXL Overview]])</div></div>
 </div>
 <div class="ng-node" id="node-node_021" style="--color:#BDC3C7;border-radius:22px;left:100px;top:100px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🏛️ 학회: ASPLOS = cross-layer(OS+arch) co-design 보상</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Venue-first anchor</strong> — ASPLOS taste는 <strong style="font-size:1.1em">arch+OS+PL을 가로지르는 co-design</strong>을 보상하고, &quot;한 층만 건드림·계층이 얕음&quot;을 찌른다.<br><br>TPP가 이 축에 정합하는 방식: 새 하드웨어를 만드는 대신 <strong style="font-size:1.1em">Linux 커널 memory management 전체(reclaim 경로·NUMA Balancing·zone watermark·LRU)를 CXL tiering용으로 재설계</strong>한다. 즉 <strong style="font-size:1.1em">하드웨어 특성</strong>(CXL-Memory = CPU-less NUMA node, DRAM $+50\text{-}100$ns tier)과 <strong style="font-size:1.1em">OS 메커니즘</strong>을 한 번에 맞물리는 cross-layer 작업 — arch가 만든 새 tier를 OS가 어떻게 투명하게 품는가.<br><br>또 ASPLOS/OSDI 계열이 좋아하는 <strong style="font-size:1.1em">real-system 실측</strong>(Meta production + FPGA CXL 1.1 + Linux v5.18 머지)까지 갖춰, &quot;계층 얕음&quot; 공격을 정면으로 방어한다.<br><br>$\rightarrow$ 아래 ✅/⚠️는 모두 <strong style="font-size:1.1em">이 cross-layer 축(HW tier 특성 ↔ OS 배치 메커니즘)</strong> 위에서 판단한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -296,7 +308,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_022" style="--color:#E74C3C;border-radius:2px;left:100px;top:380px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">✅ 잘한 점: 앱 수정·사전지식 0 — 커널 릴리스로 전역 배포 (practical impact)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">cross-layer 축의 강점 1 — transparency &amp; deployability.</strong> TPP는 application 수정도, 접근 패턴 사전지식도 요구하지 않고 <strong style="font-size:1.1em">kernel-space 안에서</strong> hot/cold 배치를 끝낸다. 그 결과 특정 앱 튜닝이 아니라 <strong style="font-size:1.1em">커널 릴리스 하나로 전역(hyperscale) 배포</strong> 가능하고, 실제로 패치 대부분이 <strong style="font-size:1.1em">Linux v5.18에 머지</strong>됐다.<br><br>reviewer가 좋게 볼 지점: novelty(새 tier용 OS 재설계)뿐 아니라 <strong style="font-size:1.1em">practical impact/배포성</strong> — ASPLOS·OSDI가 보상하는 real-system 완결성. 앱별 profiler나 ISA 변경을 요구하는 경쟁작 대비 배포 장벽이 결정적으로 낮다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -304,7 +316,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_023" style="--color:#E74C3C;border-radius:2px;left:100px;top:660px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">✅ 잘한 점: 경량 reactive demotion + decoupled promotion (기존 프리미티브 재조합)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">cross-layer 축의 강점 2 — 새 HW 없이 커널 프리미티브를 재조합해 ping-pong 제거.</strong><br><br>- <strong style="font-size:1.1em">경량 demotion</strong>: reclaim 후보를 swap 대신 별도 list로 CXL-node에 <strong style="font-size:1.1em">비동기 migration</strong> — NUMA node로의 migration은 swapping보다 <strong style="font-size:1.1em">orders of magnitude 빠르고</strong>, demoted page가 in-memory라 load/store 접근 유지(major fault 회피).<br>- <strong style="font-size:1.1em">decoupled path + active-LRU promotion</strong>: alloc/reclaim watermark 분리로 local free headroom을 유지하고, active-LRU에 있을 때만 promote해 hysteresis 부여.<br><br>reviewer가 좋게 볼 지점: <strong style="font-size:1.1em">evaluation depth</strong> — active-LRU가 promotion rate <strong style="font-size:1.1em">11×↓</strong>, 성공률 <strong style="font-size:1.1em">48%↑</strong>로 각 컴포넌트 기여를 ablation으로 못박음. &quot;단순 조합&quot; 공격을 정량 근거로 방어.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.1, p.7</span></summary>
@@ -312,7 +324,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_024" style="--color:#E74C3C;border-radius:2px;left:100px;top:940px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">✅ 잘한 점: Meta 4개 production 워크로드 × FPGA CXL 1.1 실측 (합성 아님)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">cross-layer 축의 강점 3 — real-system 실측.</strong> 합성 벤치가 아니라 <strong style="font-size:1.1em">Meta의 live production workload 4종</strong>(Web/Cache/DataWarehouse/Ads)을 <strong style="font-size:1.1em">pre-production x86 + FPGA 기반 CXL 1.1</strong> 실기(CXL-Memory가 CPU-less NUMA node로 노출)에서 평가.<br><br>결과: all-local ideal 대비 <strong style="font-size:1.1em">&lt;1% gap</strong>, default Linux 대비 <strong style="font-size:1.1em">18%</strong>, NUMA Balancing·AutoTiering 대비 <strong style="font-size:1.1em">5-17%</strong> 개선.<br><br>reviewer가 좋게 볼 지점: <strong style="font-size:1.1em">generalization 우려 완화</strong> — 다양한 production 도메인에서 재현되므로 &quot;특정 마이크로벤치에만 통함&quot; 공격이 약해진다. ASPLOS가 특히 보상하는 arch(새 tier)↔OS(배치)↔실측의 삼각 완결성.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -320,28 +332,28 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_025" style="--color:#1ABC9C;border-radius:22px;left:100px;top:1220px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">⚠️ 아쉬운 점: single-host tier만 — CXL의 진짜 매력(pooling)은 밖</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">reviewer 질문</strong>: &quot;CXL 3.0의 결정적 가치는 <strong style="font-size:1.1em">multi-host memory pooling</strong>(같은 학회의 Pond 등)인데, TPP는 <strong style="font-size:1.1em">한 host의 local↔CXL NUMA node</strong>만 다룬다. page-temperature·watermark·LRU가 전부 단일 host 물리주소 공간 이야기라, pool로 확장하면 host마다 온도가 충돌하지 않나? cross-layer라면서 정작 multi-node 계층은 왜 비었나?&quot;<br><br><strong style="font-size:1.1em">저자 방어</strong>: 논문 scope를 명시적으로 single-host tiered memory로 한정했고, multi-tenant/QoS는 §7 future work로 인정한다. FPGA도 CXL 1.1(pooling 이전)이라 범위상 자연스럽다.<br><br><strong style="font-size:1.1em">남는 구조적 한계</strong>: pooling coherence는 언급조차 없음 — scope 한정이 곧 이 축의 미해결을 지운 건 아니다(→ 🧭 내 연구).</div></div>
 </div>
 <div class="ng-node" id="node-node_026" style="--color:#1ABC9C;border-radius:22px;left:100px;top:1500px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">⚠️ 아쉬운 점: reactive(사후 감지) — 예측이 아님</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">reviewer 질문</strong>: &quot;온도 감지가 minor page fault + LRU 기반의 <strong style="font-size:1.1em">reactive</strong> 메커니즘이다. trapped hot page를 <strong style="font-size:1.1em">사후에</strong> 감지해 이주하므로, 접근이 급변하는 구간(Web은 cold의 80%가 10분 내 재접근)에서 promotion이 늦고, 저자 스스로 active-LRU 도입 시 수렴에 <strong style="font-size:1.1em">5분 더</strong> 걸린다고 보고한다(§6.2). 왜 예측적 prefetch/placement는 안 했나? latency-critical burst엔 취약하지 않나?&quot;<br><br><strong style="font-size:1.1em">저자 방어</strong>: 접근 패턴이 <strong style="font-size:1.1em">수분~수시간 안정적</strong>(§3)이라 reactive로 충분하며, 예측은 PEBS류 상시 프로파일링이 필요해 <strong style="font-size:1.1em">page-size agnostic·저오버헤드</strong> 목표와 상충한다.<br><br><strong style="font-size:1.1em">남는 한계</strong>: 안정 가정이 깨지는 워크로드(짧고 뜨거운 burst, shifting working set)에선 reactive 지연이 그대로 비용. RL/예측 배치([[ArtMem]])가 겨냥하는 빈틈.</div></div>
 </div>
 <div class="ng-node" id="node-node_027" style="--color:#1ABC9C;border-radius:22px;left:100px;top:1780px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">⚠️ 아쉬운 점: page-temperature/LRU가 shared CXL tier에서 깨짐</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">reviewer 질문</strong>: &quot;active-LRU·watermark·minor-page-fault 온도 모델은 전부 <strong style="font-size:1.1em">단일 host 물리주소 공간</strong> 전제다. CXL 3.0 pooling에서 <strong style="font-size:1.1em">remote host의 접근은 이 host의 page fault를 발생시키지 않으므로</strong> 온도가 안 잡히고, promotion이 만든 <strong style="font-size:1.1em">로컬 물리 사본</strong>은 다른 host에 <strong style="font-size:1.1em">stale</strong>를 노출한다. 이 모델이 공유 tier에서 성립하나?&quot;<br><br><strong style="font-size:1.1em">저자 방어</strong>: 본 논문 대상은 CXL 1.1 single-host tier이며 cross-host coherence는 out of scope.<br><br><strong style="font-size:1.1em">남는 구조적 한계</strong>: 온도의 지역성 붕괴 + promotion=사본=coherence 부담은 관점 P(단일 host) 때문에 구조적으로 남는다 → <strong style="font-size:1.1em">cross-host invalidation(CXL 3.0 back-invalidate/HDM-DB)</strong> 없이는 pool에서 재설계 불가피(→ 🧭 내 연구).</div></div>
 </div>
 <div class="ng-node" id="node-node_028" style="--color:#E5A835;border-radius:22px;left:100px;top:2060px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 20%,transparent);color:#E5A835">Question</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🔀 왜 promotion/demotion 경로를 decouple했나 (vs alloc-halt / swap)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">갈림길</strong> — local이 찰 때 어떻게 free를 확보하고 새 할당·promotion을 받나:<br>- <strong style="font-size:1.1em">(A)</strong> default Linux처럼 free가 low 아래면 <strong style="font-size:1.1em">새 allocation을 halt</strong>하고 reclaim이 high 채우길 기다림(alloc↔reclaim 강결합).<br>- <strong style="font-size:1.1em">(B)</strong> reclaim을 <strong style="font-size:1.1em">swap</strong>으로(TMO식 page-out).<br>- <strong style="font-size:1.1em">(C)</strong> <strong style="font-size:1.1em">allocation_watermark와 demotion_watermark를 분리</strong> — free가 demotion_watermark까지 background reclaim, 새 alloc은 별도 watermark만 넘으면 진행. 게다가 swap 대신 async migration.<br><br><strong style="font-size:1.1em">저자가 고른 것 = C</strong>, 이유: (A)는 고할당률에서 reclaim이 못 따라가 page가 CXL로 몰림; (B)는 매 접근이 major fault라 CXL의 load/store 가치를 잃음. <strong style="font-size:1.1em">C만</strong> 짧고 뜨거운 새 할당을 local에 직접 매핑하면서 <strong style="font-size:1.1em">동시에</strong> CXL의 trapped hot page promotion을 받을 <strong style="font-size:1.1em">free headroom</strong>을 남긴다.<br><br><strong style="font-size:1.1em">저자가 안 판 갈래</strong>: watermark가 host-local 개념 — <strong style="font-size:1.1em">pool 차원 압박 조율</strong>은 미정의(=gap).</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, p.8</span></summary>
@@ -349,7 +361,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_029" style="--color:#E5A835;border-radius:22px;left:100px;top:2340px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 20%,transparent);color:#E5A835">Question</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🔀 왜 기존 NUMA Balancing 재사용했나 (vs 새 HW 카운터 / PEBS)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">갈림길</strong> — CXL-node의 hot page를 무엇으로 감지·승격하나:<br>- <strong style="font-size:1.1em">(A)</strong> 새 <strong style="font-size:1.1em">HW 온도 카운터/디바이스 로직</strong>(SkyByte식 hardware-assisted migration).<br>- <strong style="font-size:1.1em">(B)</strong> <strong style="font-size:1.1em">PEBS/IPT user-space 프로파일러</strong>를 상시 구동.<br>- <strong style="font-size:1.1em">(C)</strong> 이미 커널에 있는 <strong style="font-size:1.1em">NUMA Balancing(AutoNUMA)의 minor page fault</strong>를 <strong style="font-size:1.1em">CXL-node 전용 + active-LRU 필터</strong>로 증강.<br><br><strong style="font-size:1.1em">저자가 고른 것 = C</strong>, 이유: PEBS는 CPU 벤더 간 <strong style="font-size:1.1em">비표준</strong>·상시 부담, IPT는 accessed-bit clear + TLB flush로 고빈도 감시 시 slowdown, 둘 다 page-size에 종속. NUMA Balancing은 이미 transparent·저오버헤드·<strong style="font-size:1.1em">page-size agnostic</strong>. 단 default의 결함(active 상태 무시 instant promote)을 <strong style="font-size:1.1em">active-LRU hysteresis</strong>로 보정.<br><br><strong style="font-size:1.1em">저자가 안 판 갈래</strong>: (A) HW로 내리는 길 = [[SkyByte]], 예측/<strong style="font-size:1.1em">RL 정책</strong> 배치 = [[ArtMem]]. 즉 C는 &quot;기존 OS 프리미티브 재사용&quot;이라는 보수적·배포친화 선택.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.8</span></summary>
@@ -357,7 +369,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_030" style="--color:#95A5A6;border-radius:22px;left:100px;top:2620px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 20%,transparent);color:#95A5A6">Reference</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">📐 P/L: default Linux tiering(동종 전제) → ping-pong·trapped (구조적 L)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg"><strong style="font-size:1.1em">기존 관점 P → 구조적 한계 L → TPP의 P″</strong> 분해:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>기존 해법 (default Linux tiering)</th><th>관점 P (문제를 본 렌즈)</th><th>한계 L (P 때문에 남는 구조적 문제)</th></tr></thead><tbody><tr><td>NUMA hint fault 시 <strong style="font-size:1.1em">즉시 promote</strong>; reclaim = <strong style="font-size:1.1em">동기 swap</strong>; alloc↔reclaim <strong style="font-size:1.1em">강결합</strong></td><td>&quot;CXL도 <strong style="font-size:1.1em">동종 DRAM NUMA node</strong>처럼 — 접근되면 곧 hot이니 바로 올리고, local 차면 swap으로 내보낸다&quot; (homogeneous 전제)</td><td>active 상태 무시 promote → <strong style="font-size:1.1em">ping-pong / trapped hot page</strong>; 동기 swap이 느려 그 사이 새 alloc이 <strong style="font-size:1.1em">CXL로 몰려 영구 정착</strong> → suboptimal placement</td></tr><tr><td><strong style="font-size:1.1em">TPP P″</strong></td><td>&quot;CXL은 <strong style="font-size:1.1em">이종(slow) tier</strong> — 온도는 <strong style="font-size:1.1em">active-LRU</strong>로 재고, 경로는 <strong style="font-size:1.1em">decouple</strong>하고, promotion엔 <strong style="font-size:1.1em">hysteresis</strong>를 준다&quot;</td><td>L 해소: <strong style="font-size:1.1em">decoupled path + temperature-aware</strong> promotion으로 trapped/ping-pong 제거</td></tr></tbody></table></div><div class="ng-seg"><br>핵심: L은 &quot;성능 나쁨&quot;이 아니라 <strong style="font-size:1.1em">관점 P(동종 전제)가 만든 구조적 결과</strong> — 그래서 관점을 이종 tier로 바꾼 TPP에서 풀린다. 아래 원문은 P의 핵심 결함(instant promote)을 못박는다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.8</span></summary>
@@ -365,14 +377,14 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_031" style="--color:#BDC3C7;border-radius:22px;left:100px;top:2900px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">📍 위치: OS-only transparent placement의 대표 — SkyByte/ArtMem 좌표</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">TPP는 tiered-memory 배치 문제를 <strong style="font-size:1.1em">OS/software 층에서 투명하게</strong> 푸는 <strong style="font-size:1.1em">대표작</strong>(software 극단). 같은 문제(hot/cold 배치)를 다른 층·다른 정책으로 푸는 이웃과의 좌표:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>좌표</th><th>배치 주체</th><th>정책 성격</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">TPP</strong> (ASPLOS'23)</td><td><strong style="font-size:1.1em">OS/커널</strong></td><td>reactive heuristic (fault+LRU)</td></tr><tr><td>[[SkyByte]] (HPCA'25)</td><td><strong style="font-size:1.1em">하드웨어</strong>(디바이스 내부)</td><td>HW-assisted adaptive migration</td></tr><tr><td>[[ArtMem]]</td><td>OS+학습</td><td><strong style="font-size:1.1em">RL</strong> 기반 adaptive migration</td></tr></tbody></table></div><div class="ng-seg"><br>★ <strong style="font-size:1.1em">비교 관계</strong>: [[SkyByte]]는 자신의 adaptive migration을 <strong style="font-size:1.1em">TPP류 OS baseline(SkyByte-CT)</strong>과 겨룬다 — TPP는 &quot;왜 migration을 HW로 내렸나&quot;의 <strong style="font-size:1.1em">반대편 극단</strong>. [[ArtMem]]은 TPP의 <strong style="font-size:1.1em">reactive heuristic을 학습 정책으로 대체</strong>하는 인접 좌표. 즉 축은 <strong style="font-size:1.1em">reactive OS heuristic(TPP) ↔ HW migration(SkyByte) ↔ RL policy(ArtMem)</strong>. 내 발표축 &quot;SSD 이중역할 × transparent co-design&quot;에서 TPP = <strong style="font-size:1.1em">software 끝</strong>.</div></div></div>
 </div>
 <div class="ng-node" id="node-node_032" style="--color:#1ABC9C;border-radius:22px;left:100px;top:3180px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🧭 내 연구: per-host 온도 → shared CXL tier의 cross-host coherence P′</span>
   </div>
   <div class="ng-body"><div class="ng-content">TPP의 page-temperature·watermark·active-LRU·PG_demoted는 전부 <strong style="font-size:1.1em">single-host 물리주소 공간</strong> 전제(=refs의 L). 내 관점 <strong style="font-size:1.1em">P′ = CXL tier가 여러 host에 공유될 때의 cross-host 간섭/coherence</strong>.<br><br>공유 pool에서 P′가 드러내는 것:<br>- host A가 cold로 판단해 demote한 page를 <strong style="font-size:1.1em">host B가 즉시 재접근</strong> → per-host 온도가 충돌.<br>- A의 promotion이 만든 <strong style="font-size:1.1em">로컬 사본</strong>이 B에 <strong style="font-size:1.1em">stale</strong> 노출 → <strong style="font-size:1.1em">cross-host invalidation(CXL 3.0 back-invalidate / HDM-DB)</strong> 필요, TPP엔 없음.<br><br>$\rightarrow$ TPP의 <strong style="font-size:1.1em">기법</strong>(경량 demotion·decoupled watermark·active-LRU)은 재사용하되, <strong style="font-size:1.1em">문제 정의를 single→multi host로</strong> 다시 세워 <strong style="font-size:1.1em">pool-aware coherent placement</strong>로 승격하는 것이 gap. (P′는 refs의 L=single-host 전제에서 직접 유도됨.) (→ [[SkyByte]], [[CXL Multi-node Coherence]])</div></div>
@@ -384,9 +396,23 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
   <span id="lightbox-close" onclick="closeLightbox()">✕</span>
 </div>
 <script>
-var NODES_DATA = [{"id":"node_001","lx":660,"ly":300,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":300,"searchText":"killer application tpp가 푸는 문제: cxl-memory가 os에 **cpu-less numa node**로 보이는 tiered-memory에서, **application 수정·사전지식 없이** hot page는 빠른 local memory에, cold page는 느린 cxl-memory에 두는 **os-level 투명 페이지 배치(transparent page placement)**를 kernel 안에서 실현하는 것.\n\n**killer application 1 — hot page가 느린 tier에 갇히는(trapped) 문제 해결**: 기본 linux는 page의 active 상태를 안 보고 즉시 promote해 왕복(ping-pong)을 만들고, 동기 reclamation이 새 할당을 cxl로 밀어낸다. tpp는 이 두 병목을 없애 hot을 local에 유지.\n\n**killer application 2 — 경량·범용 온도 감지**: 무거운 pebs/ipt 대신 **minor page fault + kernel lru**로 거의 zero-overhead, **page-size agnostic** 온도 감지.\n\n**killer application 3 — production 배포 가능성**: meta 4개 workload를 fpga cxl 1.1 실기에서 검증, 패치 대부분이 **linux v5.18에 머지** — 커널 릴리스로 전역 배포 가능.\n\n결과: all-local ideal baseline과 **<1% gap**, default linux 대비 **최대 18%**, numa balancing·autotiering 대비 **5-17%** 개선. we propose a novel os-level application-transparent page placement mechanism (tpp) for cxl-enabled memory. tpp employs a lightweight mechanism to identify and place hot/cold pages to appropriate memory tiers."},{"id":"node_002","lx":660,"ly":600,"children":["node_007","node_008","node_021","node_030"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":600,"searchText":"필요한 이유 (why it's needed) 메모리는 meta rack의 **tco 최대 33.3% · power 37.1%**로 커졌고(fig.3), homogeneous 서버 설계는 cpu-memory **강결합** 탓에 세대·용량·대역폭이 경직돼 stranded 자원을 낳는다.\n\n**cxl**[7]은 이를 풀어 dram-like 대역폭 + cache-line granular 접근의 **중간 지연 tier**(dram 대비 $+50\\text{-}100$ns, $\\approx 170\\text{-}250$ns)를 만든다 — sw엔 cpu-less numa node로 보인다.\n\n그런데 **linux 메모리 관리는 동종 dram-only 전제**라 cxl tier에서 부진하다. 두 근원:\n\n**(1) 동기 reclamation**: local node가 차면 reclamation(swap page-out)이 critical path에서 돌고, 느린 그 동안 새 allocation이 **cxl-node로 몰려** 영구 정착.\n\n**(2) trapped hot pages / ping-pong**: 기본 numa balancing이 active 상태 확인 없이 **즉시 promote** $\\rightarrow$ hot page가 cxl에 갇히거나 왕복.\n\ndatacenter workload는 2분 내 할당의 **55-80%가 idle**이라 tiering 여지는 충분하다. linux's memory management mechanism is designed for homogeneous cpu-attached dram-only systems and performs poorly on cxl-memory system."},{"id":"node_003","lx":660,"ly":900,"children":["node_009","node_010","node_011","node_012","node_013","node_028","node_029"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":900,"searchText":"해결책 (solution) tpp는 'hotter' page를 local에, 'colder' page를 cxl-memory에 두는 **kernel-space** 메커니즘. 설계공간 **4축**(§5) + 저비용 온도 감지(§4):\n\n**(a) 경량 demotion(§5.1)**: reclamation 후보를 swap 대신 별도 demotion list로 모아 cxl-node로 **비동기 migration**(swapping보다 수 order 빠름). inactive부터 스캔.\n\n**(b) alloc/reclaim 분리(§5.2)**: '**reclamation 정지**' watermark와 '**새 allocation**' watermark를 분리 — free가 **demotion_watermark**까지 background reclaim, 새 allocation은 **allocation_watermark**만 넘으면 진행 $\\rightarrow$ local에 **free headroom** 유지.\n\n**(c) active-lru promotion(§5.3)**: numa balancing 증강, **cxl-node만 sampling**. faulted page가 **active lru에 있을 때만** promote $\\rightarrow$ ping-pong에 **hysteresis** 부여.\n\n**(d) page-type-aware allocation(§5.4)**: **file cache/tmpfs는 cxl 우선**, **anon은 local** 선호.\n\n**온도 감지(§4)**: pebs/ipt 대신 **minor page fault + lru**로 page-size agnostic·저오버헤드. tpp places 'hotter' pages in local memory and moves 'colder' pages in cxl-memory. tpp's design-space can be divided across four main areas – (a) lightweight demotion to cxl-memory, (b) decoupled allocation and reclamation paths, (c) hot-page promotion to local nodes, and (d) page type-aware memory allocation."},{"id":"node_004","lx":660,"ly":1200,"children":["node_014","node_015","node_016","node_022","node_023","node_024","node_025","node_026","node_027"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1200,"searchText":"결과 (results) linux v5.12에 통합. pre-production x86 + **fpga cxl 1.1** 확장 카드(cxl-memory가 cpu-less numa node로 노출). meta 4개 production workload(web/cache/datawarehouse/ads). 두 config: **2:1**(production 유사), **1:4**(스트레스).\n\n| 항목 | 결과 |\n|---|---|\n| ideal all-local 대비 | **<1% gap** |\n| default linux 대비 | **최대 18%** |\n| numa balancing·autotiering 대비 | **5-17%** |\n| web1 2:1 default linux | local 22% $\\rightarrow$ throughput **16.5%↓** (tpp는 0.5%↓) |\n| cache2 1:4 default linux | **18% throughput loss** (tpp는 5%↓) |\n| cxl 지연 변동 시 default | avg latency **7×**, loss **2.2-2.8×** vs tpp |\n| active-lru promotion | promotion rate **11×↓**, 성공률 **48%↑** |\n\ndefault는 hot의 22-25%를 cxl에 가두지만 tpp는 4-5%만. steady-state migration **4-16mb/s**로 cpu 부담 미미. tpp makes a tiered memory system performant as an ideal baseline (<1% gap) that has all the memory in the local tier. it is 18% better than today's linux, and 5–17% better than existing solutions including numa balancing and autotiering."},{"id":"node_005","lx":660,"ly":1500,"children":["node_017","node_018","node_031","node_032"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1500,"searchText":"결론 (conclusion) tpp는 cxl-memory를 **한 host의 cpu-less numa node**로 보는 tiered-memory에서, 사전지식 없이 hot/cold를 투명하게 배치하는 os-level 메커니즘이다. 경량 demotion·alloc/reclaim 분리·active-lru promotion·page-type-aware allocation으로 all-local ideal에 근접(<1%), sota 대비 5-17% 개선하며 **linux v5.18에 머지**돼 실전 배포된 첫 end-to-end cxl-memory 시스템으로 자평.\n\n**의의**: os/software 쪽 transparent placement의 대표작. [[skybyte]](hpca'25)는 같은 hot/cold 배치를 **디바이스 하드웨어**에서 하며, 그 대조군 **skybyte-ct**가 바로 tpp류 os baseline.\n\n**한계 / 열린 질문**: (1) **single-host** local↔cxl만 다룸 — cxl tier가 여러 host에 **공유(pooling)**되면 per-host 온도 모델이 깨짐. (2) promotion이 만든 로컬 사본이 공유 시 다른 host에 **stale**를 노출(cross-host invalidation 부재). (3) multi-tenant qos·bandwidth-expansion은 future로만 언급. we design tpp, an os-level transparent page placement mechanism that works without any prior knowledge on applications' memory access behavior."},{"id":"node_006","lx":1180,"ly":180,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":180,"searchText":"chameleon 관측: anon>file 온도 · 55-80% idle (배치의 근거) tpp 설계의 실증 토대는 **chameleon**(경량 user-space 특성화 툴, pebs 기반, cpu 오버헤드 코어당 **3-5%**)로 얻은 meta 4-workload 관측이다.\n\n- **55-80% idle**: 2분 interval 안에 할당 메모리의 절반 이상이 놀고 있음 $\\rightarrow$ cxl로 offload 여지 큼.\n- **page type별 온도 차**: **anon page가 file page보다 뜨겁다**(web: anon 35-60% hot vs file 3-14% hot) $\\rightarrow$ **page-type-aware allocation의 근거**.\n- **시간 안정성**: 접근 패턴이 수분~수시간 안정 $\\rightarrow$ kernel에서 배치 결정 가능.\n- **재접근**: web은 cold의 80%가 10분 내 재접근 $\\rightarrow$ 무작위 offload 위험 $\\rightarrow$ promotion 필요.\n- **동적성**: (de)alloc으로 hot↔cold가 빠르게 뒤집힘 $\\rightarrow$ **정적 배치는 성능 악화**. a large fraction of anon pages is hot, while file pages are comparatively colder within short intervals."},{"id":"node_007","lx":1180,"ly":480,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":480,"searchText":"trapped hot pages · ping-pong: default linux의 핵심 병목 tpp 동기의 심장. 기본 linux의 두 결함:\n\n**(1) 동기 reclamation이 cxl로 밀어냄**: local이 차면 reclamation이 swap page-out을 critical path에서 수행 $\\rightarrow$ 느려서 그 동안 새 allocation이 **cxl-node로 몰려 영구 정착**. web1에서 default는 local 비우기가 tpp보다 **44× 느림**.\n\n**(2) 상태 무시 promotion $\\rightarrow$ ping-pong**: numa hint fault 시 default numa balancing이 page의 **active 상태를 안 보고 즉시 promote** $\\rightarrow$ 드물게 쓰는 page도 올라가 곧 demotion 후보가 되는 왕복. 반대로 promotion이 아예 없으면 hot page가 **cxl에 영영 갇힘(trapped)**.\n\n결과: default linux는 hot의 22-25%를 cxl에 가둬 avg 지연 **7×**, throughput loss **2.2-2.8×**(vs tpp). when a numa hint fault happens on a page, default numa balancing instantly promotes the page without checking its active state."},{"id":"node_008","lx":1180,"ly":660,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":660,"searchText":"선행/비교: numa balancing · autotiering · tmo · thermostat tpp의 좌표를 정하는 핵심 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **numa balancing (autonuma)** [22] | tpp promotion의 토대 — minor page fault(numa hint fault). tpp가 이를 cxl 전용·active-lru로 증강 |\n| **autotiering** (kim et al., atc'21) [47] | 주요 비교 대상 — background migration+numa balance이나 **alloc/reclaim 미분리**, timer 기반 hot 감지 비효율. 1:4에서 크래시 |\n| **tmo** (weiner et al., asplos'22) [73] | **orthogonal·complementary** — swap 기반 offload. tpp가 zswap을 demote-then-swap 2단계로 만들어 상호 보강 |\n| **thermostat** (agarwal & wenisch, asplos'17) [31] | 2mb huge-page 전용 transparent 관리 — tpp의 page-size-agnostic 목표와 대비 |\n| **pond** (li et al., asplos'23) [52] | multi-host **cxl memory pooling** — 내 multi-node 방향의 인접작 | we compare tpp against linux's default numa balancing, autotiering, and tmo."},{"id":"node_009","lx":1180,"ly":800,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":800,"searchText":"§5.1 경량 demotion: swap이 아닌 async migration local node가 차면 기본 reclamation은 **swap으로 page-out** $\\rightarrow$ 느려서 그 동안 새 allocation이 cxl-node로 몰린다.\n\ntpp는 reclamation 후보를 swap 대신 **별도 demotion list**에 넣어 cxl-node로 **비동기 migration**한다 — numa node로의 migration은 swapping보다 **수 order 빠르다**. demoted page는 여전히 in-memory라 load/store로 접근 가능(swap의 major fault 회피).\n\n**inactive page부터** 스캔해 hot page가 실수로 내려갈 확률을 낮춤. migration 실패(예: cxl-node 저메모리) 시 기본 reclamation으로 fallback. 다중 cxl-node면 cpu 거리 기반 **static 선택**으로 충분. instead of invoking swapping mechanism, we put them into a separate demotion list and try to migrate them to the cxl-node asynchronously."},{"id":"node_010","lx":1180,"ly":960,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":960,"searchText":"§5.2 alloc/reclaim 분리: watermark로 free headroom 유지 linux는 zone별 min/low/high watermark를 둔다. free가 low 아래면 reclamation 시작 + 새 allocation은 high 채울 때까지 **정지(halt)** $\\rightarrow$ 고할당률에서 reclamation이 못 따라가 cxl로 page가 몰린다.\n\ntpp는 '**reclamation 정지**'와 '**새 allocation 발생**' 로직을 **분리**:\n\n$$demotion\\_watermark > allocation\\_watermark > low\\_watermark$$\n\n- free가 **demotion_watermark**에 닿을 때까지 background reclamation을 계속 돌린다.\n- 새 allocation은 **allocation_watermark**만 만족하면 진행.\n- 항상 더 많이 reclaim해 local에 **free headroom** 유지 $\\rightarrow$ (1) 짧고 뜨거운 새 할당을 local에 직접, (2) cxl의 trapped hot page promotion 수용.\n\n공격성은 **/proc/sys/vm/demote_scale_factor**(기본 **2%**)로 조절. 효과: local allocation rate 95%tile **1.6×**. we decouple the logic of 'reclamation stop' and 'new allocation happen' mechanism. we continue the asynchronous background reclamation process on local node until its total number of free pages reaches demotion_watermark, while new allocation can happen if the free page count satisfies a different watermark – allocation_watermark."},{"id":"node_011","lx":1180,"ly":1120,"children":["node_019"],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1120,"searchText":"§5.3 active-lru promotion: ping-pong에 hysteresis 압박으로 cxl에 간 page나 나중에 hot 된 demoted page를 안 올리면 hot이 **cxl에 갇힌다(trapped)**. tpp는 **numa balancing을 증강** — kernel task가 각 node의 일부(기본 256mb)를 샘플, remote 접근 시 numa hint fault로 promote. 단 local의 hot을 옮기는 건 무의미하므로 **cxl-node만 sampling**(hint fault 오버헤드 절감).\n\n**ping-pong 해결**: faulted page의 **lru age**를 본다 — **active lru에 있을 때만** promotion 후보(무조건 promote 금지). inactive면 accessed 표시 후 active로 옮기고 **다음** hint fault 때 승격 $\\rightarrow$ **hysteresis** 부여. anon/file 별도 lru라 type별 promotion rate 차등 $\\rightarrow$ 수렴 가속.\n\n효과: promotion rate **11×↓**, demote-후-재promote **50%↓**, promotion 성공률 **48%↑**(수렴은 5분 더 소요). we consider the faulted page as a promotion candidate only if it is found in the active lrus. this significantly reduces the promotion traffic."},{"id":"node_012","lx":1180,"ly":1280,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1280,"searchText":"§5.4 page-type-aware allocation: file→cxl, anon→local 관측(chameleon): **anon이 file보다 뜨겁다**. 그런데 production app은 warmup 중 file i/o로 잘 안 쓰이는 file cache를 많이 만들고, 이게 **local을 점유해 anon을 cxl로 밀어낸다**(나중에 promote 필요).\n\n해결: 선택적 정책으로 **file cache/tmpfs를 cxl-node에 우선 할당**, **anon은 local 정책 유지**. hot 된 file cache는 promotion 후보가 되면 나중에 local로 올림.\n\n효과: 작은 local + 크고 싼 cxl 구성에서도 all-local 성능 유지(table 2): web1 2:1 **local 97%/throughput 99.5%**, cache1 1:4 **85%/99.8%**, cache2 1:4 **72%/98.5%**. we allow an application allocating caches (e.g., file cache, tmpfs, etc.) to the cxl-nodes preferrably, while preserving the allocation policy for anon pages."},{"id":"node_013","lx":1180,"ly":1440,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1440,"searchText":"§4 온도 감지: minor page fault + lru (pebs 아님) 설계 3질문의 답 = **kernel-space** 구현 + **경량 온도 감지** + cxl을 **main memory tier**로(swap 아님).\n\n왜 pebs/ipt가 아닌가:\n- **pebs**: cpu 벤더 간 **비표준**, counter 제한, 상시 구동 부담 $\\rightarrow$ tpp의 always-on 컴포넌트로 부적합.\n- **ipt/poisoning**: accessed bit clear + tlb flush로 고빈도 감시 시 심한 slowdown.\n- **thermostat**[31]: 2mb huge-page 전용 $\\rightarrow$ tpp 목표(**page-size agnostic**)에 안 맞음.\n\ntpp의 선택:\n- **cxl-node의 hot 감지** = numa balancing의 **minor page fault(numa hint fault)**만 활용 $\\rightarrow$ 오버헤드 낮게.\n- **local node의 cold 감지** = linux 기존 **lru**로 충분(가상 zero-overhead).\n\n(프로파일링 툴 chameleon은 pebs 기반이지만 이는 **오프라인 특성화용**이지 tpp의 런타임 경로가 아님.) when designing tpp, we chose to only leverage minor page fault as a temperature detection mechanism for cxl-memory. as cxl-memory is expected to hold warm and cold pages, this will keep the overhead of temperature detection low."},{"id":"node_014","lx":1180,"ly":1600,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1600,"searchText":"평가 셋업: fpga cxl 1.1 + 2:1/1:4 config linux v5.12에 tpp 통합. **pre-production x86 cpu + fpga 기반 cxl 1.1** 확장 카드 — cxl-memory가 os에 **cpu-less numa node**로 노출(현 fpga 카드는 목표보다 ~250ns 높은 지연이라 기능 검증용). 성능 평가는 cxl 특성을 흉내낸 **dual-socket**(한 socket을 cpu-less memory node로)으로도 수행. baseline은 한 socket에 전 메모리를 몰아 **all-local ideal** 구성.\n\n두 메모리 config (local:cxl 용량):\n- **2:1**: 현 production 유사 — local이 hot working set 담당.\n- **1:4**: 스트레스 — hot의 **일부만** local에 들어가 hot이 cxl로 강제됨.\n\nmetric = app throughput(주) + **local node 트래픽 비율**(보조). meta 4 workload(web/cache/datawarehouse/ads). 실험에 disk swap 없음. we deploy a number of pre-production x86 cpus with fpga-based cxl-memory expansion card that support cxl 1.1 specification. memory attached to the expansion card shows up to the os as a cpu-less numa node."},{"id":"node_015","lx":1180,"ly":1760,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1760,"searchText":"성과: ideal <1%, linux 18%, trapped hot의 대가 7× tpp는 hot을 local에 유지해 all-local ideal에 근접.\n\n- **web1 (2:1)**: default linux는 local 비우기가 **44× 느려** 새 allocation이 cxl에 영구 정착 $\\rightarrow$ local 트래픽 22%, throughput **16.5%↓**. tpp는 local 90%, 드롭 **0.5%**.\n- **cache1/cache2 (2:1)**: default 3%·2% 드롭을 tpp가 99.9%·99.6%로 회복.\n- **cache1 (1:4)**: local 용량 20%로도 tpp는 hot anon 97%를 local로 $\\rightarrow$ 트래픽 85%, 드롭 **0.5%**.\n- **cache2 (1:4)**: default **18% loss**(anon 14%만 local). tpp는 hot anon 80% 회복, cxl 트래픽 41%여도 드롭 **5%**.\n- **cxl 지연 변동**: default는 hot의 22-25%가 cxl에 갇혀 avg 지연 **7×**, throughput loss **2.2-2.8×**(vs tpp). tpp는 4-5%만 cxl.\n\nsteady-state migration **4-16mb/s(1-4k pages/s)** — cxl 링크 대역폭보다 훨씬 낮음. this increases the average memory access latency by 7× for default linux. this, eventually, impact the application-level performance, default linux experiences 2.2−2.8× higher throughput loss over tpp."},{"id":"node_016","lx":1180,"ly":1920,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1920,"searchText":"sota 비교 + 컴포넌트 기여 (numa/autotiering/tmo) **vs numa balancing**: local 압박 시 promotion 정지 $\\rightarrow$ web1 throughput **17.2%↓**(reclamation 42×·promotion 11× 느림, local 20%만); cache1 1:4 local 46%, 10%↓.\n\n**vs autotiering**: 1:4에서 **크래시**(warmup 후 쿼리 시). 2:1에서도 tpp가 46% 작은 local로도 **7% 우위**.\n\n**vs / with tmo**: **orthogonal·complementary**. tpp가 zswap을 **demote-then-swap 2단계**로 만들어 semi-hot에 second chance $\\rightarrow$ tmo의 process stall **30%↓**, memory saving **3%↑**. 반대로 tmo는 free headroom을 만들어 tpp migration 실패율 **20$\\rightarrow$5 pages/s**.\n\n**컴포넌트 기여**(cache1 1:4 case study):\n- **decoupling 없으면** promotion 거의 정지(cxl trapped page 55% 트래픽 $\\rightarrow$ 12%↓).\n- **active-lru** promotion: rate 11×↓, 성공률 48%↑.\n- **page-type-aware**: table 2대로 local 트래픽↑. tpp outperforms both of them by 5–17%."},{"id":"node_017","lx":1180,"ly":2080,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2080,"searchText":"tpp vs skybyte: software 배치 vs hardware 마이그레이션 tpp와 [[skybyte]]는 **같은 문제(hot/cold 배치)를 다른 층에서** 푼다.\n\n| | tpp (asplos'23) | skybyte (hpca'25) |\n|---|---|---|\n| 배치 주체 | **os/software** (kernel) | **하드웨어** (디바이스 내부) |\n| 온도 감지 | minor page fault + lru | hw counter |\n| 대상 | cxl tiered-memory(type-3) | memory-semantic **cxl-ssd** |\n| 마이그레이션 | async demotion + numa-balance promote | hw-assisted adaptive migration |\n| 비교 관계 | — | **skybyte-ct = tpp류 os baseline** |\n\n★ skybyte는 자신의 adaptive migration을 **tpp-style os baseline(skybyte-ct)**과 겨룬다. 즉 tpp는 skybyte가 \"왜 마이그레이션을 hw로 내렸나\"의 **반대편 극단** — os가 온도·이주를 전담하고 디바이스는 dumb memory. 내 발표축 \"ssd 이중역할 × transparent co-design\"에서 **software 끝**을 표시하는 좌표. tpp works transparently without any application-specific knowledge and can be deployed globally as a kernel release."},{"id":"node_018","lx":1180,"ly":2240,"children":["node_020"],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2240,"searchText":"내 연구방향: single-host 전제 — multi-node coherence가 빈칸 tpp는 **single-host** tiered memory(한 host의 local↔cxl numa node)만 다룬다. page-temperature도, lru도, watermark도, pg_demoted도 전부 **단일 host 물리주소 공간** 안 이야기다.\n\n내 방향(**multi-node cxl coherence**)이 채울 빈칸: cxl tier가 **여러 host에 공유(pooling)**되는 순간 —\n- **온도 모델 붕괴**: page 온도가 host마다 달라 배치 결정이 충돌. minor page fault는 **remote host의 접근을 못 봄**.\n- **promotion의 stale 문제**: host a가 hot page를 자기 local로 promote(사본 생성)하면 host b는 **stale**를 봄 $\\rightarrow$ cross-host invalidation 필요(**cxl 3.0 back-invalidate / hdm-db**). tpp엔 없음.\n- **소유권**: 공유 page의 demote/promote 권한을 누가 갖나?\n\n즉 tpp의 '기법'(demotion·watermark·active-lru)은 재사용하되 '문제 정의'를 **single$\\rightarrow$multi host**로 다시 세우는 게 gap. "},{"id":"node_019","lx":1710,"ly":1120,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1120,"searchText":"왜 'trap이 hot page를 가두는가': instant promotion의 함정 default numa balancing이 cxl 시스템에서 실패하는 근본 이유를 한 겹 더 파면:\n\n기본 정책은 numa hint fault가 나면 **active 상태 확인 없이 즉시 promote**한다. cxl-node는 항상 압박 상태가 아니라, faulted page가 **inactive lru**에 머물러 있어도 promotion 필터를 그냥 통과한다 $\\rightarrow$ 드물게 쓰는 page까지 올라간다. 올라간 page는 곧 demotion 후보가 돼 다시 내려가는 **ping-pong**을 만들고, 이 불필요 트래픽이 local free space를 잠식해 진짜 hot page를 밀어낸다.\n\n반대로 promotion을 아예 끄면 **hot page가 cxl에 영영 갇힌다(trapped)**. 두 실패 사이의 좁은 길을 tpp는 **active-lru 필터 + inactive→active 승격 후 지연 promote**(hysteresis)로 통과한다. 이 tension이 tpp §5.3의 존재 이유. without any promotion mechanism, hot pages will always be trapped in cxl-nodes and hurt application performance."},{"id":"node_020","lx":1710,"ly":2240,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2240,"searchText":"공유 cxl tier에서 tpp의 온도/배치가 깨지는 지점 구체 시나리오로 gap을 못박으면 — host a·b가 같은 cxl memory pool을 공유한다.\n\n1. **온도의 지역성 붕괴**: a에겐 cold인 page가 b에겐 hot일 수 있다. tpp는 각 host가 자기 minor page fault로 온도를 재므로 **한 host의 view만** 반영 $\\rightarrow$ a가 demote한 page를 b가 즉시 재접근.\n2. **promotion = 사본 = coherence 부담**: a가 pool의 hot page를 자기 local dram으로 promote하면 물리 사본이 생긴다. 공유 전제에선 b가 그 page를 어떻게 보나? $\\rightarrow$ **directory/back-invalidate**(cxl 3.0 hdm-db)가 필요.\n3. **watermark의 무의미화**: local free headroom은 host-local 개념 — pool 차원 압박 조율은 미정의.\n\n$\\rightarrow$ tpp의 kernel 메커니즘을 **pool-aware coherent placement**로 승격하는 것이 [[skybyte]] 대비 내 차별점. (→ [[cxl multi-node coherence]], [[cxl overview]]) "},{"id":"node_021","lx":100,"ly":100,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"searchText":"🏛️ 학회: asplos = cross-layer(os+arch) co-design 보상 **venue-first anchor** — asplos taste는 **arch+os+pl을 가로지르는 co-design**을 보상하고, \"한 층만 건드림·계층이 얕음\"을 찌른다.\n\ntpp가 이 축에 정합하는 방식: 새 하드웨어를 만드는 대신 **linux 커널 memory management 전체(reclaim 경로·numa balancing·zone watermark·lru)를 cxl tiering용으로 재설계**한다. 즉 **하드웨어 특성**(cxl-memory = cpu-less numa node, dram $+50\\text{-}100$ns tier)과 **os 메커니즘**을 한 번에 맞물리는 cross-layer 작업 — arch가 만든 새 tier를 os가 어떻게 투명하게 품는가.\n\n또 asplos/osdi 계열이 좋아하는 **real-system 실측**(meta production + fpga cxl 1.1 + linux v5.18 머지)까지 갖춰, \"계층 얕음\" 공격을 정면으로 방어한다.\n\n$\\rightarrow$ 아래 ✅/⚠️는 모두 **이 cross-layer 축(hw tier 특성 ↔ os 배치 메커니즘)** 위에서 판단한다. we propose a novel os-level application-transparent page placement mechanism (tpp) for cxl-enabled memory."},{"id":"node_022","lx":100,"ly":380,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":380,"searchText":"✅ 잘한 점: 앱 수정·사전지식 0 — 커널 릴리스로 전역 배포 (practical impact) **cross-layer 축의 강점 1 — transparency & deployability.** tpp는 application 수정도, 접근 패턴 사전지식도 요구하지 않고 **kernel-space 안에서** hot/cold 배치를 끝낸다. 그 결과 특정 앱 튜닝이 아니라 **커널 릴리스 하나로 전역(hyperscale) 배포** 가능하고, 실제로 패치 대부분이 **linux v5.18에 머지**됐다.\n\nreviewer가 좋게 볼 지점: novelty(새 tier용 os 재설계)뿐 아니라 **practical impact/배포성** — asplos·osdi가 보상하는 real-system 완결성. 앱별 profiler나 isa 변경을 요구하는 경쟁작 대비 배포 장벽이 결정적으로 낮다. tpp works transparently without any application-specific knowledge and can be deployed globally as a kernel release."},{"id":"node_023","lx":100,"ly":660,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":660,"searchText":"✅ 잘한 점: 경량 reactive demotion + decoupled promotion (기존 프리미티브 재조합) **cross-layer 축의 강점 2 — 새 hw 없이 커널 프리미티브를 재조합해 ping-pong 제거.**\n\n- **경량 demotion**: reclaim 후보를 swap 대신 별도 list로 cxl-node에 **비동기 migration** — numa node로의 migration은 swapping보다 **orders of magnitude 빠르고**, demoted page가 in-memory라 load/store 접근 유지(major fault 회피).\n- **decoupled path + active-lru promotion**: alloc/reclaim watermark 분리로 local free headroom을 유지하고, active-lru에 있을 때만 promote해 hysteresis 부여.\n\nreviewer가 좋게 볼 지점: **evaluation depth** — active-lru가 promotion rate **11×↓**, 성공률 **48%↑**로 각 컴포넌트 기여를 ablation으로 못박음. \"단순 조합\" 공격을 정량 근거로 방어. migration to a numa node is orders of magnitude faster than swapping."},{"id":"node_024","lx":100,"ly":940,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":940,"searchText":"✅ 잘한 점: meta 4개 production 워크로드 × fpga cxl 1.1 실측 (합성 아님) **cross-layer 축의 강점 3 — real-system 실측.** 합성 벤치가 아니라 **meta의 live production workload 4종**(web/cache/datawarehouse/ads)을 **pre-production x86 + fpga 기반 cxl 1.1** 실기(cxl-memory가 cpu-less numa node로 노출)에서 평가.\n\n결과: all-local ideal 대비 **<1% gap**, default linux 대비 **18%**, numa balancing·autotiering 대비 **5-17%** 개선.\n\nreviewer가 좋게 볼 지점: **generalization 우려 완화** — 다양한 production 도메인에서 재현되므로 \"특정 마이크로벤치에만 통함\" 공격이 약해진다. asplos가 특히 보상하는 arch(새 tier)↔os(배치)↔실측의 삼각 완결성. an ideal baseline (<1% gap) that has all the memory in the local tier."},{"id":"node_025","lx":100,"ly":1220,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1220,"searchText":"⚠️ 아쉬운 점: single-host tier만 — cxl의 진짜 매력(pooling)은 밖 **reviewer 질문**: \"cxl 3.0의 결정적 가치는 **multi-host memory pooling**(같은 학회의 pond 등)인데, tpp는 **한 host의 local↔cxl numa node**만 다룬다. page-temperature·watermark·lru가 전부 단일 host 물리주소 공간 이야기라, pool로 확장하면 host마다 온도가 충돌하지 않나? cross-layer라면서 정작 multi-node 계층은 왜 비었나?\"\n\n**저자 방어**: 논문 scope를 명시적으로 single-host tiered memory로 한정했고, multi-tenant/qos는 §7 future work로 인정한다. fpga도 cxl 1.1(pooling 이전)이라 범위상 자연스럽다.\n\n**남는 구조적 한계**: pooling coherence는 언급조차 없음 — scope 한정이 곧 이 축의 미해결을 지운 건 아니다(→ 🧭 내 연구). "},{"id":"node_026","lx":100,"ly":1500,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1500,"searchText":"⚠️ 아쉬운 점: reactive(사후 감지) — 예측이 아님 **reviewer 질문**: \"온도 감지가 minor page fault + lru 기반의 **reactive** 메커니즘이다. trapped hot page를 **사후에** 감지해 이주하므로, 접근이 급변하는 구간(web은 cold의 80%가 10분 내 재접근)에서 promotion이 늦고, 저자 스스로 active-lru 도입 시 수렴에 **5분 더** 걸린다고 보고한다(§6.2). 왜 예측적 prefetch/placement는 안 했나? latency-critical burst엔 취약하지 않나?\"\n\n**저자 방어**: 접근 패턴이 **수분~수시간 안정적**(§3)이라 reactive로 충분하며, 예측은 pebs류 상시 프로파일링이 필요해 **page-size agnostic·저오버헤드** 목표와 상충한다.\n\n**남는 한계**: 안정 가정이 깨지는 워크로드(짧고 뜨거운 burst, shifting working set)에선 reactive 지연이 그대로 비용. rl/예측 배치([[artmem]])가 겨냥하는 빈틈. "},{"id":"node_027","lx":100,"ly":1780,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1780,"searchText":"⚠️ 아쉬운 점: page-temperature/lru가 shared cxl tier에서 깨짐 **reviewer 질문**: \"active-lru·watermark·minor-page-fault 온도 모델은 전부 **단일 host 물리주소 공간** 전제다. cxl 3.0 pooling에서 **remote host의 접근은 이 host의 page fault를 발생시키지 않으므로** 온도가 안 잡히고, promotion이 만든 **로컬 물리 사본**은 다른 host에 **stale**를 노출한다. 이 모델이 공유 tier에서 성립하나?\"\n\n**저자 방어**: 본 논문 대상은 cxl 1.1 single-host tier이며 cross-host coherence는 out of scope.\n\n**남는 구조적 한계**: 온도의 지역성 붕괴 + promotion=사본=coherence 부담은 관점 p(단일 host) 때문에 구조적으로 남는다 → **cross-host invalidation(cxl 3.0 back-invalidate/hdm-db)** 없이는 pool에서 재설계 불가피(→ 🧭 내 연구). "},{"id":"node_028","lx":100,"ly":2060,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2060,"searchText":"🔀 왜 promotion/demotion 경로를 decouple했나 (vs alloc-halt / swap) **갈림길** — local이 찰 때 어떻게 free를 확보하고 새 할당·promotion을 받나:\n- **(a)** default linux처럼 free가 low 아래면 **새 allocation을 halt**하고 reclaim이 high 채우길 기다림(alloc↔reclaim 강결합).\n- **(b)** reclaim을 **swap**으로(tmo식 page-out).\n- **(c)** **allocation_watermark와 demotion_watermark를 분리** — free가 demotion_watermark까지 background reclaim, 새 alloc은 별도 watermark만 넘으면 진행. 게다가 swap 대신 async migration.\n\n**저자가 고른 것 = c**, 이유: (a)는 고할당률에서 reclaim이 못 따라가 page가 cxl로 몰림; (b)는 매 접근이 major fault라 cxl의 load/store 가치를 잃음. **c만** 짧고 뜨거운 새 할당을 local에 직접 매핑하면서 **동시에** cxl의 trapped hot page promotion을 받을 **free headroom**을 남긴다.\n\n**저자가 안 판 갈래**: watermark가 host-local 개념 — **pool 차원 압박 조율**은 미정의(=gap). to achieve that, we decouple the logic of 'reclamation stop' and 'new allocation happen' mechanism."},{"id":"node_029","lx":100,"ly":2340,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2340,"searchText":"🔀 왜 기존 numa balancing 재사용했나 (vs 새 hw 카운터 / pebs) **갈림길** — cxl-node의 hot page를 무엇으로 감지·승격하나:\n- **(a)** 새 **hw 온도 카운터/디바이스 로직**(skybyte식 hardware-assisted migration).\n- **(b)** **pebs/ipt user-space 프로파일러**를 상시 구동.\n- **(c)** 이미 커널에 있는 **numa balancing(autonuma)의 minor page fault**를 **cxl-node 전용 + active-lru 필터**로 증강.\n\n**저자가 고른 것 = c**, 이유: pebs는 cpu 벤더 간 **비표준**·상시 부담, ipt는 accessed-bit clear + tlb flush로 고빈도 감시 시 slowdown, 둘 다 page-size에 종속. numa balancing은 이미 transparent·저오버헤드·**page-size agnostic**. 단 default의 결함(active 상태 무시 instant promote)을 **active-lru hysteresis**로 보정.\n\n**저자가 안 판 갈래**: (a) hw로 내리는 길 = [[skybyte]], 예측/**rl 정책** 배치 = [[artmem]]. 즉 c는 \"기존 os 프리미티브 재사용\"이라는 보수적·배포친화 선택. to promote such pages, we augment linux's numa balancing."},{"id":"node_030","lx":100,"ly":2620,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2620,"searchText":"📐 p/l: default linux tiering(동종 전제) → ping-pong·trapped (구조적 l) **기존 관점 p → 구조적 한계 l → tpp의 p″** 분해:\n\n| 기존 해법 (default linux tiering) | 관점 p (문제를 본 렌즈) | 한계 l (p 때문에 남는 구조적 문제) |\n|---|---|---|\n| numa hint fault 시 **즉시 promote**; reclaim = **동기 swap**; alloc↔reclaim **강결합** | \"cxl도 **동종 dram numa node**처럼 — 접근되면 곧 hot이니 바로 올리고, local 차면 swap으로 내보낸다\" (homogeneous 전제) | active 상태 무시 promote → **ping-pong / trapped hot page**; 동기 swap이 느려 그 사이 새 alloc이 **cxl로 몰려 영구 정착** → suboptimal placement |\n| **tpp p″** | \"cxl은 **이종(slow) tier** — 온도는 **active-lru**로 재고, 경로는 **decouple**하고, promotion엔 **hysteresis**를 준다\" | l 해소: **decoupled path + temperature-aware** promotion으로 trapped/ping-pong 제거 |\n\n핵심: l은 \"성능 나쁨\"이 아니라 **관점 p(동종 전제)가 만든 구조적 결과** — 그래서 관점을 이종 tier로 바꾼 tpp에서 풀린다. 아래 원문은 p의 핵심 결함(instant promote)을 못박는다. when a numa hint fault happens on a page, default numa balancing instantly promotes the page without checking its active state."},{"id":"node_031","lx":100,"ly":2900,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2900,"searchText":"📍 위치: os-only transparent placement의 대표 — skybyte/artmem 좌표 tpp는 tiered-memory 배치 문제를 **os/software 층에서 투명하게** 푸는 **대표작**(software 극단). 같은 문제(hot/cold 배치)를 다른 층·다른 정책으로 푸는 이웃과의 좌표:\n\n| 좌표 | 배치 주체 | 정책 성격 |\n|---|---|---|\n| **tpp** (asplos'23) | **os/커널** | reactive heuristic (fault+lru) |\n| [[skybyte]] (hpca'25) | **하드웨어**(디바이스 내부) | hw-assisted adaptive migration |\n| [[artmem]] | os+학습 | **rl** 기반 adaptive migration |\n\n★ **비교 관계**: [[skybyte]]는 자신의 adaptive migration을 **tpp류 os baseline(skybyte-ct)**과 겨룬다 — tpp는 \"왜 migration을 hw로 내렸나\"의 **반대편 극단**. [[artmem]]은 tpp의 **reactive heuristic을 학습 정책으로 대체**하는 인접 좌표. 즉 축은 **reactive os heuristic(tpp) ↔ hw migration(skybyte) ↔ rl policy(artmem)**. 내 발표축 \"ssd 이중역할 × transparent co-design\"에서 tpp = **software 끝**. "},{"id":"node_032","lx":100,"ly":3180,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":3180,"searchText":"🧭 내 연구: per-host 온도 → shared cxl tier의 cross-host coherence p′ tpp의 page-temperature·watermark·active-lru·pg_demoted는 전부 **single-host 물리주소 공간** 전제(=refs의 l). 내 관점 **p′ = cxl tier가 여러 host에 공유될 때의 cross-host 간섭/coherence**.\n\n공유 pool에서 p′가 드러내는 것:\n- host a가 cold로 판단해 demote한 page를 **host b가 즉시 재접근** → per-host 온도가 충돌.\n- a의 promotion이 만든 **로컬 사본**이 b에 **stale** 노출 → **cross-host invalidation(cxl 3.0 back-invalidate / hdm-db)** 필요, tpp엔 없음.\n\n$\\rightarrow$ tpp의 **기법**(경량 demotion·decoupled watermark·active-lru)은 재사용하되, **문제 정의를 single→multi host로** 다시 세워 **pool-aware coherent placement**로 승격하는 것이 gap. (p′는 refs의 l=single-host 전제에서 직접 유도됨.) (→ [[skybyte]], [[cxl multi-node coherence]]) "}];
+var NODES_DATA = [{"id":"node_001","lx":660,"ly":300,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":300,"title":"Killer Application","content":"TPP가 푸는 문제: CXL-Memory가 OS에 **CPU-less NUMA node**로 보이는 tiered-memory에서, **application 수정·사전지식 없이** hot page는 빠른 local memory에, cold page는 느린 CXL-Memory에 두는 **OS-level 투명 페이지 배치(transparent page placement)**를 kernel 안에서 실현하는 것.\n\n**Killer application 1 — hot page가 느린 tier에 갇히는(trapped) 문제 해결**: 기본 Linux는 page의 active 상태를 안 보고 즉시 promote해 왕복(ping-pong)을 만들고, 동기 reclamation이 새 할당을 CXL로 밀어낸다. TPP는 이 두 병목을 없애 hot을 local에 유지.\n\n**Killer application 2 — 경량·범용 온도 감지**: 무거운 PEBS/IPT 대신 **minor page fault + kernel LRU**로 거의 zero-overhead, **page-size agnostic** 온도 감지.\n\n**Killer application 3 — production 배포 가능성**: Meta 4개 workload를 FPGA CXL 1.1 실기에서 검증, 패치 대부분이 **Linux v5.18에 머지** — 커널 릴리스로 전역 배포 가능.\n\n결과: all-local ideal baseline과 **<1% gap**, default Linux 대비 **최대 18%**, NUMA Balancing·AutoTiering 대비 **5-17%** 개선.","originalTitle":"","originalText":"We propose a novel OS-level application-transparent page placement mechanism (TPP) for CXL-enabled memory. TPP employs a lightweight mechanism to identify and place hot/cold pages to appropriate memory tiers.","toggles":[]},{"id":"node_002","lx":660,"ly":600,"children":["node_007","node_008","node_021","node_030"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":600,"title":"필요한 이유 (Why It's Needed)","content":"메모리는 Meta rack의 **TCO 최대 33.3% · power 37.1%**로 커졌고(Fig.3), homogeneous 서버 설계는 CPU-memory **강결합** 탓에 세대·용량·대역폭이 경직돼 stranded 자원을 낳는다.\n\n**CXL**[7]은 이를 풀어 DRAM-like 대역폭 + cache-line granular 접근의 **중간 지연 tier**(DRAM 대비 $+50\\text{-}100$ns, $\\approx 170\\text{-}250$ns)를 만든다 — SW엔 CPU-less NUMA node로 보인다.\n\n그런데 **Linux 메모리 관리는 동종 DRAM-only 전제**라 CXL tier에서 부진하다. 두 근원:\n\n**(1) 동기 reclamation**: local node가 차면 reclamation(swap page-out)이 critical path에서 돌고, 느린 그 동안 새 allocation이 **CXL-node로 몰려** 영구 정착.\n\n**(2) trapped hot pages / ping-pong**: 기본 NUMA Balancing이 active 상태 확인 없이 **즉시 promote** $\\rightarrow$ hot page가 CXL에 갇히거나 왕복.\n\ndatacenter workload는 2분 내 할당의 **55-80%가 idle**이라 tiering 여지는 충분하다.","originalTitle":"","originalText":"Linux's memory management mechanism is designed for homogeneous CPU-attached DRAM-only systems and performs poorly on CXL-Memory system.","toggles":[]},{"id":"node_003","lx":660,"ly":900,"children":["node_009","node_010","node_011","node_012","node_013","node_028","node_029"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":900,"title":"해결책 (Solution)","content":"TPP는 'hotter' page를 local에, 'colder' page를 CXL-Memory에 두는 **kernel-space** 메커니즘. 설계공간 **4축**(§5) + 저비용 온도 감지(§4):\n\n**(a) 경량 demotion(§5.1)**: reclamation 후보를 swap 대신 별도 demotion list로 모아 CXL-node로 **비동기 migration**(swapping보다 수 order 빠름). inactive부터 스캔.\n\n**(b) Alloc/Reclaim 분리(§5.2)**: '**reclamation 정지**' watermark와 '**새 allocation**' watermark를 분리 — free가 **demotion_watermark**까지 background reclaim, 새 allocation은 **allocation_watermark**만 넘으면 진행 $\\rightarrow$ local에 **free headroom** 유지.\n\n**(c) Active-LRU promotion(§5.3)**: NUMA Balancing 증강, **CXL-node만 sampling**. faulted page가 **active LRU에 있을 때만** promote $\\rightarrow$ ping-pong에 **hysteresis** 부여.\n\n**(d) Page-type-aware allocation(§5.4)**: **file cache/tmpfs는 CXL 우선**, **anon은 local** 선호.\n\n**온도 감지(§4)**: PEBS/IPT 대신 **minor page fault + LRU**로 page-size agnostic·저오버헤드.","originalTitle":"","originalText":"TPP places 'hotter' pages in local memory and moves 'colder' pages in CXL-Memory. TPP's design-space can be divided across four main areas – (a) lightweight demotion to CXL-Memory, (b) decoupled allocation and reclamation paths, (c) hot-page promotion to local nodes, and (d) page type-aware memory allocation.","toggles":[]},{"id":"node_004","lx":660,"ly":1200,"children":["node_014","node_015","node_016","node_022","node_023","node_024","node_025","node_026","node_027"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1200,"title":"결과 (Results)","content":"Linux v5.12에 통합. Pre-production x86 + **FPGA CXL 1.1** 확장 카드(CXL-Memory가 CPU-less NUMA node로 노출). Meta 4개 production workload(Web/Cache/DataWarehouse/Ads). 두 config: **2:1**(production 유사), **1:4**(스트레스).\n\n| 항목 | 결과 |\n|---|---|\n| ideal all-local 대비 | **<1% gap** |\n| default Linux 대비 | **최대 18%** |\n| NUMA Balancing·AutoTiering 대비 | **5-17%** |\n| Web1 2:1 default Linux | local 22% $\\rightarrow$ throughput **16.5%↓** (TPP는 0.5%↓) |\n| Cache2 1:4 default Linux | **18% throughput loss** (TPP는 5%↓) |\n| CXL 지연 변동 시 default | avg latency **7×**, loss **2.2-2.8×** vs TPP |\n| active-LRU promotion | promotion rate **11×↓**, 성공률 **48%↑** |\n\ndefault는 hot의 22-25%를 CXL에 가두지만 TPP는 4-5%만. steady-state migration **4-16MB/s**로 CPU 부담 미미.","originalTitle":"","originalText":"TPP makes a tiered memory system performant as an ideal baseline (<1% gap) that has all the memory in the local tier. It is 18% better than today's Linux, and 5–17% better than existing solutions including NUMA Balancing and AutoTiering.","toggles":[]},{"id":"node_005","lx":660,"ly":1500,"children":["node_017","node_018","node_031","node_032"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1500,"title":"결론 (Conclusion)","content":"TPP는 CXL-Memory를 **한 host의 CPU-less NUMA node**로 보는 tiered-memory에서, 사전지식 없이 hot/cold를 투명하게 배치하는 OS-level 메커니즘이다. 경량 demotion·alloc/reclaim 분리·active-LRU promotion·page-type-aware allocation으로 all-local ideal에 근접(<1%), SOTA 대비 5-17% 개선하며 **Linux v5.18에 머지**돼 실전 배포된 첫 end-to-end CXL-Memory 시스템으로 자평.\n\n**의의**: OS/software 쪽 transparent placement의 대표작. [[SkyByte]](HPCA'25)는 같은 hot/cold 배치를 **디바이스 하드웨어**에서 하며, 그 대조군 **SkyByte-CT**가 바로 TPP류 OS baseline.\n\n**한계 / 열린 질문**: (1) **single-host** local↔CXL만 다룸 — CXL tier가 여러 host에 **공유(pooling)**되면 per-host 온도 모델이 깨짐. (2) promotion이 만든 로컬 사본이 공유 시 다른 host에 **stale**를 노출(cross-host invalidation 부재). (3) multi-tenant QoS·bandwidth-expansion은 future로만 언급.","originalTitle":"","originalText":"we design TPP, an OS-level transparent page placement mechanism that works without any prior knowledge on applications' memory access behavior.","toggles":[]},{"id":"node_006","lx":1180,"ly":180,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":180,"title":"Chameleon 관측: anon>file 온도 · 55-80% idle (배치의 근거)","content":"TPP 설계의 실증 토대는 **Chameleon**(경량 user-space 특성화 툴, PEBS 기반, CPU 오버헤드 코어당 **3-5%**)로 얻은 Meta 4-workload 관측이다.\n\n- **55-80% idle**: 2분 interval 안에 할당 메모리의 절반 이상이 놀고 있음 $\\rightarrow$ CXL로 offload 여지 큼.\n- **page type별 온도 차**: **anon page가 file page보다 뜨겁다**(Web: anon 35-60% hot vs file 3-14% hot) $\\rightarrow$ **page-type-aware allocation의 근거**.\n- **시간 안정성**: 접근 패턴이 수분~수시간 안정 $\\rightarrow$ kernel에서 배치 결정 가능.\n- **재접근**: Web은 cold의 80%가 10분 내 재접근 $\\rightarrow$ 무작위 offload 위험 $\\rightarrow$ promotion 필요.\n- **동적성**: (de)alloc으로 hot↔cold가 빠르게 뒤집힘 $\\rightarrow$ **정적 배치는 성능 악화**.","originalTitle":"","originalText":"a large fraction of anon pages is hot, while file pages are comparatively colder within short intervals.","toggles":[]},{"id":"node_007","lx":1180,"ly":480,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":480,"title":"Trapped hot pages · ping-pong: default Linux의 핵심 병목","content":"TPP 동기의 심장. 기본 Linux의 두 결함:\n\n**(1) 동기 reclamation이 CXL로 밀어냄**: local이 차면 reclamation이 swap page-out을 critical path에서 수행 $\\rightarrow$ 느려서 그 동안 새 allocation이 **CXL-node로 몰려 영구 정착**. Web1에서 default는 local 비우기가 TPP보다 **44× 느림**.\n\n**(2) 상태 무시 promotion $\\rightarrow$ ping-pong**: NUMA hint fault 시 default NUMA Balancing이 page의 **active 상태를 안 보고 즉시 promote** $\\rightarrow$ 드물게 쓰는 page도 올라가 곧 demotion 후보가 되는 왕복. 반대로 promotion이 아예 없으면 hot page가 **CXL에 영영 갇힘(trapped)**.\n\n결과: default Linux는 hot의 22-25%를 CXL에 가둬 avg 지연 **7×**, throughput loss **2.2-2.8×**(vs TPP).","originalTitle":"","originalText":"When a NUMA hint fault happens on a page, default NUMA balancing instantly promotes the page without checking its active state.","toggles":[]},{"id":"node_008","lx":1180,"ly":660,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":660,"title":"선행/비교: NUMA Balancing · AutoTiering · TMO · Thermostat","content":"TPP의 좌표를 정하는 핵심 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **NUMA Balancing (AutoNUMA)** [22] | TPP promotion의 토대 — minor page fault(NUMA hint fault). TPP가 이를 CXL 전용·active-LRU로 증강 |\n| **AutoTiering** (Kim et al., ATC'21) [47] | 주요 비교 대상 — background migration+NUMA balance이나 **alloc/reclaim 미분리**, timer 기반 hot 감지 비효율. 1:4에서 크래시 |\n| **TMO** (Weiner et al., ASPLOS'22) [73] | **orthogonal·complementary** — swap 기반 offload. TPP가 zswap을 demote-then-swap 2단계로 만들어 상호 보강 |\n| **Thermostat** (Agarwal & Wenisch, ASPLOS'17) [31] | 2MB huge-page 전용 transparent 관리 — TPP의 page-size-agnostic 목표와 대비 |\n| **Pond** (Li et al., ASPLOS'23) [52] | multi-host **CXL memory pooling** — 내 multi-node 방향의 인접작 |","originalTitle":"","originalText":"We compare TPP against Linux's default NUMA Balancing, AutoTiering, and TMO.","toggles":[]},{"id":"node_009","lx":1180,"ly":800,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":800,"title":"§5.1 경량 demotion: swap이 아닌 async migration","content":"local node가 차면 기본 reclamation은 **swap으로 page-out** $\\rightarrow$ 느려서 그 동안 새 allocation이 CXL-node로 몰린다.\n\nTPP는 reclamation 후보를 swap 대신 **별도 demotion list**에 넣어 CXL-node로 **비동기 migration**한다 — NUMA node로의 migration은 swapping보다 **수 order 빠르다**. demoted page는 여전히 in-memory라 load/store로 접근 가능(swap의 major fault 회피).\n\n**inactive page부터** 스캔해 hot page가 실수로 내려갈 확률을 낮춤. migration 실패(예: CXL-node 저메모리) 시 기본 reclamation으로 fallback. 다중 CXL-node면 CPU 거리 기반 **static 선택**으로 충분.","originalTitle":"","originalText":"instead of invoking swapping mechanism, we put them into a separate demotion list and try to migrate them to the CXL-node asynchronously.","toggles":[]},{"id":"node_010","lx":1180,"ly":960,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":960,"title":"§5.2 Alloc/Reclaim 분리: watermark로 free headroom 유지","content":"Linux는 zone별 min/low/high watermark를 둔다. free가 low 아래면 reclamation 시작 + 새 allocation은 high 채울 때까지 **정지(halt)** $\\rightarrow$ 고할당률에서 reclamation이 못 따라가 CXL로 page가 몰린다.\n\nTPP는 '**reclamation 정지**'와 '**새 allocation 발생**' 로직을 **분리**:\n\n$$demotion\\_watermark > allocation\\_watermark > low\\_watermark$$\n\n- free가 **demotion_watermark**에 닿을 때까지 background reclamation을 계속 돌린다.\n- 새 allocation은 **allocation_watermark**만 만족하면 진행.\n- 항상 더 많이 reclaim해 local에 **free headroom** 유지 $\\rightarrow$ (1) 짧고 뜨거운 새 할당을 local에 직접, (2) CXL의 trapped hot page promotion 수용.\n\n공격성은 **/proc/sys/vm/demote_scale_factor**(기본 **2%**)로 조절. 효과: local allocation rate 95%tile **1.6×**.","originalTitle":"","originalText":"we decouple the logic of 'reclamation stop' and 'new allocation happen' mechanism. We continue the asynchronous background reclamation process on local node until its total number of free pages reaches demotion_watermark, while new allocation can happen if the free page count satisfies a different watermark – allocation_watermark.","toggles":[]},{"id":"node_011","lx":1180,"ly":1120,"children":["node_019"],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1120,"title":"§5.3 Active-LRU promotion: ping-pong에 hysteresis","content":"압박으로 CXL에 간 page나 나중에 hot 된 demoted page를 안 올리면 hot이 **CXL에 갇힌다(trapped)**. TPP는 **NUMA Balancing을 증강** — kernel task가 각 node의 일부(기본 256MB)를 샘플, remote 접근 시 NUMA hint fault로 promote. 단 local의 hot을 옮기는 건 무의미하므로 **CXL-node만 sampling**(hint fault 오버헤드 절감).\n\n**Ping-pong 해결**: faulted page의 **LRU age**를 본다 — **active LRU에 있을 때만** promotion 후보(무조건 promote 금지). inactive면 accessed 표시 후 active로 옮기고 **다음** hint fault 때 승격 $\\rightarrow$ **hysteresis** 부여. anon/file 별도 LRU라 type별 promotion rate 차등 $\\rightarrow$ 수렴 가속.\n\n효과: promotion rate **11×↓**, demote-후-재promote **50%↓**, promotion 성공률 **48%↑**(수렴은 5분 더 소요).","originalTitle":"","originalText":"We consider the faulted page as a promotion candidate only if it is found in the active LRUs. This significantly reduces the promotion traffic.","toggles":[]},{"id":"node_012","lx":1180,"ly":1280,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1280,"title":"§5.4 Page-type-aware allocation: file→CXL, anon→local","content":"관측(Chameleon): **anon이 file보다 뜨겁다**. 그런데 production app은 warmup 중 file I/O로 잘 안 쓰이는 file cache를 많이 만들고, 이게 **local을 점유해 anon을 CXL로 밀어낸다**(나중에 promote 필요).\n\n해결: 선택적 정책으로 **file cache/tmpfs를 CXL-node에 우선 할당**, **anon은 local 정책 유지**. hot 된 file cache는 promotion 후보가 되면 나중에 local로 올림.\n\n효과: 작은 local + 크고 싼 CXL 구성에서도 all-local 성능 유지(Table 2): Web1 2:1 **local 97%/throughput 99.5%**, Cache1 1:4 **85%/99.8%**, Cache2 1:4 **72%/98.5%**.","originalTitle":"","originalText":"we allow an application allocating caches (e.g., file cache, tmpfs, etc.) to the CXL-nodes preferrably, while preserving the allocation policy for anon pages.","toggles":[]},{"id":"node_013","lx":1180,"ly":1440,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1440,"title":"§4 온도 감지: minor page fault + LRU (PEBS 아님)","content":"설계 3질문의 답 = **kernel-space** 구현 + **경량 온도 감지** + CXL을 **main memory tier**로(swap 아님).\n\n왜 PEBS/IPT가 아닌가:\n- **PEBS**: CPU 벤더 간 **비표준**, counter 제한, 상시 구동 부담 $\\rightarrow$ TPP의 always-on 컴포넌트로 부적합.\n- **IPT/poisoning**: accessed bit clear + TLB flush로 고빈도 감시 시 심한 slowdown.\n- **Thermostat**[31]: 2MB huge-page 전용 $\\rightarrow$ TPP 목표(**page-size agnostic**)에 안 맞음.\n\nTPP의 선택:\n- **CXL-node의 hot 감지** = NUMA Balancing의 **minor page fault(NUMA hint fault)**만 활용 $\\rightarrow$ 오버헤드 낮게.\n- **local node의 cold 감지** = Linux 기존 **LRU**로 충분(가상 zero-overhead).\n\n(프로파일링 툴 Chameleon은 PEBS 기반이지만 이는 **오프라인 특성화용**이지 TPP의 런타임 경로가 아님.)","originalTitle":"","originalText":"when designing TPP, we chose to only leverage minor page fault as a temperature detection mechanism for CXL-Memory. As CXL-Memory is expected to hold warm and cold pages, this will keep the overhead of temperature detection low.","toggles":[]},{"id":"node_014","lx":1180,"ly":1600,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1600,"title":"평가 셋업: FPGA CXL 1.1 + 2:1/1:4 config","content":"Linux v5.12에 TPP 통합. **Pre-production x86 CPU + FPGA 기반 CXL 1.1** 확장 카드 — CXL-Memory가 OS에 **CPU-less NUMA node**로 노출(현 FPGA 카드는 목표보다 ~250ns 높은 지연이라 기능 검증용). 성능 평가는 CXL 특성을 흉내낸 **dual-socket**(한 socket을 CPU-less memory node로)으로도 수행. baseline은 한 socket에 전 메모리를 몰아 **all-local ideal** 구성.\n\n두 메모리 config (local:CXL 용량):\n- **2:1**: 현 production 유사 — local이 hot working set 담당.\n- **1:4**: 스트레스 — hot의 **일부만** local에 들어가 hot이 CXL로 강제됨.\n\nmetric = app throughput(주) + **local node 트래픽 비율**(보조). Meta 4 workload(Web/Cache/DataWarehouse/Ads). 실험에 disk swap 없음.","originalTitle":"","originalText":"We deploy a number of pre-production x86 CPUs with FPGA-based CXL-Memory expansion card that support CXL 1.1 specification. Memory attached to the expansion card shows up to the OS as a CPU-less NUMA node.","toggles":[]},{"id":"node_015","lx":1180,"ly":1760,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1760,"title":"성과: ideal <1%, Linux 18%, trapped hot의 대가 7×","content":"TPP는 hot을 local에 유지해 all-local ideal에 근접.\n\n- **Web1 (2:1)**: default Linux는 local 비우기가 **44× 느려** 새 allocation이 CXL에 영구 정착 $\\rightarrow$ local 트래픽 22%, throughput **16.5%↓**. TPP는 local 90%, 드롭 **0.5%**.\n- **Cache1/Cache2 (2:1)**: default 3%·2% 드롭을 TPP가 99.9%·99.6%로 회복.\n- **Cache1 (1:4)**: local 용량 20%로도 TPP는 hot anon 97%를 local로 $\\rightarrow$ 트래픽 85%, 드롭 **0.5%**.\n- **Cache2 (1:4)**: default **18% loss**(anon 14%만 local). TPP는 hot anon 80% 회복, CXL 트래픽 41%여도 드롭 **5%**.\n- **CXL 지연 변동**: default는 hot의 22-25%가 CXL에 갇혀 avg 지연 **7×**, throughput loss **2.2-2.8×**(vs TPP). TPP는 4-5%만 CXL.\n\nsteady-state migration **4-16MB/s(1-4K pages/s)** — CXL 링크 대역폭보다 훨씬 낮음.","originalTitle":"","originalText":"This increases the average memory access latency by 7× for default Linux. This, eventually, impact the application-level performance, default Linux experiences 2.2−2.8× higher throughput loss over TPP.","toggles":[]},{"id":"node_016","lx":1180,"ly":1920,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1920,"title":"SOTA 비교 + 컴포넌트 기여 (NUMA/AutoTiering/TMO)","content":"**vs NUMA Balancing**: local 압박 시 promotion 정지 $\\rightarrow$ Web1 throughput **17.2%↓**(reclamation 42×·promotion 11× 느림, local 20%만); Cache1 1:4 local 46%, 10%↓.\n\n**vs AutoTiering**: 1:4에서 **크래시**(warmup 후 쿼리 시). 2:1에서도 TPP가 46% 작은 local로도 **7% 우위**.\n\n**vs / with TMO**: **orthogonal·complementary**. TPP가 zswap을 **demote-then-swap 2단계**로 만들어 semi-hot에 second chance $\\rightarrow$ TMO의 process stall **30%↓**, memory saving **3%↑**. 반대로 TMO는 free headroom을 만들어 TPP migration 실패율 **20$\\rightarrow$5 pages/s**.\n\n**컴포넌트 기여**(Cache1 1:4 case study):\n- **decoupling 없으면** promotion 거의 정지(CXL trapped page 55% 트래픽 $\\rightarrow$ 12%↓).\n- **active-LRU** promotion: rate 11×↓, 성공률 48%↑.\n- **page-type-aware**: Table 2대로 local 트래픽↑.","originalTitle":"","originalText":"TPP outperforms both of them by 5–17%.","toggles":[]},{"id":"node_017","lx":1180,"ly":2080,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2080,"title":"TPP vs SkyByte: software 배치 vs hardware 마이그레이션","content":"TPP와 [[SkyByte]]는 **같은 문제(hot/cold 배치)를 다른 층에서** 푼다.\n\n| | TPP (ASPLOS'23) | SkyByte (HPCA'25) |\n|---|---|---|\n| 배치 주체 | **OS/software** (kernel) | **하드웨어** (디바이스 내부) |\n| 온도 감지 | minor page fault + LRU | HW counter |\n| 대상 | CXL tiered-memory(Type-3) | memory-semantic **CXL-SSD** |\n| 마이그레이션 | async demotion + NUMA-balance promote | HW-assisted adaptive migration |\n| 비교 관계 | — | **SkyByte-CT = TPP류 OS baseline** |\n\n★ SkyByte는 자신의 adaptive migration을 **TPP-style OS baseline(SkyByte-CT)**과 겨룬다. 즉 TPP는 SkyByte가 \"왜 마이그레이션을 HW로 내렸나\"의 **반대편 극단** — OS가 온도·이주를 전담하고 디바이스는 dumb memory. 내 발표축 \"SSD 이중역할 × transparent co-design\"에서 **software 끝**을 표시하는 좌표.","originalTitle":"","originalText":"TPP works transparently without any application-specific knowledge and can be deployed globally as a kernel release.","toggles":[]},{"id":"node_018","lx":1180,"ly":2240,"children":["node_020"],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2240,"title":"내 연구방향: single-host 전제 — multi-node coherence가 빈칸","content":"TPP는 **single-host** tiered memory(한 host의 local↔CXL NUMA node)만 다룬다. page-temperature도, LRU도, watermark도, PG_demoted도 전부 **단일 host 물리주소 공간** 안 이야기다.\n\n내 방향(**multi-node CXL coherence**)이 채울 빈칸: CXL tier가 **여러 host에 공유(pooling)**되는 순간 —\n- **온도 모델 붕괴**: page 온도가 host마다 달라 배치 결정이 충돌. minor page fault는 **remote host의 접근을 못 봄**.\n- **promotion의 stale 문제**: host A가 hot page를 자기 local로 promote(사본 생성)하면 host B는 **stale**를 봄 $\\rightarrow$ cross-host invalidation 필요(**CXL 3.0 back-invalidate / HDM-DB**). TPP엔 없음.\n- **소유권**: 공유 page의 demote/promote 권한을 누가 갖나?\n\n즉 TPP의 '기법'(demotion·watermark·active-LRU)은 재사용하되 '문제 정의'를 **single$\\rightarrow$multi host**로 다시 세우는 게 gap.","originalTitle":"","originalText":"","toggles":[]},{"id":"node_019","lx":1710,"ly":1120,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1120,"title":"왜 'trap이 hot page를 가두는가': instant promotion의 함정","content":"default NUMA Balancing이 CXL 시스템에서 실패하는 근본 이유를 한 겹 더 파면:\n\n기본 정책은 NUMA hint fault가 나면 **active 상태 확인 없이 즉시 promote**한다. CXL-node는 항상 압박 상태가 아니라, faulted page가 **inactive LRU**에 머물러 있어도 promotion 필터를 그냥 통과한다 $\\rightarrow$ 드물게 쓰는 page까지 올라간다. 올라간 page는 곧 demotion 후보가 돼 다시 내려가는 **ping-pong**을 만들고, 이 불필요 트래픽이 local free space를 잠식해 진짜 hot page를 밀어낸다.\n\n반대로 promotion을 아예 끄면 **hot page가 CXL에 영영 갇힌다(trapped)**. 두 실패 사이의 좁은 길을 TPP는 **active-LRU 필터 + inactive→active 승격 후 지연 promote**(hysteresis)로 통과한다. 이 tension이 TPP §5.3의 존재 이유.","originalTitle":"","originalText":"Without any promotion mechanism, hot pages will always be trapped in CXL-nodes and hurt application performance.","toggles":[]},{"id":"node_020","lx":1710,"ly":2240,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2240,"title":"공유 CXL tier에서 TPP의 온도/배치가 깨지는 지점","content":"구체 시나리오로 gap을 못박으면 — host A·B가 같은 CXL memory pool을 공유한다.\n\n1. **온도의 지역성 붕괴**: A에겐 cold인 page가 B에겐 hot일 수 있다. TPP는 각 host가 자기 minor page fault로 온도를 재므로 **한 host의 view만** 반영 $\\rightarrow$ A가 demote한 page를 B가 즉시 재접근.\n2. **promotion = 사본 = coherence 부담**: A가 pool의 hot page를 자기 local DRAM으로 promote하면 물리 사본이 생긴다. 공유 전제에선 B가 그 page를 어떻게 보나? $\\rightarrow$ **directory/back-invalidate**(CXL 3.0 HDM-DB)가 필요.\n3. **watermark의 무의미화**: local free headroom은 host-local 개념 — pool 차원 압박 조율은 미정의.\n\n$\\rightarrow$ TPP의 kernel 메커니즘을 **pool-aware coherent placement**로 승격하는 것이 [[SkyByte]] 대비 내 차별점. (→ [[CXL Multi-node Coherence]], [[CXL Overview]])","originalTitle":"","originalText":"","toggles":[]},{"id":"node_021","lx":100,"ly":100,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"title":"🏛️ 학회: ASPLOS = cross-layer(OS+arch) co-design 보상","content":"**Venue-first anchor** — ASPLOS taste는 **arch+OS+PL을 가로지르는 co-design**을 보상하고, \"한 층만 건드림·계층이 얕음\"을 찌른다.\n\nTPP가 이 축에 정합하는 방식: 새 하드웨어를 만드는 대신 **Linux 커널 memory management 전체(reclaim 경로·NUMA Balancing·zone watermark·LRU)를 CXL tiering용으로 재설계**한다. 즉 **하드웨어 특성**(CXL-Memory = CPU-less NUMA node, DRAM $+50\\text{-}100$ns tier)과 **OS 메커니즘**을 한 번에 맞물리는 cross-layer 작업 — arch가 만든 새 tier를 OS가 어떻게 투명하게 품는가.\n\n또 ASPLOS/OSDI 계열이 좋아하는 **real-system 실측**(Meta production + FPGA CXL 1.1 + Linux v5.18 머지)까지 갖춰, \"계층 얕음\" 공격을 정면으로 방어한다.\n\n$\\rightarrow$ 아래 ✅/⚠️는 모두 **이 cross-layer 축(HW tier 특성 ↔ OS 배치 메커니즘)** 위에서 판단한다.","originalTitle":"","originalText":"We propose a novel OS-level application-transparent page placement mechanism (TPP) for CXL-enabled memory.","toggles":[]},{"id":"node_022","lx":100,"ly":380,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":380,"title":"✅ 잘한 점: 앱 수정·사전지식 0 — 커널 릴리스로 전역 배포 (practical impact)","content":"**cross-layer 축의 강점 1 — transparency & deployability.** TPP는 application 수정도, 접근 패턴 사전지식도 요구하지 않고 **kernel-space 안에서** hot/cold 배치를 끝낸다. 그 결과 특정 앱 튜닝이 아니라 **커널 릴리스 하나로 전역(hyperscale) 배포** 가능하고, 실제로 패치 대부분이 **Linux v5.18에 머지**됐다.\n\nreviewer가 좋게 볼 지점: novelty(새 tier용 OS 재설계)뿐 아니라 **practical impact/배포성** — ASPLOS·OSDI가 보상하는 real-system 완결성. 앱별 profiler나 ISA 변경을 요구하는 경쟁작 대비 배포 장벽이 결정적으로 낮다.","originalTitle":"","originalText":"TPP works transparently without any application-specific knowledge and can be deployed globally as a kernel release.","toggles":[]},{"id":"node_023","lx":100,"ly":660,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":660,"title":"✅ 잘한 점: 경량 reactive demotion + decoupled promotion (기존 프리미티브 재조합)","content":"**cross-layer 축의 강점 2 — 새 HW 없이 커널 프리미티브를 재조합해 ping-pong 제거.**\n\n- **경량 demotion**: reclaim 후보를 swap 대신 별도 list로 CXL-node에 **비동기 migration** — NUMA node로의 migration은 swapping보다 **orders of magnitude 빠르고**, demoted page가 in-memory라 load/store 접근 유지(major fault 회피).\n- **decoupled path + active-LRU promotion**: alloc/reclaim watermark 분리로 local free headroom을 유지하고, active-LRU에 있을 때만 promote해 hysteresis 부여.\n\nreviewer가 좋게 볼 지점: **evaluation depth** — active-LRU가 promotion rate **11×↓**, 성공률 **48%↑**로 각 컴포넌트 기여를 ablation으로 못박음. \"단순 조합\" 공격을 정량 근거로 방어.","originalTitle":"","originalText":"Migration to a NUMA node is orders of magnitude faster than swapping.","toggles":[]},{"id":"node_024","lx":100,"ly":940,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":940,"title":"✅ 잘한 점: Meta 4개 production 워크로드 × FPGA CXL 1.1 실측 (합성 아님)","content":"**cross-layer 축의 강점 3 — real-system 실측.** 합성 벤치가 아니라 **Meta의 live production workload 4종**(Web/Cache/DataWarehouse/Ads)을 **pre-production x86 + FPGA 기반 CXL 1.1** 실기(CXL-Memory가 CPU-less NUMA node로 노출)에서 평가.\n\n결과: all-local ideal 대비 **<1% gap**, default Linux 대비 **18%**, NUMA Balancing·AutoTiering 대비 **5-17%** 개선.\n\nreviewer가 좋게 볼 지점: **generalization 우려 완화** — 다양한 production 도메인에서 재현되므로 \"특정 마이크로벤치에만 통함\" 공격이 약해진다. ASPLOS가 특히 보상하는 arch(새 tier)↔OS(배치)↔실측의 삼각 완결성.","originalTitle":"","originalText":"an ideal baseline (<1% gap) that has all the memory in the local tier.","toggles":[]},{"id":"node_025","lx":100,"ly":1220,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1220,"title":"⚠️ 아쉬운 점: single-host tier만 — CXL의 진짜 매력(pooling)은 밖","content":"**reviewer 질문**: \"CXL 3.0의 결정적 가치는 **multi-host memory pooling**(같은 학회의 Pond 등)인데, TPP는 **한 host의 local↔CXL NUMA node**만 다룬다. page-temperature·watermark·LRU가 전부 단일 host 물리주소 공간 이야기라, pool로 확장하면 host마다 온도가 충돌하지 않나? cross-layer라면서 정작 multi-node 계층은 왜 비었나?\"\n\n**저자 방어**: 논문 scope를 명시적으로 single-host tiered memory로 한정했고, multi-tenant/QoS는 §7 future work로 인정한다. FPGA도 CXL 1.1(pooling 이전)이라 범위상 자연스럽다.\n\n**남는 구조적 한계**: pooling coherence는 언급조차 없음 — scope 한정이 곧 이 축의 미해결을 지운 건 아니다(→ 🧭 내 연구).","originalTitle":"","originalText":"","toggles":[]},{"id":"node_026","lx":100,"ly":1500,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1500,"title":"⚠️ 아쉬운 점: reactive(사후 감지) — 예측이 아님","content":"**reviewer 질문**: \"온도 감지가 minor page fault + LRU 기반의 **reactive** 메커니즘이다. trapped hot page를 **사후에** 감지해 이주하므로, 접근이 급변하는 구간(Web은 cold의 80%가 10분 내 재접근)에서 promotion이 늦고, 저자 스스로 active-LRU 도입 시 수렴에 **5분 더** 걸린다고 보고한다(§6.2). 왜 예측적 prefetch/placement는 안 했나? latency-critical burst엔 취약하지 않나?\"\n\n**저자 방어**: 접근 패턴이 **수분~수시간 안정적**(§3)이라 reactive로 충분하며, 예측은 PEBS류 상시 프로파일링이 필요해 **page-size agnostic·저오버헤드** 목표와 상충한다.\n\n**남는 한계**: 안정 가정이 깨지는 워크로드(짧고 뜨거운 burst, shifting working set)에선 reactive 지연이 그대로 비용. RL/예측 배치([[ArtMem]])가 겨냥하는 빈틈.","originalTitle":"","originalText":"","toggles":[]},{"id":"node_027","lx":100,"ly":1780,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1780,"title":"⚠️ 아쉬운 점: page-temperature/LRU가 shared CXL tier에서 깨짐","content":"**reviewer 질문**: \"active-LRU·watermark·minor-page-fault 온도 모델은 전부 **단일 host 물리주소 공간** 전제다. CXL 3.0 pooling에서 **remote host의 접근은 이 host의 page fault를 발생시키지 않으므로** 온도가 안 잡히고, promotion이 만든 **로컬 물리 사본**은 다른 host에 **stale**를 노출한다. 이 모델이 공유 tier에서 성립하나?\"\n\n**저자 방어**: 본 논문 대상은 CXL 1.1 single-host tier이며 cross-host coherence는 out of scope.\n\n**남는 구조적 한계**: 온도의 지역성 붕괴 + promotion=사본=coherence 부담은 관점 P(단일 host) 때문에 구조적으로 남는다 → **cross-host invalidation(CXL 3.0 back-invalidate/HDM-DB)** 없이는 pool에서 재설계 불가피(→ 🧭 내 연구).","originalTitle":"","originalText":"","toggles":[]},{"id":"node_028","lx":100,"ly":2060,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2060,"title":"🔀 왜 promotion/demotion 경로를 decouple했나 (vs alloc-halt / swap)","content":"**갈림길** — local이 찰 때 어떻게 free를 확보하고 새 할당·promotion을 받나:\n- **(A)** default Linux처럼 free가 low 아래면 **새 allocation을 halt**하고 reclaim이 high 채우길 기다림(alloc↔reclaim 강결합).\n- **(B)** reclaim을 **swap**으로(TMO식 page-out).\n- **(C)** **allocation_watermark와 demotion_watermark를 분리** — free가 demotion_watermark까지 background reclaim, 새 alloc은 별도 watermark만 넘으면 진행. 게다가 swap 대신 async migration.\n\n**저자가 고른 것 = C**, 이유: (A)는 고할당률에서 reclaim이 못 따라가 page가 CXL로 몰림; (B)는 매 접근이 major fault라 CXL의 load/store 가치를 잃음. **C만** 짧고 뜨거운 새 할당을 local에 직접 매핑하면서 **동시에** CXL의 trapped hot page promotion을 받을 **free headroom**을 남긴다.\n\n**저자가 안 판 갈래**: watermark가 host-local 개념 — **pool 차원 압박 조율**은 미정의(=gap).","originalTitle":"","originalText":"To achieve that, we decouple the logic of 'reclamation stop' and 'new allocation happen' mechanism.","toggles":[]},{"id":"node_029","lx":100,"ly":2340,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2340,"title":"🔀 왜 기존 NUMA Balancing 재사용했나 (vs 새 HW 카운터 / PEBS)","content":"**갈림길** — CXL-node의 hot page를 무엇으로 감지·승격하나:\n- **(A)** 새 **HW 온도 카운터/디바이스 로직**(SkyByte식 hardware-assisted migration).\n- **(B)** **PEBS/IPT user-space 프로파일러**를 상시 구동.\n- **(C)** 이미 커널에 있는 **NUMA Balancing(AutoNUMA)의 minor page fault**를 **CXL-node 전용 + active-LRU 필터**로 증강.\n\n**저자가 고른 것 = C**, 이유: PEBS는 CPU 벤더 간 **비표준**·상시 부담, IPT는 accessed-bit clear + TLB flush로 고빈도 감시 시 slowdown, 둘 다 page-size에 종속. NUMA Balancing은 이미 transparent·저오버헤드·**page-size agnostic**. 단 default의 결함(active 상태 무시 instant promote)을 **active-LRU hysteresis**로 보정.\n\n**저자가 안 판 갈래**: (A) HW로 내리는 길 = [[SkyByte]], 예측/**RL 정책** 배치 = [[ArtMem]]. 즉 C는 \"기존 OS 프리미티브 재사용\"이라는 보수적·배포친화 선택.","originalTitle":"","originalText":"To promote such pages, we augment Linux's NUMA Balancing.","toggles":[]},{"id":"node_030","lx":100,"ly":2620,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2620,"title":"📐 P/L: default Linux tiering(동종 전제) → ping-pong·trapped (구조적 L)","content":"**기존 관점 P → 구조적 한계 L → TPP의 P″** 분해:\n\n| 기존 해법 (default Linux tiering) | 관점 P (문제를 본 렌즈) | 한계 L (P 때문에 남는 구조적 문제) |\n|---|---|---|\n| NUMA hint fault 시 **즉시 promote**; reclaim = **동기 swap**; alloc↔reclaim **강결합** | \"CXL도 **동종 DRAM NUMA node**처럼 — 접근되면 곧 hot이니 바로 올리고, local 차면 swap으로 내보낸다\" (homogeneous 전제) | active 상태 무시 promote → **ping-pong / trapped hot page**; 동기 swap이 느려 그 사이 새 alloc이 **CXL로 몰려 영구 정착** → suboptimal placement |\n| **TPP P″** | \"CXL은 **이종(slow) tier** — 온도는 **active-LRU**로 재고, 경로는 **decouple**하고, promotion엔 **hysteresis**를 준다\" | L 해소: **decoupled path + temperature-aware** promotion으로 trapped/ping-pong 제거 |\n\n핵심: L은 \"성능 나쁨\"이 아니라 **관점 P(동종 전제)가 만든 구조적 결과** — 그래서 관점을 이종 tier로 바꾼 TPP에서 풀린다. 아래 원문은 P의 핵심 결함(instant promote)을 못박는다.","originalTitle":"","originalText":"When a NUMA hint fault happens on a page, default NUMA balancing instantly promotes the page without checking its active state.","toggles":[]},{"id":"node_031","lx":100,"ly":2900,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2900,"title":"📍 위치: OS-only transparent placement의 대표 — SkyByte/ArtMem 좌표","content":"TPP는 tiered-memory 배치 문제를 **OS/software 층에서 투명하게** 푸는 **대표작**(software 극단). 같은 문제(hot/cold 배치)를 다른 층·다른 정책으로 푸는 이웃과의 좌표:\n\n| 좌표 | 배치 주체 | 정책 성격 |\n|---|---|---|\n| **TPP** (ASPLOS'23) | **OS/커널** | reactive heuristic (fault+LRU) |\n| [[SkyByte]] (HPCA'25) | **하드웨어**(디바이스 내부) | HW-assisted adaptive migration |\n| [[ArtMem]] | OS+학습 | **RL** 기반 adaptive migration |\n\n★ **비교 관계**: [[SkyByte]]는 자신의 adaptive migration을 **TPP류 OS baseline(SkyByte-CT)**과 겨룬다 — TPP는 \"왜 migration을 HW로 내렸나\"의 **반대편 극단**. [[ArtMem]]은 TPP의 **reactive heuristic을 학습 정책으로 대체**하는 인접 좌표. 즉 축은 **reactive OS heuristic(TPP) ↔ HW migration(SkyByte) ↔ RL policy(ArtMem)**. 내 발표축 \"SSD 이중역할 × transparent co-design\"에서 TPP = **software 끝**.","originalTitle":"","originalText":"","toggles":[]},{"id":"node_032","lx":100,"ly":3180,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":3180,"title":"🧭 내 연구: per-host 온도 → shared CXL tier의 cross-host coherence P′","content":"TPP의 page-temperature·watermark·active-LRU·PG_demoted는 전부 **single-host 물리주소 공간** 전제(=refs의 L). 내 관점 **P′ = CXL tier가 여러 host에 공유될 때의 cross-host 간섭/coherence**.\n\n공유 pool에서 P′가 드러내는 것:\n- host A가 cold로 판단해 demote한 page를 **host B가 즉시 재접근** → per-host 온도가 충돌.\n- A의 promotion이 만든 **로컬 사본**이 B에 **stale** 노출 → **cross-host invalidation(CXL 3.0 back-invalidate / HDM-DB)** 필요, TPP엔 없음.\n\n$\\rightarrow$ TPP의 **기법**(경량 demotion·decoupled watermark·active-LRU)은 재사용하되, **문제 정의를 single→multi host로** 다시 세워 **pool-aware coherent placement**로 승격하는 것이 gap. (P′는 refs의 L=single-host 전제에서 직접 유도됨.) (→ [[SkyByte]], [[CXL Multi-node Coherence]])","originalTitle":"","originalText":"","toggles":[]}];
 var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":"근거"},{"source":"node_002","target":"node_007","type":"line","label":"병목"},{"source":"node_002","target":"node_008","type":"line","label":"참고"},{"source":"node_003","target":"node_009","type":"line","label":""},{"source":"node_003","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_004","target":"node_014","type":"line","label":""},{"source":"node_004","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_016","type":"line","label":""},{"source":"node_005","target":"node_017","type":"line","label":"계보"},{"source":"node_005","target":"node_018","type":"line","label":"내 연구"},{"source":"node_011","target":"node_019","type":"line","label":"심화"},{"source":"node_018","target":"node_020","type":"line","label":"심화"},{"source":"node_007","target":"node_011","type":"line","label":"해결"},{"source":"node_017","target":"node_018","type":"line","label":"연결"},{"source":"node_002","target":"node_021","type":"line","label":"분석"},{"source":"node_004","target":"node_022","type":"line","label":"분석"},{"source":"node_004","target":"node_023","type":"line","label":"분석"},{"source":"node_004","target":"node_024","type":"line","label":"분석"},{"source":"node_004","target":"node_025","type":"line","label":"분석"},{"source":"node_004","target":"node_026","type":"line","label":"분석"},{"source":"node_004","target":"node_027","type":"line","label":"분석"},{"source":"node_003","target":"node_028","type":"line","label":"분석"},{"source":"node_003","target":"node_029","type":"line","label":"분석"},{"source":"node_002","target":"node_030","type":"line","label":"분석"},{"source":"node_005","target":"node_031","type":"line","label":"분석"},{"source":"node_005","target":"node_032","type":"line","label":"분석"}];
+var NODE_TEMPLATES = {"main_topic":"Main topic","method":"Method","result":"Result","claim":"Claim","question":"Question","gap":"Gap / Idea","reference":"Reference","memo":"Memo"};
 var HEADER_H = 36;
+
+// Collapse/Expand 라벨 필터 드롭다운 채우기 (에디터의 라벨 필터와 동일한 옵션/동작)
+(function populateFilterSelect() {
+  var sel = document.getElementById('tb-filter');
+  var noneOpt = document.createElement('option');
+  noneOpt.value = ''; noneOpt.textContent = 'None';
+  sel.appendChild(noneOpt);
+  Object.keys(NODE_TEMPLATES).forEach(function(key) {
+    var opt = document.createElement('option');
+    opt.value = key; opt.textContent = NODE_TEMPLATES[key];
+    sel.appendChild(opt);
+  });
+})();
 
 var vp = document.getElementById('viewport');
 var canvas = document.getElementById('canvas');
@@ -420,6 +446,7 @@ window.addEventListener('resize', function() {
     tx = r.width / 2 - cxw * scale;
     ty = r.height / 2 - cyw * scale;
     applyTransform();
+    updateZoomLineWeights();
   }
   lastVW = r.width; lastVH = r.height;
 });
@@ -435,6 +462,7 @@ vp.addEventListener('wheel', function(e) {
   ty = my - (my - ty) * (ns / scale);
   scale = ns;
   applyTransform();
+  updateZoomLineWeights();
 }, { passive: false });
 
 // Canvas pan
@@ -532,6 +560,9 @@ function onTitleClick(e, titleEl) {
   for (var i = 0; i < NODES_DATA.length; i++) {
     if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
   }
+  // 접혀 있는 동안엔 .ng-content가 display:none이라 측정이 전부 0으로 나와 More
+  // 버튼이 필요없다고 잘못 판단되므로, 다시 보이게 될 때 이 노드만 재측정
+  if (expanding) applyContentCaps(nodeEl);
   setTimeout(recomputePositions, 0);
   // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
   if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
@@ -599,7 +630,7 @@ function syncMinHeight(el, expand) {
   el.style.minHeight = (expand && minH) ? minH + 'px' : '';
 }
 
-function applyFold(nodeIds, expand) {
+function applyFold(nodeIds, expand, after) {
   nodeIds.forEach(function(id) {
     var el = document.getElementById('node-' + id);
     if (!el) return;
@@ -612,7 +643,7 @@ function applyFold(nodeIds, expand) {
       if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
     }
   });
-  setTimeout(recomputePositions, 0);
+  setTimeout(function() { recomputePositions(); if (after) after(); }, 0);
 }
 
 // Recompute positions when <details> toggles change node height.
@@ -622,7 +653,17 @@ canvas.addEventListener('toggle', function() {
 }, true);
 
 // Toolbar: context-aware expand/collapse
+// 라벨 필터: None이면 기존 동작 그대로. 특정 타입이면 Collapse는 항상 전체 접음,
+// Expand는 그 타입 노드만 펼치고 나머지는 강제로 접음 (부모/자식 관계 무시, 에디터와 동일 규칙)
 function doExpand() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    var matching = [], rest = [];
+    NODES_DATA.forEach(function(n) { (n.template === filter ? matching : rest).push(n.id); });
+    applyFold(rest, false);
+    applyFold(matching, true);
+    return;
+  }
   if (selectedNodeId) {
     applyFold(getExpandDescendants(selectedNodeId, true), true);
   } else {
@@ -635,12 +676,81 @@ function doExpand() {
     applyFold(toExpand, true);
   }
 }
+// 전체 collapse(선택 없이, 또는 필터가 걸려 있어도 결국 전체)일 때만 자동으로
+// Fit View — 선택 서브트리만 접을 땐 사용자가 보던 영역을 유지해야 하므로 대상에서
+// 제외 (에디터와 동일 규칙).
 function doCollapse() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
+    return;
+  }
   if (selectedNodeId) {
     applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
   } else {
-    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
   }
+}
+
+// 드롭된 노드의 raw 위치(lx/ly)를 형제들 사이에서 실제로 어디 떨어졌는지에 맞춰 다시
+// 계산한다. onUp이 그냥 "드롭된 렌더 좌표를 그대로 저장"하면, 그 렌더 좌표는 raw 좌표와
+// 전혀 다른 좌표계(레이아웃 알고리즘이 raw를 대폭 재배치하는 게 이 알고리즘의 존재
+// 이유)라 형제들의 raw ly 범위를 완전히 벗어나는 경우가 흔하고, 그 결과 다음 재배치 때
+// 항상 맨 위/맨 아래로 튕기는 것처럼 보인다(에디터에서도 같은 버그가 있었음). 드롭 시점의
+// DOM 위치(형제들은 이 드래그 동안 한 번도 안 움직였으므로 여전히 정확한 배치 상태를
+// 반영함)를 기준으로 어느 두 형제 사이에 놓였는지 찾아 그 사이 값으로 raw ly를 맞춘다.
+function reconcileDroppedPosition(nodeId, nodeDatum) {
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+  var tree = buildHopTreeJs();
+  var parentId = tree.parentOf[nodeId];
+  if (!parentId) return;
+
+  function findRootId(fromId) {
+    var cur = fromId, visited = {};
+    while (!visited[cur]) {
+      visited[cur] = true;
+      var n = nodeMap[cur];
+      if (!n) return cur;
+      if (n.isMain) return cur;
+      var p = tree.parentOf[cur];
+      if (!p) return cur;
+      cur = p;
+    }
+    return cur;
+  }
+  var root = nodeMap[findRootId(nodeId)];
+  function sideOfNode(n) { return (root && n.lx >= root.lx) ? 1 : -1; }
+  var draggedSide = sideOfNode(nodeDatum);
+
+  var sameSideSiblings = [];
+  NODES_DATA.forEach(function(n) {
+    if (n.id === nodeId) return;
+    if (tree.parentOf[n.id] === parentId && sideOfNode(n) === draggedSide) sameSideSiblings.push(n.id);
+  });
+  if (sameSideSiblings.length === 0) return;
+
+  var draggedRenderY = nodeDatum.ly;
+  var ordered = sameSideSiblings.map(function(sid) {
+    var el = document.getElementById('node-' + sid);
+    var ry = el ? (parseFloat(el.style.top) || 0) : nodeMap[sid].ly;
+    return { id: sid, renderY: ry };
+  }).sort(function(a, b) { return a.renderY - b.renderY; });
+
+  var belowIdx = -1;
+  for (var i = 0; i < ordered.length; i++) {
+    if (ordered[i].renderY > draggedRenderY) { belowIdx = i; break; }
+  }
+  var newY;
+  if (belowIdx === -1) newY = nodeMap[ordered[ordered.length - 1].id].ly + 1;
+  else if (belowIdx === 0) newY = nodeMap[ordered[0].id].ly - 1;
+  else newY = (nodeMap[ordered[belowIdx - 1].id].ly + nodeMap[ordered[belowIdx].id].ly) / 2;
+
+  // lx도 드래그 중 렌더 좌표가 raw에 섞여 들어가 오염됐을 수 있으므로, 같은 side 형제의
+  // raw lx를 빌려 바로잡는다(side 전환처럼 형제가 없는 경우는 건드리지 않음).
+  nodeDatum.lx = nodeMap[sameSideSiblings[0]].lx;
+  nodeDatum.ly = newY;
+  nodeDatum.naturalY = newY;
 }
 
 // Tag drag handle
@@ -672,192 +782,285 @@ function onNodeTagMousedown(e, nodeEl) {
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
     nodeEl.classList.remove('ng-dragging');
-    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
-    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+    // 드롭된 렌더 좌표를 일단 그대로 저장한 뒤, 형제들 사이 실제 위치에 맞춰 raw로
+    // 재해석한다(reconcileDroppedPosition — 위 참고, 렌더 좌표를 raw에 그대로 쓰면 안
+    // 되는 이유).
+    if (moved) {
+      lastWasDrag = true;
+      if (nodeDatum) {
+        nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly;
+        reconcileDroppedPosition(nodeId, nodeDatum);
+      }
+      setTimeout(recomputePositions, 0);
+    }
   }
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
 }
 
+// Canvas.tsx의 computeRenderPositions와 완전히 동일한 hop-tree bottom-up/top-down
+// 알고리즘의 vanilla JS 이식 — 예전엔 X 겹침 기준 union-find 컬럼 + 그리디 Y-패킹이라는
+// 완전히 다른(더 오래된) 알고리즘을 썼는데, 그 방식은 hop depth 개념이 없어서 브랜치마다
+// hop-1/hop-2가 서로 다른 X에서 시작하는 문제가 있었음(사용자가 Grid 오버레이로 직접
+// 확인해서 발견 — "hop1과 hop2 가로 시작 위치가 동일하지 않아서"). 에디터와 정확히 같은
+// 결과가 나오도록 알고리즘 자체를 교체.
 function recomputePositions() {
-  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
-  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
-
   var nodeMap = {};
   NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
 
   function getH(n) {
     var el = document.getElementById('node-' + n.id);
     if (el) return el.offsetHeight;
-    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
     return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
   }
   function getW(n) {
     var el = document.getElementById('node-' + n.id);
     return el ? el.offsetWidth : (n.nodeWidth || 432);
   }
-  function isConn(aId, bId) {
-    var a = nodeMap[aId], b = nodeMap[bId];
-    if (!a || !b) return false;
-    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
-    return EDGES.some(function(e) {
-      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+
+  var tree = buildHopTreeJs();
+
+  // main topic(백본) 기준 좌/우 — 세로 배치(아래)와 가로 정렬(Pass 4) 양쪽에서 왼쪽/오른쪽
+  // 자식을 독립적으로 다루기 위해 먼저 계산해둔다.
+  var sideOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) { sideOf[n.id] = 0; return; }
+    var root = nodeMap[tree.rootOf[n.id]];
+    sideOf[n.id] = n.lx >= root.lx ? 1 : -1;
+  });
+
+  // 각 부모의 자식들을 저장된 상대 Y(디자인 의도상 순서) 기준으로 정렬
+  var childrenOf = {};
+  NODES_DATA.forEach(function(n) {
+    var p = tree.parentOf[n.id];
+    if (!p) return;
+    (childrenOf[p] = childrenOf[p] || []).push(n.id);
+  });
+  Object.keys(childrenOf).forEach(function(pid) {
+    var parent = nodeMap[pid];
+    childrenOf[pid].sort(function(a, b) {
+      return (nodeMap[a].ly - parent.ly) - (nodeMap[b].ly - parent.ly);
+    });
+  });
+
+  // 형제 그룹을 부모의 원래 Y 기준 위/아래로, 그리고 좌/우(side)로 분리한다. 왼쪽/오른쪽
+  // 자식은 서로 다른 X에 그려져 세로 공간을 절대 공유하지 않으므로 독립적으로 계산해야
+  // 한쪽이 커질 때 반대쪽 분기점까지 같이 밀리는 걸 막는다. above 배열은 reverse해서
+  // "부모와 가장 가까운 것부터" 순서로 맞춘다 — kids는 상대 Y 오름차순 정렬이라 below
+  // 그룹(부모에서 멀어지는 방향으로 순서대로 진행)엔 그대로 맞지만, above 그룹은 같은
+  // 진행 방향(위로 멀어짐)인데 오름차순이면 가장 먼 자식이 배열 맨 앞이라 오히려 부모와
+  // 가장 가깝게 배치되고 그다음이 더 멀리 밀리는 식으로 시각적 순서가 뒤집힌다.
+  function splitByOriginalSide(parentId, side) {
+    var parent = nodeMap[parentId];
+    var kids = (childrenOf[parentId] || []).filter(function(k) { return sideOf[k] === side; });
+    var above = kids.filter(function(k) { return nodeMap[k].ly < parent.ly; }).reverse();
+    return {
+      below: kids.filter(function(k) { return nodeMap[k].ly >= parent.ly; }),
+      above: above,
+    };
+  }
+
+  // main topic끼리(백본)만 20px 기준, 그 외(hop 자식)는 항상 30px 기준
+  function gapFor(a, b) {
+    var base = (a.isMain && b.isMain) ? 20 : 30;
+    return (getH(a) > HEADER_H || getH(b) > HEADER_H) ? 48 : base;
+  }
+
+  // ── bottom-up: 각 서브트리가 자기 중심 기준 위/아래로 필요한 공간 ──
+  var infoCache = {};
+  function stackSize(group, parentNode) {
+    if (!group.length) return 0;
+    var total = 0;
+    for (var i = 0; i < group.length; i++) {
+      var kid = nodeMap[group[i]];
+      var prev = i === 0 ? parentNode : nodeMap[group[i - 1]];
+      total += gapFor(prev, kid);
+      var kInfo = layoutInfo(group[i]);
+      total += kInfo.above + kInfo.below;
+    }
+    return total;
+  }
+
+  // above+below 블록을 부모 중심에 맞추기 위한 분기점 이동량(shift). 이상적으로는
+  // (belowSize-aboveSize)/2만큼 옮기면 블록 전체가 정확히 부모 중심에 오지만, 양쪽에 다
+  // 형제가 있는 상태에서 두 그룹 크기 차이가 크면(예: 3:1 이상) 그 이동량이 큰 쪽 그룹의
+  // "부모와 가장 가까운 자식"을 부모 중심 반대편으로 밀어버린다(below의 첫 자식이 부모
+  // 보다 위에 렌더되는 등, 자식이 부모를 시각적으로 뛰어넘는 버그). 두 그룹이 다 있을
+  // 때만, "더 큰 쪽의 첫 자식이 부모 중심을 넘지 않는 한도"로 이동량을 clamp한다.
+  function splitShift(id, side) {
+    var node = nodeMap[id];
+    var split = splitByOriginalSide(id, side);
+    var above = split.above, below = split.below;
+    var belowSize = stackSize(below, node);
+    var aboveSize = stackSize(above, node);
+    var shift = (belowSize - aboveSize) / 2;
+    if (above.length > 0 && below.length > 0) {
+      if (shift > 0) {
+        var firstBelow = nodeMap[below[0]];
+        var firstBelowInfo = layoutInfo(below[0]);
+        shift = Math.min(shift, gapFor(node, firstBelow) + firstBelowInfo.above);
+      } else if (shift < 0) {
+        var firstAbove = nodeMap[above[0]];
+        var firstAboveInfo = layoutInfo(above[0]);
+        shift = Math.max(shift, -(gapFor(node, firstAbove) + firstAboveInfo.below));
+      }
+    }
+    return { above: above, below: below, belowSize: belowSize, aboveSize: aboveSize, shift: shift };
+  }
+
+  function layoutInfo(id) {
+    if (infoCache[id]) return infoCache[id];
+    var node = nodeMap[id];
+    var ownHalf = getH(node) / 2;
+    // side별로 독립적으로 above+below 블록을 재센터링하므로, 이 노드가 자기 부모에게
+    // 보고하는 "필요 공간"도 side별로 따로 구해서(왼쪽·오른쪽은 세로 공간을 안 겹치므로
+    // 더하지 않고 더 많이 필요한 쪽 기준) splitShift가 clamp한 실제 shift를 반영한다 —
+    // 안 그러면 assign()이 실제로 만드는 위치와 어긋나 다른 클러스터와 겹칠 수 있다.
+    var aboveReach = 0, belowReach = 0;
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      aboveReach = Math.max(aboveReach, s.aboveSize + s.shift);
+      belowReach = Math.max(belowReach, s.belowSize - s.shift);
+    });
+    var info = { above: Math.max(ownHalf, aboveReach), below: Math.max(ownHalf, belowReach) };
+    infoCache[id] = info;
+    return info;
+  }
+
+  // ── top-down: center Y 확정 ──
+  var centerY = {};
+  function assign(id, cy) {
+    var node = nodeMap[id];
+    centerY[id] = cy;
+    // 왼쪽/오른쪽을 완전히 독립적으로 배치한다 — stackSize가 같은 side의 형제끼리만
+    // 더해지므로 한쪽 크기가 반대쪽 분기점에 영향을 주지 않는다.
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      var below = s.below, above = s.above;
+      var split = cy - s.shift;
+
+      var cursor = split;
+      for (var i = 0; i < below.length; i++) {
+        var kid = nodeMap[below[i]];
+        var kInfo = layoutInfo(below[i]);
+        var prev = i === 0 ? node : nodeMap[below[i - 1]];
+        cursor += gapFor(prev, kid) + kInfo.above;
+        assign(below[i], cursor);
+        cursor += kInfo.below;
+      }
+      cursor = split;
+      for (var j = 0; j < above.length; j++) {
+        var kid2 = nodeMap[above[j]];
+        var kInfo2 = layoutInfo(above[j]);
+        var prev2 = j === 0 ? node : nodeMap[above[j - 1]];
+        cursor -= gapFor(prev2, kid2) + kInfo2.below;
+        assign(above[j], cursor);
+        cursor -= kInfo2.above;
+      }
     });
   }
 
-  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
-  var par = {};
-  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
-  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
-  for (var i = 0; i < NODES_DATA.length; i++) {
-    for (var j = i + 1; j < NODES_DATA.length; j++) {
-      var a = NODES_DATA[i], b = NODES_DATA[j];
+  // ── 루트 시퀀싱: X 범위가 겹치는 루트끼리만 그룹으로 묶어 원래 순서(Y)대로 배치 ──
+  var roots = NODES_DATA.filter(function(n) { return tree.isRoot[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rootFind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rootFind(p); rootPar[id] = r; return r;
+  }
+  for (var ri = 0; ri < roots.length; ri++) {
+    for (var rj = ri + 1; rj < roots.length; rj++) {
+      var a = roots[ri], b = roots[rj];
       if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
-        var ra = find(a.id), rb = find(b.id);
-        if (ra !== rb) par[ra] = rb;
+        var fa = rootFind(a.id), fb = rootFind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
       }
     }
   }
-  var colMap = {};
-  NODES_DATA.forEach(function(n) {
-    var root = find(n.id);
-    if (!colMap[root]) colMap[root] = [];
-    colMap[root].push(n);
+  var rootGroups = {};
+  roots.forEach(function(r) {
+    var g = rootFind(r.id);
+    (rootGroups[g] = rootGroups[g] || []).push(r);
   });
-
-  // 컬럼을 min X 오름차순(왼→오)으로 정렬
-  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
-    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
-    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
-    return minXA - minXB;
+  Object.keys(rootGroups).forEach(function(gk) {
+    var group = rootGroups[gk];
+    group.sort(function(a, b) { return (a.ly - b.ly) || (a.lx - b.lx); });
+    var cursorBottom = -Infinity;
+    for (var i = 0; i < group.length; i++) {
+      var root = group[i];
+      var info = layoutInfo(root.id);
+      var naturalCenter = root.ly + getH(root) / 2;
+      var gap = i === 0 ? 0 : gapFor(group[i - 1], root);
+      var cy = i === 0 ? naturalCenter : Math.max(naturalCenter, cursorBottom + gap + info.above);
+      assign(root.id, cy);
+      cursorBottom = (centerY[root.id] !== undefined ? centerY[root.id] : cy) + info.below;
+    }
   });
 
   var renderY = {};
-
-  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
-  function getEffY(node) {
-    var effY = node.ly;
-    NODES_DATA.forEach(function(other) {
-      if (renderY[other.id] === undefined) return;
-      if (!isConn(node.id, other.id)) return;
-      var otherRY = renderY[other.id];
-      var otherH = getH(other);
-      var otherBottom = otherRY + otherH;
-      var otherPush = Math.max(0, otherRY - other.ly);
-      if (otherH > HEADER_H && otherBottom > node.ly) {
-        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
-        effY = Math.max(effY, otherBottom + 48);
-      } else {
-        // 접힌 상태: Y 이동 delta만 전파
-        effY = Math.max(effY, node.ly + otherPush);
-      }
-    });
-    return effY;
-  }
-
-  // 컬럼별 그리디 패킹 (왼→오)
-  columns.forEach(function(col) {
-    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
-    var effYMap = {};
-    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
-
-    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
-    col.sort(function(a, b) {
-      var ea = effYMap[a.id], eb = effYMap[b.id];
-      return ea !== eb ? ea - eb : a.ly - b.ly;
-    });
-
-    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
-    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
-    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
-    var placed = [];
-    col.forEach(function(node) {
-      var h = getH(node);
-      var baseGap = node.isMain ? 20 : 30;
-      var y = effYMap[node.id];
-      var moved = true;
-      while (moved) {
-        moved = false;
-        for (var pi = 0; pi < placed.length; pi++) {
-          var p = placed[pi];
-          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
-          if (!overlapX) continue;
-          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
-          if (y < p.y + p.h + gap && y + h + gap > p.y) {
-            y = p.y + p.h + gap;
-            moved = true;
-          }
-        }
-      }
-      renderY[node.id] = y;
-      placed.push({ node: node, y: y, h: h });
-    });
+  NODES_DATA.forEach(function(n) {
+    var cy = centerY[n.id] !== undefined ? centerY[n.id] : (n.ly + getH(n) / 2);
+    renderY[n.id] = cy - getH(n) / 2;
   });
 
-  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
-  var lineBySource = {};
-  EDGES.forEach(function(e) {
-    if (e.type !== 'line') return;
-    if (!lineBySource[e.source]) lineBySource[e.source] = [];
-    lineBySource[e.source].push(e.target);
-  });
-  Object.keys(lineBySource).forEach(function(srcId) {
-    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
-    if (targetIds.length < 2) return;
-    var xGroups = [];
-    targetIds.forEach(function(id) {
-      var el = document.getElementById('node-' + id);
-      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
-      var placed = false;
-      for (var gi = 0; gi < xGroups.length; gi++) {
-        var firstId = xGroups[gi][0];
-        var fEl = document.getElementById('node-' + firstId);
-        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
-        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
-      }
-      if (!placed) xGroups.push([id]);
-    });
-    xGroups.forEach(function(grp) {
-      if (grp.length < 2) return;
-      var grpSorted = grp.map(function(id) {
-        var el = document.getElementById('node-' + id);
-        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
-      }).sort(function(a, b) { return a.y - b.y; });
-      for (var i = 1; i < grpSorted.length; i++) {
-        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
-        var newY = Math.max(grpSorted[i].y, minY);
-        grpSorted[i].y = newY;
-        renderY[grpSorted[i].id] = newY;
-      }
-    });
-  });
+  // ── hop tier(깊이)별 X 정렬 — 같은 depth의 모든 노드가 항상 같은 X에서 시작 ──
+  var MIN_HOP_GAP = 750, COL_PAD = 60;
+  // main topic(백본)도 hop1/hop2처럼 하나의 세로줄로 자동 정렬 — depth 0 노드는 raw
+  // 좌표를 그대로 쓰지 않고, main topic들 중 가장 왼쪽(raw x 최소값)으로 전부 통일한다.
+  // depth 0에는 main topic 외에 연결 끊긴 고아 노드도 섞이므로 n.isMain으로 필터링
+  // (고아 노드는 원래 자유 좌표 유지).
+  var mainTopicAnchorX = 0;
+  var mainTopicXs = NODES_DATA.filter(function(n) { return n.isMain; }).map(function(n) { return n.lx; });
+  if (mainTopicXs.length > 0) mainTopicAnchorX = Math.min.apply(null, mainTopicXs);
 
-  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
-  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
-  var H_GAP = 60;
-  var renderX = {};
-  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
-  byX.forEach(function(node) {
-    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
-    var nH = getH(node);
-    var nW = getW(node);
-    var x = node.lx;
-    var moved = true;
-    while (moved) {
-      moved = false;
-      for (var oi = 0; oi < byX.length; oi++) {
-        var other = byX[oi];
-        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
-        if (ox === undefined || other.id === node.id) continue;
-        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
-        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
-        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
-          x = ox + getW(other) + H_GAP;
-          moved = true;
-        }
-      }
+  var maxDepth = 0;
+  NODES_DATA.forEach(function(n) { maxDepth = Math.max(maxDepth, tree.depthOf[n.id] || 0); });
+  // 전역에서 가장 넓은 main topic 폭 — 어느 main topic 하나가 표 등으로 넓어지면, 그
+  // main topic 자신의 왼쪽·오른쪽 hop1 간격이 똑같이 유지되는 것은 물론(오른쪽 변만
+  // 넓어지므로 오른쪽 계산에만 필요), 다른(안 넓어진) main topic들의 hop1도 전부 같은
+  // 만큼 같이 밀려서 hop1 열이 문서 전체에서 계속 나란히 정렬돼야 한다. "이 브랜치 자신의
+  // 폭"이 아니라 "전역에서 제일 넓은 main topic의 폭"을 모든 브랜치의 오른쪽 오프셋에
+  // 똑같이 더한다 — 표가 없는 보통 상황(모든 main topic 폭이 같음)에서는 이 값이 곧 자기
+  // 폭과 같아서 좌우 간격이 정확히 MIN_HOP_GAP으로 대칭이다. 왼쪽은 main topic이 아무리
+  // 넓어져도 왼쪽 변 자체는 움직이지 않으므로 항상 고정 MIN_HOP_GAP.
+  var globalWidestMainTopic = 0;
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) globalWidestMainTopic = Math.max(globalWidestMainTopic, getW(n));
+  });
+  var colOffset = {};
+  [1, -1].forEach(function(side) {
+    var offset = side === 1 ? globalWidestMainTopic + MIN_HOP_GAP : MIN_HOP_GAP;
+    var prevMaxWidth = 0;
+    for (var d = 1; d <= maxDepth; d++) {
+      if (d > 1) offset += Math.max(MIN_HOP_GAP, prevMaxWidth + COL_PAD);
+      colOffset[d + ':' + side] = offset;
+      var widest = 0;
+      NODES_DATA.forEach(function(n) {
+        if (tree.depthOf[n.id] === d && sideOf[n.id] === side) widest = Math.max(widest, getW(n));
+      });
+      prevMaxWidth = widest;
     }
-    renderX[node.id] = x;
+  });
+  var renderX = {};
+  NODES_DATA.forEach(function(n) {
+    var depth = tree.depthOf[n.id] || 0;
+    if (depth === 0) { renderX[n.id] = n.isMain ? mainTopicAnchorX : n.lx; return; }
+    var side = sideOf[n.id] || 1;
+    var root = nodeMap[tree.rootOf[n.id]];
+    // root가 main topic이면(항상 그렇진 않음 — 연결 끊긴 고아 노드도 자기 자손의 root가
+    // 될 수 있음) raw 좌표가 아니라 위에서 통일한 mainTopicAnchorX를 기준 삼아야, main
+    // topic 자신의 렌더 위치와 그 hop 자식들의 렌더 위치가 서로 어긋나지 않는다.
+    var rootX = root.isMain ? mainTopicAnchorX : root.lx;
+    var offset = colOffset[depth + ':' + side];
+    if (offset === undefined) offset = depth * MIN_HOP_GAP;
+    // offset은 "root와 가장 가까운 쪽 모서리"까지의 거리다. side=1(오른쪽)은 그 모서리가
+    // 곧 CSS left(카드의 왼쪽 변)라 그대로 쓰면 되지만, side=-1(왼쪽)은 root와 가장 가까운
+    // 모서리가 카드의 오른쪽 변이므로, CSS left를 구하려면 거기서 카드 너비만큼 더 빼야
+    // 한다(왼쪽 형제들의 "왼쪽 변"만 정렬되고 main topic과 가까운 "오른쪽 변"은 카드
+    // 너비에 따라 들쭉날쭉해지는 걸 막기 위함).
+    var nearRootEdge = rootX + side * offset;
+    renderX[n.id] = side === 1 ? nearRootEdge : nearRootEdge - getW(n);
   });
 
   NODES_DATA.forEach(function(n) {
@@ -870,6 +1073,177 @@ function recomputePositions() {
   routesDirty=true;
   drawEdges(true);
   scheduleEdgeRefine();
+  drawGrid();
+}
+
+// ── main topic(백본) 기준 hop 트리 — Canvas.tsx의 buildHopTree와 동일한 규칙
+// (main_topic은 항상 루트, 그 외는 children[]/edge로 찾은 부모에 귀속, 부모를 못
+// 찾으면 독립 루트). 디버그 격자와 Ctrl+F 검색의 BFS 정렬 둘 다 이 트리를 공유한다
+// (레이아웃 재구현마다 두 곳이 서로 다른 로직으로 어긋나는 것을 피하기 위함 — 에디터
+// 쪽에서 layoutInfo/assign이 따로 놀아서 겹침 버그가 났던 것과 같은 종류의 실수를
+// 여기서도 반복하지 않기 위함).
+function buildHopTreeJs() {
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  function parentIdOf(nodeId) {
+    var byChildren = null;
+    NODES_DATA.forEach(function(n) {
+      if (!byChildren && (n.children || []).indexOf(nodeId) !== -1) byChildren = n.id;
+    });
+    if (byChildren) return byChildren;
+    var byEdge = null;
+    EDGES.forEach(function(e) { if (!byEdge && e.target === nodeId) byEdge = e.source; });
+    if (byEdge) return byEdge;
+    // 포트를 반대 방향(새 노드 → 기존 노드)으로 끌어 만든 엣지는 source/target이 뒤바뀐
+    // 채로 저장돼 있을 수 있다(source=이 노드, target=main topic) — Canvas.tsx의
+    // buildHopTree와 동일하게, 이런 기존 데이터도 여기서 인식해줘야 에디터와 같은
+    // 트리 구조가 나온다(안 그러면 이 노드가 잘못 독립 루트로 취급됨).
+    var reversedToMain = null;
+    EDGES.forEach(function(e) {
+      if (!reversedToMain && e.source === nodeId && nodeById[e.target] && nodeById[e.target].isMain) reversedToMain = e.target;
+    });
+    return reversedToMain;
+  }
+  var isRoot = {}, parentOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (n.isMain) { isRoot[n.id] = true; return; }
+    var p = parentIdOf(n.id);
+    if (p && nodeById[p]) parentOf[n.id] = p; else isRoot[n.id] = true;
+  });
+  var depthOf = {}, rootOf = {};
+  function computeDepth(id) {
+    if (depthOf[id] !== undefined) return;
+    if (isRoot[id]) { depthOf[id] = 0; rootOf[id] = id; return; }
+    computeDepth(parentOf[id]);
+    depthOf[id] = depthOf[parentOf[id]] + 1;
+    rootOf[id] = rootOf[parentOf[id]];
+  }
+  NODES_DATA.forEach(function(n) { computeDepth(n.id); });
+  return { isRoot: isRoot, parentOf: parentOf, depthOf: depthOf, rootOf: rootOf };
+}
+
+// ── 디버그 격자 — Canvas.tsx의 computeGridLines와 동일한 규칙(가로선: main topic
+// 클러스터 경계, 세로선: hop depth별 X 경계). recomputePositions()가 이제 에디터와
+// 동일한 hop-tree 레이아웃 알고리즘을 쓰지만, 격자 자체는 그 계산 결과에 의존하지
+// 않고 현재 DOM에 실제로 그려진 위치(el.style.left/top + offsetWidth/offsetHeight)를
+// 그대로 읽어서 계산하므로 어떤 배치 알고리즘을 쓰든 항상 실제 렌더 결과와 일치한다.
+var showGrid = false;
+function computeGridLinesJs() {
+  var tree = buildHopTreeJs();
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  var rectById = {};
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) rectById[n.id] = { x: parseFloat(el.style.left) || 0, y: parseFloat(el.style.top) || 0, w: el.offsetWidth, h: el.offsetHeight };
+  });
+  function rootIsMain(id) {
+    var r = nodeById[tree.rootOf[id]];
+    return !!(r && r.isMain);
+  }
+
+  // 가로선: main topic 클러스터(자신+hop 자손 전체)의 Y 범위 경계
+  var clusterYRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var root = tree.rootOf[n.id];
+    var top = rect.y, bottom = rect.y + rect.h;
+    if (!clusterYRange[root]) clusterYRange[root] = { min: top, max: bottom };
+    else { clusterYRange[root].min = Math.min(clusterYRange[root].min, top); clusterYRange[root].max = Math.max(clusterYRange[root].max, bottom); }
+  });
+  var roots = NODES_DATA.filter(function(n) { return tree.depthOf[n.id] === 0 && clusterYRange[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rfind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rfind(p); rootPar[id] = r; return r;
+  }
+  for (var i = 0; i < roots.length; i++) {
+    for (var j = i + 1; j < roots.length; j++) {
+      var a = roots[i], b = roots[j];
+      var ra = rectById[a.id], rb = rectById[b.id];
+      if (!ra || !rb) continue;
+      if (ra.x < rb.x + rb.w && rb.x < ra.x + ra.w) {
+        var fa = rfind(a.id), fb = rfind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
+      }
+    }
+  }
+  var groups = {};
+  roots.forEach(function(r) {
+    var g = rfind(r.id);
+    (groups[g] = groups[g] || []).push(r);
+  });
+  var hLines = [];
+  Object.keys(groups).forEach(function(gk) {
+    var group = groups[gk];
+    group.sort(function(a, b) { return (rectById[a.id] ? rectById[a.id].y : 0) - (rectById[b.id] ? rectById[b.id].y : 0); });
+    for (var k = 1; k < group.length; k++) {
+      var prevR = clusterYRange[group[k - 1].id], curR = clusterYRange[group[k].id];
+      hLines.push((prevR.max + curR.min) / 2);
+    }
+  });
+
+  // 세로선: hop depth별 X 범위 경계 (main topic 기준 좌/우 방향 분리)
+  var depthSideXRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var d = tree.depthOf[n.id];
+    var rootRect = rectById[tree.rootOf[n.id]];
+    var side = d === 0 ? 0 : (rootRect && rect.x >= rootRect.x ? 1 : -1);
+    var key = d + ':' + side;
+    var left = rect.x, right = rect.x + rect.w;
+    if (!depthSideXRange[key]) depthSideXRange[key] = { min: left, max: right };
+    else { depthSideXRange[key].min = Math.min(depthSideXRange[key].min, left); depthSideXRange[key].max = Math.max(depthSideXRange[key].max, right); }
+  });
+  var vLines = [];
+  var mainRange = depthSideXRange['0:0'];
+  if (mainRange) {
+    [1, -1].forEach(function(side) {
+      var prev = mainRange, d = 1;
+      while (depthSideXRange[d + ':' + side]) {
+        var cur = depthSideXRange[d + ':' + side];
+        if (side === 1 && cur.min > prev.max) vLines.push((prev.max + cur.min) / 2);
+        else if (side === -1 && prev.min > cur.max) vLines.push((cur.max + prev.min) / 2);
+        prev = cur; d++;
+      }
+    });
+  }
+  return { hLines: hLines, vLines: vLines };
+}
+// data-base-sw/-dash: 확대/축소해도 화면상 두께가 유지되도록(에디터의 WireLayer
+// zoom 보정과 동일 규칙) zoom=1 기준 값을 기록해두고, updateZoomLineWeights()가
+// 현재 scale에 맞춰 실제 stroke-width/dasharray를 매번 다시 계산한다.
+function svgGridLine(x1, y1, x2, y2, stroke) {
+  var l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+  l.setAttribute('stroke', stroke);
+  l.setAttribute('data-base-sw', '1.5');
+  l.setAttribute('data-base-dash', '6 4');
+  l.setAttribute('opacity', '0.55');
+  return l;
+}
+function drawGrid() {
+  var svg = document.getElementById('grid-svg');
+  svg.innerHTML = '';
+  if (!showGrid) { svg.style.display = 'none'; return; }
+  svg.style.display = '';
+  var lines = computeGridLinesJs();
+  lines.vLines.forEach(function(x) { svg.appendChild(svgGridLine(x, 0, x, 10000, '#22c55e')); });
+  lines.hLines.forEach(function(y) { svg.appendChild(svgGridLine(0, y, 10000, y, '#f97316')); });
+  updateZoomLineWeights();
+}
+function toggleGrid() {
+  showGrid = !showGrid;
+  var btn = document.getElementById('tb-grid-btn');
+  if (showGrid) { btn.style.background = '#2563eb'; btn.style.color = '#fff'; btn.style.borderColor = '#1d4ed8'; }
+  else { btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }
+  drawGrid();
 }
 
 // Edge drawing
@@ -1080,66 +1454,24 @@ function routeEdgesGrid(reqs,rects){
   });
   return out;
 }
-function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
-function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+// 확대(zoom>=100%)면 기본 두께, 축소(zoom<100%)면 화면상 두께가 유지되도록 반비례로
+// 키움(에디터의 WireLayer.tsx의 zc = zoom<1 ? 1/zoom : 1 과 동일 규칙). 레이아웃이
+// 안 바뀌는 순수 줌 조작(wheel)에서는 경로를 다시 그리지 않고 이미 그려진 요소들의
+// stroke-width/dasharray만 갱신 — 가볍고, wheel마다 A* 재계산할 필요가 없음.
+function updateZoomLineWeights() {
+  var zc = scale < 1 ? 1 / scale : 1;
+  document.querySelectorAll('[data-base-sw]').forEach(function(el) {
+    var base = parseFloat(el.getAttribute('data-base-sw'));
+    el.setAttribute('stroke-width', String(base * zc));
+  });
+  document.querySelectorAll('[data-base-dash]').forEach(function(el) {
+    var parts = el.getAttribute('data-base-dash').split(' ').map(Number);
+    el.setAttribute('stroke-dasharray', parts.map(function(p) { return p * zc; }).join(' '));
+  });
+}
 function drawEdges(fast) {
   var svg=document.getElementById('wire-svg');
   svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
-
-  // Group line edges by source for bus routing
-  var lineBySource={};
-  EDGES.forEach(function(e){
-    if(e.type!=='line') return;
-    if(!lineBySource[e.source]) lineBySource[e.source]=[];
-    lineBySource[e.source].push(e);
-  });
-
-  var busDrawn={};
-
-  // Bus routing: one source → multiple line targets all on the same side (right)
-  Object.keys(lineBySource).forEach(function(srcId){
-    var group=lineBySource[srcId];
-    if(group.length<2) return;
-    var srcEl=document.getElementById('node-'+srcId);
-    if(!srcEl) return;
-    var sr=getNodeRect(srcEl);
-    var targets=[];
-    group.forEach(function(e){
-      var tEl=document.getElementById('node-'+e.target);
-      if(!tEl) return;
-      targets.push({e:e,r:getNodeRect(tEl)});
-    });
-    if(targets.length<2) return;
-    // 모든 타겟의 왼쪽 끝이 source 오른쪽 끝 + 40px 이상일 때만 bus (에디터와 조건 통일)
-    var allRight=targets.every(function(t){return t.r.x>sr.x+sr.w+40;});
-    if(!allRight) return;
-
-    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
-    var srcAnchorY=sr.cy;
-    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
-    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
-    var busMinY=Math.min(srcAnchorY,minTY);
-    var busMaxY=Math.max(srcAnchorY,maxTY);
-
-    // 세대 하이라이트: 루트가 source거나 타겟 중 하나면 트렁크(공용 구간)도 빨간색
-    var srcSel=srcId===genRootId;
-    var groupHl=srcSel||targets.some(function(t){return t.e.target===genRootId;});
-    var trunkColor=groupHl?'#ef4444':'#888', trunkW=groupHl?'2.5':'1.5';
-
-    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','ng-eg');
-    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,trunkColor,trunkW));
-    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,trunkColor,trunkW));
-    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,trunkColor));
-    targets.forEach(function(t){
-      var tHl=srcSel||t.e.target===genRootId;
-      var branchColor=tHl?'#ef4444':'#888';
-      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,branchColor,tHl?'2.5':'1.5'));
-      g.appendChild(svgCirc(t.r.x,t.r.cy,4,branchColor));
-      busDrawn[t.e.source+'-'+t.e.target]=true;
-    });
-    svg.appendChild(g);
-  });
 
   // 노드 rect 캐시 (엣지 라우팅 장애물 검사용 — drawEdges 1회당 1회만 DOM 조회)
   var rectById={};
@@ -1148,12 +1480,32 @@ function drawEdges(fast) {
     if(el) rectById[n.id]=getNodeRect(el);
   });
 
-  // 같은 source에서 나가거나 같은 target으로 모이는 비-버스 엣지 분산 오프셋 (합산)
+  // hop 자식(line) 엣지: 버스 라우팅도, A*/커브 라우팅도 없이 그냥 평범한 직선
+  // (에디터 WireLayer.tsx와 동일 — 예전엔 "같은 source에서 나가는 line 엣지 여럿을
+  // 세로 트렁크로 묶는 버스 라우팅"이 있었는데, 에디터가 이미 그걸 버리고 순수 직선으로
+  // 바꾼 지 오래라 여기만 안 따라와 있었음). 포트는 항상 좌/우만 강제 — getBestPorts처럼
+  // top/bottom까지 유클리드 최솟값으로 고르면, 타겟이 부모 중심에서 수직으로 많이
+  // 떨어진 형제 하나만 포트가 top/bottom으로 뒤집혀 다른 형제 선을 가로질러 지나가
+  // 버리는 문제가 있었다(사용자가 export html 스크린샷으로 재지적: "선이 왜 깔끔하게
+  // 정리되지 않은 거지" — 첫 main topic만 깔끔하고 나머지는 선이 교차해 보임).
+  function horizontalPorts(sr,tr){
+    var scx=sr.x+sr.w/2, tcx=tr.x+tr.w/2;
+    return tcx>=scx ? {sp:'right',tp:'left'} : {sp:'left',tp:'right'};
+  }
+  function portXY(r,name){
+    if(name==='right') return [r.x+r.w,r.cy];
+    if(name==='left') return [r.x,r.cy];
+    if(name==='bottom') return [r.cx,r.y+r.h];
+    return [r.cx,r.y];
+  }
+
+  // 같은 source에서 나가거나 같은 target으로 모이는 백본(arrow) 엣지 분산 오프셋(합산).
+  // hop 자식(line)은 이제 라우팅 없는 고정 직선이라 분산이 필요 없음(에디터와 동일 이유).
   var spreadByIdx={};
   (function(){
     var bySrc={},byTgt={};
     EDGES.forEach(function(e,idx){
-      if(busDrawn[e.source+'-'+e.target]) return;
+      if(e.type!=='arrow') return;
       if(!rectById[e.source]||!rectById[e.target]) return;
       (bySrc[e.source]=bySrc[e.source]||[]).push(idx);
       (byTgt[e.target]=byTgt[e.target]||[]).push(idx);
@@ -1170,14 +1522,15 @@ function drawEdges(fast) {
     add(byTgt,function(i){return rectById[EDGES[i].source].cy;});
   })();
 
-  // 그리드 A* 전역 라우팅 — 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
+  // 그리드 A* 전역 라우팅 — main topic 백본(arrow) 엣지만 대상(hop 자식은 고정 직선이라
+  // 라우팅 대상 아님, 에디터와 동일). 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
   // 레이아웃이 바뀌지 않은 재호출(하이라이트 색만 변경 등)은 캐시를 재사용해 즉시 처리
   var gridRoutes=null;
   if(!fast){
     if(routesDirty||!cachedRoutes){
       var reqs=[];
       EDGES.forEach(function(e,idx){
-        if(busDrawn[e.source+'-'+e.target]) return;
+        if(e.type!=='arrow') return;
         var sr3=rectById[e.source],tr3=rectById[e.target];
         if(!sr3||!tr3) return;
         var ports3=getBestPorts(sr3,tr3);
@@ -1194,57 +1547,65 @@ function drawEdges(fast) {
     gridRoutes=cachedRoutes;
   }
 
-  // Remaining edges: obstacle-avoiding curves
   EDGES.forEach(function(edge,edgeIdx){
-    if(busDrawn[edge.source+'-'+edge.target]) return;
     var sr2=rectById[edge.source], tr2=rectById[edge.target];
     if(!sr2||!tr2) return;
-    var ports=getBestPorts(sr2,tr2);
-    if(!ports) return;
-    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
-    var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
-    var ddl=dlen(srcP,tgtP)||1;
-    var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
-    var spread=spreadByIdx[edgeIdx]||0;
-    var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
-    var d;
-    if(gridPts&&gridPts.length>2){
-      // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
-      d=ptsToPath(spreadPts(gridPts,spread));
-    } else if(gridPts){
-      // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
-      var bend=Math.min(ddl*.45,150);
-      var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
-      var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
-      d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+
+    var d, sp, tp, strokeColor;
+    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
+    strokeColor=hl?'#ef4444':'#666';
+
+    if(edge.type!=='arrow'){
+      // hop 자식: 라우팅/커브 없이 좌/우 포트 사이 직선 그대로
+      var hp=horizontalPorts(sr2,tr2);
+      sp=portXY(sr2,hp.sp); tp=portXY(tr2,hp.tp);
+      d='M'+sp[0]+','+sp[1]+' L'+tp[0]+','+tp[1];
     } else {
-      // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
-      var obstacles=[];
-      Object.keys(rectById).forEach(function(nid){
-        if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
-      });
-      var pts=routeAround(srcP,tgtP,obstacles);
-      if(pts.length===2){
-        var bend2=Math.min(ddl*.45,150);
-        var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
-        var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
-        d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+      var ports=getBestPorts(sr2,tr2);
+      if(!ports) return;
+      sp=ports.sp.p; var spD=DIR[ports.sp.name]; tp=ports.tp.p; var tpD=DIR[ports.tp.name];
+      var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
+      var ddl=dlen(srcP,tgtP)||1;
+      var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
+      var spread=spreadByIdx[edgeIdx]||0;
+      var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
+      if(gridPts&&gridPts.length>2){
+        // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
+        d=ptsToPath(spreadPts(gridPts,spread));
+      } else if(gridPts){
+        // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
+        var bend=Math.min(ddl*.45,150);
+        var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
+        var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
+        d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
       } else {
-        d=ptsToPath(spreadPts(pts,spread));
+        // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
+        var obstacles=[];
+        Object.keys(rectById).forEach(function(nid){
+          if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
+        });
+        var pts=routeAround(srcP,tgtP,obstacles);
+        if(pts.length===2){
+          var bend2=Math.min(ddl*.45,150);
+          var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
+          var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
+          d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+        } else {
+          d=ptsToPath(spreadPts(pts,spread));
+        }
       }
     }
-    // 세대 하이라이트: 루트 노드와 직접 연결된 wire는 빨간색
-    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
-    var strokeColor=hl?'#ef4444':'#666';
+
     var g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','ng-eg');
     var path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('stroke-width',hl?'2.5':'1.5');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('data-base-sw',hl?'2.5':'1.5');
     if(edge.type==='arrow') path.setAttribute('marker-end',hl?'url(#arrow-hl)':'url(#arrow)');
     g.appendChild(path);
     if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill',strokeColor);g.appendChild(c);});}
     svg.appendChild(g);
   });
+  updateZoomLineWeights();
 }
 
 // Fit view
@@ -1259,6 +1620,7 @@ function fitView() {
   tx=(W-cw*scale)/2-(minX-40)*scale;
   ty=(H-ch*scale)/2-(minY-40)*scale;
   applyTransform();
+  updateZoomLineWeights();
 }
 
 // Lightbox
@@ -1356,12 +1718,39 @@ function closeDropdown(){
   document.getElementById('search-row').classList.remove('dropdown-open');
   kbIdx=-1;
 }
+// 매치 노드가 toggle 제목/내용 안에 있을 수도 있으므로 단순 concat 문자열이 아니라
+// title/content/original(제목+텍스트)/toggle(제목+내용) 각각을 개별로 확인 (에디터의
+// searchMatchNodes 필터와 동일한 규칙 — 이래야 selectSearchNode에서 어느 섹션을
+// 펼쳐야 하는지도 알 수 있음).
+function nodeMatchesQuery(n, q){
+  if((n.title||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.content||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalText||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalTitle||'').toLowerCase().indexOf(q)!==-1) return true;
+  return (n.toggles||[]).some(function(t){
+    return (t.title||'').toLowerCase().indexOf(q)!==-1 || (t.content||'').toLowerCase().indexOf(q)!==-1;
+  });
+}
 function doSearch(q){
   clearSearchHighlights();
   searchSelectedId=null;kbIdx=-1;
   var query=q.trim().toLowerCase();
   if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
-  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes=NODES_DATA.filter(function(n){return nodeMatchesQuery(n,query);});
+  // main topic BFS 순서로 정렬: 한 main topic의 모든 hop1, 모든 hop2, ... 를 다 훑은
+  // 뒤에야 다음 main topic으로 (에디터의 searchMatchNodes 정렬과 동일 규칙)
+  var tree=buildHopTreeJs();
+  var roots=NODES_DATA.filter(function(n){return tree.depthOf[n.id]===0;})
+    .sort(function(a,b){return (a.ly-b.ly)||(a.lx-b.lx);});
+  var rootIndex={};
+  roots.forEach(function(r,i){rootIndex[r.id]=i;});
+  searchMatchNodes.sort(function(a,b){
+    var ra=rootIndex[tree.rootOf[a.id]]||0, rb=rootIndex[tree.rootOf[b.id]]||0;
+    if(ra!==rb) return ra-rb;
+    var da=tree.depthOf[a.id]||0, db=tree.depthOf[b.id]||0;
+    if(da!==db) return da-db;
+    return (a.ly-b.ly)||(a.lx-b.lx);
+  });
   searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
   updateSearchCount();
   renderDropdown();
@@ -1407,6 +1796,7 @@ function selectSearchNode(id){
   searchSelectedId=id;
   var el=document.getElementById('node-'+id);
   if(el) el.classList.add('ng-search-active');
+  var q=document.getElementById('search-input').value.trim().toLowerCase();
   // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
   searchMatchNodes.forEach(function(n){
     var nodeEl=document.getElementById('node-'+n.id);
@@ -1417,7 +1807,19 @@ function selectSearchNode(id){
     for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
     if(!datum) return;
     if(n.id===id){
-      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;applyContentCaps(nodeEl);}
+      // 매치가 toggle 제목/내용 또는 original 제목/텍스트 안에 있을 수 있으므로,
+      // 접혀 있으면 펼쳐서 실제로 보이게 함 (에디터의 handleSelectSearchNode와 동일)
+      (n.toggles||[]).forEach(function(t){
+        if(q&&((t.title||'').toLowerCase().indexOf(q)!==-1||(t.content||'').toLowerCase().indexOf(q)!==-1)){
+          var togEl=nodeEl.querySelector('details.ng-toggle[data-toggle-id="'+t.id+'"]');
+          if(togEl&&!togEl.open) togEl.open=true;
+        }
+      });
+      if(q&&((n.originalTitle||'').toLowerCase().indexOf(q)!==-1||(n.originalText||'').toLowerCase().indexOf(q)!==-1)){
+        var origEl=nodeEl.querySelector('details.ng-original');
+        if(origEl&&!origEl.open) origEl.open=true;
+      }
     } else {
       if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
     }
@@ -1490,9 +1892,75 @@ function initKatex() {
   });
 }
 
+// 본문 높이 상한(More/Less) — NodeCard.tsx의 DEFAULT_CONTENT_MAX 로직을 그대로 이식.
+// .ng-content는 node.content 전용 클래스라서(toggle/original은 각각
+// .ng-toggle-body / .ng-orig-text 를 씀) 이 셀렉터만으로 이미 "content만" 범위가
+// 잡힌다 — 에디터와 동일하게 toggle/original에는 캡을 적용하지 않음.
+// scope를 주면 그 안의 .ng-content만 재측정(fold/unfold나 검색으로 처음 보이게
+// 될 때 — display:none 상태에서 측정하면 전부 0으로 나와서 버튼이 필요 없다고
+// 잘못 판단하기 때문에 다시 보이게 된 시점에 재측정이 필요함).
+var DEFAULT_CONTENT_MAX = 500;
+function applyContentCaps(scope) {
+  (scope || document).querySelectorAll('.ng-content').forEach(function(el) {
+    var measure = function() {
+      if (el.getAttribute('data-more-expanded') === '1') return;
+      var elTop = el.getBoundingClientRect().top;
+      var requiredBottom = 0;
+      el.querySelectorAll('table, img').forEach(function(media) {
+        var bottom = media.getBoundingClientRect().bottom - elTop;
+        if (bottom > requiredBottom) requiredBottom = bottom;
+      });
+      var max = Math.max(DEFAULT_CONTENT_MAX, Math.ceil(requiredBottom) + 8);
+      el.setAttribute('data-cap', String(max));
+      var needsBtn = el.scrollHeight > max + 1;
+      el.style.maxHeight = max + 'px';
+      el.style.overflowY = 'auto';
+      el.style.overflowX = 'hidden';
+      var next = el.nextElementSibling;
+      var btn = (next && next.classList.contains('ng-more-btn')) ? next : null;
+      if (needsBtn) {
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.className = 'ng-more-btn';
+          btn.textContent = '▼ More';
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var expanded = el.getAttribute('data-more-expanded') === '1';
+            if (expanded) {
+              el.removeAttribute('data-more-expanded');
+              el.style.maxHeight = el.getAttribute('data-cap') + 'px';
+              el.style.overflowY = 'auto';
+              el.style.overflowX = 'hidden';
+              btn.textContent = '▼ More';
+            } else {
+              el.setAttribute('data-more-expanded', '1');
+              el.style.maxHeight = '';
+              el.style.overflowY = '';
+              el.style.overflowX = '';
+              btn.textContent = '▲ Less';
+            }
+            setTimeout(function() { recomputePositions(); drawEdges(); }, 0);
+          });
+          el.parentNode.insertBefore(btn, el.nextSibling);
+        }
+      } else if (btn) {
+        btn.remove();
+      }
+    };
+    measure();
+    var imgs = Array.from(el.querySelectorAll('img'));
+    var pending = imgs.filter(function(img) { return !img.complete; });
+    pending.forEach(function(img) { img.addEventListener('load', measure); });
+  });
+}
+
 window.addEventListener('load', function() {
   // Render KaTeX first so node heights are accurate
   initKatex();
+  // scale는 아직 초기값 1이라(fitView가 아직 안 돌아서) getBoundingClientRect()
+  // 측정값이 캔버스 local 좌표와 일치함 — fitView 이후로 미루면 축소된 화면 픽셀을
+  // local px로 착각해서 캡 높이가 잘못 계산됨.
+  applyContentCaps();
   recomputePositions();
   drawEdges();
   fitView();
@@ -1502,7 +1970,7 @@ window.addEventListener('load', function() {
   if (pending === 0) return;
   function onImgSettle() {
     pending--;
-    if (pending <= 0) { recomputePositions(); drawEdges(); }
+    if (pending <= 0) { applyContentCaps(); recomputePositions(); drawEdges(); }
   }
   imgs.forEach(function(img) {
     if (!img.complete) {

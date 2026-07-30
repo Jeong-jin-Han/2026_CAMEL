@@ -4,10 +4,12 @@ aliases: [FastCommit]
 description: "JBD2 physical journaling의 byte/IO 과다 소비를 hybrid(logical+physical) 저널링으로 해소해 fsync를 2.8배 빠르게 한 Ext4 메인라인 머지 작업"
 venue: ATC
 year: 2024
+award: "Best Paper"
 tier: deep
 status: done
 tags:
   - paper
+  - award/best-paper
   - cluster/fs
   - topic/journaling
   - topic/filesystem

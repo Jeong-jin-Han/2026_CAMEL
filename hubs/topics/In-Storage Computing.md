@@ -20,16 +20,18 @@ tags: [meta/hub, hub/topic]
 - [[Ares-Flash]] — MICRO 2024
 - [[AttAcc]] — ASPLOS 2024
 - [[BeaconGNN]] — HPCA 2024
+- [[Exploiting Similarity Opportunity of Emerging AI Models on 3D Hybrid Bonding Architecture]] — ISCA 2024
 - [[OmniCache]] — FAST 2024
 - [[OptimStore]] — HPCA 2023
 
 ## 인접 토픽
 [[CXL]] · [[LLM Systems]]
 
-## 🆕 26S v2 신규 (stub)
-> 2026-07-16 리스트 개정으로 편입. PDF 미확보 — deep 승격 시 상단 목록으로 이동.
-- [[A Cost-Effective Near-Storage Processing Solution for Offline Inference of Long-Context LLMs]] — ASPLOS 2026 🆕stub
-- [[Exploiting Similarity Opportunity of Emerging AI Models on 3D Hybrid Bonding Architecture]] — ISCA 2023 🆕stub
-- [[MegIS - High-Performance, Energy-Efficient, and Low-Cost Metagenomic Analysis with In-Storage Processing]] — ISCA 2023 🆕stub
-- [[PreSto - An In-Storage Data Preprocessing System for Training Recommendation Models]] — ISCA 2024 🆕stub
-- [[SAGe - A Lightweight Algorithm-Architecture Co-Design for Mitigating the Data Preparation Bottleneck in Large-Scale Genome Sequence Analysis]] — HPCA 2026 🆕stub
+## 🆕 26S v2 신규 (deep 완료)
+> 2026-07-16 리스트 개정으로 편입 · PDF 전체 정독 완료(deep). venue/year는 PDF 실물 기준(시트 정정 포함).
+- [[A Cost-Effective Near-Storage Processing Solution for Offline Inference of Long-Context LLMs]] — ASPLOS 2026 🆕(deep)
+- [[Exploiting Similarity Opportunity of Emerging AI Models on 3D Hybrid Bonding Architecture]] — ISCA 2024 🆕(deep)
+- [[Flagger - Cooperative Acceleration for Large-Scale Cross-Silo Federated Learning Aggregation]] — ISCA 2024 🆕(deep)
+- [[MegIS - High-Performance, Energy-Efficient, and Low-Cost Metagenomic Analysis with In-Storage Processing]] — ISCA 2024 🆕(deep)
+- [[PreSto - An In-Storage Data Preprocessing System for Training Recommendation Models]] — ISCA 2024 🆕(deep)
+- [[SAGe - A Lightweight Algorithm-Architecture Co-Design for Mitigating the Data Preparation Bottleneck in Large-Scale Genome Sequence Analysis]] — HPCA 2026 🆕(deep)

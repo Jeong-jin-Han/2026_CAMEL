@@ -22,9 +22,10 @@ CXL이 처음이면 여기부터: [[CXL Overview]] → [[CXL 2.0]] → [[CXL 3.0
 ## 인접 토픽
 [[In-Storage Computing]] · [[LLM Systems]]
 
-## 🆕 26S v2 신규 (stub)
-> 2026-07-16 리스트 개정으로 편입. PDF 미확보 — deep 승격 시 상단 목록으로 이동.
-- [[Espresso - Constructing Cost-Efficient CXL JBOF via Inter-SSD Computing Resource Sharing]] — OSDI 2026 🆕stub
-- [[Motor - Enabling Multi-Versioning for Distributed Transactions on Disaggregated Memory]] — OSDI 2024 🆕stub
-- [[OBASE - Object-Based Address-Space Engineering to Improve Memory Tiering]] — OSDI 2026 🆕stub
-- [[PACT - A Criticality-First Design for Tiered Memory]] — ASPLOS 2026 🆕stub
+## 🆕 26S v2 신규 (deep 완료)
+> 2026-07-16 리스트 개정으로 편입 · PDF 전체 정독 완료(deep). venue/year는 PDF 실물 기준(시트 정정 포함).
+- [[AstriFlash]] — HPCA 2023 🆕 deep 노트는 SkyByte refs에
+- [[Espresso - Constructing Cost-Efficient CXL JBOF via Inter-SSD Computing Resource Sharing]] — OSDI 2026 🆕(deep)
+- [[Motor - Enabling Multi-Versioning for Distributed Transactions on Disaggregated Memory]] — OSDI 2024 🆕(deep)
+- [[OBASE - Object-Based Address-Space Engineering to Improve Memory Tiering]] — OSDI 2026 🆕(deep)
+- [[PACT - A Criticality-First Design for Tiered Memory]] — ASPLOS 2026 🆕(deep)

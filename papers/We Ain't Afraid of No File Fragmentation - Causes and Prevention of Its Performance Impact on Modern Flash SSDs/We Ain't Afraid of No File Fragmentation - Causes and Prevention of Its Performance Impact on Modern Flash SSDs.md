@@ -4,10 +4,12 @@ aliases: [No File Fragmentation]
 description: "Flash SSD에서 파일 단편화의 read 성능 저하 진짜 원인은 request splitting이 아니라 die-level collision이며, NVMe 확장+page-to-die 매핑으로 defrag 없이 해결"
 venue: FAST
 year: 2024
+award: "Best Paper"
 tier: deep
 status: done
 tags:
   - paper
+  - award/best-paper
   - cluster/fs
   - topic/fragmentation
   - topic/filesystem

@@ -18,24 +18,28 @@ body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFo
 #tb-row2::-webkit-scrollbar{display:none}
 #tb-row2>*{flex-shrink:0}
 #tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
-#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
-button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
-button:hover{background:#e8e8e8;border-color:#aaa}
+button{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;flex-shrink:0;box-shadow:0 1px 2px rgba(15,23,42,.06);transition:background .1s,color .1s,border-color .1s}
+button:hover{background:#2563eb;color:#fff;border-color:#1d4ed8}
+button:active{background:#1d4ed8;border-color:#1e40af}
+select{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:500;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.06)}
+select:hover{border-color:#93c5fd}
 .tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
 #viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
 #viewport.pan-drag{cursor:grabbing}
 #canvas{position:absolute;transform-origin:0 0}
 #wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
-.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#grid-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 15%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
 .ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
-.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:default;user-select:none}
 .ng-header:hover{background:rgba(0,0,0,.04)}
-.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
-.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
-.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px;font-size:14px}
 .ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-more-btn{display:block;width:100%;margin-top:4px;padding:3px 0;background:transparent;border:none;color:inherit;opacity:.55;font-size:10px;cursor:pointer;text-align:center;user-select:none}
 .ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
 .ng-img-wrap{margin:4px 0}
 .ng-table-wrap{overflow-x:auto;margin:6px 0}
@@ -95,14 +99,21 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 <div id="toolbar">
   <div id="tb-row1">
     <span id="tb-title">ByteFS: System Support for (CXL-based) Memory-Semantic Solid-State Drives</span>
-    <span id="tb-source">Shaobo Li, Yirui Eric Zhou, Hao Ren, Jian Huang (UIUC) · ASPLOS 2025</span>
   </div>
   <div id="tb-row2">
+    <select id="tb-filter" title="Filter Collapse/Expand to one node type"></select>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected; all if a type filter is set) — collapsing everything also fits the view">📁 Collapse</button>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected; only the filtered type if a type filter is set)">📂 Expand</button>
     <button onclick="fitView()">Fit View</button>
-    <div class="tb-sep"></div>
-    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
-    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
-    <div class="tb-sep"></div>
+    <button id="tb-grid-btn" onclick="toggleGrid()" style="display:inline-flex;align-items:center;gap:4px" title="Toggle debug grid — vertical lines mark hop-level boundaries, horizontal lines mark main-topic cluster boundaries">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+      </svg>
+      Grid
+    </button>
     <div class="tb-sep"></div>
     <span id="tb-sel" style="opacity:.35">Click a node to select</span>
   </div>
@@ -118,6 +129,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <div id="search-drop"></div>
   </div>
   <div id="canvas">
+    <svg id="grid-svg" style="display:none"></svg>
     <svg id="wire-svg">
       <defs>
         <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -130,7 +142,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     </svg>
     <div class="ng-node" id="node-node_001" data-children="node_006" style="--color:#4B8BBE;border-radius:2px;left:660px;top:300px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Killer Application</span>
   </div>
   <div class="ng-body"><div class="ng-content">ByteFS가 푸는 문제는 <strong style="font-size:1.1em">memory-semantic SSD(M-SSD)</strong> — PCIe/CXL의 byte-addressability로 <strong style="font-size:1.1em">byte와 block 둘 다</strong> 접근되는 저가 NAND flash SSD($\approx <span class="ng-cur">$</span>0.22\text{/GB}$) — 를 위한 <strong style="font-size:1.1em">파일시스템이 없다</strong>는 것이다. 기존 block FS(Ext4/F2FS)는 128B inode 갱신에도 4KB write를 강제하고(I/O amplification), NVM FS(PMFS/NOVA)는 순수 byte라 flash의 page 특성·locality를 못 살린다.<br><br><strong style="font-size:1.1em">Killer application 1 — 자료구조별 byte/block 적응 선택</strong>: FS 핵심 구조를 정량 분석(§3)해 metadata write는 <strong style="font-size:1.1em">byte</strong>·read는 <strong style="font-size:1.1em">block</strong>으로 transparent하게 선택 $\rightarrow$ I/O amplification 대폭 감소.<br><br><strong style="font-size:1.1em">Killer application 2 — SSD DRAM을 log-structured write buffer로</strong>: 내부 DRAM을 cacheline 단위 로그로 재조직해 작은 write를 <strong style="font-size:1.1em">coalescing</strong>(3-layer skip list, 89ns lookup) $\rightarrow$ flash traffic 감소.<br><br><strong style="font-size:1.1em">Killer application 3 — firmware redo log로 crash consistency</strong>: write log를 redo log로 재사용해 <strong style="font-size:1.1em">double-write 없이</strong> atomic·crash-consistent, 빠른 recovery(4.2s).<br><br>결과: SOTA(Ext4/F2FS/NOVA/PMFS) 대비 성능 <strong style="font-size:1.1em">최대 2.7×</strong>, SSD write traffic <strong style="font-size:1.1em">최대 5.1×</strong> 감소. host FS(SW)+SSD firmware(HW) <strong style="font-size:1.1em">co-design</strong>.</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
@@ -138,7 +150,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_002" data-children="node_007,node_008,node_009,node_022,node_031" style="--color:#4B8BBE;border-radius:2px;left:660px;top:600px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">필요한 이유 (Why It's Needed)</span>
   </div>
   <div class="ng-body"><div class="ng-content">M-SSD는 byte와 block을 <strong style="font-size:1.1em">동시에</strong> 노출하지만, 수십 년간 FS는 둘 중 하나만 가정해 설계됐다 $\rightarrow$ <strong style="font-size:1.1em">어느 것도 M-SSD에 자연스럽게 맞지 않는다</strong>.<br><br><strong style="font-size:1.1em">(1) block FS(Ext4/F2FS)</strong>: 고정 block(512B/4KB) 관리라 byte 접근 불가. 작은 metadata 갱신에도 page 전체 write $\rightarrow$ <strong style="font-size:1.1em">write amplification 최대 6.2×</strong>(Table 2). 128B inode 하나 갱신 = 4KB write.<br><br><strong style="font-size:1.1em">(2) NVM FS(PMFS/NOVA/SplitFS)</strong>: byte load/store·DAX로 SW overhead 최소화에 집중했지만, M-SSD는 <strong style="font-size:1.1em">높은 PCIe latency + 불가피한 flash 접근</strong>이 병목이라 그대로 얹으면 부적합. flash의 spatial locality도 못 살림.<br><br>그래서 ByteFS는 먼저 <strong style="font-size:1.1em">FS 자료구조별 접근 granularity 선호</strong>를 정량 분석(§3, Table 3)해 설계 지침을 얻는다 — metadata write는 byte, locality 있는 read는 block.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.2, p.3</span></summary>
@@ -146,7 +158,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_003" data-children="node_010,node_011,node_012,node_013,node_014,node_015,node_023,node_029,node_030" style="--color:#4B8BBE;border-radius:2px;left:660px;top:900px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">해결책 (Solution)</span>
   </div>
   <div class="ng-body"><div class="ng-content">ByteFS는 host FS(SW)+SSD firmware(HW) <strong style="font-size:1.1em">co-design</strong>으로 dual byte/block을 transparent하게 지원한다(§4). 4대 도전: granularity mismatch, 유연한 인터페이스 선택, 최소 overhead consistency, essential FS property 보존.<br><br><strong style="font-size:1.1em">§4.2 Byte access/persistence</strong>: BAR로 SSD 전체를 host memory에 매핑, MMIO 접근. <strong style="font-size:1.1em">cache-coherency 불필요</strong>(host가 최신본 소유). CXL.mem로도 실현 가능. persistence = clflush/clwb + write-verify read.<br><br><strong style="font-size:1.1em">§4.3 Log-structured SSD DRAM</strong>: 내부 DRAM을 cacheline 단위 log로 재조직, small write append+coalescing. <strong style="font-size:1.1em">3-layer skip list</strong> 인덱스. write log를 <strong style="font-size:1.1em">redo log로 재사용</strong>(double-logging 회피). SSD엔 page cache 안 둠(coordinated caching).<br><br><strong style="font-size:1.1em">§4.4 Dual r/w</strong>: byte(64B log entry)·block(4KB NVMe, log와 merge/invalidate).<br><br><strong style="font-size:1.1em">§4.5 Metadata</strong>: inode 64B 분할, dentry/bitmap/data-pointer byte-write + host caching.<br><br><strong style="font-size:1.1em">§4.6 Data I/O</strong>: CoW+XOR로 <strong style="font-size:1.1em">modified ratio $R$</strong> 계산해 byte/block 선택.<br><br><strong style="font-size:1.1em">§4.7 Crash consistency</strong>: TxID/TxTable/TxLog + battery-backed DRAM, custom NVMe COMMIT/RECOVER.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.5</span></summary>
@@ -154,7 +166,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_004" data-children="node_017,node_018,node_019,node_024,node_025,node_026,node_028" style="--color:#4B8BBE;border-radius:2px;left:660px;top:1200px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결과 (Results)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">28-core Intel E5 + 128GB. <strong style="font-size:1.1em">OpenSSD FPGA 실물 프로토타입</strong>(1TB, 16채널, 1GB DRAM, ARM firmware) + <strong style="font-size:1.1em">FEMU 기반 에뮬레이터</strong>(32GB, flash 40/60µs, cacheline 4.8/0.6µs). Baseline: Ext4·F2FS(block), NOVA·PMFS(byte NVM FS를 M-SSD에 매핑). 모두 256MB SSD DRAM 캐싱.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>항목</th><th>결과</th></tr></thead><tbody><tr><td>micro 평균 (vs Ext4 / F2FS)</td><td><strong style="font-size:1.1em">2.5×</strong> / 1.48×</td></tr><tr><td>file create (vs Ext4 / F2FS)</td><td><strong style="font-size:1.1em">6.0×</strong> / 2.4×</td></tr><tr><td>OLTP (vs Ext4)</td><td><strong style="font-size:1.1em">4.1×</strong></td></tr><tr><td>YCSB throughput (vs F2FS)</td><td>2.4×</td></tr><tr><td>metadata traffic (vs Ext4)</td><td>최대 <strong style="font-size:1.1em">25.3×</strong>↓</td></tr><tr><td>flash traffic (vs Ext4/F2FS/NOVA/PMFS)</td><td>2.9×/2.1×/3.2×/2.2×↓</td></tr><tr><td>write traffic</td><td>최대 <strong style="font-size:1.1em">5.1×</strong>↓</td></tr><tr><td>crash recovery</td><td>평균 <strong style="font-size:1.1em">4.2s</strong></td></tr></tbody></table></div><div class="ng-seg"><br>NOVA/PMFS는 flash용 설계가 아니라 spatial locality를 못 살려 오히려 Ext4/F2FS보다 나쁜 경우 많음.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, p.10</span></summary>
@@ -162,7 +174,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_005" data-children="node_020,node_021,node_027,node_032,node_033" style="--color:#4B8BBE;border-radius:2px;left:660px;top:1500px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론 (Conclusion)</span>
   </div>
   <div class="ng-body"><div class="ng-content">ByteFS는 memory-semantic SSD를 위한 <strong style="font-size:1.1em">커널 레벨 파일시스템</strong>으로, dual byte/block interface를 지원하며 FS 핵심 구조를 재설계해 <strong style="font-size:1.1em">스택 전체의 I/O amplification</strong>을 줄이고 crash consistency를 보존한다. OpenSSD FPGA 실물 + 에뮬레이터로 실증.<br><br><strong style="font-size:1.1em">의의 — memory-semantic SSD 스택의 FS 층</strong>: FlatFlash[10](SW 기반 M-SSD, unified address translation)·Jung의 CXL-SSD 에뮬레이터[26]는 device를 어떻게 <strong style="font-size:1.1em">system software가 관리</strong>할지 거의 안 다뤘는데, ByteFS가 그 공백을 채운다. 같은 UIUC Jian Huang 그룹의 [[SkyByte]](device 층)와 <strong style="font-size:1.1em">다른 층(FS/OS 층)</strong>을 이룬다.<br><br><strong style="font-size:1.1em">한계 / 열린 질문</strong>: (1) &quot;host가 최신본 소유 $\rightarrow$ cache-coherency 불필요&quot;는 명시적 <strong style="font-size:1.1em">single-host 전제</strong>. (2) write log·TxTable이 단일 host FS 소속. (3) coordinated caching이 한 host page cache 최신 가정. (4) CXL.mem realize 언급하나 실제 CXL coherence 위 FS 재설계는 future work. $\rightarrow$ multi-host가 빈칸.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7, p.13</span></summary>
@@ -170,7 +182,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_006" style="--color:#E74C3C;border-radius:2px;left:1180px;top:240px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">M-SSD가 byte+block 이중 접근을 주는 하드웨어 근거 (BAR/MMIO, battery-backed DRAM, CXL)</span>
   </div>
   <div class="ng-body"><div class="ng-content">ByteFS의 전제: <strong style="font-size:1.1em">memory-semantic SSD(M-SSD)</strong>는 byte와 block 둘 다 접근된다. 근거는 PCIe <strong style="font-size:1.1em">BAR(Base Address Register)</strong> — BIOS/OS가 device buffer를 host memory space에 매핑해 host가 <strong style="font-size:1.1em">load/store(MMIO)</strong>로 접근. 내부 DRAM이 byte-granular 요청의 data buffer, <strong style="font-size:1.1em">battery-backed DRAM</strong>이 power loss 시 persistence 보장. <strong style="font-size:1.1em">normal NVMe block interface도 유지</strong> $\rightarrow$ dual.<br><br>NVM(Optane, processor memory bus)과 달리 M-SSD는 <strong style="font-size:1.1em">PCIe/CXL attached + 성숙한 NAND</strong>라 TB급·저가($<span class="ng-cur">$</span>0.22\text{/GB}$). Samsung의 CXL-based SSD(CMM-H)[40]가 실물 사례. <strong style="font-size:1.1em">Table 1</strong>: M-SSD cacheline R/W <strong style="font-size:1.1em">4.8/0.6µs</strong>, 3.5/2.5GB/s, 영속.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.1, p.3</span></summary>
@@ -178,7 +190,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_007" style="--color:#E74C3C;border-radius:2px;left:1180px;top:500px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">block interface의 I/O amplification (Table 2): write 최대 6.2×</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">block FS(Ext4/F2FS)를 Filebench+OLTP로 프로파일한 <strong style="font-size:1.1em">정량 근거</strong>.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>Ext4</th><th>Varmail</th><th>Fileserver</th><th>Webproxy</th><th>Webserver</th><th>OLTP</th></tr></thead><tbody><tr><td>Write</td><td>3.85×</td><td><strong style="font-size:1.1em">6.21×</strong></td><td>1.43×</td><td>1.66×</td><td>2.17×</td></tr><tr><td>Read</td><td>1.21×</td><td>1.15×</td><td>1.25×</td><td>1.71×</td><td>1.52×</td></tr></tbody></table></div><div class="ng-seg"><br>주범은 metadata: <strong style="font-size:1.1em">inode</strong>가 write의 35%(Ext4)/24.4%(F2FS), 128B inode 갱신에 4KB write. Ext4 <strong style="font-size:1.1em">journaling</strong>이 전체 traffic의 30.7%(ordered mode double-write). bitmap은 몇 byte만 flip. $\rightarrow$ 작은 metadata write에 byte interface가 결정적.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.4</span></summary>
@@ -186,7 +198,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_008" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:660px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§3 특성 분석 (Table 3): 자료구조별 byte/block 선호</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">ByteFS 설계의 토대 — FS 핵심 구조마다 read/write의 preferred interface를 정리.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>자료구조</th><th>Read</th><th>Write</th></tr></thead><tbody><tr><td>Superblock</td><td>Block</td><td>Block</td></tr><tr><td>Block/Inode List(bitmap)</td><td>Block</td><td><strong style="font-size:1.1em">Byte</strong></td></tr><tr><td>Inode</td><td>Block</td><td><strong style="font-size:1.1em">Byte</strong></td></tr><tr><td>Data Pointer</td><td>Block</td><td><strong style="font-size:1.1em">Byte</strong></td></tr><tr><td>Directory Entry</td><td>Block</td><td><strong style="font-size:1.1em">Byte</strong></td></tr><tr><td>Page Cache</td><td>Block</td><td>Block/Byte</td></tr><tr><td>Data Block</td><td>Block/Byte</td><td>Block/Byte</td></tr><tr><td>Data Journal</td><td>Block</td><td>Block/Byte</td></tr></tbody></table></div><div class="ng-seg"><br><strong style="font-size:1.1em">규칙</strong>: 대부분 metadata update는 작다 $\rightarrow$ <strong style="font-size:1.1em">write는 byte</strong>. 그 read는 block으로 로드해 <strong style="font-size:1.1em">locality 활용 + host 캐싱</strong>. file data/journal은 크기·locality에 따라 runtime에 유연 선택.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
@@ -194,7 +206,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_009" style="--color:#95A5A6;border-radius:22px;left:1180px;top:820px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 20%,transparent);color:#95A5A6">Reference</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">왜 NVM FS(PMFS/NOVA)를 그대로 못 쓰나 + M-SSD 선행</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">ByteFS의 좌표를 정하는 인용:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>연구</th><th>관계</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">FlatFlash</strong> (ASPLOS'19) [10]</td><td>SW 기반 M-SSD 원형 — unified virtual memory space + unified address translation. device의 <strong style="font-size:1.1em">system software 관리</strong>는 미해결로 남김 ($\rightarrow$ ByteFS가 채움)</td></tr><tr><td><strong style="font-size:1.1em">Jung, CXL-SSD</strong> (HotStorage'22) [26]</td><td>CXL-SSD FPGA 에뮬레이터, memory expansion</td></tr><tr><td><strong style="font-size:1.1em">NOVA</strong> (FAST'16) [48]</td><td>per-inode log-structured NVM FS — baseline. flash 미최적화라 M-SSD에서 열세</td></tr><tr><td><strong style="font-size:1.1em">PMFS</strong> (EuroSys'14) [19]</td><td>DAX 기반 PM FS — baseline</td></tr><tr><td><strong style="font-size:1.1em">SplitFS</strong> (SOSP'19) [27]</td><td>user/kernel 분리 PM FS</td></tr></tbody></table></div><div class="ng-seg"><br>핵심: NVM FS는 <strong style="font-size:1.1em">near-DRAM NVM</strong> 전제라 M-SSD의 높은 PCIe/flash latency에서 부적합.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§2.2, p.3</span></summary>
@@ -202,7 +214,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_010" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:980px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.2 Byte-granular access/persistence — coherency 불필요, CXL.mem</span>
   </div>
   <div class="ng-body"><div class="ng-content">BAR로 <strong style="font-size:1.1em">SSD 전체를 memory region으로</strong> 매핑 $\rightarrow$ MMIO(byte)로 임의 SSD 주소 접근.<br><br><strong style="font-size:1.1em">핵심 주장</strong>: ByteFS는 <strong style="font-size:1.1em">SSD DRAM↔host CPU cache coherency를 요구하지 않는다</strong> — host가 항상 최신본을 갖고 firmware가 host-written 데이터를 수정하지 않기 때문. byte interface는 <strong style="font-size:1.1em">CXL.mem</strong>로도 realize 가능(cacheable load/store). (★ 이 문장이 single-host 전제를 드러냄.)<br><br><strong style="font-size:1.1em">Persistence</strong>: battery-backed DRAM. 단 host CPU의 <strong style="font-size:1.1em">Write Combining(WC)</strong>이 small write를 버퍼링 $\rightarrow$ dirty cacheline/pending PCIe 남김. 2단계: (1) MMIO write 후 <strong style="font-size:1.1em">clflush/clwb</strong>; (2) <strong style="font-size:1.1em">write-verify read</strong>(zero-byte read)로 posted PCIe 완료 강제(root complex serialize).</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.6</span></summary>
@@ -210,7 +222,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_011" data-children="node_016" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1140px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.3 SSD DRAM = log-structured memory + coalescing + coordinated caching</span>
   </div>
   <div class="ng-body"><div class="ng-content">Flash는 page-granular만 가능한데 host는 byte 접근 $\rightarrow$ mismatch. ByteFS는 SSD DRAM cache를 <strong style="font-size:1.1em">cacheline 단위 log-structured region</strong>으로 재조직 $\rightarrow$ 모든 byte write를 log에 append(critical path의 flash 접근 회피), background cleaning이 <strong style="font-size:1.1em">coalescing</strong> 후 flash flush(log utilization <strong style="font-size:1.1em">85%</strong> 초과 시).<br><br><strong style="font-size:1.1em">Coordinated caching</strong>: SSD 안엔 <strong style="font-size:1.1em">page cache를 두지 않음</strong> $\rightarrow$ loaded page는 host DRAM에만 캐싱 $\rightarrow$ 귀한 SSD DRAM을 <strong style="font-size:1.1em">persistent write</strong>에 몰아줌.<br><br><strong style="font-size:1.1em">Firmware-level logging = redo log</strong>: 모든 metadata update를 log에 append하므로 write log를 <strong style="font-size:1.1em">redo log로 직접 재사용</strong> $\rightarrow$ <strong style="font-size:1.1em">double logging 회피</strong>, atomic·crash-consistent.<br><br>(인덱스 구조는 자식 노드 「3-layer skip list」 참고.)</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.2</span></summary>
@@ -218,7 +230,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_016" style="--color:#5C9E6E;border-radius:2px;left:1710px;top:1140px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.3 write log 구조: circular buffer + 3-layer skip list (89ns lookup)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Global log region</strong>: circular buffer(<strong style="font-size:1.1em">256MB</strong> 기본, head/tail), 데이터를 <strong style="font-size:1.1em">64B-aligned entry</strong>로 log tail에 append.<br><br><strong style="font-size:1.1em">3-layer skip list 인덱스</strong>:<br>- <strong style="font-size:1.1em">L1 partition table</strong>: SSD 주소공간을 <strong style="font-size:1.1em">16MB partition</strong>으로 분할. LPA/partition-size로 partition index 즉시 계산.<br>- <strong style="font-size:1.1em">L2 skip list</strong>: partition별, flash page의 데이터가 log에 있으면 LPA로 인덱싱된 entry.<br>- <strong style="font-size:1.1em">L3 chunk list</strong>: block offset 순 정렬. chunk entry = block offset(<strong style="font-size:1.1em">1B</strong>) + log offset(<strong style="font-size:1.1em">4B</strong>) + data length(<strong style="font-size:1.1em">4B</strong>).<br><br>$$O(\log n)\ \text{lookup / insert / delete}$$<br><br>hash table 대비 <strong style="font-size:1.1em">임의 chunk size + range lookup</strong> 우수(FS의 다양한 크기 접근에 적합). 256MB log fully-utilized 시 평균 lookup <strong style="font-size:1.1em">89ns</strong>(flash µs급이라 무시 가능), 인덱스는 SSD DRAM <strong style="font-size:1.1em">21MB</strong> 차지.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.6</span></summary>
@@ -226,7 +238,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1300px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.4 Dual byte/block read/write</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Byte read</strong>: host가 MMIO load $\rightarrow$ firmware가 write log lookup. 있으면 직접 반환, 없으면 flash에서 page fetch 후 <strong style="font-size:1.1em">요청 cacheline만</strong> 반환.<br><strong style="font-size:1.1em">Byte write</strong>: 64B entry 정렬. 단일 64B는 직접 write + clflush/clwb. 다중 cacheline atomic은 <strong style="font-size:1.1em">FS transaction</strong>으로 wrap, concurrent write는 chunk entry로 최신 버전 추적.<br><br><strong style="font-size:1.1em">Block read</strong>: flash $\rightarrow$ transfer buffer 로드 후 skip list 조회. log에 dirty cacheline 있으면 loaded page와 <strong style="font-size:1.1em">merge</strong> 후 반환.<br><strong style="font-size:1.1em">Block write</strong>: 4KB를 FTL write buffer로, flash write 후 firmware가 skip list 스캔해 해당 page의 log entry <strong style="font-size:1.1em">invalidate</strong>(host page cache write-back이 최신이라 즉시 무효화 가능).<br><br><strong style="font-size:1.1em">Log cleaning(Algorithm 1)</strong>: modified page 순회 $\rightarrow$ 최신 committed 버전 merge $\rightarrow$ buffer 차면 flash write. <strong style="font-size:1.1em">double buffering</strong>으로 background 수행(정상 IO 비차단).</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.4, p.7</span></summary>
@@ -234,7 +246,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1460px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.5 Metadata 관리: inode 64B 분할 + host-side caching</span>
   </div>
   <div class="ng-body"><div class="ng-content">host-side metadata caching, miss 시 block interface로 로드.<br><br>- <strong style="font-size:1.1em">Inode</strong>: 128B entry를 4KB page로 그룹화. 각 inode를 <strong style="font-size:1.1em">upper/lower 64B로 분할</strong> — lower = 자주 갱신(file size, mtime, access rights). inode update를 <strong style="font-size:1.1em">64B byte write</strong>로 atomic 처리. host radix tree 캐싱.<br>- <strong style="font-size:1.1em">Directory entry</strong>: inode number(4B)+type(2B)+name len(2B)+filename(최대 256B). lookup은 dir block 전체 block-load, hashed name radix tree 캐싱. create/rename은 단일 entry(64-320B) byte write.<br>- <strong style="font-size:1.1em">Block/Inode bitmap</strong>: <strong style="font-size:1.1em">64B group</strong> 단위 갱신, boot 시 block-load. per-CPU free list + extent 할당.<br>- <strong style="font-size:1.1em">Data pointer</strong>: Ext4-like <strong style="font-size:1.1em">extent</strong>. leaf node(16B)=offset(8B)+LBA(4B)+len(4B). in-place update, byte-granular persistent write.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.5, p.8</span></summary>
@@ -242,7 +254,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_014" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1620px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.6 Data I/O: CoW + XOR로 modified ratio 계산해 byte/block 선택</span>
   </div>
   <div class="ng-body"><div class="ng-content">- <strong style="font-size:1.1em">Direct I/O</strong>(O_DIRECT): 접근 $\leq$ 512B면 byte, 아니면 block(512B 미만은 cacheline write가 4KB persist보다 빠름).<br>- <strong style="font-size:1.1em">Buffered I/O</strong>: host page cache 흡수. write-back 시 <strong style="font-size:1.1em">CoW</strong>로 원본을 duplicate에 복사(XArray 추적, per-inode `address_space`). 원본$\oplus$duplicate <strong style="font-size:1.1em">XOR</strong>로 수정 64B chunk 식별 후 <strong style="font-size:1.1em">modified ratio</strong>:<br><br>$$R = \frac{N_{Modified}}{N_{Total}}$$<br><br>$R &lt; \frac{1}{8}$(4KB 중 512B)이면 <strong style="font-size:1.1em">byte</strong>, 아니면 <strong style="font-size:1.1em">block</strong>. <strong style="font-size:1.1em">avx2</strong> 256-bit XOR(평균 936 cycle, 14GB/s). duplicate page는 page cache의 평균 <strong style="font-size:1.1em">16%</strong>.<br>- <strong style="font-size:1.1em">mmap I/O</strong>: M-SSD를 memory expander로, cached DRAM page를 user space 매핑.<br>- <strong style="font-size:1.1em">Data journaling</strong>: metadata logging(Ext4 ordered mode 수준) + data journaling. 큰 write는 <strong style="font-size:1.1em">JBD2 + ByteFS transaction</strong> 결합.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.6, p.8</span></summary>
@@ -250,7 +262,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_015" style="--color:#5C9E6E;border-radius:2px;left:1180px;top:1780px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">§4.7 Crash consistency &amp; recovery (redo log · TxLog · RECOVER)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Crash consistency</strong>: transaction으로 metadata/data의 atomicity·write ordering 강제. firmware-level log + battery-backed DRAM이 commit 가속. 4B <strong style="font-size:1.1em">TxID</strong>(monotonic), host <strong style="font-size:1.1em">TxTable</strong>로 ongoing tx 추적 + transaction-level lock. commit = custom NVMe <strong style="font-size:1.1em">COMMIT(TxID)</strong> $\rightarrow$ firmware가 2MB <strong style="font-size:1.1em">TxLog</strong>에 4B commit entry append.<br><br><strong style="font-size:1.1em">Data recovery</strong>: battery-backed SSD DRAM이 내용 보존. custom NVMe <strong style="font-size:1.1em">RECOVER()</strong> $\rightarrow$ firmware가 log region 스캔, 각 entry 끝 4B TxID가 TxLog에 <strong style="font-size:1.1em">없으면 uncommitted로 폐기</strong>, 있으면 TxID 순서로 flash flush. 이후 data journal 복구.<br><br><strong style="font-size:1.1em">구현(§4.9)</strong>: ByteFS 3.9K LoC(Ext4 기반, Linux 5.1), SSD firmware 1.5K LoC(HW 변경 없음). OpenSSD FPGA(1TB, 16채널, 1GB DRAM) + FEMU 에뮬레이터 2.1K LoC.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.7</span></summary>
@@ -258,7 +270,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_017" style="--color:#9B59B6;border-radius:2px;left:1180px;top:1960px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">성능: create 6.0×, OLTP 4.1×, YCSB 2.4× (Fig.6-7)</span>
   </div>
   <div class="ng-body"><div class="ng-content">byte/block 적응 선택 + firmware log의 종합 효과.<br><br>- <strong style="font-size:1.1em">Micro</strong>: Ext4 대비 <strong style="font-size:1.1em">2.5×</strong>, F2FS 대비 1.48× 평균. <strong style="font-size:1.1em">file create 6.0×</strong>(vs Ext4). mkdir/rmdir 1.2-1.5×(vs F2FS). delete는 즉시 sync 없어 비슷.<br>- <strong style="font-size:1.1em">Macro</strong>: Varmail <strong style="font-size:1.1em">1.9×</strong>(vs F2FS, 작은 sync I/O 많음), Fileserver 2.2×(vs Ext4), Webproxy 1.3×(vs Ext4, dir op 많음), read-heavy Webserver/Webproxy는 block+host caching으로 비슷, <strong style="font-size:1.1em">OLTP 4.1×</strong>(vs Ext4, 200 thread write-intensive).<br>- <strong style="font-size:1.1em">YCSB(RocksDB)</strong>: F2FS 대비 2.4× throughput. YCSB-A/F(50/50): read avg/tail <strong style="font-size:1.1em">2.3×/2.0×</strong>, write 1.3×/1.6×(vs F2FS). YCSB-C(100% read)는 비슷.<br><br>NOVA/PMFS는 pure byte라 flash spatial locality를 못 살려 열세.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, p.11</span></summary>
@@ -266,7 +278,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_018" style="--color:#9B59B6;border-radius:2px;left:1180px;top:2120px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">I/O traffic: metadata 25.3×↓, flash 2.9×↓, write 5.1×↓ (Fig.8-11)</span>
   </div>
   <div class="ng-body"><div class="ng-content">ByteFS friendliness to SSD의 핵심 증거.<br><br>- <strong style="font-size:1.1em">Metadata traffic</strong>(vs block FS): Ext4 대비 <strong style="font-size:1.1em">최대 25.3×</strong>, F2FS 17.2×↓(평균 11.4×/6.1×). byte interface로 double-write 제거.<br>- <strong style="font-size:1.1em">vs NOVA/PMFS</strong>: byte인데도 ByteFS가 더 적음 — NOVA는 out-of-place, PMFS는 data journaling으로 double-write, ByteFS는 <strong style="font-size:1.1em">in-place update + firmware redo log</strong>. NOVA 대비 metadata read ~43%↓.<br>- <strong style="font-size:1.1em">Flash traffic</strong>: 평균 Ext4/F2FS/NOVA/PMFS 대비 <strong style="font-size:1.1em">2.9×/2.1×/3.2×/2.2×↓</strong> — small write coalescing. abstract의 <strong style="font-size:1.1em">write traffic 5.1×↓</strong>가 여기서 옴.<br>- 가끔 log-cleaning의 read-modify-write로 flash traffic이 늘 수 있으나 <strong style="font-size:1.1em">background라 성능 영향 없음</strong>.<br><br><strong style="font-size:1.1em">Breakdown(Fig.12)</strong>: Varmail/Fileserver는 dual interface+log 둘 다, Webproxy는 dual interface, OLTP는 둘 다에서 이득.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.11-12</span></summary>
@@ -274,7 +286,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_019" style="--color:#9B59B6;border-radius:2px;left:1180px;top:2280px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Recovery 4.2s + CXL sensitivity (cacheline 175ns)</span>
   </div>
   <div class="ng-body"><div class="ng-content">- <strong style="font-size:1.1em">Crash recovery(§5.5)</strong>: 평균 <strong style="font-size:1.1em">4.2s</strong> — SSD DRAM 내용 로드 0.9s + global log/TxLog 스캔·committed entry flash flush 2.7s.<br>- <strong style="font-size:1.1em">Flash latency sensitivity(§5.6)</strong>: 25/200 ~ 3/80µs 전 구간에서 F2FS/NOVA 우위. <strong style="font-size:1.1em">flash write latency가 높을수록 ByteFS 이득 큼</strong>(background flush로 은닉).<br>- <strong style="font-size:1.1em">CXL-based SSD 에뮬레이션</strong>: cacheline latency <strong style="font-size:1.1em">175ns</strong>(3/80* 설정). CXL이 byte latency를 줄여 ByteFS·NOVA 모두 개선되지만 NOVA는 여전히 느림(높은 flash latency 미최적화).<br>- <strong style="font-size:1.1em">Log size(§5.6)</strong>: 64M$\rightarrow$512M로 키우면 coalescing↑ $\rightarrow$ 성능 scale(flush는 background). OLTP처럼 이미 write locality 좋으면 이득 marginal.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.6, p.13</span></summary>
@@ -282,21 +294,21 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_020" style="--color:#BDC3C7;border-radius:22px;left:1180px;top:2440px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">스택 관계: ByteFS(FS 층) ↔ SkyByte(device 층) ↔ FlatFlash(원형)</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">ByteFS·[[SkyByte]]는 같은 UIUC Jian Huang 그룹이고, memory-semantic SSD 스택의 <strong style="font-size:1.1em">다른 층</strong>을 맡는다.<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th></th><th>ByteFS (ASPLOS'25)</th><th>SkyByte (HPCA'25)</th></tr></thead><tbody><tr><td>층</td><td><strong style="font-size:1.1em">filesystem / OS support</strong></td><td><strong style="font-size:1.1em">device (HW/OS co-design)</strong></td></tr><tr><td>무엇</td><td>M-SSD 위 byte+block FS</td><td>memory-semantic SSD device 자체</td></tr><tr><td>SSD DRAM</td><td>log-structured write buffer + coalescing</td><td>promotion cache(PLB 계승)</td></tr><tr><td>인터페이스</td><td>dual byte+block</td><td>pure memory-semantic</td></tr><tr><td>일관성</td><td>firmware redo log·TxLog</td><td>PLB/promotion consistency</td></tr></tbody></table></div><div class="ng-seg"><br>둘 다 [[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]](ASPLOS'19, ByteFS ref [10])를 M-SSD 원형으로 인용. ★ SkyByte가 device를 만들면, ByteFS가 그 device 위에 파일시스템을 얹는다 — <strong style="font-size:1.1em">같은 이중역할(byte↔block)을 device층·FS층 두 곳에서 transparent co-design</strong>.</div></div></div>
 </div>
 <div class="ng-node" id="node-node_021" style="--color:#1ABC9C;border-radius:22px;left:1710px;top:2440px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향: ByteFS의 &quot;coherency 불필요&quot;는 single-host — multi-host FS coherence가 빈칸</span>
   </div>
   <div class="ng-body"><div class="ng-content">ByteFS는 §4.2에서 <strong style="font-size:1.1em">&quot;host가 항상 최신본 소유 $\rightarrow$ cache-coherency 불필요&quot;</strong>를 명시한다. 이건 곧 <strong style="font-size:1.1em">single-host 불변식</strong>이다. crash consistency(TxTable/TxLog), coordinated caching(SSD엔 page cache 없음, host DRAM만 최신), redo log 전부 이 위에 서 있다.<br><br>내 방향(<strong style="font-size:1.1em">multi-node CXL coherence</strong>)은 이 불변식이 깨지는 곳을 잡는다. 여러 host가 같은 CXL-SSD 파일시스템을 공유하면:<br>- <strong style="font-size:1.1em">최신본 소유권</strong>: host A의 page cache와 host B의 page cache 중 누가 최신? $\rightarrow$ CXL 3.0 <strong style="font-size:1.1em">back-invalidate/HDM-DB</strong> 필요.<br>- <strong style="font-size:1.1em">cross-host transaction/commit</strong>: TxTable·TxLog가 단일 host 소속 — 공유 namespace의 commit ordering·flush 권한 미정의.<br>- <strong style="font-size:1.1em">byte interface를 CXL.mem로</strong> realize한다고 했으니(§4.2), 실제 coherent CXL 위에서 write log·metadata caching을 재설계하는 게 자연스러운 다음 걸음.<br><br>즉 ByteFS의 '기법'(dual interface·log·coalescing)은 재사용하되 '문제 정의'를 <strong style="font-size:1.1em">single$\rightarrow$multi host</strong>로 다시 세우는 게 gap. $\rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]], [[CXL Overview]]</div></div>
 </div>
 <div class="ng-node" id="node-node_022" style="--color:#BDC3C7;border-radius:22px;left:100px;top:100px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🏛️ 학회: ASPLOS = cross-layer(FS+firmware) co-design 보상 / &quot;한 층만&quot; 찌름</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">ASPLOS가 보상하는 축</strong>: architecture+OS+PL을 가로지르는 <strong style="font-size:1.1em">cross-layer co-design</strong>. reviewer가 특히 찌르는 곳 = <strong style="font-size:1.1em">한 층만 건드림 / 계층이 얕음</strong>(nodegraph_review §3-0 표).<br><br><strong style="font-size:1.1em">ByteFS가 이 축을 맞춘 방식</strong>: 문제를 FS 한 층에서 끝내지 않고 (1) <strong style="font-size:1.1em">host filesystem(SW)</strong> 핵심 자료구조를 재설계(inode 64B 분할·extent·CoW+XOR 선택)하고, (2) <strong style="font-size:1.1em">SSD firmware(HW)</strong> 를 log-structured write buffer·3-layer skip list·custom NVMe COMMIT/RECOVER로 함께 재설계한다. §3의 정량분석이 두 층을 잇는 다리. 즉 <strong style="font-size:1.1em">byte↔block 이중역할을 FS·firmware 두 층에서 동시에</strong> 푼다 $\rightarrow$ ASPLOS taste 정합.<br><br>이 anchor를 기준으로 ✅는 &quot;두 층을 어떻게 맞물렸나&quot;, ⚠️는 &quot;그 co-design이 무엇을 전제/요구하나&quot;로 정렬된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.1, p.5</span></summary>
@@ -304,7 +316,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_023" style="--color:#E74C3C;border-radius:2px;left:100px;top:380px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">✅ 잘한 점: 자료구조별 byte/block 선호를 정량분석으로 갈라 transparent 선택</span>
   </div>
   <div class="ng-body"><div class="ng-content">ByteFS의 결정적 강점 = <strong style="font-size:1.1em">설계를 직관이 아니라 §3 정량 프로파일에서 유도</strong>한 점(문제 프레이밍 + rigor). FS 핵심 구조를 op 단위로 쪼개 &quot;어느 것이 byte를, 어느 것이 block을 선호하나&quot;를 Table 3로 못박고, 그 규칙을 그대로 firmware/FS에 심어 <strong style="font-size:1.1em">transparent</strong>(POSIX 그대로)하게 자동 선택한다.<br><br>- <strong style="font-size:1.1em">규칙</strong>: metadata write는 대개 작다 $\rightarrow$ <strong style="font-size:1.1em">byte</strong>. 그 read는 같은 block 내 locality $\rightarrow$ <strong style="font-size:1.1em">block</strong>+host caching.<br>- runtime 데이터는 CoW+XOR로 modified ratio $R$을 재 byte/block 결정($R&lt;\tfrac{1}{8}$이면 byte).<br><br>reviewer가 좋게 볼 지점: &quot;byte가 무조건 좋다&quot;는 단순 주장이 아니라 <strong style="font-size:1.1em">구조별로 갈라 근거를 댄</strong> 점.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.4</span></summary>
@@ -312,7 +324,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_024" style="--color:#E74C3C;border-radius:2px;left:100px;top:660px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">✅ 잘한 점: SSD firmware log-structured write buffer + coalescing로 flash/write traffic 대폭 ↓</span>
   </div>
   <div class="ng-body"><div class="ng-content">두 번째 결정적 강점 = <strong style="font-size:1.1em">device 층 기여</strong>(단순 FS 논문을 넘어서는 부분, ASPLOS 축에 정확히 부합). 내부 DRAM을 cacheline 단위 <strong style="font-size:1.1em">log-structured region</strong>으로 재조직해 작은 write를 log에 append하고 background cleaning이 <strong style="font-size:1.1em">coalescing</strong> 후 flash에 flush $\rightarrow$ critical path의 flash 접근·write amplification을 firmware 안에서 흡수.<br><br><strong style="font-size:1.1em">정량 효과</strong>: flash traffic 평균 Ext4/F2FS/NOVA/PMFS 대비 <strong style="font-size:1.1em">2.9× / 2.1× / 3.2× / 2.2×↓</strong>, SSD write traffic <strong style="font-size:1.1em">최대 5.1×↓</strong>(abstract). 인덱스(3-layer skip list)는 89ns lookup·21MB로 경량이라 flash µs 스케일에 묻힌다.<br><br>reviewer 관점: FS 최적화가 아니라 <strong style="font-size:1.1em">firmware 데이터 구조 재설계로 device I/O를 줄인</strong> 실측 근거 $\rightarrow$ evaluation depth.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.3, p.12</span></summary>
@@ -320,7 +332,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_025" style="--color:#E74C3C;border-radius:2px;left:100px;top:940px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">✅ 잘한 점: write log를 redo log로 재사용 → double-write 없이 crash consistency (recovery 4.2s)</span>
   </div>
   <div class="ng-body"><div class="ng-content">세 번째 강점 = <strong style="font-size:1.1em">essential FS property(crash consistency)를 공짜에 가깝게</strong> 얻은 점. firmware가 이미 갖는 in-device write log에 모든 metadata update가 append되므로, 그 로그를 <strong style="font-size:1.1em">그대로 redo log로 재사용</strong>해 flash에 두 번 쓰는 <strong style="font-size:1.1em">double logging을 제거</strong>한다. battery-backed DRAM + TxID/TxLog로 atomic commit.<br><br><strong style="font-size:1.1em">실측</strong>: crash 후 평균 <strong style="font-size:1.1em">4.2s</strong> 복구(SSD DRAM 로드 0.9s + log/TxLog 스캔·flush 2.7s). metadata traffic이 NOVA(out-of-place)·PMFS(data journaling)의 double-write보다도 적은 이유가 이 in-place + redo-log 재사용.<br><br>reviewer가 좋게 볼 지점: 성능 최적화(byte write)와 crash consistency가 <strong style="font-size:1.1em">충돌하지 않고 같은 로그 자료구조를 공유</strong>하도록 설계한 점.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.7</span></summary>
@@ -328,7 +340,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_026" style="--color:#1ABC9C;border-radius:22px;left:100px;top:1220px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">⚠️ 아쉬운 점: &quot;host가 최신본 소유 → coherency 불필요&quot;라는 single-host 불변식 (reviewer 공격)</span>
   </div>
   <div class="ng-body"><div class="ng-content">ByteFS는 §4.2에서 SSD DRAM↔CPU cache <strong style="font-size:1.1em">coherency가 필요없다</strong>고 단정하고, 같은 문장에서 byte interface를 <strong style="font-size:1.1em">CXL.mem로도 realize 가능</strong>하다고 말한다 — 이 둘은 긴장 관계다.<br><br><strong style="font-size:1.1em">reviewer 질문</strong>: &quot;CXL.mem는 정의상 cacheable load/store를 여러 agent에 노출하는데, 왜 coherency가 불필요한가? multi-core/multi-process가 같은 M-SSD region을 동시에 mmap하거나 DMA가 끼면 이 불변식이 성립하나?&quot;<br><br><strong style="font-size:1.1em">저자 방어(암묵)</strong>: &quot;firmware가 host가 쓴 데이터를 수정하지 않으니 device발 stale이 없고, <strong style="font-size:1.1em">단일 host가 항상 최신본</strong>을 갖는다&quot; $\rightarrow$ 그러나 이 방어는 <strong style="font-size:1.1em">정확히 single host에서만</strong> 성립. 논문 전체(coordinated caching·TxTable·redo log)가 이 전제 위에 서 있다. reviewer라면 &quot;한계로 명시했어야&quot;라고 지적할 지점. (내 연구 P′로 승격 $\rightarrow$ 🧭 노드.)</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.6</span></summary>
@@ -336,7 +348,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_027" style="--color:#1ABC9C;border-radius:22px;left:100px;top:1500px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">⚠️ 아쉬운 점: firmware 1.5K LoC + custom NVMe(COMMIT/RECOVER) 요구 → 배포 장벽</span>
   </div>
   <div class="ng-body"><div class="ng-content">ByteFS의 이득은 <strong style="font-size:1.1em">firmware를 고칠 수 있다</strong>는 전제에 의존한다: log-structured DRAM 관리·skip list·log cleaning·<strong style="font-size:1.1em">custom NVMe COMMIT(TxID)/RECOVER()</strong> 를 firmware 안에 심는다.<br><br><strong style="font-size:1.1em">reviewer 질문</strong>: &quot;상용 SSD firmware는 폐쇄적이고 NVMe는 표준 위원회 관할인데, custom NVMe 명령과 1.5K LoC firmware 변경을 어떻게 배포하나? OpenSSD가 아닌 실제 CMM-H/CXL-SSD에서 재현 가능한가?&quot;<br><br><strong style="font-size:1.1em">저자 방어</strong>: &quot;<strong style="font-size:1.1em">HW 변경은 없다</strong>(no hardware modification), OpenSSD FPGA 실물로 실증, firmware만 1.5K LoC(그중 custom NVMe 0.1K)&quot; $\rightarrow$ 그래도 <strong style="font-size:1.1em">vendor firmware 접근권</strong>을 전제. ASPLOS는 co-design을 보상하지만(축 정합), 같은 이유로 &quot;실배포 경로&quot;를 reviewer가 물을 수 있는 지점.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.9, p.10</span></summary>
@@ -344,7 +356,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_028" style="--color:#1ABC9C;border-radius:22px;left:100px;top:1780px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">⚠️ 아쉬운 점: 이득이 write/metadata-heavy에 편중, read-heavy는 비슷 + NVM FS baseline 불리 매핑</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">Generalization 우려.</strong> 큰 speedup은 create(6.0×)·OLTP(4.1×)·Varmail 같은 <strong style="font-size:1.1em">작은 sync write·metadata-heavy</strong> 워크로드에 몰린다. <strong style="font-size:1.1em">read-heavy(Webserver/Webproxy)</strong> 에선 Ext4/F2FS와 <strong style="font-size:1.1em">거의 동등</strong>.<br><br><strong style="font-size:1.1em">reviewer 질문</strong>: (1) &quot;이득이 특정 워크로드 프로파일에 편향된 것 아닌가?&quot; (2) &quot;baseline인 <strong style="font-size:1.1em">NOVA/PMFS를 flash에 미최적화된 채 M-SSD에 그대로 매핑</strong>해 비교한 것은 straw-man 아닌가 — flash-aware NVM FS와 비교했어야?&quot;<br><br><strong style="font-size:1.1em">저자 방어</strong>: (1) &quot;read는 block interface+host caching으로 <strong style="font-size:1.1em">이미</strong> 최적이라 추가 이득 여지가 작다(설계 의도)&quot;, (2) &quot;§2.2에서 NVM FS는 M-SSD에 <strong style="font-size:1.1em">natural fit이 없음</strong>을 논증했고, 이들이 M-SSD의 유일한 byte-interface 선택지라 정당한 비교&quot;. 방어는 성립하나, ✅ 강점의 <strong style="font-size:1.1em">적용범위가 write-heavy로 좁다</strong>는 사실은 남는다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5.2, p.11</span></summary>
@@ -352,7 +364,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_029" style="--color:#E5A835;border-radius:22px;left:100px;top:2060px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 20%,transparent);color:#E5A835">Question</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🔀 왜 dual byte+block (vs pure byte / pure memory-semantic FS)?</span>
   </div>
   <div class="ng-body"><div class="ng-content">저자가 선 갈림길: M-SSD 위 FS 인터페이스를 어떻게 노출할까.<br><br>- <strong style="font-size:1.1em">(A) pure block</strong> (기존 Ext4/F2FS 그대로): byte 접근 못 씀 $\rightarrow$ 128B update도 4KB write, amplification 최대 6.2×.<br>- <strong style="font-size:1.1em">(B) pure byte / memory-semantic</strong> (NVM FS·DAX식으로 device를 near-DRAM byte-only로 취급): SW overhead는 줄지만 <strong style="font-size:1.1em">flash의 page-granular 특성·spatial locality·PCIe latency</strong>를 못 살려 M-SSD에서 열세(NOVA/PMFS 실측).<br>- <strong style="font-size:1.1em">(C) dual — 자료구조별 선택</strong> ← 저자 선택.<br><br><strong style="font-size:1.1em">저자 이유</strong>: metadata write는 작아 byte, 그 read는 locality라 block — &quot;<strong style="font-size:1.1em">둘 다 지원</strong>하지 않으면 M-SSD 이점을 못 살린다&quot;(§2.2). <strong style="font-size:1.1em">안 판 갈래</strong>: device를 완전 memory-semantic으로 추상화([[SkyByte]]식)한 뒤 그 위에 얇은 byte-only FS만 얹는 길 $\rightarrow$ ByteFS는 firmware까지 내려가 block 경로를 <strong style="font-size:1.1em">버리지 않고</strong> 유지하는 쪽을 택했다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2.2, p.3</span></summary>
@@ -360,7 +372,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_030" style="--color:#E5A835;border-radius:22px;left:100px;top:2340px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 20%,transparent);color:#E5A835">Question</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🔀 왜 firmware redo-log (vs host-side journaling / double-write)?</span>
   </div>
   <div class="ng-body"><div class="ng-content">crash consistency를 어디서·어떻게 얻을까.<br><br>- <strong style="font-size:1.1em">(A) host journaling</strong> (Ext4 JBD2 ordered mode): critical metadata를 <strong style="font-size:1.1em">두 번 쓴다</strong> $\rightarrow$ journaling이 전체 traffic의 30.7%. M-SSD의 write amplification을 다시 키움.<br>- <strong style="font-size:1.1em">(B) host-side log / out-of-place</strong> (NOVA식): device는 몰라도 되지만 여전히 double-write·flash 미최적화.<br>- <strong style="font-size:1.1em">(C) firmware-level redo log</strong> ← 저자 선택.<br><br><strong style="font-size:1.1em">저자 이유</strong>: 어차피 성능을 위해 <strong style="font-size:1.1em">모든 metadata update가 firmware write log에 append</strong>되므로, 그 로그를 <strong style="font-size:1.1em">그대로 redo log로 재사용</strong>하면 flash에 두 번 쓰는 double logging을 통째로 없앤다 — 성능 최적화 자료구조와 consistency 자료구조를 <strong style="font-size:1.1em">하나로 합치는</strong> 수. <strong style="font-size:1.1em">안 판 갈래</strong>: consistency를 host에만 두고 firmware를 건드리지 않는 길(=배포는 쉽지만 double-write 잔존). 이 선택이 ⚠️ &quot;firmware 수정 요구&quot; 장벽과 맞바꾼 것.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.7</span></summary>
@@ -368,7 +380,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node ng-has-table" id="node-node_031" style="--color:#95A5A6;border-radius:22px;left:100px;top:2620px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 20%,transparent);color:#95A5A6">Reference</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">📐 P/L: 기존 FS가 M-SSD byte-granularity를 못 살림 → 작은 update가 page write로 증폭</span>
   </div>
   <div class="ng-body"><div class="ng-content"><div class="ng-seg">기존 해법을 <strong style="font-size:1.1em">관점 P(문제를 본 렌즈) → 한계 L(그 관점 때문에 구조적으로 남는 것)</strong> 으로 분해:<br></div><div class="ng-table-wrap"><table class="ng-table"><thead><tr><th>기존 해법 A</th><th>관점 P</th><th>한계 L (구조적)</th></tr></thead><tbody><tr><td><strong style="font-size:1.1em">block FS</strong> (Ext4/F2FS)</td><td>SSD를 <strong style="font-size:1.1em">4KB page/block black box</strong>로 봄</td><td>128B metadata update도 <strong style="font-size:1.1em">4KB write</strong> 강제 $\rightarrow$ write amplification 최대 6.2×. byte-granularity라는 새 자유도를 <strong style="font-size:1.1em">주소지정 단위에서 봉쇄</strong></td></tr><tr><td><strong style="font-size:1.1em">NVM FS</strong> (PMFS/NOVA/SplitFS)</td><td>device를 <strong style="font-size:1.1em">near-DRAM byte-only</strong>(DAX)로 봄</td><td><strong style="font-size:1.1em">flash page-granular 특성·PCIe latency·spatial locality</strong>를 무시 $\rightarrow$ M-SSD에서 오히려 열세</td></tr></tbody></table></div><div class="ng-seg"><br><strong style="font-size:1.1em">L은 &quot;느리다&quot;가 아니라 &quot;관점 P 때문에 남는 것&quot;</strong>: block FS는 device를 block으로 보는 한 byte 이득이 원천 봉쇄되고, NVM FS는 device를 순수 byte-DRAM으로 보는 한 flash/PCIe 병목을 다룰 언어가 없다.<br><br><strong style="font-size:1.1em">ByteFS의 P″</strong> = &quot;FS 자료구조별 granularity를 <strong style="font-size:1.1em">FS+SSD firmware 두 층 재설계</strong>로 정한다&quot; $\rightarrow$ 두 L을 동시에 품는다.</div></div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2, p.4</span></summary>
@@ -376,14 +388,14 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_032" style="--color:#BDC3C7;border-radius:22px;left:100px;top:2900px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">📍 위치: memory-semantic SSD 스택의 FS 계층 (SkyByte=device 계층) — UIUC Jian Huang 그룹</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">ASPLOS'25에서의 좌표</strong>: ByteFS는 같은 <strong style="font-size:1.1em">UIUC Jian Huang 그룹</strong>의 memory-semantic SSD 라인에서 <strong style="font-size:1.1em">filesystem/OS support 계층</strong>을 맡는다. cross-layer(FS+firmware) 논문이라 ASPLOS taste에 정합해 accept.<br><br>- <strong style="font-size:1.1em">[[SkyByte]]</strong> (HPCA'25) = <strong style="font-size:1.1em">device 계층</strong>(memory-semantic SSD device를 HW/OS co-design으로). ByteFS는 &quot;그런 device 위에 얹는 파일시스템&quot;.<br>- <strong style="font-size:1.1em">[[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]]</strong> (ASPLOS'19) = M-SSD <strong style="font-size:1.1em">원형</strong>(SW 기반 unified address translation). FlatFlash가 &quot;byte로 접근 가능함&quot;을 보였다면, ByteFS는 그 위에서 <strong style="font-size:1.1em">system software(FS)가 어떻게 관리할지</strong>의 공백을 채운다.<br><br>즉 세 논문이 <strong style="font-size:1.1em">원형(FlatFlash) → device(SkyByte) → FS(ByteFS)</strong> 로 같은 이중역할(byte↔block)을 서로 다른 계층에서 transparent co-design한다. (스택 세부 비교는 기존 「스택 관계」 노드 참조 — 여기선 venue·계층 위치만.)</div></div>
 </div>
 <div class="ng-node" id="node-node_033" style="--color:#1ABC9C;border-radius:22px;left:100px;top:3180px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">🧭 내 연구: single-host FS 불변식(L′) → multi-host CXL-SSD namespace의 cross-host 소유권·flush P′</span>
   </div>
   <div class="ng-body"><div class="ng-content"><strong style="font-size:1.1em">P/L→P′ 사슬(간결판)</strong>: ByteFS는 관점을 P″=&quot;FS+firmware co-design&quot;으로 바꿔 amplification L을 풀었지만, 그 대가로 <strong style="font-size:1.1em">single-host 불변식 L′</strong>(&quot;host가 항상 최신본 소유 $\rightarrow$ coherency 불필요&quot;, ⚠️ 노드)이 새로 굳어졌다.<br><br><strong style="font-size:1.1em">내 P′ = multi-host CXL-SSD coherence</strong>: 여러 host가 같은 CXL-SSD FS namespace를 공유하면 L′이 정확히 깨진다 —<br>- <strong style="font-size:1.1em">최신본 소유권</strong>: host A·B page cache 중 누가 최신? $\rightarrow$ CXL 3.0 back-invalidate/HDM-DB가 ByteFS의 coordinated caching에 편입돼야.<br>- <strong style="font-size:1.1em">cross-host flush/commit</strong>: TxTable·TxLog가 단일 host 소속 $\rightarrow$ 공유 namespace의 commit ordering·flush 권한 미정의.<br><br>ByteFS의 <strong style="font-size:1.1em">기법(dual interface·log·coalescing·redo log)은 재사용</strong>하되 <strong style="font-size:1.1em">문제 정의를 single→multi host로</strong> 다시 세우는 것이 gap. (기존 「내 연구방향」 노드의 P′를 <strong style="font-size:1.1em">P/L 유도 사슬</strong>로 압축·보강. $\rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]])</div></div>
@@ -395,9 +407,23 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
   <span id="lightbox-close" onclick="closeLightbox()">✕</span>
 </div>
 <script>
-var NODES_DATA = [{"id":"node_001","lx":660,"ly":300,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":300,"searchText":"killer application bytefs가 푸는 문제는 **memory-semantic ssd(m-ssd)** — pcie/cxl의 byte-addressability로 **byte와 block 둘 다** 접근되는 저가 nand flash ssd($\\approx \\$0.22\\text{/gb}$) — 를 위한 **파일시스템이 없다**는 것이다. 기존 block fs(ext4/f2fs)는 128b inode 갱신에도 4kb write를 강제하고(i/o amplification), nvm fs(pmfs/nova)는 순수 byte라 flash의 page 특성·locality를 못 살린다.\n\n**killer application 1 — 자료구조별 byte/block 적응 선택**: fs 핵심 구조를 정량 분석(§3)해 metadata write는 **byte**·read는 **block**으로 transparent하게 선택 $\\rightarrow$ i/o amplification 대폭 감소.\n\n**killer application 2 — ssd dram을 log-structured write buffer로**: 내부 dram을 cacheline 단위 로그로 재조직해 작은 write를 **coalescing**(3-layer skip list, 89ns lookup) $\\rightarrow$ flash traffic 감소.\n\n**killer application 3 — firmware redo log로 crash consistency**: write log를 redo log로 재사용해 **double-write 없이** atomic·crash-consistent, 빠른 recovery(4.2s).\n\n결과: sota(ext4/f2fs/nova/pmfs) 대비 성능 **최대 2.7×**, ssd write traffic **최대 5.1×** 감소. host fs(sw)+ssd firmware(hw) **co-design**. bytefs outperforms them by up to 2.7x, while preserving the essential properties of a file system. bytefs also reduces the write traffic to ssds by up to 5.1x by alleviating unnecessary writes caused by both metadata and data updates in file systems."},{"id":"node_002","lx":660,"ly":600,"children":["node_007","node_008","node_009","node_022","node_031"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":600,"searchText":"필요한 이유 (why it's needed) m-ssd는 byte와 block을 **동시에** 노출하지만, 수십 년간 fs는 둘 중 하나만 가정해 설계됐다 $\\rightarrow$ **어느 것도 m-ssd에 자연스럽게 맞지 않는다**.\n\n**(1) block fs(ext4/f2fs)**: 고정 block(512b/4kb) 관리라 byte 접근 불가. 작은 metadata 갱신에도 page 전체 write $\\rightarrow$ **write amplification 최대 6.2×**(table 2). 128b inode 하나 갱신 = 4kb write.\n\n**(2) nvm fs(pmfs/nova/splitfs)**: byte load/store·dax로 sw overhead 최소화에 집중했지만, m-ssd는 **높은 pcie latency + 불가피한 flash 접근**이 병목이라 그대로 얹으면 부적합. flash의 spatial locality도 못 살림.\n\n그래서 bytefs는 먼저 **fs 자료구조별 접근 granularity 선호**를 정량 분석(§3, table 3)해 설계 지침을 얻는다 — metadata write는 byte, locality 있는 read는 block. without changing the inherent design, it is hard to fully exploit the performance benefits of m-ssds with existing file systems, as they all lack the support for both byte and block interface, and the consideration of the unique performance characteristics."},{"id":"node_003","lx":660,"ly":900,"children":["node_010","node_011","node_012","node_013","node_014","node_015","node_023","node_029","node_030"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":900,"searchText":"해결책 (solution) bytefs는 host fs(sw)+ssd firmware(hw) **co-design**으로 dual byte/block을 transparent하게 지원한다(§4). 4대 도전: granularity mismatch, 유연한 인터페이스 선택, 최소 overhead consistency, essential fs property 보존.\n\n**§4.2 byte access/persistence**: bar로 ssd 전체를 host memory에 매핑, mmio 접근. **cache-coherency 불필요**(host가 최신본 소유). cxl.mem로도 실현 가능. persistence = clflush/clwb + write-verify read.\n\n**§4.3 log-structured ssd dram**: 내부 dram을 cacheline 단위 log로 재조직, small write append+coalescing. **3-layer skip list** 인덱스. write log를 **redo log로 재사용**(double-logging 회피). ssd엔 page cache 안 둠(coordinated caching).\n\n**§4.4 dual r/w**: byte(64b log entry)·block(4kb nvme, log와 merge/invalidate).\n\n**§4.5 metadata**: inode 64b 분할, dentry/bitmap/data-pointer byte-write + host caching.\n\n**§4.6 data i/o**: cow+xor로 **modified ratio $r$** 계산해 byte/block 선택.\n\n**§4.7 crash consistency**: txid/txtable/txlog + battery-backed dram, custom nvme commit/recover. we present bytefs, an efficient file system for m-ssds with a co-design of software (host file system) and hardware (ssd firmware)."},{"id":"node_004","lx":660,"ly":1200,"children":["node_017","node_018","node_019","node_024","node_025","node_026","node_028"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1200,"searchText":"결과 (results) 28-core intel e5 + 128gb. **openssd fpga 실물 프로토타입**(1tb, 16채널, 1gb dram, arm firmware) + **femu 기반 에뮬레이터**(32gb, flash 40/60µs, cacheline 4.8/0.6µs). baseline: ext4·f2fs(block), nova·pmfs(byte nvm fs를 m-ssd에 매핑). 모두 256mb ssd dram 캐싱.\n\n| 항목 | 결과 |\n|---|---|\n| micro 평균 (vs ext4 / f2fs) | **2.5×** / 1.48× |\n| file create (vs ext4 / f2fs) | **6.0×** / 2.4× |\n| oltp (vs ext4) | **4.1×** |\n| ycsb throughput (vs f2fs) | 2.4× |\n| metadata traffic (vs ext4) | 최대 **25.3×**↓ |\n| flash traffic (vs ext4/f2fs/nova/pmfs) | 2.9×/2.1×/3.2×/2.2×↓ |\n| write traffic | 최대 **5.1×**↓ |\n| crash recovery | 평균 **4.2s** |\n\nnova/pmfs는 flash용 설계가 아니라 spatial locality를 못 살려 오히려 ext4/f2fs보다 나쁜 경우 많음. bytefs outperforms ext4 by 2.5x and f2fs by 1.48x on average across all micro-benchmarks. on file creation especially, bytefs achieves 6.0x and 2.4x performance improvement compared to ext4 and f2fs."},{"id":"node_005","lx":660,"ly":1500,"children":["node_020","node_021","node_027","node_032","node_033"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1500,"searchText":"결론 (conclusion) bytefs는 memory-semantic ssd를 위한 **커널 레벨 파일시스템**으로, dual byte/block interface를 지원하며 fs 핵심 구조를 재설계해 **스택 전체의 i/o amplification**을 줄이고 crash consistency를 보존한다. openssd fpga 실물 + 에뮬레이터로 실증.\n\n**의의 — memory-semantic ssd 스택의 fs 층**: flatflash[10](sw 기반 m-ssd, unified address translation)·jung의 cxl-ssd 에뮬레이터[26]는 device를 어떻게 **system software가 관리**할지 거의 안 다뤘는데, bytefs가 그 공백을 채운다. 같은 uiuc jian huang 그룹의 [[skybyte]](device 층)와 **다른 층(fs/os 층)**을 이룬다.\n\n**한계 / 열린 질문**: (1) \"host가 최신본 소유 $\\rightarrow$ cache-coherency 불필요\"는 명시적 **single-host 전제**. (2) write log·txtable이 단일 host fs 소속. (3) coordinated caching이 한 host page cache 최신 가정. (4) cxl.mem realize 언급하나 실제 cxl coherence 위 fs 재설계는 future work. $\\rightarrow$ multi-host가 빈칸. we present bytefs, a new kernel-level file system for memory-semantic ssds that support dual byte/block interface. bytefs significantly reduces the i/o amplification across the entire storage stack with various optimizations in the core components of file systems."},{"id":"node_006","lx":1180,"ly":240,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":240,"searchText":"m-ssd가 byte+block 이중 접근을 주는 하드웨어 근거 (bar/mmio, battery-backed dram, cxl) bytefs의 전제: **memory-semantic ssd(m-ssd)**는 byte와 block 둘 다 접근된다. 근거는 pcie **bar(base address register)** — bios/os가 device buffer를 host memory space에 매핑해 host가 **load/store(mmio)**로 접근. 내부 dram이 byte-granular 요청의 data buffer, **battery-backed dram**이 power loss 시 persistence 보장. **normal nvme block interface도 유지** $\\rightarrow$ dual.\n\nnvm(optane, processor memory bus)과 달리 m-ssd는 **pcie/cxl attached + 성숙한 nand**라 tb급·저가($\\$0.22\\text{/gb}$). samsung의 cxl-based ssd(cmm-h)[40]가 실물 사례. **table 1**: m-ssd cacheline r/w **4.8/0.6µs**, 3.5/2.5gb/s, 영속. by registering the device buffer address with the base address register (bar), the bios and os discover and map the device buffer into the host memory space ... the m-ssd still keeps the normal block interface with conventional nvme i/o commands, allowing the host to operate on dual byte and block interfaces."},{"id":"node_007","lx":1180,"ly":500,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":500,"searchText":"block interface의 i/o amplification (table 2): write 최대 6.2× block fs(ext4/f2fs)를 filebench+oltp로 프로파일한 **정량 근거**.\n\n| ext4 | varmail | fileserver | webproxy | webserver | oltp |\n|---|---|---|---|---|---|\n| write | 3.85× | **6.21×** | 1.43× | 1.66× | 2.17× |\n| read | 1.21× | 1.15× | 1.25× | 1.71× | 1.52× |\n\n주범은 metadata: **inode**가 write의 35%(ext4)/24.4%(f2fs), 128b inode 갱신에 4kb write. ext4 **journaling**이 전체 traffic의 30.7%(ordered mode double-write). bitmap은 몇 byte만 flip. $\\rightarrow$ 작은 metadata write에 byte interface가 결정적. persisting one 128b inode update requires a 4kb write to the disk, further amplifying the write traffic. therefore, the byte interface can greatly reduce the inode write traffic."},{"id":"node_008","lx":1180,"ly":660,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":660,"searchText":"§3 특성 분석 (table 3): 자료구조별 byte/block 선호 bytefs 설계의 토대 — fs 핵심 구조마다 read/write의 preferred interface를 정리.\n\n| 자료구조 | read | write |\n|---|---|---|\n| superblock | block | block |\n| block/inode list(bitmap) | block | **byte** |\n| inode | block | **byte** |\n| data pointer | block | **byte** |\n| directory entry | block | **byte** |\n| page cache | block | block/byte |\n| data block | block/byte | block/byte |\n| data journal | block | block/byte |\n\n**규칙**: 대부분 metadata update는 작다 $\\rightarrow$ **write는 byte**. 그 read는 block으로 로드해 **locality 활용 + host 캐싱**. file data/journal은 크기·locality에 따라 runtime에 유연 선택. some data structures like inode prefer byte-granular data access, and some structures like page cache prefer dual byte/block-granular data access depending on the data access pattern at runtime (see table 3)."},{"id":"node_009","lx":1180,"ly":820,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":820,"searchText":"왜 nvm fs(pmfs/nova)를 그대로 못 쓰나 + m-ssd 선행 bytefs의 좌표를 정하는 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **flatflash** (asplos'19) [10] | sw 기반 m-ssd 원형 — unified virtual memory space + unified address translation. device의 **system software 관리**는 미해결로 남김 ($\\rightarrow$ bytefs가 채움) |\n| **jung, cxl-ssd** (hotstorage'22) [26] | cxl-ssd fpga 에뮬레이터, memory expansion |\n| **nova** (fast'16) [48] | per-inode log-structured nvm fs — baseline. flash 미최적화라 m-ssd에서 열세 |\n| **pmfs** (eurosys'14) [19] | dax 기반 pm fs — baseline |\n| **splitfs** (sosp'19) [27] | user/kernel 분리 pm fs |\n\n핵심: nvm fs는 **near-dram nvm** 전제라 m-ssd의 높은 pcie/flash latency에서 부적합. naively applying nvm file systems to m-ssds is inadequate. the performance characteristics of m-ssds differ from nvms, as the high pcie latency and inevitable flash accesses are still the bottleneck."},{"id":"node_010","lx":1180,"ly":980,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":980,"searchText":"§4.2 byte-granular access/persistence — coherency 불필요, cxl.mem bar로 **ssd 전체를 memory region으로** 매핑 $\\rightarrow$ mmio(byte)로 임의 ssd 주소 접근.\n\n**핵심 주장**: bytefs는 **ssd dram↔host cpu cache coherency를 요구하지 않는다** — host가 항상 최신본을 갖고 firmware가 host-written 데이터를 수정하지 않기 때문. byte interface는 **cxl.mem**로도 realize 가능(cacheable load/store). (★ 이 문장이 single-host 전제를 드러냄.)\n\n**persistence**: battery-backed dram. 단 host cpu의 **write combining(wc)**이 small write를 버퍼링 $\\rightarrow$ dirty cacheline/pending pcie 남김. 2단계: (1) mmio write 후 **clflush/clwb**; (2) **write-verify read**(zero-byte read)로 posted pcie 완료 강제(root complex serialize). bytefs do not require cache-coherency between the ssd dram and the host cpu cache because the host always contains the latest data and the m-ssd firmware does not modify the data written by the host. the byte interface can also be realized with cxl.mem protocol."},{"id":"node_011","lx":1180,"ly":1140,"children":["node_016"],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1140,"searchText":"§4.3 ssd dram = log-structured memory + coalescing + coordinated caching flash는 page-granular만 가능한데 host는 byte 접근 $\\rightarrow$ mismatch. bytefs는 ssd dram cache를 **cacheline 단위 log-structured region**으로 재조직 $\\rightarrow$ 모든 byte write를 log에 append(critical path의 flash 접근 회피), background cleaning이 **coalescing** 후 flash flush(log utilization **85%** 초과 시).\n\n**coordinated caching**: ssd 안엔 **page cache를 두지 않음** $\\rightarrow$ loaded page는 host dram에만 캐싱 $\\rightarrow$ 귀한 ssd dram을 **persistent write**에 몰아줌.\n\n**firmware-level logging = redo log**: 모든 metadata update를 log에 append하므로 write log를 **redo log로 직접 재사용** $\\rightarrow$ **double logging 회피**, atomic·crash-consistent.\n\n(인덱스 구조는 자식 노드 「3-layer skip list」 참고.) instead of caching flash pages in both ssd dram and host page cache, bytefs caches flash pages only in the host page cache for best utilizing the precious ssd dram for persistent writes."},{"id":"node_016","lx":1710,"ly":1140,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1140,"searchText":"§4.3 write log 구조: circular buffer + 3-layer skip list (89ns lookup) **global log region**: circular buffer(**256mb** 기본, head/tail), 데이터를 **64b-aligned entry**로 log tail에 append.\n\n**3-layer skip list 인덱스**:\n- **l1 partition table**: ssd 주소공간을 **16mb partition**으로 분할. lpa/partition-size로 partition index 즉시 계산.\n- **l2 skip list**: partition별, flash page의 데이터가 log에 있으면 lpa로 인덱싱된 entry.\n- **l3 chunk list**: block offset 순 정렬. chunk entry = block offset(**1b**) + log offset(**4b**) + data length(**4b**).\n\n$$o(\\log n)\\ \\text{lookup / insert / delete}$$\n\nhash table 대비 **임의 chunk size + range lookup** 우수(fs의 다양한 크기 접근에 적합). 256mb log fully-utilized 시 평균 lookup **89ns**(flash µs급이라 무시 가능), 인덱스는 ssd dram **21mb** 차지. the skip list offers o(log(n)) lookup, insertion, and deletion time ... our experiments with an embedded arm processor show that the average lookup latency of a fully utilized 256mb log is 89ns."},{"id":"node_012","lx":1180,"ly":1300,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1300,"searchText":"§4.4 dual byte/block read/write **byte read**: host가 mmio load $\\rightarrow$ firmware가 write log lookup. 있으면 직접 반환, 없으면 flash에서 page fetch 후 **요청 cacheline만** 반환.\n**byte write**: 64b entry 정렬. 단일 64b는 직접 write + clflush/clwb. 다중 cacheline atomic은 **fs transaction**으로 wrap, concurrent write는 chunk entry로 최신 버전 추적.\n\n**block read**: flash $\\rightarrow$ transfer buffer 로드 후 skip list 조회. log에 dirty cacheline 있으면 loaded page와 **merge** 후 반환.\n**block write**: 4kb를 ftl write buffer로, flash write 후 firmware가 skip list 스캔해 해당 page의 log entry **invalidate**(host page cache write-back이 최신이라 즉시 무효화 가능).\n\n**log cleaning(algorithm 1)**: modified page 순회 $\\rightarrow$ 최신 committed 버전 merge $\\rightarrow$ buffer 차면 flash write. **double buffering**으로 background 수행(정상 io 비차단). as the data reaches the ssd, the ssd firmware first appends the data into the write log. it then inserts the chunk entry for the data to the log index. if the same data is written by two transactions through the byte interface concurrently, we update the chunk entry to track the newest version."},{"id":"node_013","lx":1180,"ly":1460,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1460,"searchText":"§4.5 metadata 관리: inode 64b 분할 + host-side caching host-side metadata caching, miss 시 block interface로 로드.\n\n- **inode**: 128b entry를 4kb page로 그룹화. 각 inode를 **upper/lower 64b로 분할** — lower = 자주 갱신(file size, mtime, access rights). inode update를 **64b byte write**로 atomic 처리. host radix tree 캐싱.\n- **directory entry**: inode number(4b)+type(2b)+name len(2b)+filename(최대 256b). lookup은 dir block 전체 block-load, hashed name radix tree 캐싱. create/rename은 단일 entry(64-320b) byte write.\n- **block/inode bitmap**: **64b group** 단위 갱신, boot 시 block-load. per-cpu free list + extent 할당.\n- **data pointer**: ext4-like **extent**. leaf node(16b)=offset(8b)+lba(4b)+len(4b). in-place update, byte-granular persistent write. we split each inode into the upper and lower regions (64b each). the lower region contains frequently updated information, such as file size, modification times, and access rights ... each inode update takes as low as 64b via the byte interface, which can be done atomically."},{"id":"node_014","lx":1180,"ly":1620,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1620,"searchText":"§4.6 data i/o: cow + xor로 modified ratio 계산해 byte/block 선택 - **direct i/o**(o_direct): 접근 $\\leq$ 512b면 byte, 아니면 block(512b 미만은 cacheline write가 4kb persist보다 빠름).\n- **buffered i/o**: host page cache 흡수. write-back 시 **cow**로 원본을 duplicate에 복사(xarray 추적, per-inode `address_space`). 원본$\\oplus$duplicate **xor**로 수정 64b chunk 식별 후 **modified ratio**:\n\n$$r = \\frac{n_{modified}}{n_{total}}$$\n\n$r < \\frac{1}{8}$(4kb 중 512b)이면 **byte**, 아니면 **block**. **avx2** 256-bit xor(평균 936 cycle, 14gb/s). duplicate page는 page cache의 평균 **16%**.\n- **mmap i/o**: m-ssd를 memory expander로, cached dram page를 user space 매핑.\n- **data journaling**: metadata logging(ext4 ordered mode 수준) + data journaling. 큰 write는 **jbd2 + bytefs transaction** 결합. bytefs calculates the modified ratio by r = n_modified / n_total where n_modified is the number of dirty cachelines and n_total is the total number of cachelines in the page. if r is less than 1/8 (512b of a 4kb page), we use the byte interface to persist small accesses and vice versa."},{"id":"node_015","lx":1180,"ly":1780,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1780,"searchText":"§4.7 crash consistency & recovery (redo log · txlog · recover) **crash consistency**: transaction으로 metadata/data의 atomicity·write ordering 강제. firmware-level log + battery-backed dram이 commit 가속. 4b **txid**(monotonic), host **txtable**로 ongoing tx 추적 + transaction-level lock. commit = custom nvme **commit(txid)** $\\rightarrow$ firmware가 2mb **txlog**에 4b commit entry append.\n\n**data recovery**: battery-backed ssd dram이 내용 보존. custom nvme **recover()** $\\rightarrow$ firmware가 log region 스캔, 각 entry 끝 4b txid가 txlog에 **없으면 uncommitted로 폐기**, 있으면 txid 순서로 flash flush. 이후 data journal 복구.\n\n**구현(§4.9)**: bytefs 3.9k loc(ext4 기반, linux 5.1), ssd firmware 1.5k loc(hw 변경 없음). openssd fpga(1tb, 16채널, 1gb dram) + femu 에뮬레이터 2.1k loc. we can avoid writing to flash memory twice (double logging) by directly using the write log as a redo log for metadata updates. this enables bytefs to support atomic and crash-consistent updates."},{"id":"node_017","lx":1180,"ly":1960,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1960,"searchText":"성능: create 6.0×, oltp 4.1×, ycsb 2.4× (fig.6-7) byte/block 적응 선택 + firmware log의 종합 효과.\n\n- **micro**: ext4 대비 **2.5×**, f2fs 대비 1.48× 평균. **file create 6.0×**(vs ext4). mkdir/rmdir 1.2-1.5×(vs f2fs). delete는 즉시 sync 없어 비슷.\n- **macro**: varmail **1.9×**(vs f2fs, 작은 sync i/o 많음), fileserver 2.2×(vs ext4), webproxy 1.3×(vs ext4, dir op 많음), read-heavy webserver/webproxy는 block+host caching으로 비슷, **oltp 4.1×**(vs ext4, 200 thread write-intensive).\n- **ycsb(rocksdb)**: f2fs 대비 2.4× throughput. ycsb-a/f(50/50): read avg/tail **2.3×/2.0×**, write 1.3×/1.6×(vs f2fs). ycsb-c(100% read)는 비슷.\n\nnova/pmfs는 pure byte라 flash spatial locality를 못 살려 열세. finally, bytefs outperforms ext4 by 4.1x on write-intensive workload oltp. it creates over 200 threads creating, appending, and overwriting files with frequent fdatasync."},{"id":"node_018","lx":1180,"ly":2120,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2120,"searchText":"i/o traffic: metadata 25.3×↓, flash 2.9×↓, write 5.1×↓ (fig.8-11) bytefs friendliness to ssd의 핵심 증거.\n\n- **metadata traffic**(vs block fs): ext4 대비 **최대 25.3×**, f2fs 17.2×↓(평균 11.4×/6.1×). byte interface로 double-write 제거.\n- **vs nova/pmfs**: byte인데도 bytefs가 더 적음 — nova는 out-of-place, pmfs는 data journaling으로 double-write, bytefs는 **in-place update + firmware redo log**. nova 대비 metadata read ~43%↓.\n- **flash traffic**: 평균 ext4/f2fs/nova/pmfs 대비 **2.9×/2.1×/3.2×/2.2×↓** — small write coalescing. abstract의 **write traffic 5.1×↓**가 여기서 옴.\n- 가끔 log-cleaning의 read-modify-write로 flash traffic이 늘 수 있으나 **background라 성능 영향 없음**.\n\n**breakdown(fig.12)**: varmail/fileserver는 dual interface+log 둘 다, webproxy는 dual interface, oltp는 둘 다에서 이득. bytefs reduces the metadata traffic by up to 25.3x and 17.2x (11.4x and 6.1x on average) with the byte interface ... on average, bytefs reduces the flash traffic by 2.9x, 2.1x, 3.2x, and 2.2x compared to ext4, f2fs, nova, and pmfs."},{"id":"node_019","lx":1180,"ly":2280,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2280,"searchText":"recovery 4.2s + cxl sensitivity (cacheline 175ns) - **crash recovery(§5.5)**: 평균 **4.2s** — ssd dram 내용 로드 0.9s + global log/txlog 스캔·committed entry flash flush 2.7s.\n- **flash latency sensitivity(§5.6)**: 25/200 ~ 3/80µs 전 구간에서 f2fs/nova 우위. **flash write latency가 높을수록 bytefs 이득 큼**(background flush로 은닉).\n- **cxl-based ssd 에뮬레이션**: cacheline latency **175ns**(3/80* 설정). cxl이 byte latency를 줄여 bytefs·nova 모두 개선되지만 nova는 여전히 느림(높은 flash latency 미최적화).\n- **log size(§5.6)**: 64m$\\rightarrow$512m로 키우면 coalescing↑ $\\rightarrow$ 성능 scale(flush는 background). oltp처럼 이미 write locality 좋으면 이득 marginal. we also emulate a cxl-based ssd with less cacheline access latency (175ns) and high-end flash media (marked as 3/80*). the benefit of bytefs is larger with higher flash write latency, as bytefs hides the flash write latency by flushing the in-device write log in the background."},{"id":"node_020","lx":1180,"ly":2440,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2440,"searchText":"스택 관계: bytefs(fs 층) ↔ skybyte(device 층) ↔ flatflash(원형) bytefs·[[skybyte]]는 같은 uiuc jian huang 그룹이고, memory-semantic ssd 스택의 **다른 층**을 맡는다.\n\n| | bytefs (asplos'25) | skybyte (hpca'25) |\n|---|---|---|\n| 층 | **filesystem / os support** | **device (hw/os co-design)** |\n| 무엇 | m-ssd 위 byte+block fs | memory-semantic ssd device 자체 |\n| ssd dram | log-structured write buffer + coalescing | promotion cache(plb 계승) |\n| 인터페이스 | dual byte+block | pure memory-semantic |\n| 일관성 | firmware redo log·txlog | plb/promotion consistency |\n\n둘 다 [[flatflash - exploiting the byte-accessibility of ssds within a unified memory-storage hierarchy]](asplos'19, bytefs ref [10])를 m-ssd 원형으로 인용. ★ skybyte가 device를 만들면, bytefs가 그 device 위에 파일시스템을 얹는다 — **같은 이중역할(byte↔block)을 device층·fs층 두 곳에서 transparent co-design**. "},{"id":"node_021","lx":1710,"ly":2440,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2440,"searchText":"내 연구방향: bytefs의 \"coherency 불필요\"는 single-host — multi-host fs coherence가 빈칸 bytefs는 §4.2에서 **\"host가 항상 최신본 소유 $\\rightarrow$ cache-coherency 불필요\"**를 명시한다. 이건 곧 **single-host 불변식**이다. crash consistency(txtable/txlog), coordinated caching(ssd엔 page cache 없음, host dram만 최신), redo log 전부 이 위에 서 있다.\n\n내 방향(**multi-node cxl coherence**)은 이 불변식이 깨지는 곳을 잡는다. 여러 host가 같은 cxl-ssd 파일시스템을 공유하면:\n- **최신본 소유권**: host a의 page cache와 host b의 page cache 중 누가 최신? $\\rightarrow$ cxl 3.0 **back-invalidate/hdm-db** 필요.\n- **cross-host transaction/commit**: txtable·txlog가 단일 host 소속 — 공유 namespace의 commit ordering·flush 권한 미정의.\n- **byte interface를 cxl.mem로** realize한다고 했으니(§4.2), 실제 coherent cxl 위에서 write log·metadata caching을 재설계하는 게 자연스러운 다음 걸음.\n\n즉 bytefs의 '기법'(dual interface·log·coalescing)은 재사용하되 '문제 정의'를 **single$\\rightarrow$multi host**로 다시 세우는 게 gap. $\\rightarrow$ [[skybyte]], [[cxl multi-node coherence]], [[cxl overview]] "},{"id":"node_022","lx":100,"ly":100,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"searchText":"🏛️ 학회: asplos = cross-layer(fs+firmware) co-design 보상 / \"한 층만\" 찌름 **asplos가 보상하는 축**: architecture+os+pl을 가로지르는 **cross-layer co-design**. reviewer가 특히 찌르는 곳 = **한 층만 건드림 / 계층이 얕음**(nodegraph_review §3-0 표).\n\n**bytefs가 이 축을 맞춘 방식**: 문제를 fs 한 층에서 끝내지 않고 (1) **host filesystem(sw)** 핵심 자료구조를 재설계(inode 64b 분할·extent·cow+xor 선택)하고, (2) **ssd firmware(hw)** 를 log-structured write buffer·3-layer skip list·custom nvme commit/recover로 함께 재설계한다. §3의 정량분석이 두 층을 잇는 다리. 즉 **byte↔block 이중역할을 fs·firmware 두 층에서 동시에** 푼다 $\\rightarrow$ asplos taste 정합.\n\n이 anchor를 기준으로 ✅는 \"두 층을 어떻게 맞물렸나\", ⚠️는 \"그 co-design이 무엇을 전제/요구하나\"로 정렬된다. we present bytefs, an efficient file system for m-ssds with a co-design of software (host filesystem) and hardware (ssd firmware)."},{"id":"node_023","lx":100,"ly":380,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":380,"searchText":"✅ 잘한 점: 자료구조별 byte/block 선호를 정량분석으로 갈라 transparent 선택 bytefs의 결정적 강점 = **설계를 직관이 아니라 §3 정량 프로파일에서 유도**한 점(문제 프레이밍 + rigor). fs 핵심 구조를 op 단위로 쪼개 \"어느 것이 byte를, 어느 것이 block을 선호하나\"를 table 3로 못박고, 그 규칙을 그대로 firmware/fs에 심어 **transparent**(posix 그대로)하게 자동 선택한다.\n\n- **규칙**: metadata write는 대개 작다 $\\rightarrow$ **byte**. 그 read는 같은 block 내 locality $\\rightarrow$ **block**+host caching.\n- runtime 데이터는 cow+xor로 modified ratio $r$을 재 byte/block 결정($r<\\tfrac{1}{8}$이면 byte).\n\nreviewer가 좋게 볼 지점: \"byte가 무조건 좋다\"는 단순 주장이 아니라 **구조별로 갈라 근거를 댄** 점. most metadata updates in file systems are small, so the byte interface is suitable. for their reads, we can use the block interface to exploit data locality."},{"id":"node_024","lx":100,"ly":660,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":660,"searchText":"✅ 잘한 점: ssd firmware log-structured write buffer + coalescing로 flash/write traffic 대폭 ↓ 두 번째 결정적 강점 = **device 층 기여**(단순 fs 논문을 넘어서는 부분, asplos 축에 정확히 부합). 내부 dram을 cacheline 단위 **log-structured region**으로 재조직해 작은 write를 log에 append하고 background cleaning이 **coalescing** 후 flash에 flush $\\rightarrow$ critical path의 flash 접근·write amplification을 firmware 안에서 흡수.\n\n**정량 효과**: flash traffic 평균 ext4/f2fs/nova/pmfs 대비 **2.9× / 2.1× / 3.2× / 2.2×↓**, ssd write traffic **최대 5.1×↓**(abstract). 인덱스(3-layer skip list)는 89ns lookup·21mb로 경량이라 flash µs 스케일에 묻힌다.\n\nreviewer 관점: fs 최적화가 아니라 **firmware 데이터 구조 재설계로 device i/o를 줄인** 실측 근거 $\\rightarrow$ evaluation depth. on average, bytefs reduces the flash traffic by 2.9×, 2.1×, 3.2×, and 2.2× compared to ext4, f2fs, nova, and pmfs. bytefs reduces flash write traffic by coalescing small writes in the in-device write log."},{"id":"node_025","lx":100,"ly":940,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":940,"searchText":"✅ 잘한 점: write log를 redo log로 재사용 → double-write 없이 crash consistency (recovery 4.2s) 세 번째 강점 = **essential fs property(crash consistency)를 공짜에 가깝게** 얻은 점. firmware가 이미 갖는 in-device write log에 모든 metadata update가 append되므로, 그 로그를 **그대로 redo log로 재사용**해 flash에 두 번 쓰는 **double logging을 제거**한다. battery-backed dram + txid/txlog로 atomic commit.\n\n**실측**: crash 후 평균 **4.2s** 복구(ssd dram 로드 0.9s + log/txlog 스캔·flush 2.7s). metadata traffic이 nova(out-of-place)·pmfs(data journaling)의 double-write보다도 적은 이유가 이 in-place + redo-log 재사용.\n\nreviewer가 좋게 볼 지점: 성능 최적화(byte write)와 crash consistency가 **충돌하지 않고 같은 로그 자료구조를 공유**하도록 설계한 점. we can avoid writing to flash memory twice (double logging) by directly using the write log as a redo log for metadata updates. this enables bytefs to support atomic and crash-consistent updates."},{"id":"node_026","lx":100,"ly":1220,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1220,"searchText":"⚠️ 아쉬운 점: \"host가 최신본 소유 → coherency 불필요\"라는 single-host 불변식 (reviewer 공격) bytefs는 §4.2에서 ssd dram↔cpu cache **coherency가 필요없다**고 단정하고, 같은 문장에서 byte interface를 **cxl.mem로도 realize 가능**하다고 말한다 — 이 둘은 긴장 관계다.\n\n**reviewer 질문**: \"cxl.mem는 정의상 cacheable load/store를 여러 agent에 노출하는데, 왜 coherency가 불필요한가? multi-core/multi-process가 같은 m-ssd region을 동시에 mmap하거나 dma가 끼면 이 불변식이 성립하나?\"\n\n**저자 방어(암묵)**: \"firmware가 host가 쓴 데이터를 수정하지 않으니 device발 stale이 없고, **단일 host가 항상 최신본**을 갖는다\" $\\rightarrow$ 그러나 이 방어는 **정확히 single host에서만** 성립. 논문 전체(coordinated caching·txtable·redo log)가 이 전제 위에 서 있다. reviewer라면 \"한계로 명시했어야\"라고 지적할 지점. (내 연구 p′로 승격 $\\rightarrow$ 🧭 노드.) bytefs do not require cache-coherency between the ssd dram and the host cpu cache because the host always contains the latest data and the m-ssd firmware does not modify the data written by the host. the byte interface can also be realized with cxl.mem protocol, with which the host cpu can issue cacheable load/store accesses to the device."},{"id":"node_027","lx":100,"ly":1500,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1500,"searchText":"⚠️ 아쉬운 점: firmware 1.5k loc + custom nvme(commit/recover) 요구 → 배포 장벽 bytefs의 이득은 **firmware를 고칠 수 있다**는 전제에 의존한다: log-structured dram 관리·skip list·log cleaning·**custom nvme commit(txid)/recover()** 를 firmware 안에 심는다.\n\n**reviewer 질문**: \"상용 ssd firmware는 폐쇄적이고 nvme는 표준 위원회 관할인데, custom nvme 명령과 1.5k loc firmware 변경을 어떻게 배포하나? openssd가 아닌 실제 cmm-h/cxl-ssd에서 재현 가능한가?\"\n\n**저자 방어**: \"**hw 변경은 없다**(no hardware modification), openssd fpga 실물로 실증, firmware만 1.5k loc(그중 custom nvme 0.1k)\" $\\rightarrow$ 그래도 **vendor firmware 접근권**을 전제. asplos는 co-design을 보상하지만(축 정합), 같은 이유로 \"실배포 경로\"를 reviewer가 물을 수 있는 지점. in bytefs, we modified the ssd firmware with 1.5k lines of c code. it does not require any changes to the ssd hardware. more specifically, we customize the nvme protocol to enable byte granularity accesses with 0.1k loc and implement the 256mb write log ..."},{"id":"node_028","lx":100,"ly":1780,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1780,"searchText":"⚠️ 아쉬운 점: 이득이 write/metadata-heavy에 편중, read-heavy는 비슷 + nvm fs baseline 불리 매핑 **generalization 우려.** 큰 speedup은 create(6.0×)·oltp(4.1×)·varmail 같은 **작은 sync write·metadata-heavy** 워크로드에 몰린다. **read-heavy(webserver/webproxy)** 에선 ext4/f2fs와 **거의 동등**.\n\n**reviewer 질문**: (1) \"이득이 특정 워크로드 프로파일에 편향된 것 아닌가?\" (2) \"baseline인 **nova/pmfs를 flash에 미최적화된 채 m-ssd에 그대로 매핑**해 비교한 것은 straw-man 아닌가 — flash-aware nvm fs와 비교했어야?\"\n\n**저자 방어**: (1) \"read는 block interface+host caching으로 **이미** 최적이라 추가 이득 여지가 작다(설계 의도)\", (2) \"§2.2에서 nvm fs는 m-ssd에 **natural fit이 없음**을 논증했고, 이들이 m-ssd의 유일한 byte-interface 선택지라 정당한 비교\". 방어는 성립하나, ✅ 강점의 **적용범위가 write-heavy로 좁다**는 사실은 남는다. webserver and webproxy are read-heavy workloads. bytefs shows a similar performance compared with ext4 and f2fs, as we leverage the block interface and host-side caching to exploit data locality."},{"id":"node_029","lx":100,"ly":2060,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2060,"searchText":"🔀 왜 dual byte+block (vs pure byte / pure memory-semantic fs)? 저자가 선 갈림길: m-ssd 위 fs 인터페이스를 어떻게 노출할까.\n\n- **(a) pure block** (기존 ext4/f2fs 그대로): byte 접근 못 씀 $\\rightarrow$ 128b update도 4kb write, amplification 최대 6.2×.\n- **(b) pure byte / memory-semantic** (nvm fs·dax식으로 device를 near-dram byte-only로 취급): sw overhead는 줄지만 **flash의 page-granular 특성·spatial locality·pcie latency**를 못 살려 m-ssd에서 열세(nova/pmfs 실측).\n- **(c) dual — 자료구조별 선택** ← 저자 선택.\n\n**저자 이유**: metadata write는 작아 byte, 그 read는 locality라 block — \"**둘 다 지원**하지 않으면 m-ssd 이점을 못 살린다\"(§2.2). **안 판 갈래**: device를 완전 memory-semantic으로 추상화([[skybyte]]식)한 뒤 그 위에 얇은 byte-only fs만 얹는 길 $\\rightarrow$ bytefs는 firmware까지 내려가 block 경로를 **버리지 않고** 유지하는 쪽을 택했다. without changing the inherent design, it is hard to fully exploit the performance benefits of m-ssds with existing file systems, as they all lack the support for both byte and block interface, and the consideration of the unique performance characteristics."},{"id":"node_030","lx":100,"ly":2340,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2340,"searchText":"🔀 왜 firmware redo-log (vs host-side journaling / double-write)? crash consistency를 어디서·어떻게 얻을까.\n\n- **(a) host journaling** (ext4 jbd2 ordered mode): critical metadata를 **두 번 쓴다** $\\rightarrow$ journaling이 전체 traffic의 30.7%. m-ssd의 write amplification을 다시 키움.\n- **(b) host-side log / out-of-place** (nova식): device는 몰라도 되지만 여전히 double-write·flash 미최적화.\n- **(c) firmware-level redo log** ← 저자 선택.\n\n**저자 이유**: 어차피 성능을 위해 **모든 metadata update가 firmware write log에 append**되므로, 그 로그를 **그대로 redo log로 재사용**하면 flash에 두 번 쓰는 double logging을 통째로 없앤다 — 성능 최적화 자료구조와 consistency 자료구조를 **하나로 합치는** 수. **안 판 갈래**: consistency를 host에만 두고 firmware를 건드리지 않는 길(=배포는 쉽지만 double-write 잔존). 이 선택이 ⚠️ \"firmware 수정 요구\" 장벽과 맞바꾼 것. in bytefs, all metadata updates are appended to the log region. therefore, we can avoid writing to flash memory twice (double logging) by directly using the write log as a redo log for metadata updates."},{"id":"node_031","lx":100,"ly":2620,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2620,"searchText":"📐 p/l: 기존 fs가 m-ssd byte-granularity를 못 살림 → 작은 update가 page write로 증폭 기존 해법을 **관점 p(문제를 본 렌즈) → 한계 l(그 관점 때문에 구조적으로 남는 것)** 으로 분해:\n\n| 기존 해법 a | 관점 p | 한계 l (구조적) |\n|---|---|---|\n| **block fs** (ext4/f2fs) | ssd를 **4kb page/block black box**로 봄 | 128b metadata update도 **4kb write** 강제 $\\rightarrow$ write amplification 최대 6.2×. byte-granularity라는 새 자유도를 **주소지정 단위에서 봉쇄** |\n| **nvm fs** (pmfs/nova/splitfs) | device를 **near-dram byte-only**(dax)로 봄 | **flash page-granular 특성·pcie latency·spatial locality**를 무시 $\\rightarrow$ m-ssd에서 오히려 열세 |\n\n**l은 \"느리다\"가 아니라 \"관점 p 때문에 남는 것\"**: block fs는 device를 block으로 보는 한 byte 이득이 원천 봉쇄되고, nvm fs는 device를 순수 byte-dram으로 보는 한 flash/pcie 병목을 다룰 언어가 없다.\n\n**bytefs의 p″** = \"fs 자료구조별 granularity를 **fs+ssd firmware 두 층 재설계**로 정한다\" $\\rightarrow$ 두 l을 동시에 품는다. persisting one 128b inode update requires a 4kb write to the disk, further amplifying the write traffic. therefore, the byte interface can greatly reduce the inode write traffic."},{"id":"node_032","lx":100,"ly":2900,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2900,"searchText":"📍 위치: memory-semantic ssd 스택의 fs 계층 (skybyte=device 계층) — uiuc jian huang 그룹 **asplos'25에서의 좌표**: bytefs는 같은 **uiuc jian huang 그룹**의 memory-semantic ssd 라인에서 **filesystem/os support 계층**을 맡는다. cross-layer(fs+firmware) 논문이라 asplos taste에 정합해 accept.\n\n- **[[skybyte]]** (hpca'25) = **device 계층**(memory-semantic ssd device를 hw/os co-design으로). bytefs는 \"그런 device 위에 얹는 파일시스템\".\n- **[[flatflash - exploiting the byte-accessibility of ssds within a unified memory-storage hierarchy]]** (asplos'19) = m-ssd **원형**(sw 기반 unified address translation). flatflash가 \"byte로 접근 가능함\"을 보였다면, bytefs는 그 위에서 **system software(fs)가 어떻게 관리할지**의 공백을 채운다.\n\n즉 세 논문이 **원형(flatflash) → device(skybyte) → fs(bytefs)** 로 같은 이중역할(byte↔block)을 서로 다른 계층에서 transparent co-design한다. (스택 세부 비교는 기존 「스택 관계」 노드 참조 — 여기선 venue·계층 위치만.) "},{"id":"node_033","lx":100,"ly":3180,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":3180,"searchText":"🧭 내 연구: single-host fs 불변식(l′) → multi-host cxl-ssd namespace의 cross-host 소유권·flush p′ **p/l→p′ 사슬(간결판)**: bytefs는 관점을 p″=\"fs+firmware co-design\"으로 바꿔 amplification l을 풀었지만, 그 대가로 **single-host 불변식 l′**(\"host가 항상 최신본 소유 $\\rightarrow$ coherency 불필요\", ⚠️ 노드)이 새로 굳어졌다.\n\n**내 p′ = multi-host cxl-ssd coherence**: 여러 host가 같은 cxl-ssd fs namespace를 공유하면 l′이 정확히 깨진다 —\n- **최신본 소유권**: host a·b page cache 중 누가 최신? $\\rightarrow$ cxl 3.0 back-invalidate/hdm-db가 bytefs의 coordinated caching에 편입돼야.\n- **cross-host flush/commit**: txtable·txlog가 단일 host 소속 $\\rightarrow$ 공유 namespace의 commit ordering·flush 권한 미정의.\n\nbytefs의 **기법(dual interface·log·coalescing·redo log)은 재사용**하되 **문제 정의를 single→multi host로** 다시 세우는 것이 gap. (기존 「내 연구방향」 노드의 p′를 **p/l 유도 사슬**로 압축·보강. $\\rightarrow$ [[skybyte]], [[cxl multi-node coherence]]) "}];
+var NODES_DATA = [{"id":"node_001","lx":660,"ly":300,"children":["node_006"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":300,"title":"Killer Application","content":"ByteFS가 푸는 문제는 **memory-semantic SSD(M-SSD)** — PCIe/CXL의 byte-addressability로 **byte와 block 둘 다** 접근되는 저가 NAND flash SSD($\\approx \\$0.22\\text{/GB}$) — 를 위한 **파일시스템이 없다**는 것이다. 기존 block FS(Ext4/F2FS)는 128B inode 갱신에도 4KB write를 강제하고(I/O amplification), NVM FS(PMFS/NOVA)는 순수 byte라 flash의 page 특성·locality를 못 살린다.\n\n**Killer application 1 — 자료구조별 byte/block 적응 선택**: FS 핵심 구조를 정량 분석(§3)해 metadata write는 **byte**·read는 **block**으로 transparent하게 선택 $\\rightarrow$ I/O amplification 대폭 감소.\n\n**Killer application 2 — SSD DRAM을 log-structured write buffer로**: 내부 DRAM을 cacheline 단위 로그로 재조직해 작은 write를 **coalescing**(3-layer skip list, 89ns lookup) $\\rightarrow$ flash traffic 감소.\n\n**Killer application 3 — firmware redo log로 crash consistency**: write log를 redo log로 재사용해 **double-write 없이** atomic·crash-consistent, 빠른 recovery(4.2s).\n\n결과: SOTA(Ext4/F2FS/NOVA/PMFS) 대비 성능 **최대 2.7×**, SSD write traffic **최대 5.1×** 감소. host FS(SW)+SSD firmware(HW) **co-design**.","originalTitle":"","originalText":"ByteFS outperforms them by up to 2.7x, while preserving the essential properties of a file system. ByteFS also reduces the write traffic to SSDs by up to 5.1x by alleviating unnecessary writes caused by both metadata and data updates in file systems.","toggles":[]},{"id":"node_002","lx":660,"ly":600,"children":["node_007","node_008","node_009","node_022","node_031"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":600,"title":"필요한 이유 (Why It's Needed)","content":"M-SSD는 byte와 block을 **동시에** 노출하지만, 수십 년간 FS는 둘 중 하나만 가정해 설계됐다 $\\rightarrow$ **어느 것도 M-SSD에 자연스럽게 맞지 않는다**.\n\n**(1) block FS(Ext4/F2FS)**: 고정 block(512B/4KB) 관리라 byte 접근 불가. 작은 metadata 갱신에도 page 전체 write $\\rightarrow$ **write amplification 최대 6.2×**(Table 2). 128B inode 하나 갱신 = 4KB write.\n\n**(2) NVM FS(PMFS/NOVA/SplitFS)**: byte load/store·DAX로 SW overhead 최소화에 집중했지만, M-SSD는 **높은 PCIe latency + 불가피한 flash 접근**이 병목이라 그대로 얹으면 부적합. flash의 spatial locality도 못 살림.\n\n그래서 ByteFS는 먼저 **FS 자료구조별 접근 granularity 선호**를 정량 분석(§3, Table 3)해 설계 지침을 얻는다 — metadata write는 byte, locality 있는 read는 block.","originalTitle":"","originalText":"without changing the inherent design, it is hard to fully exploit the performance benefits of M-SSDs with existing file systems, as they all lack the support for both byte and block interface, and the consideration of the unique performance characteristics.","toggles":[]},{"id":"node_003","lx":660,"ly":900,"children":["node_010","node_011","node_012","node_013","node_014","node_015","node_023","node_029","node_030"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":900,"title":"해결책 (Solution)","content":"ByteFS는 host FS(SW)+SSD firmware(HW) **co-design**으로 dual byte/block을 transparent하게 지원한다(§4). 4대 도전: granularity mismatch, 유연한 인터페이스 선택, 최소 overhead consistency, essential FS property 보존.\n\n**§4.2 Byte access/persistence**: BAR로 SSD 전체를 host memory에 매핑, MMIO 접근. **cache-coherency 불필요**(host가 최신본 소유). CXL.mem로도 실현 가능. persistence = clflush/clwb + write-verify read.\n\n**§4.3 Log-structured SSD DRAM**: 내부 DRAM을 cacheline 단위 log로 재조직, small write append+coalescing. **3-layer skip list** 인덱스. write log를 **redo log로 재사용**(double-logging 회피). SSD엔 page cache 안 둠(coordinated caching).\n\n**§4.4 Dual r/w**: byte(64B log entry)·block(4KB NVMe, log와 merge/invalidate).\n\n**§4.5 Metadata**: inode 64B 분할, dentry/bitmap/data-pointer byte-write + host caching.\n\n**§4.6 Data I/O**: CoW+XOR로 **modified ratio $R$** 계산해 byte/block 선택.\n\n**§4.7 Crash consistency**: TxID/TxTable/TxLog + battery-backed DRAM, custom NVMe COMMIT/RECOVER.","originalTitle":"","originalText":"We present ByteFS, an efficient file system for M-SSDs with a co-design of software (host file system) and hardware (SSD firmware).","toggles":[]},{"id":"node_004","lx":660,"ly":1200,"children":["node_017","node_018","node_019","node_024","node_025","node_026","node_028"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1200,"title":"결과 (Results)","content":"28-core Intel E5 + 128GB. **OpenSSD FPGA 실물 프로토타입**(1TB, 16채널, 1GB DRAM, ARM firmware) + **FEMU 기반 에뮬레이터**(32GB, flash 40/60µs, cacheline 4.8/0.6µs). Baseline: Ext4·F2FS(block), NOVA·PMFS(byte NVM FS를 M-SSD에 매핑). 모두 256MB SSD DRAM 캐싱.\n\n| 항목 | 결과 |\n|---|---|\n| micro 평균 (vs Ext4 / F2FS) | **2.5×** / 1.48× |\n| file create (vs Ext4 / F2FS) | **6.0×** / 2.4× |\n| OLTP (vs Ext4) | **4.1×** |\n| YCSB throughput (vs F2FS) | 2.4× |\n| metadata traffic (vs Ext4) | 최대 **25.3×**↓ |\n| flash traffic (vs Ext4/F2FS/NOVA/PMFS) | 2.9×/2.1×/3.2×/2.2×↓ |\n| write traffic | 최대 **5.1×**↓ |\n| crash recovery | 평균 **4.2s** |\n\nNOVA/PMFS는 flash용 설계가 아니라 spatial locality를 못 살려 오히려 Ext4/F2FS보다 나쁜 경우 많음.","originalTitle":"","originalText":"ByteFS outperforms Ext4 by 2.5x and F2FS by 1.48x on average across all micro-benchmarks. On file creation especially, ByteFS achieves 6.0x and 2.4x performance improvement compared to Ext4 and F2FS.","toggles":[]},{"id":"node_005","lx":660,"ly":1500,"children":["node_020","node_021","node_027","node_032","node_033"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1500,"title":"결론 (Conclusion)","content":"ByteFS는 memory-semantic SSD를 위한 **커널 레벨 파일시스템**으로, dual byte/block interface를 지원하며 FS 핵심 구조를 재설계해 **스택 전체의 I/O amplification**을 줄이고 crash consistency를 보존한다. OpenSSD FPGA 실물 + 에뮬레이터로 실증.\n\n**의의 — memory-semantic SSD 스택의 FS 층**: FlatFlash[10](SW 기반 M-SSD, unified address translation)·Jung의 CXL-SSD 에뮬레이터[26]는 device를 어떻게 **system software가 관리**할지 거의 안 다뤘는데, ByteFS가 그 공백을 채운다. 같은 UIUC Jian Huang 그룹의 [[SkyByte]](device 층)와 **다른 층(FS/OS 층)**을 이룬다.\n\n**한계 / 열린 질문**: (1) \"host가 최신본 소유 $\\rightarrow$ cache-coherency 불필요\"는 명시적 **single-host 전제**. (2) write log·TxTable이 단일 host FS 소속. (3) coordinated caching이 한 host page cache 최신 가정. (4) CXL.mem realize 언급하나 실제 CXL coherence 위 FS 재설계는 future work. $\\rightarrow$ multi-host가 빈칸.","originalTitle":"","originalText":"We present ByteFS, a new kernel-level file system for memory-semantic SSDs that support dual byte/block interface. ByteFS significantly reduces the I/O amplification across the entire storage stack with various optimizations in the core components of file systems.","toggles":[]},{"id":"node_006","lx":1180,"ly":240,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":240,"title":"M-SSD가 byte+block 이중 접근을 주는 하드웨어 근거 (BAR/MMIO, battery-backed DRAM, CXL)","content":"ByteFS의 전제: **memory-semantic SSD(M-SSD)**는 byte와 block 둘 다 접근된다. 근거는 PCIe **BAR(Base Address Register)** — BIOS/OS가 device buffer를 host memory space에 매핑해 host가 **load/store(MMIO)**로 접근. 내부 DRAM이 byte-granular 요청의 data buffer, **battery-backed DRAM**이 power loss 시 persistence 보장. **normal NVMe block interface도 유지** $\\rightarrow$ dual.\n\nNVM(Optane, processor memory bus)과 달리 M-SSD는 **PCIe/CXL attached + 성숙한 NAND**라 TB급·저가($\\$0.22\\text{/GB}$). Samsung의 CXL-based SSD(CMM-H)[40]가 실물 사례. **Table 1**: M-SSD cacheline R/W **4.8/0.6µs**, 3.5/2.5GB/s, 영속.","originalTitle":"","originalText":"By registering the device buffer address with the base address register (BAR), the BIOS and OS discover and map the device buffer into the host memory space ... The M-SSD still keeps the normal block interface with conventional NVMe I/O commands, allowing the host to operate on dual byte and block interfaces.","toggles":[]},{"id":"node_007","lx":1180,"ly":500,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":500,"title":"block interface의 I/O amplification (Table 2): write 최대 6.2×","content":"block FS(Ext4/F2FS)를 Filebench+OLTP로 프로파일한 **정량 근거**.\n\n| Ext4 | Varmail | Fileserver | Webproxy | Webserver | OLTP |\n|---|---|---|---|---|---|\n| Write | 3.85× | **6.21×** | 1.43× | 1.66× | 2.17× |\n| Read | 1.21× | 1.15× | 1.25× | 1.71× | 1.52× |\n\n주범은 metadata: **inode**가 write의 35%(Ext4)/24.4%(F2FS), 128B inode 갱신에 4KB write. Ext4 **journaling**이 전체 traffic의 30.7%(ordered mode double-write). bitmap은 몇 byte만 flip. $\\rightarrow$ 작은 metadata write에 byte interface가 결정적.","originalTitle":"","originalText":"Persisting one 128B inode update requires a 4KB write to the disk, further amplifying the write traffic. Therefore, the byte interface can greatly reduce the inode write traffic.","toggles":[]},{"id":"node_008","lx":1180,"ly":660,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":660,"title":"§3 특성 분석 (Table 3): 자료구조별 byte/block 선호","content":"ByteFS 설계의 토대 — FS 핵심 구조마다 read/write의 preferred interface를 정리.\n\n| 자료구조 | Read | Write |\n|---|---|---|\n| Superblock | Block | Block |\n| Block/Inode List(bitmap) | Block | **Byte** |\n| Inode | Block | **Byte** |\n| Data Pointer | Block | **Byte** |\n| Directory Entry | Block | **Byte** |\n| Page Cache | Block | Block/Byte |\n| Data Block | Block/Byte | Block/Byte |\n| Data Journal | Block | Block/Byte |\n\n**규칙**: 대부분 metadata update는 작다 $\\rightarrow$ **write는 byte**. 그 read는 block으로 로드해 **locality 활용 + host 캐싱**. file data/journal은 크기·locality에 따라 runtime에 유연 선택.","originalTitle":"","originalText":"some data structures like inode prefer byte-granular data access, and some structures like page cache prefer dual byte/block-granular data access depending on the data access pattern at runtime (see Table 3).","toggles":[]},{"id":"node_009","lx":1180,"ly":820,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":820,"title":"왜 NVM FS(PMFS/NOVA)를 그대로 못 쓰나 + M-SSD 선행","content":"ByteFS의 좌표를 정하는 인용:\n\n| 연구 | 관계 |\n|---|---|\n| **FlatFlash** (ASPLOS'19) [10] | SW 기반 M-SSD 원형 — unified virtual memory space + unified address translation. device의 **system software 관리**는 미해결로 남김 ($\\rightarrow$ ByteFS가 채움) |\n| **Jung, CXL-SSD** (HotStorage'22) [26] | CXL-SSD FPGA 에뮬레이터, memory expansion |\n| **NOVA** (FAST'16) [48] | per-inode log-structured NVM FS — baseline. flash 미최적화라 M-SSD에서 열세 |\n| **PMFS** (EuroSys'14) [19] | DAX 기반 PM FS — baseline |\n| **SplitFS** (SOSP'19) [27] | user/kernel 분리 PM FS |\n\n핵심: NVM FS는 **near-DRAM NVM** 전제라 M-SSD의 높은 PCIe/flash latency에서 부적합.","originalTitle":"","originalText":"naively applying NVM file systems to M-SSDs is inadequate. The performance characteristics of M-SSDs differ from NVMs, as the high PCIe latency and inevitable flash accesses are still the bottleneck.","toggles":[]},{"id":"node_010","lx":1180,"ly":980,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":980,"title":"§4.2 Byte-granular access/persistence — coherency 불필요, CXL.mem","content":"BAR로 **SSD 전체를 memory region으로** 매핑 $\\rightarrow$ MMIO(byte)로 임의 SSD 주소 접근.\n\n**핵심 주장**: ByteFS는 **SSD DRAM↔host CPU cache coherency를 요구하지 않는다** — host가 항상 최신본을 갖고 firmware가 host-written 데이터를 수정하지 않기 때문. byte interface는 **CXL.mem**로도 realize 가능(cacheable load/store). (★ 이 문장이 single-host 전제를 드러냄.)\n\n**Persistence**: battery-backed DRAM. 단 host CPU의 **Write Combining(WC)**이 small write를 버퍼링 $\\rightarrow$ dirty cacheline/pending PCIe 남김. 2단계: (1) MMIO write 후 **clflush/clwb**; (2) **write-verify read**(zero-byte read)로 posted PCIe 완료 강제(root complex serialize).","originalTitle":"","originalText":"ByteFS do not require cache-coherency between the SSD DRAM and the host CPU cache because the host always contains the latest data and the M-SSD firmware does not modify the data written by the host. The byte interface can also be realized with CXL.mem protocol.","toggles":[]},{"id":"node_011","lx":1180,"ly":1140,"children":["node_016"],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1140,"title":"§4.3 SSD DRAM = log-structured memory + coalescing + coordinated caching","content":"Flash는 page-granular만 가능한데 host는 byte 접근 $\\rightarrow$ mismatch. ByteFS는 SSD DRAM cache를 **cacheline 단위 log-structured region**으로 재조직 $\\rightarrow$ 모든 byte write를 log에 append(critical path의 flash 접근 회피), background cleaning이 **coalescing** 후 flash flush(log utilization **85%** 초과 시).\n\n**Coordinated caching**: SSD 안엔 **page cache를 두지 않음** $\\rightarrow$ loaded page는 host DRAM에만 캐싱 $\\rightarrow$ 귀한 SSD DRAM을 **persistent write**에 몰아줌.\n\n**Firmware-level logging = redo log**: 모든 metadata update를 log에 append하므로 write log를 **redo log로 직접 재사용** $\\rightarrow$ **double logging 회피**, atomic·crash-consistent.\n\n(인덱스 구조는 자식 노드 「3-layer skip list」 참고.)","originalTitle":"","originalText":"Instead of caching flash pages in both SSD DRAM and host page cache, ByteFS caches flash pages only in the host page cache for best utilizing the precious SSD DRAM for persistent writes.","toggles":[]},{"id":"node_016","lx":1710,"ly":1140,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1140,"title":"§4.3 write log 구조: circular buffer + 3-layer skip list (89ns lookup)","content":"**Global log region**: circular buffer(**256MB** 기본, head/tail), 데이터를 **64B-aligned entry**로 log tail에 append.\n\n**3-layer skip list 인덱스**:\n- **L1 partition table**: SSD 주소공간을 **16MB partition**으로 분할. LPA/partition-size로 partition index 즉시 계산.\n- **L2 skip list**: partition별, flash page의 데이터가 log에 있으면 LPA로 인덱싱된 entry.\n- **L3 chunk list**: block offset 순 정렬. chunk entry = block offset(**1B**) + log offset(**4B**) + data length(**4B**).\n\n$$O(\\log n)\\ \\text{lookup / insert / delete}$$\n\nhash table 대비 **임의 chunk size + range lookup** 우수(FS의 다양한 크기 접근에 적합). 256MB log fully-utilized 시 평균 lookup **89ns**(flash µs급이라 무시 가능), 인덱스는 SSD DRAM **21MB** 차지.","originalTitle":"","originalText":"The skip list offers O(log(n)) lookup, insertion, and deletion time ... Our experiments with an embedded ARM processor show that the average lookup latency of a fully utilized 256MB log is 89ns.","toggles":[]},{"id":"node_012","lx":1180,"ly":1300,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1300,"title":"§4.4 Dual byte/block read/write","content":"**Byte read**: host가 MMIO load $\\rightarrow$ firmware가 write log lookup. 있으면 직접 반환, 없으면 flash에서 page fetch 후 **요청 cacheline만** 반환.\n**Byte write**: 64B entry 정렬. 단일 64B는 직접 write + clflush/clwb. 다중 cacheline atomic은 **FS transaction**으로 wrap, concurrent write는 chunk entry로 최신 버전 추적.\n\n**Block read**: flash $\\rightarrow$ transfer buffer 로드 후 skip list 조회. log에 dirty cacheline 있으면 loaded page와 **merge** 후 반환.\n**Block write**: 4KB를 FTL write buffer로, flash write 후 firmware가 skip list 스캔해 해당 page의 log entry **invalidate**(host page cache write-back이 최신이라 즉시 무효화 가능).\n\n**Log cleaning(Algorithm 1)**: modified page 순회 $\\rightarrow$ 최신 committed 버전 merge $\\rightarrow$ buffer 차면 flash write. **double buffering**으로 background 수행(정상 IO 비차단).","originalTitle":"","originalText":"As the data reaches the SSD, the SSD firmware first appends the data into the write log. It then inserts the chunk entry for the data to the log index. If the same data is written by two transactions through the byte interface concurrently, we update the chunk entry to track the newest version.","toggles":[]},{"id":"node_013","lx":1180,"ly":1460,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1460,"title":"§4.5 Metadata 관리: inode 64B 분할 + host-side caching","content":"host-side metadata caching, miss 시 block interface로 로드.\n\n- **Inode**: 128B entry를 4KB page로 그룹화. 각 inode를 **upper/lower 64B로 분할** — lower = 자주 갱신(file size, mtime, access rights). inode update를 **64B byte write**로 atomic 처리. host radix tree 캐싱.\n- **Directory entry**: inode number(4B)+type(2B)+name len(2B)+filename(최대 256B). lookup은 dir block 전체 block-load, hashed name radix tree 캐싱. create/rename은 단일 entry(64-320B) byte write.\n- **Block/Inode bitmap**: **64B group** 단위 갱신, boot 시 block-load. per-CPU free list + extent 할당.\n- **Data pointer**: Ext4-like **extent**. leaf node(16B)=offset(8B)+LBA(4B)+len(4B). in-place update, byte-granular persistent write.","originalTitle":"","originalText":"we split each inode into the upper and lower regions (64B each). The lower region contains frequently updated information, such as file size, modification times, and access rights ... each inode update takes as low as 64B via the byte interface, which can be done atomically.","toggles":[]},{"id":"node_014","lx":1180,"ly":1620,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1620,"title":"§4.6 Data I/O: CoW + XOR로 modified ratio 계산해 byte/block 선택","content":"- **Direct I/O**(O_DIRECT): 접근 $\\leq$ 512B면 byte, 아니면 block(512B 미만은 cacheline write가 4KB persist보다 빠름).\n- **Buffered I/O**: host page cache 흡수. write-back 시 **CoW**로 원본을 duplicate에 복사(XArray 추적, per-inode `address_space`). 원본$\\oplus$duplicate **XOR**로 수정 64B chunk 식별 후 **modified ratio**:\n\n$$R = \\frac{N_{Modified}}{N_{Total}}$$\n\n$R < \\frac{1}{8}$(4KB 중 512B)이면 **byte**, 아니면 **block**. **avx2** 256-bit XOR(평균 936 cycle, 14GB/s). duplicate page는 page cache의 평균 **16%**.\n- **mmap I/O**: M-SSD를 memory expander로, cached DRAM page를 user space 매핑.\n- **Data journaling**: metadata logging(Ext4 ordered mode 수준) + data journaling. 큰 write는 **JBD2 + ByteFS transaction** 결합.","originalTitle":"","originalText":"ByteFS calculates the modified ratio by R = N_Modified / N_total where N_Modified is the number of dirty cachelines and N_total is the total number of cachelines in the page. If R is less than 1/8 (512B of a 4KB page), we use the byte interface to persist small accesses and vice versa.","toggles":[]},{"id":"node_015","lx":1180,"ly":1780,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1780,"title":"§4.7 Crash consistency & recovery (redo log · TxLog · RECOVER)","content":"**Crash consistency**: transaction으로 metadata/data의 atomicity·write ordering 강제. firmware-level log + battery-backed DRAM이 commit 가속. 4B **TxID**(monotonic), host **TxTable**로 ongoing tx 추적 + transaction-level lock. commit = custom NVMe **COMMIT(TxID)** $\\rightarrow$ firmware가 2MB **TxLog**에 4B commit entry append.\n\n**Data recovery**: battery-backed SSD DRAM이 내용 보존. custom NVMe **RECOVER()** $\\rightarrow$ firmware가 log region 스캔, 각 entry 끝 4B TxID가 TxLog에 **없으면 uncommitted로 폐기**, 있으면 TxID 순서로 flash flush. 이후 data journal 복구.\n\n**구현(§4.9)**: ByteFS 3.9K LoC(Ext4 기반, Linux 5.1), SSD firmware 1.5K LoC(HW 변경 없음). OpenSSD FPGA(1TB, 16채널, 1GB DRAM) + FEMU 에뮬레이터 2.1K LoC.","originalTitle":"","originalText":"we can avoid writing to flash memory twice (double logging) by directly using the write log as a redo log for metadata updates. This enables ByteFS to support atomic and crash-consistent updates.","toggles":[]},{"id":"node_017","lx":1180,"ly":1960,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1960,"title":"성능: create 6.0×, OLTP 4.1×, YCSB 2.4× (Fig.6-7)","content":"byte/block 적응 선택 + firmware log의 종합 효과.\n\n- **Micro**: Ext4 대비 **2.5×**, F2FS 대비 1.48× 평균. **file create 6.0×**(vs Ext4). mkdir/rmdir 1.2-1.5×(vs F2FS). delete는 즉시 sync 없어 비슷.\n- **Macro**: Varmail **1.9×**(vs F2FS, 작은 sync I/O 많음), Fileserver 2.2×(vs Ext4), Webproxy 1.3×(vs Ext4, dir op 많음), read-heavy Webserver/Webproxy는 block+host caching으로 비슷, **OLTP 4.1×**(vs Ext4, 200 thread write-intensive).\n- **YCSB(RocksDB)**: F2FS 대비 2.4× throughput. YCSB-A/F(50/50): read avg/tail **2.3×/2.0×**, write 1.3×/1.6×(vs F2FS). YCSB-C(100% read)는 비슷.\n\nNOVA/PMFS는 pure byte라 flash spatial locality를 못 살려 열세.","originalTitle":"","originalText":"Finally, ByteFS outperforms Ext4 by 4.1x on write-intensive workload OLTP. It creates over 200 threads creating, appending, and overwriting files with frequent fdatasync.","toggles":[]},{"id":"node_018","lx":1180,"ly":2120,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2120,"title":"I/O traffic: metadata 25.3×↓, flash 2.9×↓, write 5.1×↓ (Fig.8-11)","content":"ByteFS friendliness to SSD의 핵심 증거.\n\n- **Metadata traffic**(vs block FS): Ext4 대비 **최대 25.3×**, F2FS 17.2×↓(평균 11.4×/6.1×). byte interface로 double-write 제거.\n- **vs NOVA/PMFS**: byte인데도 ByteFS가 더 적음 — NOVA는 out-of-place, PMFS는 data journaling으로 double-write, ByteFS는 **in-place update + firmware redo log**. NOVA 대비 metadata read ~43%↓.\n- **Flash traffic**: 평균 Ext4/F2FS/NOVA/PMFS 대비 **2.9×/2.1×/3.2×/2.2×↓** — small write coalescing. abstract의 **write traffic 5.1×↓**가 여기서 옴.\n- 가끔 log-cleaning의 read-modify-write로 flash traffic이 늘 수 있으나 **background라 성능 영향 없음**.\n\n**Breakdown(Fig.12)**: Varmail/Fileserver는 dual interface+log 둘 다, Webproxy는 dual interface, OLTP는 둘 다에서 이득.","originalTitle":"","originalText":"ByteFS reduces the metadata traffic by up to 25.3x and 17.2x (11.4x and 6.1x on average) with the byte interface ... On average, ByteFS reduces the flash traffic by 2.9x, 2.1x, 3.2x, and 2.2x compared to Ext4, F2FS, NOVA, and PMFS.","toggles":[]},{"id":"node_019","lx":1180,"ly":2280,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2280,"title":"Recovery 4.2s + CXL sensitivity (cacheline 175ns)","content":"- **Crash recovery(§5.5)**: 평균 **4.2s** — SSD DRAM 내용 로드 0.9s + global log/TxLog 스캔·committed entry flash flush 2.7s.\n- **Flash latency sensitivity(§5.6)**: 25/200 ~ 3/80µs 전 구간에서 F2FS/NOVA 우위. **flash write latency가 높을수록 ByteFS 이득 큼**(background flush로 은닉).\n- **CXL-based SSD 에뮬레이션**: cacheline latency **175ns**(3/80* 설정). CXL이 byte latency를 줄여 ByteFS·NOVA 모두 개선되지만 NOVA는 여전히 느림(높은 flash latency 미최적화).\n- **Log size(§5.6)**: 64M$\\rightarrow$512M로 키우면 coalescing↑ $\\rightarrow$ 성능 scale(flush는 background). OLTP처럼 이미 write locality 좋으면 이득 marginal.","originalTitle":"","originalText":"We also emulate a CXL-based SSD with less cacheline access latency (175ns) and high-end flash media (marked as 3/80*). The benefit of ByteFS is larger with higher flash write latency, as ByteFS hides the flash write latency by flushing the in-device write log in the background.","toggles":[]},{"id":"node_020","lx":1180,"ly":2440,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2440,"title":"스택 관계: ByteFS(FS 층) ↔ SkyByte(device 층) ↔ FlatFlash(원형)","content":"ByteFS·[[SkyByte]]는 같은 UIUC Jian Huang 그룹이고, memory-semantic SSD 스택의 **다른 층**을 맡는다.\n\n| | ByteFS (ASPLOS'25) | SkyByte (HPCA'25) |\n|---|---|---|\n| 층 | **filesystem / OS support** | **device (HW/OS co-design)** |\n| 무엇 | M-SSD 위 byte+block FS | memory-semantic SSD device 자체 |\n| SSD DRAM | log-structured write buffer + coalescing | promotion cache(PLB 계승) |\n| 인터페이스 | dual byte+block | pure memory-semantic |\n| 일관성 | firmware redo log·TxLog | PLB/promotion consistency |\n\n둘 다 [[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]](ASPLOS'19, ByteFS ref [10])를 M-SSD 원형으로 인용. ★ SkyByte가 device를 만들면, ByteFS가 그 device 위에 파일시스템을 얹는다 — **같은 이중역할(byte↔block)을 device층·FS층 두 곳에서 transparent co-design**.","originalTitle":"","originalText":"","toggles":[]},{"id":"node_021","lx":1710,"ly":2440,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2440,"title":"내 연구방향: ByteFS의 \"coherency 불필요\"는 single-host — multi-host FS coherence가 빈칸","content":"ByteFS는 §4.2에서 **\"host가 항상 최신본 소유 $\\rightarrow$ cache-coherency 불필요\"**를 명시한다. 이건 곧 **single-host 불변식**이다. crash consistency(TxTable/TxLog), coordinated caching(SSD엔 page cache 없음, host DRAM만 최신), redo log 전부 이 위에 서 있다.\n\n내 방향(**multi-node CXL coherence**)은 이 불변식이 깨지는 곳을 잡는다. 여러 host가 같은 CXL-SSD 파일시스템을 공유하면:\n- **최신본 소유권**: host A의 page cache와 host B의 page cache 중 누가 최신? $\\rightarrow$ CXL 3.0 **back-invalidate/HDM-DB** 필요.\n- **cross-host transaction/commit**: TxTable·TxLog가 단일 host 소속 — 공유 namespace의 commit ordering·flush 권한 미정의.\n- **byte interface를 CXL.mem로** realize한다고 했으니(§4.2), 실제 coherent CXL 위에서 write log·metadata caching을 재설계하는 게 자연스러운 다음 걸음.\n\n즉 ByteFS의 '기법'(dual interface·log·coalescing)은 재사용하되 '문제 정의'를 **single$\\rightarrow$multi host**로 다시 세우는 게 gap. $\\rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]], [[CXL Overview]]","originalTitle":"","originalText":"","toggles":[]},{"id":"node_022","lx":100,"ly":100,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"title":"🏛️ 학회: ASPLOS = cross-layer(FS+firmware) co-design 보상 / \"한 층만\" 찌름","content":"**ASPLOS가 보상하는 축**: architecture+OS+PL을 가로지르는 **cross-layer co-design**. reviewer가 특히 찌르는 곳 = **한 층만 건드림 / 계층이 얕음**(nodegraph_review §3-0 표).\n\n**ByteFS가 이 축을 맞춘 방식**: 문제를 FS 한 층에서 끝내지 않고 (1) **host filesystem(SW)** 핵심 자료구조를 재설계(inode 64B 분할·extent·CoW+XOR 선택)하고, (2) **SSD firmware(HW)** 를 log-structured write buffer·3-layer skip list·custom NVMe COMMIT/RECOVER로 함께 재설계한다. §3의 정량분석이 두 층을 잇는 다리. 즉 **byte↔block 이중역할을 FS·firmware 두 층에서 동시에** 푼다 $\\rightarrow$ ASPLOS taste 정합.\n\n이 anchor를 기준으로 ✅는 \"두 층을 어떻게 맞물렸나\", ⚠️는 \"그 co-design이 무엇을 전제/요구하나\"로 정렬된다.","originalTitle":"","originalText":"We present ByteFS, an efficient file system for M-SSDs with a co-design of software (host filesystem) and hardware (SSD firmware).","toggles":[]},{"id":"node_023","lx":100,"ly":380,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":380,"title":"✅ 잘한 점: 자료구조별 byte/block 선호를 정량분석으로 갈라 transparent 선택","content":"ByteFS의 결정적 강점 = **설계를 직관이 아니라 §3 정량 프로파일에서 유도**한 점(문제 프레이밍 + rigor). FS 핵심 구조를 op 단위로 쪼개 \"어느 것이 byte를, 어느 것이 block을 선호하나\"를 Table 3로 못박고, 그 규칙을 그대로 firmware/FS에 심어 **transparent**(POSIX 그대로)하게 자동 선택한다.\n\n- **규칙**: metadata write는 대개 작다 $\\rightarrow$ **byte**. 그 read는 같은 block 내 locality $\\rightarrow$ **block**+host caching.\n- runtime 데이터는 CoW+XOR로 modified ratio $R$을 재 byte/block 결정($R<\\tfrac{1}{8}$이면 byte).\n\nreviewer가 좋게 볼 지점: \"byte가 무조건 좋다\"는 단순 주장이 아니라 **구조별로 갈라 근거를 댄** 점.","originalTitle":"","originalText":"most metadata updates in file systems are small, so the byte interface is suitable. For their reads, we can use the block interface to exploit data locality.","toggles":[]},{"id":"node_024","lx":100,"ly":660,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":660,"title":"✅ 잘한 점: SSD firmware log-structured write buffer + coalescing로 flash/write traffic 대폭 ↓","content":"두 번째 결정적 강점 = **device 층 기여**(단순 FS 논문을 넘어서는 부분, ASPLOS 축에 정확히 부합). 내부 DRAM을 cacheline 단위 **log-structured region**으로 재조직해 작은 write를 log에 append하고 background cleaning이 **coalescing** 후 flash에 flush $\\rightarrow$ critical path의 flash 접근·write amplification을 firmware 안에서 흡수.\n\n**정량 효과**: flash traffic 평균 Ext4/F2FS/NOVA/PMFS 대비 **2.9× / 2.1× / 3.2× / 2.2×↓**, SSD write traffic **최대 5.1×↓**(abstract). 인덱스(3-layer skip list)는 89ns lookup·21MB로 경량이라 flash µs 스케일에 묻힌다.\n\nreviewer 관점: FS 최적화가 아니라 **firmware 데이터 구조 재설계로 device I/O를 줄인** 실측 근거 $\\rightarrow$ evaluation depth.","originalTitle":"","originalText":"On average, ByteFS reduces the flash traffic by 2.9×, 2.1×, 3.2×, and 2.2× compared to Ext4, F2FS, NOVA, and PMFS. ByteFS reduces flash write traffic by coalescing small writes in the in-device write log.","toggles":[]},{"id":"node_025","lx":100,"ly":940,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":940,"title":"✅ 잘한 점: write log를 redo log로 재사용 → double-write 없이 crash consistency (recovery 4.2s)","content":"세 번째 강점 = **essential FS property(crash consistency)를 공짜에 가깝게** 얻은 점. firmware가 이미 갖는 in-device write log에 모든 metadata update가 append되므로, 그 로그를 **그대로 redo log로 재사용**해 flash에 두 번 쓰는 **double logging을 제거**한다. battery-backed DRAM + TxID/TxLog로 atomic commit.\n\n**실측**: crash 후 평균 **4.2s** 복구(SSD DRAM 로드 0.9s + log/TxLog 스캔·flush 2.7s). metadata traffic이 NOVA(out-of-place)·PMFS(data journaling)의 double-write보다도 적은 이유가 이 in-place + redo-log 재사용.\n\nreviewer가 좋게 볼 지점: 성능 최적화(byte write)와 crash consistency가 **충돌하지 않고 같은 로그 자료구조를 공유**하도록 설계한 점.","originalTitle":"","originalText":"we can avoid writing to flash memory twice (double logging) by directly using the write log as a redo log for metadata updates. This enables ByteFS to support atomic and crash-consistent updates.","toggles":[]},{"id":"node_026","lx":100,"ly":1220,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1220,"title":"⚠️ 아쉬운 점: \"host가 최신본 소유 → coherency 불필요\"라는 single-host 불변식 (reviewer 공격)","content":"ByteFS는 §4.2에서 SSD DRAM↔CPU cache **coherency가 필요없다**고 단정하고, 같은 문장에서 byte interface를 **CXL.mem로도 realize 가능**하다고 말한다 — 이 둘은 긴장 관계다.\n\n**reviewer 질문**: \"CXL.mem는 정의상 cacheable load/store를 여러 agent에 노출하는데, 왜 coherency가 불필요한가? multi-core/multi-process가 같은 M-SSD region을 동시에 mmap하거나 DMA가 끼면 이 불변식이 성립하나?\"\n\n**저자 방어(암묵)**: \"firmware가 host가 쓴 데이터를 수정하지 않으니 device발 stale이 없고, **단일 host가 항상 최신본**을 갖는다\" $\\rightarrow$ 그러나 이 방어는 **정확히 single host에서만** 성립. 논문 전체(coordinated caching·TxTable·redo log)가 이 전제 위에 서 있다. reviewer라면 \"한계로 명시했어야\"라고 지적할 지점. (내 연구 P′로 승격 $\\rightarrow$ 🧭 노드.)","originalTitle":"","originalText":"ByteFS do not require cache-coherency between the SSD DRAM and the host CPU cache because the host always contains the latest data and the M-SSD firmware does not modify the data written by the host. The byte interface can also be realized with CXL.mem protocol, with which the host CPU can issue cacheable load/store accesses to the device.","toggles":[]},{"id":"node_027","lx":100,"ly":1500,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1500,"title":"⚠️ 아쉬운 점: firmware 1.5K LoC + custom NVMe(COMMIT/RECOVER) 요구 → 배포 장벽","content":"ByteFS의 이득은 **firmware를 고칠 수 있다**는 전제에 의존한다: log-structured DRAM 관리·skip list·log cleaning·**custom NVMe COMMIT(TxID)/RECOVER()** 를 firmware 안에 심는다.\n\n**reviewer 질문**: \"상용 SSD firmware는 폐쇄적이고 NVMe는 표준 위원회 관할인데, custom NVMe 명령과 1.5K LoC firmware 변경을 어떻게 배포하나? OpenSSD가 아닌 실제 CMM-H/CXL-SSD에서 재현 가능한가?\"\n\n**저자 방어**: \"**HW 변경은 없다**(no hardware modification), OpenSSD FPGA 실물로 실증, firmware만 1.5K LoC(그중 custom NVMe 0.1K)\" $\\rightarrow$ 그래도 **vendor firmware 접근권**을 전제. ASPLOS는 co-design을 보상하지만(축 정합), 같은 이유로 \"실배포 경로\"를 reviewer가 물을 수 있는 지점.","originalTitle":"","originalText":"In ByteFS, we modified the SSD firmware with 1.5K lines of C code. It does not require any changes to the SSD hardware. More specifically, we customize the NVMe protocol to enable byte granularity accesses with 0.1K LoC and implement the 256MB write log ...","toggles":[]},{"id":"node_028","lx":100,"ly":1780,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1780,"title":"⚠️ 아쉬운 점: 이득이 write/metadata-heavy에 편중, read-heavy는 비슷 + NVM FS baseline 불리 매핑","content":"**Generalization 우려.** 큰 speedup은 create(6.0×)·OLTP(4.1×)·Varmail 같은 **작은 sync write·metadata-heavy** 워크로드에 몰린다. **read-heavy(Webserver/Webproxy)** 에선 Ext4/F2FS와 **거의 동등**.\n\n**reviewer 질문**: (1) \"이득이 특정 워크로드 프로파일에 편향된 것 아닌가?\" (2) \"baseline인 **NOVA/PMFS를 flash에 미최적화된 채 M-SSD에 그대로 매핑**해 비교한 것은 straw-man 아닌가 — flash-aware NVM FS와 비교했어야?\"\n\n**저자 방어**: (1) \"read는 block interface+host caching으로 **이미** 최적이라 추가 이득 여지가 작다(설계 의도)\", (2) \"§2.2에서 NVM FS는 M-SSD에 **natural fit이 없음**을 논증했고, 이들이 M-SSD의 유일한 byte-interface 선택지라 정당한 비교\". 방어는 성립하나, ✅ 강점의 **적용범위가 write-heavy로 좁다**는 사실은 남는다.","originalTitle":"","originalText":"Webserver and Webproxy are read-heavy workloads. ByteFS shows a similar performance compared with Ext4 and F2FS, as we leverage the block interface and host-side caching to exploit data locality.","toggles":[]},{"id":"node_029","lx":100,"ly":2060,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2060,"title":"🔀 왜 dual byte+block (vs pure byte / pure memory-semantic FS)?","content":"저자가 선 갈림길: M-SSD 위 FS 인터페이스를 어떻게 노출할까.\n\n- **(A) pure block** (기존 Ext4/F2FS 그대로): byte 접근 못 씀 $\\rightarrow$ 128B update도 4KB write, amplification 최대 6.2×.\n- **(B) pure byte / memory-semantic** (NVM FS·DAX식으로 device를 near-DRAM byte-only로 취급): SW overhead는 줄지만 **flash의 page-granular 특성·spatial locality·PCIe latency**를 못 살려 M-SSD에서 열세(NOVA/PMFS 실측).\n- **(C) dual — 자료구조별 선택** ← 저자 선택.\n\n**저자 이유**: metadata write는 작아 byte, 그 read는 locality라 block — \"**둘 다 지원**하지 않으면 M-SSD 이점을 못 살린다\"(§2.2). **안 판 갈래**: device를 완전 memory-semantic으로 추상화([[SkyByte]]식)한 뒤 그 위에 얇은 byte-only FS만 얹는 길 $\\rightarrow$ ByteFS는 firmware까지 내려가 block 경로를 **버리지 않고** 유지하는 쪽을 택했다.","originalTitle":"","originalText":"without changing the inherent design, it is hard to fully exploit the performance benefits of M-SSDs with existing file systems, as they all lack the support for both byte and block interface, and the consideration of the unique performance characteristics.","toggles":[]},{"id":"node_030","lx":100,"ly":2340,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2340,"title":"🔀 왜 firmware redo-log (vs host-side journaling / double-write)?","content":"crash consistency를 어디서·어떻게 얻을까.\n\n- **(A) host journaling** (Ext4 JBD2 ordered mode): critical metadata를 **두 번 쓴다** $\\rightarrow$ journaling이 전체 traffic의 30.7%. M-SSD의 write amplification을 다시 키움.\n- **(B) host-side log / out-of-place** (NOVA식): device는 몰라도 되지만 여전히 double-write·flash 미최적화.\n- **(C) firmware-level redo log** ← 저자 선택.\n\n**저자 이유**: 어차피 성능을 위해 **모든 metadata update가 firmware write log에 append**되므로, 그 로그를 **그대로 redo log로 재사용**하면 flash에 두 번 쓰는 double logging을 통째로 없앤다 — 성능 최적화 자료구조와 consistency 자료구조를 **하나로 합치는** 수. **안 판 갈래**: consistency를 host에만 두고 firmware를 건드리지 않는 길(=배포는 쉽지만 double-write 잔존). 이 선택이 ⚠️ \"firmware 수정 요구\" 장벽과 맞바꾼 것.","originalTitle":"","originalText":"In ByteFS, all metadata updates are appended to the log region. Therefore, we can avoid writing to flash memory twice (double logging) by directly using the write log as a redo log for metadata updates.","toggles":[]},{"id":"node_031","lx":100,"ly":2620,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2620,"title":"📐 P/L: 기존 FS가 M-SSD byte-granularity를 못 살림 → 작은 update가 page write로 증폭","content":"기존 해법을 **관점 P(문제를 본 렌즈) → 한계 L(그 관점 때문에 구조적으로 남는 것)** 으로 분해:\n\n| 기존 해법 A | 관점 P | 한계 L (구조적) |\n|---|---|---|\n| **block FS** (Ext4/F2FS) | SSD를 **4KB page/block black box**로 봄 | 128B metadata update도 **4KB write** 강제 $\\rightarrow$ write amplification 최대 6.2×. byte-granularity라는 새 자유도를 **주소지정 단위에서 봉쇄** |\n| **NVM FS** (PMFS/NOVA/SplitFS) | device를 **near-DRAM byte-only**(DAX)로 봄 | **flash page-granular 특성·PCIe latency·spatial locality**를 무시 $\\rightarrow$ M-SSD에서 오히려 열세 |\n\n**L은 \"느리다\"가 아니라 \"관점 P 때문에 남는 것\"**: block FS는 device를 block으로 보는 한 byte 이득이 원천 봉쇄되고, NVM FS는 device를 순수 byte-DRAM으로 보는 한 flash/PCIe 병목을 다룰 언어가 없다.\n\n**ByteFS의 P″** = \"FS 자료구조별 granularity를 **FS+SSD firmware 두 층 재설계**로 정한다\" $\\rightarrow$ 두 L을 동시에 품는다.","originalTitle":"","originalText":"Persisting one 128B inode update requires a 4KB write to the disk, further amplifying the write traffic. Therefore, the byte interface can greatly reduce the inode write traffic.","toggles":[]},{"id":"node_032","lx":100,"ly":2900,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":2900,"title":"📍 위치: memory-semantic SSD 스택의 FS 계층 (SkyByte=device 계층) — UIUC Jian Huang 그룹","content":"**ASPLOS'25에서의 좌표**: ByteFS는 같은 **UIUC Jian Huang 그룹**의 memory-semantic SSD 라인에서 **filesystem/OS support 계층**을 맡는다. cross-layer(FS+firmware) 논문이라 ASPLOS taste에 정합해 accept.\n\n- **[[SkyByte]]** (HPCA'25) = **device 계층**(memory-semantic SSD device를 HW/OS co-design으로). ByteFS는 \"그런 device 위에 얹는 파일시스템\".\n- **[[FlatFlash - Exploiting the Byte-Accessibility of SSDs within a Unified Memory-Storage Hierarchy]]** (ASPLOS'19) = M-SSD **원형**(SW 기반 unified address translation). FlatFlash가 \"byte로 접근 가능함\"을 보였다면, ByteFS는 그 위에서 **system software(FS)가 어떻게 관리할지**의 공백을 채운다.\n\n즉 세 논문이 **원형(FlatFlash) → device(SkyByte) → FS(ByteFS)** 로 같은 이중역할(byte↔block)을 서로 다른 계층에서 transparent co-design한다. (스택 세부 비교는 기존 「스택 관계」 노드 참조 — 여기선 venue·계층 위치만.)","originalTitle":"","originalText":"","toggles":[]},{"id":"node_033","lx":100,"ly":3180,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":3180,"title":"🧭 내 연구: single-host FS 불변식(L′) → multi-host CXL-SSD namespace의 cross-host 소유권·flush P′","content":"**P/L→P′ 사슬(간결판)**: ByteFS는 관점을 P″=\"FS+firmware co-design\"으로 바꿔 amplification L을 풀었지만, 그 대가로 **single-host 불변식 L′**(\"host가 항상 최신본 소유 $\\rightarrow$ coherency 불필요\", ⚠️ 노드)이 새로 굳어졌다.\n\n**내 P′ = multi-host CXL-SSD coherence**: 여러 host가 같은 CXL-SSD FS namespace를 공유하면 L′이 정확히 깨진다 —\n- **최신본 소유권**: host A·B page cache 중 누가 최신? $\\rightarrow$ CXL 3.0 back-invalidate/HDM-DB가 ByteFS의 coordinated caching에 편입돼야.\n- **cross-host flush/commit**: TxTable·TxLog가 단일 host 소속 $\\rightarrow$ 공유 namespace의 commit ordering·flush 권한 미정의.\n\nByteFS의 **기법(dual interface·log·coalescing·redo log)은 재사용**하되 **문제 정의를 single→multi host로** 다시 세우는 것이 gap. (기존 「내 연구방향」 노드의 P′를 **P/L 유도 사슬**로 압축·보강. $\\rightarrow$ [[SkyByte]], [[CXL Multi-node Coherence]])","originalTitle":"","originalText":"","toggles":[]}];
 var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_001","target":"node_006","type":"line","label":"근거"},{"source":"node_002","target":"node_007","type":"line","label":""},{"source":"node_002","target":"node_008","type":"line","label":"핵심 분석"},{"source":"node_002","target":"node_009","type":"line","label":"참고"},{"source":"node_003","target":"node_010","type":"line","label":""},{"source":"node_003","target":"node_011","type":"line","label":""},{"source":"node_011","target":"node_016","type":"line","label":"인덱스"},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_003","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_017","type":"line","label":""},{"source":"node_004","target":"node_018","type":"line","label":""},{"source":"node_004","target":"node_019","type":"line","label":""},{"source":"node_005","target":"node_020","type":"line","label":"스택 관계"},{"source":"node_005","target":"node_021","type":"line","label":"내 연구"},{"source":"node_020","target":"node_021","type":"line","label":"연결"},{"source":"node_002","target":"node_022","type":"line","label":"분석"},{"source":"node_003","target":"node_023","type":"line","label":"분석"},{"source":"node_004","target":"node_024","type":"line","label":"분석"},{"source":"node_004","target":"node_025","type":"line","label":"분석"},{"source":"node_004","target":"node_026","type":"line","label":"분석"},{"source":"node_005","target":"node_027","type":"line","label":"분석"},{"source":"node_004","target":"node_028","type":"line","label":"분석"},{"source":"node_003","target":"node_029","type":"line","label":"분석"},{"source":"node_003","target":"node_030","type":"line","label":"분석"},{"source":"node_002","target":"node_031","type":"line","label":"분석"},{"source":"node_005","target":"node_032","type":"line","label":"분석"},{"source":"node_005","target":"node_033","type":"line","label":"분석"}];
+var NODE_TEMPLATES = {"main_topic":"Main topic","method":"Method","result":"Result","claim":"Claim","question":"Question","gap":"Gap / Idea","reference":"Reference","memo":"Memo"};
 var HEADER_H = 36;
+
+// Collapse/Expand 라벨 필터 드롭다운 채우기 (에디터의 라벨 필터와 동일한 옵션/동작)
+(function populateFilterSelect() {
+  var sel = document.getElementById('tb-filter');
+  var noneOpt = document.createElement('option');
+  noneOpt.value = ''; noneOpt.textContent = 'None';
+  sel.appendChild(noneOpt);
+  Object.keys(NODE_TEMPLATES).forEach(function(key) {
+    var opt = document.createElement('option');
+    opt.value = key; opt.textContent = NODE_TEMPLATES[key];
+    sel.appendChild(opt);
+  });
+})();
 
 var vp = document.getElementById('viewport');
 var canvas = document.getElementById('canvas');
@@ -431,6 +457,7 @@ window.addEventListener('resize', function() {
     tx = r.width / 2 - cxw * scale;
     ty = r.height / 2 - cyw * scale;
     applyTransform();
+    updateZoomLineWeights();
   }
   lastVW = r.width; lastVH = r.height;
 });
@@ -446,6 +473,7 @@ vp.addEventListener('wheel', function(e) {
   ty = my - (my - ty) * (ns / scale);
   scale = ns;
   applyTransform();
+  updateZoomLineWeights();
 }, { passive: false });
 
 // Canvas pan
@@ -543,6 +571,9 @@ function onTitleClick(e, titleEl) {
   for (var i = 0; i < NODES_DATA.length; i++) {
     if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
   }
+  // 접혀 있는 동안엔 .ng-content가 display:none이라 측정이 전부 0으로 나와 More
+  // 버튼이 필요없다고 잘못 판단되므로, 다시 보이게 될 때 이 노드만 재측정
+  if (expanding) applyContentCaps(nodeEl);
   setTimeout(recomputePositions, 0);
   // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
   if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
@@ -610,7 +641,7 @@ function syncMinHeight(el, expand) {
   el.style.minHeight = (expand && minH) ? minH + 'px' : '';
 }
 
-function applyFold(nodeIds, expand) {
+function applyFold(nodeIds, expand, after) {
   nodeIds.forEach(function(id) {
     var el = document.getElementById('node-' + id);
     if (!el) return;
@@ -623,7 +654,7 @@ function applyFold(nodeIds, expand) {
       if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
     }
   });
-  setTimeout(recomputePositions, 0);
+  setTimeout(function() { recomputePositions(); if (after) after(); }, 0);
 }
 
 // Recompute positions when <details> toggles change node height.
@@ -633,7 +664,17 @@ canvas.addEventListener('toggle', function() {
 }, true);
 
 // Toolbar: context-aware expand/collapse
+// 라벨 필터: None이면 기존 동작 그대로. 특정 타입이면 Collapse는 항상 전체 접음,
+// Expand는 그 타입 노드만 펼치고 나머지는 강제로 접음 (부모/자식 관계 무시, 에디터와 동일 규칙)
 function doExpand() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    var matching = [], rest = [];
+    NODES_DATA.forEach(function(n) { (n.template === filter ? matching : rest).push(n.id); });
+    applyFold(rest, false);
+    applyFold(matching, true);
+    return;
+  }
   if (selectedNodeId) {
     applyFold(getExpandDescendants(selectedNodeId, true), true);
   } else {
@@ -646,12 +687,81 @@ function doExpand() {
     applyFold(toExpand, true);
   }
 }
+// 전체 collapse(선택 없이, 또는 필터가 걸려 있어도 결국 전체)일 때만 자동으로
+// Fit View — 선택 서브트리만 접을 땐 사용자가 보던 영역을 유지해야 하므로 대상에서
+// 제외 (에디터와 동일 규칙).
 function doCollapse() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
+    return;
+  }
   if (selectedNodeId) {
     applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
   } else {
-    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
   }
+}
+
+// 드롭된 노드의 raw 위치(lx/ly)를 형제들 사이에서 실제로 어디 떨어졌는지에 맞춰 다시
+// 계산한다. onUp이 그냥 "드롭된 렌더 좌표를 그대로 저장"하면, 그 렌더 좌표는 raw 좌표와
+// 전혀 다른 좌표계(레이아웃 알고리즘이 raw를 대폭 재배치하는 게 이 알고리즘의 존재
+// 이유)라 형제들의 raw ly 범위를 완전히 벗어나는 경우가 흔하고, 그 결과 다음 재배치 때
+// 항상 맨 위/맨 아래로 튕기는 것처럼 보인다(에디터에서도 같은 버그가 있었음). 드롭 시점의
+// DOM 위치(형제들은 이 드래그 동안 한 번도 안 움직였으므로 여전히 정확한 배치 상태를
+// 반영함)를 기준으로 어느 두 형제 사이에 놓였는지 찾아 그 사이 값으로 raw ly를 맞춘다.
+function reconcileDroppedPosition(nodeId, nodeDatum) {
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+  var tree = buildHopTreeJs();
+  var parentId = tree.parentOf[nodeId];
+  if (!parentId) return;
+
+  function findRootId(fromId) {
+    var cur = fromId, visited = {};
+    while (!visited[cur]) {
+      visited[cur] = true;
+      var n = nodeMap[cur];
+      if (!n) return cur;
+      if (n.isMain) return cur;
+      var p = tree.parentOf[cur];
+      if (!p) return cur;
+      cur = p;
+    }
+    return cur;
+  }
+  var root = nodeMap[findRootId(nodeId)];
+  function sideOfNode(n) { return (root && n.lx >= root.lx) ? 1 : -1; }
+  var draggedSide = sideOfNode(nodeDatum);
+
+  var sameSideSiblings = [];
+  NODES_DATA.forEach(function(n) {
+    if (n.id === nodeId) return;
+    if (tree.parentOf[n.id] === parentId && sideOfNode(n) === draggedSide) sameSideSiblings.push(n.id);
+  });
+  if (sameSideSiblings.length === 0) return;
+
+  var draggedRenderY = nodeDatum.ly;
+  var ordered = sameSideSiblings.map(function(sid) {
+    var el = document.getElementById('node-' + sid);
+    var ry = el ? (parseFloat(el.style.top) || 0) : nodeMap[sid].ly;
+    return { id: sid, renderY: ry };
+  }).sort(function(a, b) { return a.renderY - b.renderY; });
+
+  var belowIdx = -1;
+  for (var i = 0; i < ordered.length; i++) {
+    if (ordered[i].renderY > draggedRenderY) { belowIdx = i; break; }
+  }
+  var newY;
+  if (belowIdx === -1) newY = nodeMap[ordered[ordered.length - 1].id].ly + 1;
+  else if (belowIdx === 0) newY = nodeMap[ordered[0].id].ly - 1;
+  else newY = (nodeMap[ordered[belowIdx - 1].id].ly + nodeMap[ordered[belowIdx].id].ly) / 2;
+
+  // lx도 드래그 중 렌더 좌표가 raw에 섞여 들어가 오염됐을 수 있으므로, 같은 side 형제의
+  // raw lx를 빌려 바로잡는다(side 전환처럼 형제가 없는 경우는 건드리지 않음).
+  nodeDatum.lx = nodeMap[sameSideSiblings[0]].lx;
+  nodeDatum.ly = newY;
+  nodeDatum.naturalY = newY;
 }
 
 // Tag drag handle
@@ -683,192 +793,285 @@ function onNodeTagMousedown(e, nodeEl) {
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
     nodeEl.classList.remove('ng-dragging');
-    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
-    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+    // 드롭된 렌더 좌표를 일단 그대로 저장한 뒤, 형제들 사이 실제 위치에 맞춰 raw로
+    // 재해석한다(reconcileDroppedPosition — 위 참고, 렌더 좌표를 raw에 그대로 쓰면 안
+    // 되는 이유).
+    if (moved) {
+      lastWasDrag = true;
+      if (nodeDatum) {
+        nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly;
+        reconcileDroppedPosition(nodeId, nodeDatum);
+      }
+      setTimeout(recomputePositions, 0);
+    }
   }
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
 }
 
+// Canvas.tsx의 computeRenderPositions와 완전히 동일한 hop-tree bottom-up/top-down
+// 알고리즘의 vanilla JS 이식 — 예전엔 X 겹침 기준 union-find 컬럼 + 그리디 Y-패킹이라는
+// 완전히 다른(더 오래된) 알고리즘을 썼는데, 그 방식은 hop depth 개념이 없어서 브랜치마다
+// hop-1/hop-2가 서로 다른 X에서 시작하는 문제가 있었음(사용자가 Grid 오버레이로 직접
+// 확인해서 발견 — "hop1과 hop2 가로 시작 위치가 동일하지 않아서"). 에디터와 정확히 같은
+// 결과가 나오도록 알고리즘 자체를 교체.
 function recomputePositions() {
-  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
-  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
-
   var nodeMap = {};
   NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
 
   function getH(n) {
     var el = document.getElementById('node-' + n.id);
     if (el) return el.offsetHeight;
-    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
     return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
   }
   function getW(n) {
     var el = document.getElementById('node-' + n.id);
     return el ? el.offsetWidth : (n.nodeWidth || 432);
   }
-  function isConn(aId, bId) {
-    var a = nodeMap[aId], b = nodeMap[bId];
-    if (!a || !b) return false;
-    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
-    return EDGES.some(function(e) {
-      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+
+  var tree = buildHopTreeJs();
+
+  // main topic(백본) 기준 좌/우 — 세로 배치(아래)와 가로 정렬(Pass 4) 양쪽에서 왼쪽/오른쪽
+  // 자식을 독립적으로 다루기 위해 먼저 계산해둔다.
+  var sideOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) { sideOf[n.id] = 0; return; }
+    var root = nodeMap[tree.rootOf[n.id]];
+    sideOf[n.id] = n.lx >= root.lx ? 1 : -1;
+  });
+
+  // 각 부모의 자식들을 저장된 상대 Y(디자인 의도상 순서) 기준으로 정렬
+  var childrenOf = {};
+  NODES_DATA.forEach(function(n) {
+    var p = tree.parentOf[n.id];
+    if (!p) return;
+    (childrenOf[p] = childrenOf[p] || []).push(n.id);
+  });
+  Object.keys(childrenOf).forEach(function(pid) {
+    var parent = nodeMap[pid];
+    childrenOf[pid].sort(function(a, b) {
+      return (nodeMap[a].ly - parent.ly) - (nodeMap[b].ly - parent.ly);
+    });
+  });
+
+  // 형제 그룹을 부모의 원래 Y 기준 위/아래로, 그리고 좌/우(side)로 분리한다. 왼쪽/오른쪽
+  // 자식은 서로 다른 X에 그려져 세로 공간을 절대 공유하지 않으므로 독립적으로 계산해야
+  // 한쪽이 커질 때 반대쪽 분기점까지 같이 밀리는 걸 막는다. above 배열은 reverse해서
+  // "부모와 가장 가까운 것부터" 순서로 맞춘다 — kids는 상대 Y 오름차순 정렬이라 below
+  // 그룹(부모에서 멀어지는 방향으로 순서대로 진행)엔 그대로 맞지만, above 그룹은 같은
+  // 진행 방향(위로 멀어짐)인데 오름차순이면 가장 먼 자식이 배열 맨 앞이라 오히려 부모와
+  // 가장 가깝게 배치되고 그다음이 더 멀리 밀리는 식으로 시각적 순서가 뒤집힌다.
+  function splitByOriginalSide(parentId, side) {
+    var parent = nodeMap[parentId];
+    var kids = (childrenOf[parentId] || []).filter(function(k) { return sideOf[k] === side; });
+    var above = kids.filter(function(k) { return nodeMap[k].ly < parent.ly; }).reverse();
+    return {
+      below: kids.filter(function(k) { return nodeMap[k].ly >= parent.ly; }),
+      above: above,
+    };
+  }
+
+  // main topic끼리(백본)만 20px 기준, 그 외(hop 자식)는 항상 30px 기준
+  function gapFor(a, b) {
+    var base = (a.isMain && b.isMain) ? 20 : 30;
+    return (getH(a) > HEADER_H || getH(b) > HEADER_H) ? 48 : base;
+  }
+
+  // ── bottom-up: 각 서브트리가 자기 중심 기준 위/아래로 필요한 공간 ──
+  var infoCache = {};
+  function stackSize(group, parentNode) {
+    if (!group.length) return 0;
+    var total = 0;
+    for (var i = 0; i < group.length; i++) {
+      var kid = nodeMap[group[i]];
+      var prev = i === 0 ? parentNode : nodeMap[group[i - 1]];
+      total += gapFor(prev, kid);
+      var kInfo = layoutInfo(group[i]);
+      total += kInfo.above + kInfo.below;
+    }
+    return total;
+  }
+
+  // above+below 블록을 부모 중심에 맞추기 위한 분기점 이동량(shift). 이상적으로는
+  // (belowSize-aboveSize)/2만큼 옮기면 블록 전체가 정확히 부모 중심에 오지만, 양쪽에 다
+  // 형제가 있는 상태에서 두 그룹 크기 차이가 크면(예: 3:1 이상) 그 이동량이 큰 쪽 그룹의
+  // "부모와 가장 가까운 자식"을 부모 중심 반대편으로 밀어버린다(below의 첫 자식이 부모
+  // 보다 위에 렌더되는 등, 자식이 부모를 시각적으로 뛰어넘는 버그). 두 그룹이 다 있을
+  // 때만, "더 큰 쪽의 첫 자식이 부모 중심을 넘지 않는 한도"로 이동량을 clamp한다.
+  function splitShift(id, side) {
+    var node = nodeMap[id];
+    var split = splitByOriginalSide(id, side);
+    var above = split.above, below = split.below;
+    var belowSize = stackSize(below, node);
+    var aboveSize = stackSize(above, node);
+    var shift = (belowSize - aboveSize) / 2;
+    if (above.length > 0 && below.length > 0) {
+      if (shift > 0) {
+        var firstBelow = nodeMap[below[0]];
+        var firstBelowInfo = layoutInfo(below[0]);
+        shift = Math.min(shift, gapFor(node, firstBelow) + firstBelowInfo.above);
+      } else if (shift < 0) {
+        var firstAbove = nodeMap[above[0]];
+        var firstAboveInfo = layoutInfo(above[0]);
+        shift = Math.max(shift, -(gapFor(node, firstAbove) + firstAboveInfo.below));
+      }
+    }
+    return { above: above, below: below, belowSize: belowSize, aboveSize: aboveSize, shift: shift };
+  }
+
+  function layoutInfo(id) {
+    if (infoCache[id]) return infoCache[id];
+    var node = nodeMap[id];
+    var ownHalf = getH(node) / 2;
+    // side별로 독립적으로 above+below 블록을 재센터링하므로, 이 노드가 자기 부모에게
+    // 보고하는 "필요 공간"도 side별로 따로 구해서(왼쪽·오른쪽은 세로 공간을 안 겹치므로
+    // 더하지 않고 더 많이 필요한 쪽 기준) splitShift가 clamp한 실제 shift를 반영한다 —
+    // 안 그러면 assign()이 실제로 만드는 위치와 어긋나 다른 클러스터와 겹칠 수 있다.
+    var aboveReach = 0, belowReach = 0;
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      aboveReach = Math.max(aboveReach, s.aboveSize + s.shift);
+      belowReach = Math.max(belowReach, s.belowSize - s.shift);
+    });
+    var info = { above: Math.max(ownHalf, aboveReach), below: Math.max(ownHalf, belowReach) };
+    infoCache[id] = info;
+    return info;
+  }
+
+  // ── top-down: center Y 확정 ──
+  var centerY = {};
+  function assign(id, cy) {
+    var node = nodeMap[id];
+    centerY[id] = cy;
+    // 왼쪽/오른쪽을 완전히 독립적으로 배치한다 — stackSize가 같은 side의 형제끼리만
+    // 더해지므로 한쪽 크기가 반대쪽 분기점에 영향을 주지 않는다.
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      var below = s.below, above = s.above;
+      var split = cy - s.shift;
+
+      var cursor = split;
+      for (var i = 0; i < below.length; i++) {
+        var kid = nodeMap[below[i]];
+        var kInfo = layoutInfo(below[i]);
+        var prev = i === 0 ? node : nodeMap[below[i - 1]];
+        cursor += gapFor(prev, kid) + kInfo.above;
+        assign(below[i], cursor);
+        cursor += kInfo.below;
+      }
+      cursor = split;
+      for (var j = 0; j < above.length; j++) {
+        var kid2 = nodeMap[above[j]];
+        var kInfo2 = layoutInfo(above[j]);
+        var prev2 = j === 0 ? node : nodeMap[above[j - 1]];
+        cursor -= gapFor(prev2, kid2) + kInfo2.below;
+        assign(above[j], cursor);
+        cursor -= kInfo2.above;
+      }
     });
   }
 
-  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
-  var par = {};
-  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
-  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
-  for (var i = 0; i < NODES_DATA.length; i++) {
-    for (var j = i + 1; j < NODES_DATA.length; j++) {
-      var a = NODES_DATA[i], b = NODES_DATA[j];
+  // ── 루트 시퀀싱: X 범위가 겹치는 루트끼리만 그룹으로 묶어 원래 순서(Y)대로 배치 ──
+  var roots = NODES_DATA.filter(function(n) { return tree.isRoot[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rootFind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rootFind(p); rootPar[id] = r; return r;
+  }
+  for (var ri = 0; ri < roots.length; ri++) {
+    for (var rj = ri + 1; rj < roots.length; rj++) {
+      var a = roots[ri], b = roots[rj];
       if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
-        var ra = find(a.id), rb = find(b.id);
-        if (ra !== rb) par[ra] = rb;
+        var fa = rootFind(a.id), fb = rootFind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
       }
     }
   }
-  var colMap = {};
-  NODES_DATA.forEach(function(n) {
-    var root = find(n.id);
-    if (!colMap[root]) colMap[root] = [];
-    colMap[root].push(n);
+  var rootGroups = {};
+  roots.forEach(function(r) {
+    var g = rootFind(r.id);
+    (rootGroups[g] = rootGroups[g] || []).push(r);
   });
-
-  // 컬럼을 min X 오름차순(왼→오)으로 정렬
-  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
-    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
-    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
-    return minXA - minXB;
+  Object.keys(rootGroups).forEach(function(gk) {
+    var group = rootGroups[gk];
+    group.sort(function(a, b) { return (a.ly - b.ly) || (a.lx - b.lx); });
+    var cursorBottom = -Infinity;
+    for (var i = 0; i < group.length; i++) {
+      var root = group[i];
+      var info = layoutInfo(root.id);
+      var naturalCenter = root.ly + getH(root) / 2;
+      var gap = i === 0 ? 0 : gapFor(group[i - 1], root);
+      var cy = i === 0 ? naturalCenter : Math.max(naturalCenter, cursorBottom + gap + info.above);
+      assign(root.id, cy);
+      cursorBottom = (centerY[root.id] !== undefined ? centerY[root.id] : cy) + info.below;
+    }
   });
 
   var renderY = {};
-
-  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
-  function getEffY(node) {
-    var effY = node.ly;
-    NODES_DATA.forEach(function(other) {
-      if (renderY[other.id] === undefined) return;
-      if (!isConn(node.id, other.id)) return;
-      var otherRY = renderY[other.id];
-      var otherH = getH(other);
-      var otherBottom = otherRY + otherH;
-      var otherPush = Math.max(0, otherRY - other.ly);
-      if (otherH > HEADER_H && otherBottom > node.ly) {
-        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
-        effY = Math.max(effY, otherBottom + 48);
-      } else {
-        // 접힌 상태: Y 이동 delta만 전파
-        effY = Math.max(effY, node.ly + otherPush);
-      }
-    });
-    return effY;
-  }
-
-  // 컬럼별 그리디 패킹 (왼→오)
-  columns.forEach(function(col) {
-    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
-    var effYMap = {};
-    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
-
-    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
-    col.sort(function(a, b) {
-      var ea = effYMap[a.id], eb = effYMap[b.id];
-      return ea !== eb ? ea - eb : a.ly - b.ly;
-    });
-
-    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
-    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
-    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
-    var placed = [];
-    col.forEach(function(node) {
-      var h = getH(node);
-      var baseGap = node.isMain ? 20 : 30;
-      var y = effYMap[node.id];
-      var moved = true;
-      while (moved) {
-        moved = false;
-        for (var pi = 0; pi < placed.length; pi++) {
-          var p = placed[pi];
-          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
-          if (!overlapX) continue;
-          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
-          if (y < p.y + p.h + gap && y + h + gap > p.y) {
-            y = p.y + p.h + gap;
-            moved = true;
-          }
-        }
-      }
-      renderY[node.id] = y;
-      placed.push({ node: node, y: y, h: h });
-    });
+  NODES_DATA.forEach(function(n) {
+    var cy = centerY[n.id] !== undefined ? centerY[n.id] : (n.ly + getH(n) / 2);
+    renderY[n.id] = cy - getH(n) / 2;
   });
 
-  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
-  var lineBySource = {};
-  EDGES.forEach(function(e) {
-    if (e.type !== 'line') return;
-    if (!lineBySource[e.source]) lineBySource[e.source] = [];
-    lineBySource[e.source].push(e.target);
-  });
-  Object.keys(lineBySource).forEach(function(srcId) {
-    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
-    if (targetIds.length < 2) return;
-    var xGroups = [];
-    targetIds.forEach(function(id) {
-      var el = document.getElementById('node-' + id);
-      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
-      var placed = false;
-      for (var gi = 0; gi < xGroups.length; gi++) {
-        var firstId = xGroups[gi][0];
-        var fEl = document.getElementById('node-' + firstId);
-        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
-        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
-      }
-      if (!placed) xGroups.push([id]);
-    });
-    xGroups.forEach(function(grp) {
-      if (grp.length < 2) return;
-      var grpSorted = grp.map(function(id) {
-        var el = document.getElementById('node-' + id);
-        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
-      }).sort(function(a, b) { return a.y - b.y; });
-      for (var i = 1; i < grpSorted.length; i++) {
-        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
-        var newY = Math.max(grpSorted[i].y, minY);
-        grpSorted[i].y = newY;
-        renderY[grpSorted[i].id] = newY;
-      }
-    });
-  });
+  // ── hop tier(깊이)별 X 정렬 — 같은 depth의 모든 노드가 항상 같은 X에서 시작 ──
+  var MIN_HOP_GAP = 750, COL_PAD = 60;
+  // main topic(백본)도 hop1/hop2처럼 하나의 세로줄로 자동 정렬 — depth 0 노드는 raw
+  // 좌표를 그대로 쓰지 않고, main topic들 중 가장 왼쪽(raw x 최소값)으로 전부 통일한다.
+  // depth 0에는 main topic 외에 연결 끊긴 고아 노드도 섞이므로 n.isMain으로 필터링
+  // (고아 노드는 원래 자유 좌표 유지).
+  var mainTopicAnchorX = 0;
+  var mainTopicXs = NODES_DATA.filter(function(n) { return n.isMain; }).map(function(n) { return n.lx; });
+  if (mainTopicXs.length > 0) mainTopicAnchorX = Math.min.apply(null, mainTopicXs);
 
-  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
-  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
-  var H_GAP = 60;
-  var renderX = {};
-  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
-  byX.forEach(function(node) {
-    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
-    var nH = getH(node);
-    var nW = getW(node);
-    var x = node.lx;
-    var moved = true;
-    while (moved) {
-      moved = false;
-      for (var oi = 0; oi < byX.length; oi++) {
-        var other = byX[oi];
-        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
-        if (ox === undefined || other.id === node.id) continue;
-        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
-        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
-        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
-          x = ox + getW(other) + H_GAP;
-          moved = true;
-        }
-      }
+  var maxDepth = 0;
+  NODES_DATA.forEach(function(n) { maxDepth = Math.max(maxDepth, tree.depthOf[n.id] || 0); });
+  // 전역에서 가장 넓은 main topic 폭 — 어느 main topic 하나가 표 등으로 넓어지면, 그
+  // main topic 자신의 왼쪽·오른쪽 hop1 간격이 똑같이 유지되는 것은 물론(오른쪽 변만
+  // 넓어지므로 오른쪽 계산에만 필요), 다른(안 넓어진) main topic들의 hop1도 전부 같은
+  // 만큼 같이 밀려서 hop1 열이 문서 전체에서 계속 나란히 정렬돼야 한다. "이 브랜치 자신의
+  // 폭"이 아니라 "전역에서 제일 넓은 main topic의 폭"을 모든 브랜치의 오른쪽 오프셋에
+  // 똑같이 더한다 — 표가 없는 보통 상황(모든 main topic 폭이 같음)에서는 이 값이 곧 자기
+  // 폭과 같아서 좌우 간격이 정확히 MIN_HOP_GAP으로 대칭이다. 왼쪽은 main topic이 아무리
+  // 넓어져도 왼쪽 변 자체는 움직이지 않으므로 항상 고정 MIN_HOP_GAP.
+  var globalWidestMainTopic = 0;
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) globalWidestMainTopic = Math.max(globalWidestMainTopic, getW(n));
+  });
+  var colOffset = {};
+  [1, -1].forEach(function(side) {
+    var offset = side === 1 ? globalWidestMainTopic + MIN_HOP_GAP : MIN_HOP_GAP;
+    var prevMaxWidth = 0;
+    for (var d = 1; d <= maxDepth; d++) {
+      if (d > 1) offset += Math.max(MIN_HOP_GAP, prevMaxWidth + COL_PAD);
+      colOffset[d + ':' + side] = offset;
+      var widest = 0;
+      NODES_DATA.forEach(function(n) {
+        if (tree.depthOf[n.id] === d && sideOf[n.id] === side) widest = Math.max(widest, getW(n));
+      });
+      prevMaxWidth = widest;
     }
-    renderX[node.id] = x;
+  });
+  var renderX = {};
+  NODES_DATA.forEach(function(n) {
+    var depth = tree.depthOf[n.id] || 0;
+    if (depth === 0) { renderX[n.id] = n.isMain ? mainTopicAnchorX : n.lx; return; }
+    var side = sideOf[n.id] || 1;
+    var root = nodeMap[tree.rootOf[n.id]];
+    // root가 main topic이면(항상 그렇진 않음 — 연결 끊긴 고아 노드도 자기 자손의 root가
+    // 될 수 있음) raw 좌표가 아니라 위에서 통일한 mainTopicAnchorX를 기준 삼아야, main
+    // topic 자신의 렌더 위치와 그 hop 자식들의 렌더 위치가 서로 어긋나지 않는다.
+    var rootX = root.isMain ? mainTopicAnchorX : root.lx;
+    var offset = colOffset[depth + ':' + side];
+    if (offset === undefined) offset = depth * MIN_HOP_GAP;
+    // offset은 "root와 가장 가까운 쪽 모서리"까지의 거리다. side=1(오른쪽)은 그 모서리가
+    // 곧 CSS left(카드의 왼쪽 변)라 그대로 쓰면 되지만, side=-1(왼쪽)은 root와 가장 가까운
+    // 모서리가 카드의 오른쪽 변이므로, CSS left를 구하려면 거기서 카드 너비만큼 더 빼야
+    // 한다(왼쪽 형제들의 "왼쪽 변"만 정렬되고 main topic과 가까운 "오른쪽 변"은 카드
+    // 너비에 따라 들쭉날쭉해지는 걸 막기 위함).
+    var nearRootEdge = rootX + side * offset;
+    renderX[n.id] = side === 1 ? nearRootEdge : nearRootEdge - getW(n);
   });
 
   NODES_DATA.forEach(function(n) {
@@ -881,6 +1084,177 @@ function recomputePositions() {
   routesDirty=true;
   drawEdges(true);
   scheduleEdgeRefine();
+  drawGrid();
+}
+
+// ── main topic(백본) 기준 hop 트리 — Canvas.tsx의 buildHopTree와 동일한 규칙
+// (main_topic은 항상 루트, 그 외는 children[]/edge로 찾은 부모에 귀속, 부모를 못
+// 찾으면 독립 루트). 디버그 격자와 Ctrl+F 검색의 BFS 정렬 둘 다 이 트리를 공유한다
+// (레이아웃 재구현마다 두 곳이 서로 다른 로직으로 어긋나는 것을 피하기 위함 — 에디터
+// 쪽에서 layoutInfo/assign이 따로 놀아서 겹침 버그가 났던 것과 같은 종류의 실수를
+// 여기서도 반복하지 않기 위함).
+function buildHopTreeJs() {
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  function parentIdOf(nodeId) {
+    var byChildren = null;
+    NODES_DATA.forEach(function(n) {
+      if (!byChildren && (n.children || []).indexOf(nodeId) !== -1) byChildren = n.id;
+    });
+    if (byChildren) return byChildren;
+    var byEdge = null;
+    EDGES.forEach(function(e) { if (!byEdge && e.target === nodeId) byEdge = e.source; });
+    if (byEdge) return byEdge;
+    // 포트를 반대 방향(새 노드 → 기존 노드)으로 끌어 만든 엣지는 source/target이 뒤바뀐
+    // 채로 저장돼 있을 수 있다(source=이 노드, target=main topic) — Canvas.tsx의
+    // buildHopTree와 동일하게, 이런 기존 데이터도 여기서 인식해줘야 에디터와 같은
+    // 트리 구조가 나온다(안 그러면 이 노드가 잘못 독립 루트로 취급됨).
+    var reversedToMain = null;
+    EDGES.forEach(function(e) {
+      if (!reversedToMain && e.source === nodeId && nodeById[e.target] && nodeById[e.target].isMain) reversedToMain = e.target;
+    });
+    return reversedToMain;
+  }
+  var isRoot = {}, parentOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (n.isMain) { isRoot[n.id] = true; return; }
+    var p = parentIdOf(n.id);
+    if (p && nodeById[p]) parentOf[n.id] = p; else isRoot[n.id] = true;
+  });
+  var depthOf = {}, rootOf = {};
+  function computeDepth(id) {
+    if (depthOf[id] !== undefined) return;
+    if (isRoot[id]) { depthOf[id] = 0; rootOf[id] = id; return; }
+    computeDepth(parentOf[id]);
+    depthOf[id] = depthOf[parentOf[id]] + 1;
+    rootOf[id] = rootOf[parentOf[id]];
+  }
+  NODES_DATA.forEach(function(n) { computeDepth(n.id); });
+  return { isRoot: isRoot, parentOf: parentOf, depthOf: depthOf, rootOf: rootOf };
+}
+
+// ── 디버그 격자 — Canvas.tsx의 computeGridLines와 동일한 규칙(가로선: main topic
+// 클러스터 경계, 세로선: hop depth별 X 경계). recomputePositions()가 이제 에디터와
+// 동일한 hop-tree 레이아웃 알고리즘을 쓰지만, 격자 자체는 그 계산 결과에 의존하지
+// 않고 현재 DOM에 실제로 그려진 위치(el.style.left/top + offsetWidth/offsetHeight)를
+// 그대로 읽어서 계산하므로 어떤 배치 알고리즘을 쓰든 항상 실제 렌더 결과와 일치한다.
+var showGrid = false;
+function computeGridLinesJs() {
+  var tree = buildHopTreeJs();
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  var rectById = {};
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) rectById[n.id] = { x: parseFloat(el.style.left) || 0, y: parseFloat(el.style.top) || 0, w: el.offsetWidth, h: el.offsetHeight };
+  });
+  function rootIsMain(id) {
+    var r = nodeById[tree.rootOf[id]];
+    return !!(r && r.isMain);
+  }
+
+  // 가로선: main topic 클러스터(자신+hop 자손 전체)의 Y 범위 경계
+  var clusterYRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var root = tree.rootOf[n.id];
+    var top = rect.y, bottom = rect.y + rect.h;
+    if (!clusterYRange[root]) clusterYRange[root] = { min: top, max: bottom };
+    else { clusterYRange[root].min = Math.min(clusterYRange[root].min, top); clusterYRange[root].max = Math.max(clusterYRange[root].max, bottom); }
+  });
+  var roots = NODES_DATA.filter(function(n) { return tree.depthOf[n.id] === 0 && clusterYRange[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rfind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rfind(p); rootPar[id] = r; return r;
+  }
+  for (var i = 0; i < roots.length; i++) {
+    for (var j = i + 1; j < roots.length; j++) {
+      var a = roots[i], b = roots[j];
+      var ra = rectById[a.id], rb = rectById[b.id];
+      if (!ra || !rb) continue;
+      if (ra.x < rb.x + rb.w && rb.x < ra.x + ra.w) {
+        var fa = rfind(a.id), fb = rfind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
+      }
+    }
+  }
+  var groups = {};
+  roots.forEach(function(r) {
+    var g = rfind(r.id);
+    (groups[g] = groups[g] || []).push(r);
+  });
+  var hLines = [];
+  Object.keys(groups).forEach(function(gk) {
+    var group = groups[gk];
+    group.sort(function(a, b) { return (rectById[a.id] ? rectById[a.id].y : 0) - (rectById[b.id] ? rectById[b.id].y : 0); });
+    for (var k = 1; k < group.length; k++) {
+      var prevR = clusterYRange[group[k - 1].id], curR = clusterYRange[group[k].id];
+      hLines.push((prevR.max + curR.min) / 2);
+    }
+  });
+
+  // 세로선: hop depth별 X 범위 경계 (main topic 기준 좌/우 방향 분리)
+  var depthSideXRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var d = tree.depthOf[n.id];
+    var rootRect = rectById[tree.rootOf[n.id]];
+    var side = d === 0 ? 0 : (rootRect && rect.x >= rootRect.x ? 1 : -1);
+    var key = d + ':' + side;
+    var left = rect.x, right = rect.x + rect.w;
+    if (!depthSideXRange[key]) depthSideXRange[key] = { min: left, max: right };
+    else { depthSideXRange[key].min = Math.min(depthSideXRange[key].min, left); depthSideXRange[key].max = Math.max(depthSideXRange[key].max, right); }
+  });
+  var vLines = [];
+  var mainRange = depthSideXRange['0:0'];
+  if (mainRange) {
+    [1, -1].forEach(function(side) {
+      var prev = mainRange, d = 1;
+      while (depthSideXRange[d + ':' + side]) {
+        var cur = depthSideXRange[d + ':' + side];
+        if (side === 1 && cur.min > prev.max) vLines.push((prev.max + cur.min) / 2);
+        else if (side === -1 && prev.min > cur.max) vLines.push((cur.max + prev.min) / 2);
+        prev = cur; d++;
+      }
+    });
+  }
+  return { hLines: hLines, vLines: vLines };
+}
+// data-base-sw/-dash: 확대/축소해도 화면상 두께가 유지되도록(에디터의 WireLayer
+// zoom 보정과 동일 규칙) zoom=1 기준 값을 기록해두고, updateZoomLineWeights()가
+// 현재 scale에 맞춰 실제 stroke-width/dasharray를 매번 다시 계산한다.
+function svgGridLine(x1, y1, x2, y2, stroke) {
+  var l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+  l.setAttribute('stroke', stroke);
+  l.setAttribute('data-base-sw', '1.5');
+  l.setAttribute('data-base-dash', '6 4');
+  l.setAttribute('opacity', '0.55');
+  return l;
+}
+function drawGrid() {
+  var svg = document.getElementById('grid-svg');
+  svg.innerHTML = '';
+  if (!showGrid) { svg.style.display = 'none'; return; }
+  svg.style.display = '';
+  var lines = computeGridLinesJs();
+  lines.vLines.forEach(function(x) { svg.appendChild(svgGridLine(x, 0, x, 10000, '#22c55e')); });
+  lines.hLines.forEach(function(y) { svg.appendChild(svgGridLine(0, y, 10000, y, '#f97316')); });
+  updateZoomLineWeights();
+}
+function toggleGrid() {
+  showGrid = !showGrid;
+  var btn = document.getElementById('tb-grid-btn');
+  if (showGrid) { btn.style.background = '#2563eb'; btn.style.color = '#fff'; btn.style.borderColor = '#1d4ed8'; }
+  else { btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }
+  drawGrid();
 }
 
 // Edge drawing
@@ -1091,66 +1465,24 @@ function routeEdgesGrid(reqs,rects){
   });
   return out;
 }
-function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
-function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+// 확대(zoom>=100%)면 기본 두께, 축소(zoom<100%)면 화면상 두께가 유지되도록 반비례로
+// 키움(에디터의 WireLayer.tsx의 zc = zoom<1 ? 1/zoom : 1 과 동일 규칙). 레이아웃이
+// 안 바뀌는 순수 줌 조작(wheel)에서는 경로를 다시 그리지 않고 이미 그려진 요소들의
+// stroke-width/dasharray만 갱신 — 가볍고, wheel마다 A* 재계산할 필요가 없음.
+function updateZoomLineWeights() {
+  var zc = scale < 1 ? 1 / scale : 1;
+  document.querySelectorAll('[data-base-sw]').forEach(function(el) {
+    var base = parseFloat(el.getAttribute('data-base-sw'));
+    el.setAttribute('stroke-width', String(base * zc));
+  });
+  document.querySelectorAll('[data-base-dash]').forEach(function(el) {
+    var parts = el.getAttribute('data-base-dash').split(' ').map(Number);
+    el.setAttribute('stroke-dasharray', parts.map(function(p) { return p * zc; }).join(' '));
+  });
+}
 function drawEdges(fast) {
   var svg=document.getElementById('wire-svg');
   svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
-
-  // Group line edges by source for bus routing
-  var lineBySource={};
-  EDGES.forEach(function(e){
-    if(e.type!=='line') return;
-    if(!lineBySource[e.source]) lineBySource[e.source]=[];
-    lineBySource[e.source].push(e);
-  });
-
-  var busDrawn={};
-
-  // Bus routing: one source → multiple line targets all on the same side (right)
-  Object.keys(lineBySource).forEach(function(srcId){
-    var group=lineBySource[srcId];
-    if(group.length<2) return;
-    var srcEl=document.getElementById('node-'+srcId);
-    if(!srcEl) return;
-    var sr=getNodeRect(srcEl);
-    var targets=[];
-    group.forEach(function(e){
-      var tEl=document.getElementById('node-'+e.target);
-      if(!tEl) return;
-      targets.push({e:e,r:getNodeRect(tEl)});
-    });
-    if(targets.length<2) return;
-    // 모든 타겟의 왼쪽 끝이 source 오른쪽 끝 + 40px 이상일 때만 bus (에디터와 조건 통일)
-    var allRight=targets.every(function(t){return t.r.x>sr.x+sr.w+40;});
-    if(!allRight) return;
-
-    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
-    var srcAnchorY=sr.cy;
-    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
-    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
-    var busMinY=Math.min(srcAnchorY,minTY);
-    var busMaxY=Math.max(srcAnchorY,maxTY);
-
-    // 세대 하이라이트: 루트가 source거나 타겟 중 하나면 트렁크(공용 구간)도 빨간색
-    var srcSel=srcId===genRootId;
-    var groupHl=srcSel||targets.some(function(t){return t.e.target===genRootId;});
-    var trunkColor=groupHl?'#ef4444':'#888', trunkW=groupHl?'2.5':'1.5';
-
-    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','ng-eg');
-    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,trunkColor,trunkW));
-    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,trunkColor,trunkW));
-    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,trunkColor));
-    targets.forEach(function(t){
-      var tHl=srcSel||t.e.target===genRootId;
-      var branchColor=tHl?'#ef4444':'#888';
-      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,branchColor,tHl?'2.5':'1.5'));
-      g.appendChild(svgCirc(t.r.x,t.r.cy,4,branchColor));
-      busDrawn[t.e.source+'-'+t.e.target]=true;
-    });
-    svg.appendChild(g);
-  });
 
   // 노드 rect 캐시 (엣지 라우팅 장애물 검사용 — drawEdges 1회당 1회만 DOM 조회)
   var rectById={};
@@ -1159,12 +1491,32 @@ function drawEdges(fast) {
     if(el) rectById[n.id]=getNodeRect(el);
   });
 
-  // 같은 source에서 나가거나 같은 target으로 모이는 비-버스 엣지 분산 오프셋 (합산)
+  // hop 자식(line) 엣지: 버스 라우팅도, A*/커브 라우팅도 없이 그냥 평범한 직선
+  // (에디터 WireLayer.tsx와 동일 — 예전엔 "같은 source에서 나가는 line 엣지 여럿을
+  // 세로 트렁크로 묶는 버스 라우팅"이 있었는데, 에디터가 이미 그걸 버리고 순수 직선으로
+  // 바꾼 지 오래라 여기만 안 따라와 있었음). 포트는 항상 좌/우만 강제 — getBestPorts처럼
+  // top/bottom까지 유클리드 최솟값으로 고르면, 타겟이 부모 중심에서 수직으로 많이
+  // 떨어진 형제 하나만 포트가 top/bottom으로 뒤집혀 다른 형제 선을 가로질러 지나가
+  // 버리는 문제가 있었다(사용자가 export html 스크린샷으로 재지적: "선이 왜 깔끔하게
+  // 정리되지 않은 거지" — 첫 main topic만 깔끔하고 나머지는 선이 교차해 보임).
+  function horizontalPorts(sr,tr){
+    var scx=sr.x+sr.w/2, tcx=tr.x+tr.w/2;
+    return tcx>=scx ? {sp:'right',tp:'left'} : {sp:'left',tp:'right'};
+  }
+  function portXY(r,name){
+    if(name==='right') return [r.x+r.w,r.cy];
+    if(name==='left') return [r.x,r.cy];
+    if(name==='bottom') return [r.cx,r.y+r.h];
+    return [r.cx,r.y];
+  }
+
+  // 같은 source에서 나가거나 같은 target으로 모이는 백본(arrow) 엣지 분산 오프셋(합산).
+  // hop 자식(line)은 이제 라우팅 없는 고정 직선이라 분산이 필요 없음(에디터와 동일 이유).
   var spreadByIdx={};
   (function(){
     var bySrc={},byTgt={};
     EDGES.forEach(function(e,idx){
-      if(busDrawn[e.source+'-'+e.target]) return;
+      if(e.type!=='arrow') return;
       if(!rectById[e.source]||!rectById[e.target]) return;
       (bySrc[e.source]=bySrc[e.source]||[]).push(idx);
       (byTgt[e.target]=byTgt[e.target]||[]).push(idx);
@@ -1181,14 +1533,15 @@ function drawEdges(fast) {
     add(byTgt,function(i){return rectById[EDGES[i].source].cy;});
   })();
 
-  // 그리드 A* 전역 라우팅 — 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
+  // 그리드 A* 전역 라우팅 — main topic 백본(arrow) 엣지만 대상(hop 자식은 고정 직선이라
+  // 라우팅 대상 아님, 에디터와 동일). 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
   // 레이아웃이 바뀌지 않은 재호출(하이라이트 색만 변경 등)은 캐시를 재사용해 즉시 처리
   var gridRoutes=null;
   if(!fast){
     if(routesDirty||!cachedRoutes){
       var reqs=[];
       EDGES.forEach(function(e,idx){
-        if(busDrawn[e.source+'-'+e.target]) return;
+        if(e.type!=='arrow') return;
         var sr3=rectById[e.source],tr3=rectById[e.target];
         if(!sr3||!tr3) return;
         var ports3=getBestPorts(sr3,tr3);
@@ -1205,57 +1558,65 @@ function drawEdges(fast) {
     gridRoutes=cachedRoutes;
   }
 
-  // Remaining edges: obstacle-avoiding curves
   EDGES.forEach(function(edge,edgeIdx){
-    if(busDrawn[edge.source+'-'+edge.target]) return;
     var sr2=rectById[edge.source], tr2=rectById[edge.target];
     if(!sr2||!tr2) return;
-    var ports=getBestPorts(sr2,tr2);
-    if(!ports) return;
-    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
-    var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
-    var ddl=dlen(srcP,tgtP)||1;
-    var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
-    var spread=spreadByIdx[edgeIdx]||0;
-    var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
-    var d;
-    if(gridPts&&gridPts.length>2){
-      // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
-      d=ptsToPath(spreadPts(gridPts,spread));
-    } else if(gridPts){
-      // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
-      var bend=Math.min(ddl*.45,150);
-      var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
-      var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
-      d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+
+    var d, sp, tp, strokeColor;
+    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
+    strokeColor=hl?'#ef4444':'#666';
+
+    if(edge.type!=='arrow'){
+      // hop 자식: 라우팅/커브 없이 좌/우 포트 사이 직선 그대로
+      var hp=horizontalPorts(sr2,tr2);
+      sp=portXY(sr2,hp.sp); tp=portXY(tr2,hp.tp);
+      d='M'+sp[0]+','+sp[1]+' L'+tp[0]+','+tp[1];
     } else {
-      // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
-      var obstacles=[];
-      Object.keys(rectById).forEach(function(nid){
-        if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
-      });
-      var pts=routeAround(srcP,tgtP,obstacles);
-      if(pts.length===2){
-        var bend2=Math.min(ddl*.45,150);
-        var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
-        var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
-        d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+      var ports=getBestPorts(sr2,tr2);
+      if(!ports) return;
+      sp=ports.sp.p; var spD=DIR[ports.sp.name]; tp=ports.tp.p; var tpD=DIR[ports.tp.name];
+      var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
+      var ddl=dlen(srcP,tgtP)||1;
+      var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
+      var spread=spreadByIdx[edgeIdx]||0;
+      var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
+      if(gridPts&&gridPts.length>2){
+        // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
+        d=ptsToPath(spreadPts(gridPts,spread));
+      } else if(gridPts){
+        // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
+        var bend=Math.min(ddl*.45,150);
+        var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
+        var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
+        d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
       } else {
-        d=ptsToPath(spreadPts(pts,spread));
+        // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
+        var obstacles=[];
+        Object.keys(rectById).forEach(function(nid){
+          if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
+        });
+        var pts=routeAround(srcP,tgtP,obstacles);
+        if(pts.length===2){
+          var bend2=Math.min(ddl*.45,150);
+          var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
+          var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
+          d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+        } else {
+          d=ptsToPath(spreadPts(pts,spread));
+        }
       }
     }
-    // 세대 하이라이트: 루트 노드와 직접 연결된 wire는 빨간색
-    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
-    var strokeColor=hl?'#ef4444':'#666';
+
     var g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','ng-eg');
     var path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('stroke-width',hl?'2.5':'1.5');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('data-base-sw',hl?'2.5':'1.5');
     if(edge.type==='arrow') path.setAttribute('marker-end',hl?'url(#arrow-hl)':'url(#arrow)');
     g.appendChild(path);
     if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill',strokeColor);g.appendChild(c);});}
     svg.appendChild(g);
   });
+  updateZoomLineWeights();
 }
 
 // Fit view
@@ -1270,6 +1631,7 @@ function fitView() {
   tx=(W-cw*scale)/2-(minX-40)*scale;
   ty=(H-ch*scale)/2-(minY-40)*scale;
   applyTransform();
+  updateZoomLineWeights();
 }
 
 // Lightbox
@@ -1367,12 +1729,39 @@ function closeDropdown(){
   document.getElementById('search-row').classList.remove('dropdown-open');
   kbIdx=-1;
 }
+// 매치 노드가 toggle 제목/내용 안에 있을 수도 있으므로 단순 concat 문자열이 아니라
+// title/content/original(제목+텍스트)/toggle(제목+내용) 각각을 개별로 확인 (에디터의
+// searchMatchNodes 필터와 동일한 규칙 — 이래야 selectSearchNode에서 어느 섹션을
+// 펼쳐야 하는지도 알 수 있음).
+function nodeMatchesQuery(n, q){
+  if((n.title||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.content||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalText||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalTitle||'').toLowerCase().indexOf(q)!==-1) return true;
+  return (n.toggles||[]).some(function(t){
+    return (t.title||'').toLowerCase().indexOf(q)!==-1 || (t.content||'').toLowerCase().indexOf(q)!==-1;
+  });
+}
 function doSearch(q){
   clearSearchHighlights();
   searchSelectedId=null;kbIdx=-1;
   var query=q.trim().toLowerCase();
   if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
-  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes=NODES_DATA.filter(function(n){return nodeMatchesQuery(n,query);});
+  // main topic BFS 순서로 정렬: 한 main topic의 모든 hop1, 모든 hop2, ... 를 다 훑은
+  // 뒤에야 다음 main topic으로 (에디터의 searchMatchNodes 정렬과 동일 규칙)
+  var tree=buildHopTreeJs();
+  var roots=NODES_DATA.filter(function(n){return tree.depthOf[n.id]===0;})
+    .sort(function(a,b){return (a.ly-b.ly)||(a.lx-b.lx);});
+  var rootIndex={};
+  roots.forEach(function(r,i){rootIndex[r.id]=i;});
+  searchMatchNodes.sort(function(a,b){
+    var ra=rootIndex[tree.rootOf[a.id]]||0, rb=rootIndex[tree.rootOf[b.id]]||0;
+    if(ra!==rb) return ra-rb;
+    var da=tree.depthOf[a.id]||0, db=tree.depthOf[b.id]||0;
+    if(da!==db) return da-db;
+    return (a.ly-b.ly)||(a.lx-b.lx);
+  });
   searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
   updateSearchCount();
   renderDropdown();
@@ -1418,6 +1807,7 @@ function selectSearchNode(id){
   searchSelectedId=id;
   var el=document.getElementById('node-'+id);
   if(el) el.classList.add('ng-search-active');
+  var q=document.getElementById('search-input').value.trim().toLowerCase();
   // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
   searchMatchNodes.forEach(function(n){
     var nodeEl=document.getElementById('node-'+n.id);
@@ -1428,7 +1818,19 @@ function selectSearchNode(id){
     for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
     if(!datum) return;
     if(n.id===id){
-      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;applyContentCaps(nodeEl);}
+      // 매치가 toggle 제목/내용 또는 original 제목/텍스트 안에 있을 수 있으므로,
+      // 접혀 있으면 펼쳐서 실제로 보이게 함 (에디터의 handleSelectSearchNode와 동일)
+      (n.toggles||[]).forEach(function(t){
+        if(q&&((t.title||'').toLowerCase().indexOf(q)!==-1||(t.content||'').toLowerCase().indexOf(q)!==-1)){
+          var togEl=nodeEl.querySelector('details.ng-toggle[data-toggle-id="'+t.id+'"]');
+          if(togEl&&!togEl.open) togEl.open=true;
+        }
+      });
+      if(q&&((n.originalTitle||'').toLowerCase().indexOf(q)!==-1||(n.originalText||'').toLowerCase().indexOf(q)!==-1)){
+        var origEl=nodeEl.querySelector('details.ng-original');
+        if(origEl&&!origEl.open) origEl.open=true;
+      }
     } else {
       if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
     }
@@ -1501,9 +1903,75 @@ function initKatex() {
   });
 }
 
+// 본문 높이 상한(More/Less) — NodeCard.tsx의 DEFAULT_CONTENT_MAX 로직을 그대로 이식.
+// .ng-content는 node.content 전용 클래스라서(toggle/original은 각각
+// .ng-toggle-body / .ng-orig-text 를 씀) 이 셀렉터만으로 이미 "content만" 범위가
+// 잡힌다 — 에디터와 동일하게 toggle/original에는 캡을 적용하지 않음.
+// scope를 주면 그 안의 .ng-content만 재측정(fold/unfold나 검색으로 처음 보이게
+// 될 때 — display:none 상태에서 측정하면 전부 0으로 나와서 버튼이 필요 없다고
+// 잘못 판단하기 때문에 다시 보이게 된 시점에 재측정이 필요함).
+var DEFAULT_CONTENT_MAX = 500;
+function applyContentCaps(scope) {
+  (scope || document).querySelectorAll('.ng-content').forEach(function(el) {
+    var measure = function() {
+      if (el.getAttribute('data-more-expanded') === '1') return;
+      var elTop = el.getBoundingClientRect().top;
+      var requiredBottom = 0;
+      el.querySelectorAll('table, img').forEach(function(media) {
+        var bottom = media.getBoundingClientRect().bottom - elTop;
+        if (bottom > requiredBottom) requiredBottom = bottom;
+      });
+      var max = Math.max(DEFAULT_CONTENT_MAX, Math.ceil(requiredBottom) + 8);
+      el.setAttribute('data-cap', String(max));
+      var needsBtn = el.scrollHeight > max + 1;
+      el.style.maxHeight = max + 'px';
+      el.style.overflowY = 'auto';
+      el.style.overflowX = 'hidden';
+      var next = el.nextElementSibling;
+      var btn = (next && next.classList.contains('ng-more-btn')) ? next : null;
+      if (needsBtn) {
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.className = 'ng-more-btn';
+          btn.textContent = '▼ More';
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var expanded = el.getAttribute('data-more-expanded') === '1';
+            if (expanded) {
+              el.removeAttribute('data-more-expanded');
+              el.style.maxHeight = el.getAttribute('data-cap') + 'px';
+              el.style.overflowY = 'auto';
+              el.style.overflowX = 'hidden';
+              btn.textContent = '▼ More';
+            } else {
+              el.setAttribute('data-more-expanded', '1');
+              el.style.maxHeight = '';
+              el.style.overflowY = '';
+              el.style.overflowX = '';
+              btn.textContent = '▲ Less';
+            }
+            setTimeout(function() { recomputePositions(); drawEdges(); }, 0);
+          });
+          el.parentNode.insertBefore(btn, el.nextSibling);
+        }
+      } else if (btn) {
+        btn.remove();
+      }
+    };
+    measure();
+    var imgs = Array.from(el.querySelectorAll('img'));
+    var pending = imgs.filter(function(img) { return !img.complete; });
+    pending.forEach(function(img) { img.addEventListener('load', measure); });
+  });
+}
+
 window.addEventListener('load', function() {
   // Render KaTeX first so node heights are accurate
   initKatex();
+  // scale는 아직 초기값 1이라(fitView가 아직 안 돌아서) getBoundingClientRect()
+  // 측정값이 캔버스 local 좌표와 일치함 — fitView 이후로 미루면 축소된 화면 픽셀을
+  // local px로 착각해서 캡 높이가 잘못 계산됨.
+  applyContentCaps();
   recomputePositions();
   drawEdges();
   fitView();
@@ -1513,7 +1981,7 @@ window.addEventListener('load', function() {
   if (pending === 0) return;
   function onImgSettle() {
     pending--;
-    if (pending <= 0) { recomputePositions(); drawEdges(); }
+    if (pending <= 0) { applyContentCaps(); recomputePositions(); drawEdges(); }
   }
   imgs.forEach(function(img) {
     if (!img.complete) {

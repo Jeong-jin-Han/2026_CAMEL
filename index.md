@@ -7,22 +7,33 @@ tags: [meta/hub]
 
 SSD Internals Intensive Seminar (26S) 논문 위키. 다축(토픽·학회·연도)으로 navigate. 작성 규칙은 워크플로 노트 참고.
 
-> [!warning] 📢 리스트 전면 개정 (2026-07-16, v1 → v2)
-> advisor 판단으로 세미나 리스트가 교체됨. **현재(v2) = 80편**: 겹침 46편(기존 deep 노트 유지) + **신규 34편**(33 stub 생성 + AstriFlash는 SkyByte refs의 deep 노트 재사용).
-> - 과거(v1) 전용 32편 + 리스트 외 개인 정독 4편 → **[[26S v1 아카이브]]** (노트·정독 자산 보존, 삭제 아님)
-> - 신규 stub은 `list/26s-v2` 태그로 구분 · cluster 추정 ⚠️ 9편은 확인 필요
-> - ❗ **발표 영향**: [[Ananke]](8/6)·[[Sparse Checkpointing for Fast and Reliable MoE Training|Sparse Checkpointing]](8/20)이 새 리스트에서 제외됨 → **재선정 필요** ([[SkyByte]] 7/23은 유지)
+> [!warning] 📢 리스트 전면 개정 (2026-07-16, v1 → v2) + 신규 33편 deep 완료
+> advisor 판단으로 세미나 리스트가 교체됨. **현재(v2) = 80편**: 겹침 46 + 신규 34(신규 33편 **PDF 전체 정독 deep 완료** 2026-07-16 + AstriFlash는 SkyByte refs의 deep 재사용).
+> - 과거(v1) 전용 32편 + 리스트 외 개인 정독 4편 → **[[26S v1 아카이브]]** (자산 보존)
+> - **정독 중 PDF 실물로 정정된 것**: MegIS·Exploiting Similarity(2023→**ISCA'24**) · FairyWREN·SquirrelFS(→**ACM TOS'25 저널판**) · Five-Minute Rule(→**arXiv**, 학회 미확인) · Light-Dedup(→**ATC'23**) · cluster 3건(Flagger infra→isc, FairyWREN reliability→zns, Silo fs→reliability). ⚠️ 아래 "정정 확인 필요" 참조
+> - ❗ **발표 영향**: [[Ananke]](8/6)·[[Sparse Checkpointing for Fast and Reliable MoE Training|Sparse Checkpointing]](8/20) 제외 → **재선정 필요** ([[SkyByte]] 7/23 유지)
 
 > [!tip] 시작점
 > 처음이면 [[Communication Tax]](교수님 비전 문서)부터 → 발표 4편 → 토픽 hub 순으로 보면 맥락이 잡힙니다.
 
-## 🎤 내 발표 4편 (격주 목 · 4회 전부 녹화/교수님 온라인 참관)
-프레임 = **"SSD의 이중 역할(compute + persistence)이 LLM 학습을 어떻게 뒷받침하는가"** + 관통 개념 **transparent HW-SW co-design** (2026-07-13 랩장 피드백 반영 **최종 확정** — [[연구 목표 변화 로그]] v2 · 상세 기록: 2026_vault 「세미나_최종4편_선정_기록」).
-- [[Smart-Infinity]] — HPCA'24 · **7/9 ✅** · LLM 학습 compute를 near-storage로 offload *(Phase 1: Compute)*
-- [[SkyByte]] — HPCA'25 · **7/23** · SSD를 memory-semantic CXL로 재설계 (OS+HW co-design) *(Phase 1: Compute — v2 리스트에도 있음, 유지)*
-- ~~[[Ananke]] — FAST'25 · 8/6~~ · ❗**v2 리스트 제외 → 발표 취소, 재선정 필요**
-- ~~[[Sparse Checkpointing for Fast and Reliable MoE Training|Sparse Checkpointing]] — NSDI'26 · 8/20~~ · ❗**v2 리스트 제외 → 발표 취소, 재선정 필요**
-- (이전 강등 이력: DJFS·WOFS·Formalising CXL — 정독 후보. 재선정 시 새 후보 신호: SquirrelFS(OSDI'24, Rust로 crash consistency 검사)·HPCA'23 secure-NVM/crash 계열·Espresso(OSDI'26, CXL JBOF))
+## 🎤 내 발표 (격주 목 · 녹화/교수님 온라인 참관)
+**필터 = top-tier · (best-paper OR 내 rule-making 정체성)** (2026-07-16 확정 — [[연구 목표 변화 로그]] v4). 발표 채널 ↔ 연구·배경 정독 채널을 **분리**([[Roofline & FLOPs]] 등 방향 논문은 정독만).
+- [[Smart-Infinity]] — HPCA'24 · **7/9 ✅** · near-storage LLM training (첫 발표·앵커)
+- [[PF-LLM - Large Language Model Hinted Hardware Prefetching\|PF-LLM]] — ASPLOS'26 · 🏆 **Best Paper** · LLM-hinted HW prefetching (HW-SW co-design)
+- [[Five-Minute Rule 40 Years Later - A First-Principles Revisit for Modern Memory Hierarchy\|Five-Minute Rule]] — ISCA'26 · **rule-making 정체성** · 메모리 계층 결정 *규칙*의 재정식화 (Jim Gray 5분 법칙)
+- [[SquirrelFS - using the Rust compiler to check file-system crash consistency\|SquirrelFS]] — OSDI'24 · **rule-making / correct-by-construction 정체성** · Rust 컴파일러로 crash consistency *규칙*을 컴파일타임 강제
+> ※ 왜 이 조합: PF-LLM=best-paper(craft 학습), Five-Minute·SquirrelFS=내 아키텍처 미학("규칙을 만들고 적용")의 정통 픽. Mooncake는 타 발표자에게 배정됨.
+> ⚠️ 이전 계획(SkyByte 7/23 · Ananke · Sparse · "SSD 이중역할" 프레임)은 폐기. **SkyByte가 현재 시트에 안 보임 — 드롭됐는지 확인 필요.**
+> 정독-only(발표 X, 방향·배경): DJFS·WOFS·[[Formalising CXL Cache Coherence]]·Espresso·PACT·TPP·DirectCXL 등
+
+## 🏆 리스트 안 Best Paper (읽기 우선순위 — 5편, 전부 deep 완료)
+> 2026-07-16 확인 (USENIX 공식 best-papers 목록 + ASPLOS'26 awards 페이지 대조). frontmatter `award: Best Paper` 태그됨.
+- [[We Ain't Afraid of No File Fragmentation - Causes and Prevention of Its Performance Impact on Modern Flash SSDs|We Ain't Afraid of No File Fragmentation]] — **FAST'24 Best Paper** (SSD 단편화 원인·예방)
+- [[FastCommit - resource-efficient, performant and cost-effective file system journaling|FastCommit]] — **ATC'24 Best Paper** (ext4 fast-commit 저널링, Google)
+- [[Mooncake - Trading More Storage for Less Computation - A KVCache-centric Architecture for Serving LLM Chatbot|Mooncake]] — **FAST'25 Best Paper** (KVCache-centric LLM serving)
+- [[Building Efficient Data Pipelines for Large-Scale LLM Pre-Training|Building Efficient Data Pipelines]] — **OSDI'26 Best Paper** (원제 "Teaching the Old Dog New Tricks", ByteDance)
+- [[PF-LLM - Large Language Model Hinted Hardware Prefetching|PF-LLM]] — **ASPLOS'26 Best Paper** (LLM-hinted HW prefetching) 🎤정진 발표
+> ※ 미확정 잔여(저확률): HPCA'26·ISCA'23·SOSP'25·MICRO'25 2nd. 참고: v1에서 빠진 Ananke도 FAST'25 Best Paper였음.
 
 ## By Topic (cluster 기준 편수 — v2 리스트, 2026-07-16 재집계)
 - [[In-Storage Computing]] (~18) · [[File System]] (~14) · [[Reliability]] (~14)
@@ -61,8 +72,13 @@ SSD Internals Intensive Seminar (26S) 논문 위키. 다축(토픽·학회·연�
 해석: 무게중심은 **① ML×스토리지 → ② in-storage → ③ FS·신뢰성**. 내 발표 framing(2026-07-13 최종) = **"SSD의 이중 역할(compute+persistence) × transparent HW-SW co-design"** — ①(Smart-Infinity·Sparse Ckpt)과 ②③(SkyByte·Ananke)을 관통. CXL은 deep-invest 대신 background로 감만 잡음(발표 내 CXL 접점 = [[SkyByte]]).
 
 ## 진행 현황 (v2 기준, 2026-07-16 개정)
-- **현재 리스트(v2) 80편**: deep(겹침) 46 + AstriFlash(refs deep) 1 + **stub 33** (신규, PDF 미확보)
+- **현재 리스트(v2) 80편 전부 deep**: 겹침 46 + 신규 33(정독 완료) + AstriFlash(refs deep) 1 ✅ (stub 0)
 - 과거(v1) 자산: deep 32편 보존 → [[26S v1 아카이브]]
 - hubs: topic 9 · venue 10 · year 4 · concepts(CXL 10 + HW 2 + OS 1) · insights 3 · hypotheses 3
 - CXL 계보 papers([[CAMEL Lab CXL 연구 계보]]): **17/19 정독+요약 완료** (미정독 2 = Panmnesia·One-Chip, 공개 PDF 없음)
-- 다음 작업: ① 발표 2슬롯(8/6·8/20) 재선정 ② 신규 33편 PDF 확보→deep 승격 ③ cluster ⚠️ 9편 확인
+
+### ⚠️ 정정 확인 필요 (정독 중 PDF가 시트와 달랐던 것)
+- **SquirrelFS·FairyWREN** — 시트=OSDI'24이나 제공 PDF는 **ACM TOS 2025 저널 확장판**. (SquirrelFS 원본은 OSDI'24 유명 논문) → 세미나엔 학회판/저널판 중 무엇으로 볼지 결정
+- **Five-Minute Rule** — 시트=ISCA'26이나 PDF에 학회 배너 없음(arXiv만). OBASE·WriteGuards도 arXiv/pre-camera라 venue 미확정 → 학회 프로그램 확인 권장
+- **Exploiting Similarity** — PDF 실제 제목이 다름("...Opportunit**ies** of Emerging **Vision AI** Models on Hybrid Bonding", "3D" 없음)·연도 2023→2024. 폴더명은 안 바꿈(frontmatter만 정정)
+- 다음 작업: ① 발표 2슬롯(8/6·8/20) 재선정 ② 위 정정 확인

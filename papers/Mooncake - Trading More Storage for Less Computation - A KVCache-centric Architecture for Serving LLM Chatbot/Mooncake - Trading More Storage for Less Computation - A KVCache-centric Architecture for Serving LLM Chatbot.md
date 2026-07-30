@@ -4,11 +4,13 @@ aliases: [Mooncake]
 description: "Prefill/Decoding 분리 + 클러스터 유휴 CPU/DRAM/SSD를 활용한 분산 KVCache 풀과 KVCache 중심 스케줄링으로 LLM 서빙 처리량을 극대화하는 아키텍처"
 venue: FAST
 year: 2025
+award: "Best Paper"
 arxiv: "2407.00079"
 tier: deep
 status: done
 tags:
   - paper
+  - award/best-paper
   - cluster/llm
   - topic/kv-cache
   - topic/llm-serving

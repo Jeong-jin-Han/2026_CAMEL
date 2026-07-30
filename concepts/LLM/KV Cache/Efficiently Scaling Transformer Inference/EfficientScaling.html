@@ -18,24 +18,28 @@ body{background:#f4f4f5;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFo
 #tb-row2::-webkit-scrollbar{display:none}
 #tb-row2>*{flex-shrink:0}
 #tb-title{font-weight:700;color:#1a1a1a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
-#tb-source{opacity:.5;font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #tb-sel{opacity:.7;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0066cc}
-button{background:#fff;color:#1a1a1a;border:1px solid #c0c0c0;border-radius:3px;padding:2px 10px;font-size:11px;cursor:pointer;flex-shrink:0}
-button:hover{background:#e8e8e8;border-color:#aaa}
+button{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;flex-shrink:0;box-shadow:0 1px 2px rgba(15,23,42,.06);transition:background .1s,color .1s,border-color .1s}
+button:hover{background:#2563eb;color:#fff;border-color:#1d4ed8}
+button:active{background:#1d4ed8;border-color:#1e40af}
+select{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:500;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.06)}
+select:hover{border-color:#93c5fd}
 .tb-sep{width:1px;height:14px;background:#d4d4d4;flex-shrink:0}
 #viewport{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;cursor:grab;}
 #viewport.pan-drag{cursor:grabbing}
 #canvas{position:absolute;transform-origin:0 0}
 #wire-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
-.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 10%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+#grid-svg{position:absolute;top:0;left:0;width:10000px;height:10000px;pointer-events:none;overflow:visible}
+.ng-node{position:absolute;min-width:432px;background:color-mix(in srgb,var(--color) 15%,#ffffff);border:1px solid color-mix(in srgb,var(--color) 40%,#e0e0e0);font-size:13px;transition:box-shadow .1s,top .35s ease,left .35s ease;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ng-node.ng-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--color) 80%,transparent),0 2px 8px rgba(0,0,0,.12)}
 .ng-node.ng-dragging{opacity:.88;transition:box-shadow .1s;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100}
-.ng-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:default;user-select:none}
+.ng-header{display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:default;user-select:none}
 .ng-header:hover{background:rgba(0,0,0,.04)}
-.ng-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
-.ng-title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
-.ng-body{padding:8px 10px 10px;font-size:12px}
+.ng-tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;cursor:move;user-select:none}
+.ng-title{flex:1;font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;cursor:pointer;user-select:none}
+.ng-body{padding:8px 10px;font-size:14px}
 .ng-content{line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.ng-more-btn{display:block;width:100%;margin-top:4px;padding:3px 0;background:transparent;border:none;color:inherit;opacity:.55;font-size:10px;cursor:pointer;text-align:center;user-select:none}
 .ng-seg{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#333}
 .ng-img-wrap{margin:4px 0}
 .ng-table-wrap{overflow-x:auto;margin:6px 0}
@@ -95,14 +99,21 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 <div id="toolbar">
   <div id="tb-row1">
     <span id="tb-title">Efficiently Scaling Transformer Inference</span>
-    <span id="tb-source">Reiner Pope, Sholto Douglas, Aakanksha Chowdhery, Jacob Devlin, James Bradbury, Anselm Levskaya, Jonathan Heek, Kefan Xiao, Shivani Agrawal, Jeff Dean (Google) · arXiv preprint, 2022 (later MLSys 2023)</span>
   </div>
   <div id="tb-row2">
+    <select id="tb-filter" title="Filter Collapse/Expand to one node type"></select>
+    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected; all if a type filter is set) — collapsing everything also fits the view">📁 Collapse</button>
+    <button onclick="doExpand()" title="Expand selected node + children (all if none selected; only the filtered type if a type filter is set)">📂 Expand</button>
     <button onclick="fitView()">Fit View</button>
-    <div class="tb-sep"></div>
-    <button onclick="doExpand()" title="Expand selected node + children (all if none selected)">Expand↓</button>
-    <button onclick="doCollapse()" title="Collapse selected node + children (all if none selected)">Collapse↑</button>
-    <div class="tb-sep"></div>
+    <button id="tb-grid-btn" onclick="toggleGrid()" style="display:inline-flex;align-items:center;gap:4px" title="Toggle debug grid — vertical lines mark hop-level boundaries, horizontal lines mark main-topic cluster boundaries">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2.2"/>
+      </svg>
+      Grid
+    </button>
     <div class="tb-sep"></div>
     <span id="tb-sel" style="opacity:.35">Click a node to select</span>
   </div>
@@ -118,6 +129,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     <div id="search-drop"></div>
   </div>
   <div id="canvas">
+    <svg id="grid-svg" style="display:none"></svg>
     <svg id="wire-svg">
       <defs>
         <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -130,7 +142,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
     </svg>
     <div class="ng-node" id="node-node_001" data-children="node_009,node_010" style="--color:#4B8BBE;border-radius:2px;left:100px;top:180px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">추론 비용의 세 축: Latency, Throughput, MFU 트레이드오프</span>
   </div>
   <div class="ng-body"><div class="ng-content">생성형 Transformer 추론의 비용을 재는 세 지표: latency(전체 추론 시간, prefill+decode로 분해), throughput(초당 처리/생성 토큰 수), MFU(model FLOPS utilization, 관측 처리량 대비 이론적 최대 처리량 비율). 저자들은 이 셋 사이의 근본적 트레이드오프를 분석한다.<br><br>메모리 비용 관점에서 핵심 관찰: 배치 크기와 시퀀스 길이가 작을 때는 weight를 HBM에서 로드하는 시간이 지배적이고(weight-loading이 병목), 배치·시퀀스 길이가 커지면(예: 2048+ 토큰에 배치 512+) KV cache를 로드하는 시간이 지배적으로 바뀐다. 이 KV cache 로딩 동안 칩의 연산 코어는 사실상 idle 상태다 — 즉 decode 단계는 본질적으로 memory-bandwidth-bound다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.3</span></summary>
@@ -138,7 +150,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_002" data-children="node_011" style="--color:#4B8BBE;border-radius:2px;left:100px;top:480px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">파티셔닝 표기법과 통신 collective (BLE, all-gather/reduce-scatter/all-to-all)</span>
   </div>
   <div class="ng-body"><div class="ng-content">저자들은 텐서 shape를 B(batch)·L(sequence)·E(model/embed dim)·F(feedforward dim)·H(heads)로 표기하고, 아래첨자로 TPU v4 3D torus의 X/Y/Z 축 중 어디에 분할됐는지 표시한다(예: BLE_xyz는 E를 X×Y×Z개 조각으로 분할). 축이 표기에서 생략되면 그 축은 복제(replicated)된 것이고, 'partialsum-x'는 x축에 대해 아직 합산 전인 부분합임을 뜻한다.<br><br>세 가지 핵심 통신 collective: all-gather(x)는 x축을 따라 텐서를 모아 x배 큰 복제 텐서로 만들고, reduce-scatter(x)는 x축에 대해 부분합을 리듀스하면서 동시에 샤딩하며, all-reduce(x)는 이 둘을 합친 것(리듀스+브로드캐스트)이다. all-to-all은 한 텐서 차원의 샤딩을 다른 차원으로 옮긴다(예: BLH_xQ → B_xLHQ).</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.1, p.4</span></summary>
@@ -146,16 +158,16 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_003" data-children="node_012,node_013,node_014" style="--color:#4B8BBE;border-radius:2px;left:100px;top:780px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Feedforward 파티셔닝: 1D/2D Weight-Stationary vs Weight-Gathered</span>
   </div>
   <div class="ng-body"><div class="ng-content">FFN 가중치를 칩에 분산하는 세 가지 레이아웃. (1) 1D weight-stationary: E×F 가중치를 d_model 또는 d_ff 한 축으로만 나눠 각 칩에 고정하고, activation을 all-gather/reduce-scatter로 주고받는다. 통신시간이 칩 수에 무관하게 거의 일정해서 칩이 늘수록 병목이 된다. (2) 2D weight-stationary: 가중치를 E와 F 두 축 모두로 나눠(E_x F_yz) 통신량을 O(1/√n_chips)로 줄인다 — √n_chips &gt; d_ff/d_model(보통 n_chips&gt;16)일 때 1D보다 효율적. (3) weight-gathered: activation을 고정하고 가중치를 칩 간에 통째로 옮기는 방식으로, 배치가 매우 클 때(활성값이 가중치보다 커질 때) 더 경제적이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.2, p.5</span></summary>
-<div class="ng-orig-text">2D weight-stationary becomes more communication-efficient when √nchips &gt; dff/dmodel. Since typically dff = 4dmodel, this occurs when nchips &gt; 16.</div></details><details class="ng-toggle"><summary>FFN 파티셔닝 전략별 통신 비용 공식</summary>
+<div class="ng-orig-text">2D weight-stationary becomes more communication-efficient when √nchips &gt; dff/dmodel. Since typically dff = 4dmodel, this occurs when nchips &gt; 16.</div></details><details class="ng-toggle" data-toggle-id="toggle_001"><summary>FFN 파티셔닝 전략별 통신 비용 공식</summary>
 <div class="ng-toggle-body">| 전략 | 통신 시간 |<br>|---|---|<br>| 1D weight-stationary | $\frac{2BLE}{\text{bw}}$ |<br>| 2D weight-stationary | $\frac{8BLE}{\sqrt{n_{chips}}\,\text{bw}}$ |<br>| Weight-gathered (XYZ) | $\frac{4E\sqrt{BLF}}{\sqrt{n_{chips}}\,\text{bw}}$ |<br><br>weight-stationary 계열은 배치토큰수(BL)에 선형, weight-gathered 계열은 √BL에 비례 — 배치가 커질수록 weight-gathered가 유리해진다.</div></details></div>
 </div>
 <div class="ng-node" id="node-node_004" data-children="node_015,node_016,node_017" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1080px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Multiquery Attention: 배치 축으로 샤딩해 KV cache 메모리비용 절감</span>
   </div>
   <div class="ng-body"><div class="ng-content">Multihead attention은 head마다 별도 K/V를 갖지만, multiquery attention(Shazeer 2019; PaLM도 채용)은 Q는 그대로 n_heads개를 두되 K/V는 단 하나의 head만 두고 모든 query head가 공유한다. 이것만으로 KV cache 크기가 n_heads배 줄어든다.<br><br>그런데 기존 방식대로 head 축으로 샤딩하면(Fig.4b), K/V head가 하나뿐이라 각 칩에 그대로 복제해야 해서 multiquery의 메모리 절감 효과가 사라진다. 저자들이 제안하는 대안은 Q/K/V를 batch(B) 축으로 n_chips개로 쪼개는 것(Fig.4c) — 이러면 각 칩은 자기 몫의 시퀀스에 대한 K만 있으면 되므로 칩당 KV cache 메모리비용이 n_chips배 줄어든다. 대가는 activation을 재정렬하기 위한 all-to-all 통신이 추가된다는 것.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.6</span></summary>
@@ -163,7 +175,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_005" data-children="node_018,node_019" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1380px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Parallel formulation + Looped CollectiveEinsum + int8 양자화</span>
   </div>
   <div class="ng-body"><div class="ng-content">세 가지 저수준 최적화. (1) Parallel attention/FFN: layernorm된 입력에서 attention과 FFN을 각각 독립으로 계산해 더한다(직렬 대신 병렬). layernorm이 레이어당 1번으로 줄고, FFN의 입력 행렬을 attention의 W_Q와, W_K/W_V를 서로, W_O와 FFN 출력행렬을 각각 fuse할 수 있어 더 큰 GEMM으로 뭉쳐진다. 무엇보다 d_ff/n_heads 파티셔닝에 필요한 all-reduce 2번 중 1번이 아예 없어져서 통신시간이 절반으로 준다.<br><br>(2) Looped CollectiveEinsum: 통신(reduce-scatter/all-gather)을 계산과 동시에 진행되도록 겹치는 기법(Wang et al. 2023). reduce-scatter를 batch/sequence 축이 아니라 hidden 축(E 또는 F)으로 하도록 선택해 이 겹침 기회를 늘렸다.<br><br>(3) AQT 라이브러리로 16비트 가중치를 int8로 양자화 — 품질 저하 없이 weight-loading 메모리시간과 weight-gathered 레이아웃의 통신량을 줄인다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.4, p.7</span></summary>
@@ -171,16 +183,16 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_006" data-children="node_020" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1680px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">PaLM 540B 사례 연구: 저지연 29ms/token, 고처리량 76% MFU</span>
   </div>
   <div class="ng-body"><div class="ng-content">PaLM 계열(8B/62B/540B, bfloat16 또는 int8)에 걸쳐 효율-지연 파레토 프론티어를 구했다. 540B, 64 TPU v4 칩 기준: 저배치(생성) 구간에서 int8 가중치로 28.5ms/token(bfloat16은 36.9ms/token), 대배치(prefill) 구간에서 76% MFU를 달성 — 이는 2048 토큰 컨텍스트를 지원하면서 나온 수치다. 비용은 chip-seconds per token = n_chips × time / (B×L)로 정의되며, MFU에 반비례한다. 배치512 근처가 최소 비용 지점이고, 배치를 줄이면 지연은 개선되지만 토큰당 비용은 늘어난다(최소 지연은 배치512 대비 3배 낮다).</div><details class="ng-original"><summary>Original <span class="ng-loc">Abstract, p.1</span></summary>
-<div class="ng-orig-text">Finally, we achieve a low-batch-size latency of 29ms per token during generation (using int8 weight quantization) and a 76% MFU during large-batch-size processing of input tokens, while supporting a long context length of 2048 tokens on the PaLM 540B parameter model.</div></details><details class="ng-toggle"><summary>Table 2: PaLM 540B 예시 구성 (저지연 vs 고처리량, 64칩)</summary>
+<div class="ng-orig-text">Finally, we achieve a low-batch-size latency of 29ms per token during generation (using int8 weight quantization) and a 76% MFU during large-batch-size processing of input tokens, while supporting a long context length of 2048 tokens on the PaLM 540B parameter model.</div></details><details class="ng-toggle" data-toggle-id="toggle_003"><summary>Table 2: PaLM 540B 예시 구성 (저지연 vs 고처리량, 64칩)</summary>
 <div class="ng-toggle-body">| | Low-latency Prefill | Low-latency Decode | High-throughput Prefill | High-throughput Decode |<br>|---|---|---|---|---|<br>| Chips | 64 | 64 | 64 | 64 |<br>| Batch | 1 | 64 | 512 | 512 |<br>| FFN layout | WS 2D | WS 2D | WG XYZ | WS 2D |<br>| Attention sharding | Head | Batch | Batch | Batch |<br>| Weights | int8 | int8 | bfloat16 | bfloat16 |<br>| MFU | 43% | 14% | 76% | 33% |<br>| Latency | 0.29s | 1.82s | 85.2s | 6.0s |<br><br>(Table 2, p.10)</div></details></div>
 </div>
 <div class="ng-node" id="node-node_007" data-children="node_021" style="--color:#4B8BBE;border-radius:2px;left:100px;top:1980px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">FasterTransformer/Megatron 대비: 최대 64-way TP에서도 44% MFU 유지</span>
   </div>
   <div class="ng-body"><div class="ng-content">60-input/20-output 토큰 벤치마크에서 NVIDIA A100 16~32장 기반 FasterTransformer(Megatron-530B 등)와 비교. 절대 latency와 MFU 모두에서 이 논문 구현이 대부분의 지연 목표에서 최고 MFU를 기록했고, PaLM 구현은 parallel attention/ffn 레이어 덕에 자체 Megatron 구현보다 최대 10%p MFU가 높다. multiquery attention의 이점은 이 벤치마크의 컨텍스트 길이가 짧아 두드러지지 않았다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.10</span></summary>
@@ -188,7 +200,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_008" style="--color:#4B8BBE;border-radius:2px;left:100px;top:2280px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 22%,transparent);color:#4B8BBE">Main topic</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#4B8BBE 20%,transparent);color:#4B8BBE">Main topic</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">결론: FLOP·통신량이 근본 한계, sparsity/MoE가 향후 방향</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문은 500B+ 파라미터 모델을 64+ 칩으로 확장하는 실전 파티셔닝 원칙을 제시했다고 요약한다. 다만 저자들 스스로 인정하듯, dense Transformer의 FLOP 수와 통신량 자체가 성능의 근본 한계다. task-based mixture-of-experts 같은 sparsity 기법이나, 입력·생성 스텝마다 계산량을 다르게 배정하는 adaptive computation 기법이 토큰당 FLOP을 줄여줄 잠재력이 있다고 언급하며 향후 연구로 남긴다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§7, p.11</span></summary>
@@ -196,7 +208,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_009" style="--color:#9B59B6;border-radius:2px;left:550px;top:100px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">예시: 챗봇 시나리오, 64칩에서 1.9초 응답</span>
   </div>
   <div class="ng-body"><div class="ng-content">int8 weight의 PaLM 540B를 64 TPU v4 칩에 올렸을 때: 사용자 입력 64토큰을 처리하고, 캐시된 대화 이력 1920토큰을 참조하고, 64토큰 응답을 생성하는 전체 과정이 1.9초에 끝난다. 오프라인 throughput 시나리오에서는 입력 1984토큰+출력 64토큰 처리에서 전체 FLOPS 효율 73%를 달성한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§1, p.2</span></summary>
@@ -204,7 +216,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_010" style="--color:#9B59B6;border-radius:2px;left:550px;top:280px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">KV cache가 파라미터보다 3배 커지는 지점</span>
   </div>
   <div class="ng-body"><div class="ng-content">배치 512, 컨텍스트 길이 2048에서 KV cache 총량은 3TB로, 모델 파라미터 크기의 3배에 달한다. 이 KV cache를 생성되는 토큰마다 매번 off-chip 메모리에서 새로 로드해야 하고, 그동안 칩의 연산 코어는 사실상 놀고 있다 — decode 단계에서 메모리 대역폭이 병목이 되는 물리적 근거다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§2, p.3</span></summary>
@@ -212,7 +224,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_011" style="--color:#5C9E6E;border-radius:2px;left:550px;top:480px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Appendix A.1: all-gather/reduce-scatter 통신시간 공식</span>
   </div>
   <div class="ng-body"><div class="ng-content">K개 파티션에 대한 all-gather에서, 각 칩이 크기 D의 출력을 만든다면 통신 패턴은 (K-1)/K 비율의 데이터를 (K-1)개 링크에 걸쳐 전송해야 한다. 따라서 $T_{comm(all-gather)} = \frac{D}{bw} \times \frac{K-1}{K}$. reduce-scatter도 같은 공식이되 D가 더 큰 입력 버퍼 크기가 된다. all-reduce는 이 둘을 합친 것이므로 $T_{comm(all-reduce)} = 2 \times T_{comm(all-gather)}$. K≫1로 가정하면 (K-1)/K ≈ 1로 근사해서 계산을 단순화한다.</div><details class="ng-original"><summary>Original <span class="ng-loc">Appendix A.1, p.15</span></summary>
@@ -220,7 +232,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_012" style="--color:#5C9E6E;border-radius:2px;left:550px;top:660px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">1D weight-stationary 통신시간 공식</span>
   </div>
   <div class="ng-body"><div class="ng-content">각 칩은 reduce-scatter/all-gather에서 각각 BLE shape(비분할)의 입출력을 주고받는다. 유도 결과 $T_{comm} = \frac{2BLE}{\text{network bandwidth}}$ — 칩 수(n_chips)가 분모에 없다는 게 핵심: 칩을 늘려도 통신시간이 줄지 않아 결국 병목이 된다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.1, p.4</span></summary>
@@ -228,7 +240,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_013" style="--color:#5C9E6E;border-radius:2px;left:550px;top:810px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 22%,transparent);color:#5C9E6E">Method</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#5C9E6E 20%,transparent);color:#5C9E6E">Method</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">2D weight-stationary: X=0.5√n, YZ=2√n 최적 분할</span>
   </div>
   <div class="ng-body"><div class="ng-content">가중치를 E_x F_yz로 분할, X×Y×Z=n_chips 제약에서 통신시간을 최소화하는 값은 X=0.5√n_chips, YZ=2√n_chips(d_ff=4d_model 가정). 결과 통신시간 $T_{comm} = \frac{8BLE}{\sqrt{n_{chips}}}$ — 분모에 √n_chips가 있어 칩을 늘릴수록 통신시간이 계속 줄어든다(1D와 대비되는 핵심 장점).</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.2, p.5</span></summary>
@@ -236,7 +248,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_014" style="--color:#9B59B6;border-radius:2px;left:550px;top:960px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Weight-gathered는 배치가 커지면 √BL로만 증가 (Fig.3)</span>
   </div>
   <div class="ng-body"><div class="ng-content">weight-stationary 계열의 통신시간은 배치 토큰수(BL)에 선형으로 비례하지만, weight-gathered 계열은 √BL에만 비례한다. 그래서 배치와 prefill 시퀀스 길이가 충분히 커지면 weight-gathered가 더 싸진다 — Figure 3은 토큰수가 커질수록 최적 레이아웃이 2D weight-stationary에서 X→XY→XYZ weight-gathered로 순차적으로 전환됨을 보여준다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.2.3, p.6</span></summary>
@@ -244,16 +256,16 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_015" style="--color:#9B59B6;border-radius:2px;left:550px;top:1110px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Table 1: 최적화된 multiquery는 컨텍스트 길이 32-64배 확장</span>
   </div>
   <div class="ng-body"><div class="ng-content">attention variant별 64칩에서 지원 가능한 최대 컨텍스트 길이(총 메모리의 30%를 KV cache에 할당한다고 가정): multihead(d_head=128)는 배치128에서 1320, 배치512에서 330. baseline multiquery(head축 샤딩, d_head=256)는 660/165로 오히려 더 나쁘다(head당 크기를 키웠는데 복제 손실이 더 큼). 반면 batch축으로 샤딩한 optimized multiquery는 43,000/10,700 — multihead 대비 최대 32-64배.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.9</span></summary>
-<div class="ng-orig-text">Table 1 shows that the optimized multiquery layout can fit up to 32–64 times longer context lengths than the multihead and baseline multiquery variant.</div></details><details class="ng-toggle"><summary>Table 1: attention variant별 최대 컨텍스트 길이 (64칩)</summary>
+<div class="ng-orig-text">Table 1 shows that the optimized multiquery layout can fit up to 32–64 times longer context lengths than the multihead and baseline multiquery variant.</div></details><details class="ng-toggle" data-toggle-id="toggle_002"><summary>Table 1: attention variant별 최대 컨텍스트 길이 (64칩)</summary>
 <div class="ng-toggle-body">| Model variant | d_head | Max context (batch=128) | Max context (batch=512) |<br>|---|---|---|---|<br>| Multihead | 128 | 1320 | 330 |<br>| Baseline multiquery | 256 | 660 | 165 |<br>| Optimized multiquery | 256 | 43000 | 10700 |</div></details></div>
 </div>
 <div class="ng-node" id="node-node_016" style="--color:#E74C3C;border-radius:2px;left:550px;top:1260px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 주장: batch 샤딩이 칩당 KV cache 메모리비용을 n_chips배 줄인다</span>
   </div>
   <div class="ng-body"><div class="ng-content">Q/K/V를 batch 축으로 n_chips개 파티션에 나누는 제안 레이아웃(Fig.4c)에서, 각 칩은 자기 몫 시퀀스의 K/V만 로드하면 되므로 칩당 KV cache 로딩에 드는 memory time이 정확히 n_chips분의 1로 줄어든다는 것이 이 논문의 핵심 주장이다. 이는 head 축 샤딩(Fig.4b, K/V head를 각 칩에 복제해야 함)과 근본적으로 다른 절감 메커니즘이다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.3, p.6-7</span></summary>
@@ -261,7 +273,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_017" style="--color:#9B59B6;border-radius:2px;left:950px;top:1100px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">Fig.8: multiquery면 attention이 전체 런타임의 8-31%에 불과</span>
   </div>
   <div class="ng-body"><div class="ng-content">8-layer PaLM 540B에서 optimized multiquery 레이아웃을 쓰면 컨텍스트 길이 8192(배치512)~32,768(배치128)까지도 attention이 차지하는 비중이 전체 런타임의 8~31%에 그친다 — 대부분의 시간이 여전히 feedforward 연산에 쓰이고, attention/KV-cache가 병목이 되는 시점을 크게 뒤로 미룬다는 뜻.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.2, p.9</span></summary>
@@ -269,7 +281,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_018" style="--color:#9B59B6;border-radius:2px;left:550px;top:1360px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">AQT int8: 품질저하 없이 weight 메모리비용 절감</span>
   </div>
   <div class="ng-body"><div class="ng-content">AQT(Accurate Quantized Training) 라이브러리로 16비트 가중치를 int8로 변환해 눈에 띄는 품질 저하 없이 메모리비용을 줄인다. 이는 특히 저배치 구간(weight-loading이 지배적인 구간)에서 도움이 크고, weight-gathered 레이아웃의 통신량도 줄인다. activation quantization은 이 논문에서는 구현하지 않았지만, 향후 compute time과 통신량을 추가로 줄일 수 있을 것으로 기대한다고 언급.</div><details class="ng-original"><summary>Original <span class="ng-loc">§3.6, p.7-8</span></summary>
@@ -277,7 +289,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_019" style="--color:#E74C3C;border-radius:2px;left:550px;top:1500px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 22%,transparent);color:#E74C3C">Claim</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E74C3C 20%,transparent);color:#E74C3C">Claim</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">실증: parallel formulation이 직렬 대비 decode 지연 14% 감소</span>
   </div>
   <div class="ng-body"><div class="ng-content">2D weight-stationary, 64칩, 배치512 조건에서 직렬(serial) attention/FFN 구성은 병렬(parallel) 구성 대비 스텝당 inference latency가 14% 더 높다 — activation 통신시간이 늘기 때문이다. prefill 단계에서는 weight-gathered 레이아웃이 activation 통신을 덜 필요로 하므로 이 차이가 줄어든다.</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.3, p.9</span></summary>
@@ -285,7 +297,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_020" style="--color:#9B59B6;border-radius:2px;left:550px;top:1680px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">실제 최소 latency: int8에서 28.5ms/token (bf16 대비 약 2배 비용 개선)</span>
   </div>
   <div class="ng-body"><div class="ng-content">Figure 1(left)의 파레토 프론티어에서 얻어지는 구체적 수치: PaLM 540B, 배치64에서 int8 가중치로 28.5ms/token, bfloat16 가중치로는 36.9ms/token. 저지연 목표에서는 비용이 weight-loading 시간에 지배되므로 양자화가 비용을 약 2배 개선하지만, 대배치(비용이 compute-time에 지배)에서는 int8과 bfloat16의 비용 차이가 훨씬 작아진다(matmul 자체는 여전히 bfloat16 연산).</div><details class="ng-original"><summary>Original <span class="ng-loc">§4.4, p.9</span></summary>
@@ -293,7 +305,7 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_021" style="--color:#9B59B6;border-radius:2px;left:550px;top:1980px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 22%,transparent);color:#9B59B6">Result</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#9B59B6 20%,transparent);color:#9B59B6">Result</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">FasterTransformer의 32-way TP는 33% MFU에서 정체 — 통신 병목</span>
   </div>
   <div class="ng-body"><div class="ng-content">FasterTransformer는 8/16/32-way tensor parallelism 결과를 보고하는데, 32-way에서 최대 33% MFU에 그친다(16-way의 46% MFU보다 오히려 낮음 — TP를 더 늘리면 통신 병목으로 역효과). 반면 이 논문의 2D weight-stationary 파티셔닝은 64-way tensor parallelism까지 확장해도 44% MFU를 유지한다 — TPU v4의 더 빠른 인터커넥트 도메인과 √n_chips 스케일링 통신 공식 덕분이라고 해석.</div><details class="ng-original"><summary>Original <span class="ng-loc">§5, p.11</span></summary>
@@ -301,28 +313,28 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
 </div>
 <div class="ng-node" id="node-node_022" style="--color:#1ABC9C;border-radius:22px;left:950px;top:1280px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 22%,transparent);color:#1ABC9C">Gap / Idea</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#1ABC9C 20%,transparent);color:#1ABC9C">Gap / Idea</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">KV cache가 CXL 같은 느리지만 큰 메모리 티어로 spill한다면?</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문의 메모리-절감 논증(multiquery로 KV cache를 n_heads배, batch 샤딩으로 다시 n_chips배 줄이는 것)은 철저히 '어느 칩의 HBM에 몇 바이트가 있는가'를 조정하는 compute-side 샤딩 문제다 — 메모리 계층(tiering) 자체는 건드리지 않는다.<br><br>만약 KV cache 일부를 CXL 같은 disaggregated, 용량은 크지만 대역폭/지연이 HBM보다 못한 티어로 흘려보낼 수 있다면 어떻게 될까? 두 가능성이 있다: (1) 직교(orthogonal) 가설 — 이 논문의 통신 비용 모델(network bandwidth 한 항으로 뭉뚱그려진 T_comm 공식들)에 CXL 티어의 별도 대역폭/지연 항만 추가하면 되고, 샤딩 전략 자체는 그대로 재사용 가능하다. (2) 비직교 가설 — capacity가 사실상 무제한(pooled CXL)이 되면 애초에 '칩당 KV cache 메모리비용을 n_chips배로 나누는' 동기 자체가 약해진다(Table 1의 컨텍스트 길이 제약이 사라지므로), 대신 문제가 대역폭/latency 쪽으로 완전히 옮겨간다. 이 논문은 이 축을 전혀 다루지 않는다.</div></div>
 </div>
 <div class="ng-node" id="node-node_023" style="--color:#E5A835;border-radius:22px;left:950px;top:480px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 22%,transparent);color:#E5A835">Question</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#E5A835 20%,transparent);color:#E5A835">Question</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">이 통신비용 모델은 TPU v4 3D torus를 벗어나도 성립하는가?</span>
   </div>
   <div class="ng-body"><div class="ng-content">Appendix A.1의 all-gather/reduce-scatter 비용 공식은 논문이 '대부분의 실제 네트워크 토폴로지에 대해 성립하는 일반적 모델'이라고 주장하지만, 최적 X/Y/Z 분할(예: 2D weight-stationary의 X=0.5√n, YZ=2√n)은 명시적으로 TPU v4의 3D torus 축 구조를 전제로 유도됐다. NVLink 스위치 패브릭(모든 GPU 쌍이 균일 대역폭)이나 CXL 스위치 토폴로지처럼 '축'이라는 개념 자체가 없는 인터커넥트에서는 이 X/Y/Z 인수분해가 어떻게 재정의돼야 하는지 논문은 다루지 않는다.</div></div>
 </div>
 <div class="ng-node" id="node-node_024" style="--color:#95A5A6;border-radius:22px;left:950px;top:1980px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 22%,transparent);color:#95A5A6">Reference</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#95A5A6 20%,transparent);color:#95A5A6">Reference</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">핵심 비교/인용 대상: Megatron-LM · GSPMD · Alpa · FasterTransformer · DeepSpeed Inference</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문이 직접 비교하거나 대비하는 파티셔닝 프레임워크들: Megatron-LM(Shoeybi et al. 2019, tensor parallelism의 원조), GSPMD(Xu et al. 2021), Alpa(Zheng et al. 2022, 정수계획법으로 파티셔닝 탐색을 자동화 — 이 논문은 대신 손으로 유도한 해석적 트레이드오프를 쓴다는 점에서 대비됨), DeepSpeed Inference(Aminabadi et al. 2022, ZeRO offload로 CPU/NVMe 메모리까지 활용), FasterTransformer(NVIDIA, §5의 직접 벤치마크 대상). multiquery attention의 원 출처는 Shazeer(2019), PaLM 아키텍처는 Chowdhery et al.(2022).</div><div class="ng-links"><a class="ng-link" href="https://arxiv.org/abs/2204.02311" target="_blank">🔗 PaLM arXiv</a><a class="ng-link" href="https://arxiv.org/abs/1909.08053" target="_blank">🔗 Megatron-LM arXiv</a><a class="ng-link" href="https://arxiv.org/abs/2105.04663" target="_blank">🔗 GSPMD arXiv</a><a class="ng-link" href="https://arxiv.org/abs/2201.12023" target="_blank">🔗 Alpa arXiv</a><a class="ng-link" href="https://arxiv.org/abs/2207.00032" target="_blank">🔗 DeepSpeed Inference arXiv</a></div></div>
 </div>
 <div class="ng-node" id="node-node_025" style="--color:#BDC3C7;border-radius:22px;left:950px;top:1430px">
   <div class="ng-header" onclick="onHeaderClick(this)" title="Click to select node">
-    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 22%,transparent);color:#BDC3C7">Memo</span>
+    <span class="ng-tag" onmousedown="onNodeTagMousedown(event,this.closest('.ng-node'))" style="background:color-mix(in srgb,#BDC3C7 20%,transparent);color:#BDC3C7">Memo</span>
     <span class="ng-title" onclick="onTitleClick(event,this)" title="Click to fold/unfold">내 연구방향과의 연결: 이 논문의 병목은 '메모리 대역폭', 내 질문은 '메모리 계층'</span>
   </div>
   <div class="ng-body"><div class="ng-content">이 논문 전체의 출발점은 decode 단계가 본질적으로 memory-bandwidth-bound라는 것(§2, KV cache가 파라미터의 3배까지 커짐)이고, 해법은 그 바이트들을 더 많은 칩의 HBM에 나눠 담아 칩당 대역폭 요구량을 낮추는 것(compute-side sharding)이다. 내가 보고 있는 CXL/disaggregation 방향은 반대편에서 같은 병목을 공격한다 — 칩 수를 늘리는 대신 메모리 자체를 계층화(capacity tier ↔ bandwidth tier)해서 문제를 푼다.<br><br>흥미로운 지점은 이 두 접근이 서로 배타적이지 않다는 것 — 이 논문의 샤딩 전략은 '한 노드 안에 몇 개의 동질적 HBM 칩이 있는가'를 전제로 하는데, 만약 그 노드 자체가 이미 CXL로 확장된 이종(heterogeneous) 메모리 풀을 갖고 있다면, 샤딩 축(X,Y,Z)에 '메모리 티어'라는 새 차원을 추가해야 할 수도 있다. 이건 이 논문이 전혀 다루지 않는, 내 박사 연구가 채울 수 있는 빈틈으로 보인다.</div></div>
@@ -334,9 +346,23 @@ details.ng-toggle summary::-webkit-details-marker{display:none}
   <span id="lightbox-close" onclick="closeLightbox()">✕</span>
 </div>
 <script>
-var NODES_DATA = [{"id":"node_001","lx":100,"ly":180,"children":["node_009","node_010"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":180,"searchText":"추론 비용의 세 축: latency, throughput, mfu 트레이드오프 생성형 transformer 추론의 비용을 재는 세 지표: latency(전체 추론 시간, prefill+decode로 분해), throughput(초당 처리/생성 토큰 수), mfu(model flops utilization, 관측 처리량 대비 이론적 최대 처리량 비율). 저자들은 이 셋 사이의 근본적 트레이드오프를 분석한다.\n\n메모리 비용 관점에서 핵심 관찰: 배치 크기와 시퀀스 길이가 작을 때는 weight를 hbm에서 로드하는 시간이 지배적이고(weight-loading이 병목), 배치·시퀀스 길이가 커지면(예: 2048+ 토큰에 배치 512+) kv cache를 로드하는 시간이 지배적으로 바뀐다. 이 kv cache 로딩 동안 칩의 연산 코어는 사실상 idle 상태다 — 즉 decode 단계는 본질적으로 memory-bandwidth-bound다. at small batch sizes and sequence lengths, the time to load weights dominates. at larger batch sizes and sequence lengths (e.g. 2048+ tokens with batch size 512+), the time to load the kv cache dominates."},{"id":"node_002","lx":100,"ly":480,"children":["node_011"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":480,"searchText":"파티셔닝 표기법과 통신 collective (ble, all-gather/reduce-scatter/all-to-all) 저자들은 텐서 shape를 b(batch)·l(sequence)·e(model/embed dim)·f(feedforward dim)·h(heads)로 표기하고, 아래첨자로 tpu v4 3d torus의 x/y/z 축 중 어디에 분할됐는지 표시한다(예: ble_xyz는 e를 x×y×z개 조각으로 분할). 축이 표기에서 생략되면 그 축은 복제(replicated)된 것이고, 'partialsum-x'는 x축에 대해 아직 합산 전인 부분합임을 뜻한다.\n\n세 가지 핵심 통신 collective: all-gather(x)는 x축을 따라 텐서를 모아 x배 큰 복제 텐서로 만들고, reduce-scatter(x)는 x축에 대해 부분합을 리듀스하면서 동시에 샤딩하며, all-reduce(x)는 이 둘을 합친 것(리듀스+브로드캐스트)이다. all-to-all은 한 텐서 차원의 샤딩을 다른 차원으로 옮긴다(예: blh_xq → b_xlhq). we use several communication collectives originating from mpi (clarke et al., 1994). the all-reduce(x) primitive sums a partialsum tensor such as bleyz(partialsum-x) across sets of chips in the x axis of the torus and broadcasts the sum back to all the involved chips, returning bleyz."},{"id":"node_003","lx":100,"ly":780,"children":["node_012","node_013","node_014"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":780,"searchText":"feedforward 파티셔닝: 1d/2d weight-stationary vs weight-gathered ffn 가중치를 칩에 분산하는 세 가지 레이아웃. (1) 1d weight-stationary: e×f 가중치를 d_model 또는 d_ff 한 축으로만 나눠 각 칩에 고정하고, activation을 all-gather/reduce-scatter로 주고받는다. 통신시간이 칩 수에 무관하게 거의 일정해서 칩이 늘수록 병목이 된다. (2) 2d weight-stationary: 가중치를 e와 f 두 축 모두로 나눠(e_x f_yz) 통신량을 o(1/√n_chips)로 줄인다 — √n_chips > d_ff/d_model(보통 n_chips>16)일 때 1d보다 효율적. (3) weight-gathered: activation을 고정하고 가중치를 칩 간에 통째로 옮기는 방식으로, 배치가 매우 클 때(활성값이 가중치보다 커질 때) 더 경제적이다. 2d weight-stationary becomes more communication-efficient when √nchips > dff/dmodel. since typically dff = 4dmodel, this occurs when nchips > 16."},{"id":"node_004","lx":100,"ly":1080,"children":["node_015","node_016","node_017"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1080,"searchText":"multiquery attention: 배치 축으로 샤딩해 kv cache 메모리비용 절감 multihead attention은 head마다 별도 k/v를 갖지만, multiquery attention(shazeer 2019; palm도 채용)은 q는 그대로 n_heads개를 두되 k/v는 단 하나의 head만 두고 모든 query head가 공유한다. 이것만으로 kv cache 크기가 n_heads배 줄어든다.\n\n그런데 기존 방식대로 head 축으로 샤딩하면(fig.4b), k/v head가 하나뿐이라 각 칩에 그대로 복제해야 해서 multiquery의 메모리 절감 효과가 사라진다. 저자들이 제안하는 대안은 q/k/v를 batch(b) 축으로 n_chips개로 쪼개는 것(fig.4c) — 이러면 각 칩은 자기 몫의 시퀀스에 대한 k만 있으면 되므로 칩당 kv cache 메모리비용이 n_chips배 줄어든다. 대가는 activation을 재정렬하기 위한 all-to-all 통신이 추가된다는 것. an alternative approach, called multiquery attention (shazeer, 2019; chowdhery et al., 2022), still emits nheads for the query tensor, but only a single head for the key and value tensors. this key and value head is shared across the nheads query heads. this reduces the size of the kv cache tensors by a factor of nheads and hence the memory time spent loading them."},{"id":"node_005","lx":100,"ly":1380,"children":["node_018","node_019"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1380,"searchText":"parallel formulation + looped collectiveeinsum + int8 양자화 세 가지 저수준 최적화. (1) parallel attention/ffn: layernorm된 입력에서 attention과 ffn을 각각 독립으로 계산해 더한다(직렬 대신 병렬). layernorm이 레이어당 1번으로 줄고, ffn의 입력 행렬을 attention의 w_q와, w_k/w_v를 서로, w_o와 ffn 출력행렬을 각각 fuse할 수 있어 더 큰 gemm으로 뭉쳐진다. 무엇보다 d_ff/n_heads 파티셔닝에 필요한 all-reduce 2번 중 1번이 아예 없어져서 통신시간이 절반으로 준다.\n\n(2) looped collectiveeinsum: 통신(reduce-scatter/all-gather)을 계산과 동시에 진행되도록 겹치는 기법(wang et al. 2023). reduce-scatter를 batch/sequence 축이 아니라 hidden 축(e 또는 f)으로 하도록 선택해 이 겹침 기회를 늘렸다.\n\n(3) aqt 라이브러리로 16비트 가중치를 int8로 양자화 — 품질 저하 없이 weight-loading 메모리시간과 weight-gathered 레이아웃의 통신량을 줄인다. the benefits from the parallel formulation are as follows. first, there is only one layernorm per layer instead of two, which reduces latency at small batch sizes."},{"id":"node_006","lx":100,"ly":1680,"children":["node_020"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1680,"searchText":"palm 540b 사례 연구: 저지연 29ms/token, 고처리량 76% mfu palm 계열(8b/62b/540b, bfloat16 또는 int8)에 걸쳐 효율-지연 파레토 프론티어를 구했다. 540b, 64 tpu v4 칩 기준: 저배치(생성) 구간에서 int8 가중치로 28.5ms/token(bfloat16은 36.9ms/token), 대배치(prefill) 구간에서 76% mfu를 달성 — 이는 2048 토큰 컨텍스트를 지원하면서 나온 수치다. 비용은 chip-seconds per token = n_chips × time / (b×l)로 정의되며, mfu에 반비례한다. 배치512 근처가 최소 비용 지점이고, 배치를 줄이면 지연은 개선되지만 토큰당 비용은 늘어난다(최소 지연은 배치512 대비 3배 낮다). finally, we achieve a low-batch-size latency of 29ms per token during generation (using int8 weight quantization) and a 76% mfu during large-batch-size processing of input tokens, while supporting a long context length of 2048 tokens on the palm 540b parameter model."},{"id":"node_007","lx":100,"ly":1980,"children":["node_021"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1980,"searchText":"fastertransformer/megatron 대비: 최대 64-way tp에서도 44% mfu 유지 60-input/20-output 토큰 벤치마크에서 nvidia a100 16~32장 기반 fastertransformer(megatron-530b 등)와 비교. 절대 latency와 mfu 모두에서 이 논문 구현이 대부분의 지연 목표에서 최고 mfu를 기록했고, palm 구현은 parallel attention/ffn 레이어 덕에 자체 megatron 구현보다 최대 10%p mfu가 높다. multiquery attention의 이점은 이 벤치마크의 컨텍스트 길이가 짧아 두드러지지 않았다. our palm implementation outperforms our megatron implementation by up to 10% mfu in this benchmark primarily because of the parallel attention/ffn layers."},{"id":"node_008","lx":100,"ly":2280,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2280,"searchText":"결론: flop·통신량이 근본 한계, sparsity/moe가 향후 방향 이 논문은 500b+ 파라미터 모델을 64+ 칩으로 확장하는 실전 파티셔닝 원칙을 제시했다고 요약한다. 다만 저자들 스스로 인정하듯, dense transformer의 flop 수와 통신량 자체가 성능의 근본 한계다. task-based mixture-of-experts 같은 sparsity 기법이나, 입력·생성 스텝마다 계산량을 다르게 배정하는 adaptive computation 기법이 토큰당 flop을 줄여줄 잠재력이 있다고 언급하며 향후 연구로 남긴다. we observe that flop count and communication volume can fundamentally limit performance of dense transformer models. sparsity techniques, such as task-based mixture of expert architectures... and adaptive computation techniques that allocate different amounts of compute per input and generation timestep... promise to reduce flops per token of transformer models."},{"id":"node_009","lx":550,"ly":100,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":100,"searchText":"예시: 챗봇 시나리오, 64칩에서 1.9초 응답 int8 weight의 palm 540b를 64 tpu v4 칩에 올렸을 때: 사용자 입력 64토큰을 처리하고, 캐시된 대화 이력 1920토큰을 참조하고, 64토큰 응답을 생성하는 전체 과정이 1.9초에 끝난다. 오프라인 throughput 시나리오에서는 입력 1984토큰+출력 64토큰 처리에서 전체 flops 효율 73%를 달성한다. for an interactive application such as a chatbot running on palm 540b with int8 weights, our implementation on 64 tpu v4 chips can process 64 tokens of text from a user, consult a cached conversation history of 1920 tokens, and generate a 64-token response in a total of 1.9 seconds."},{"id":"node_010","lx":550,"ly":280,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":280,"searchText":"kv cache가 파라미터보다 3배 커지는 지점 배치 512, 컨텍스트 길이 2048에서 kv cache 총량은 3tb로, 모델 파라미터 크기의 3배에 달한다. 이 kv cache를 생성되는 토큰마다 매번 off-chip 메모리에서 새로 로드해야 하고, 그동안 칩의 연산 코어는 사실상 놀고 있다 — decode 단계에서 메모리 대역폭이 병목이 되는 물리적 근거다. cache grows large: for batch size 512 and context length 2048, the kv cache totals 3tb, which is 3 times the size of the model's parameters. the on-chip memory needs to load this kv cache from off-chip memory once for every token generated during which the computational core of the chip is essentially idle."},{"id":"node_011","lx":550,"ly":480,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":480,"searchText":"appendix a.1: all-gather/reduce-scatter 통신시간 공식 k개 파티션에 대한 all-gather에서, 각 칩이 크기 d의 출력을 만든다면 통신 패턴은 (k-1)/k 비율의 데이터를 (k-1)개 링크에 걸쳐 전송해야 한다. 따라서 $t_{comm(all-gather)} = \\frac{d}{bw} \\times \\frac{k-1}{k}$. reduce-scatter도 같은 공식이되 d가 더 큰 입력 버퍼 크기가 된다. all-reduce는 이 둘을 합친 것이므로 $t_{comm(all-reduce)} = 2 \\times t_{comm(all-gather)}$. k≫1로 가정하면 (k-1)/k ≈ 1로 근사해서 계산을 단순화한다. for an all-gather over k partitions, where each chip produces an output of size d, the communication pattern requires chunks of size d/k to be transferred over (k − 1) interconnect links in the process of getting copied to (k − 1) chips."},{"id":"node_012","lx":550,"ly":660,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":660,"searchText":"1d weight-stationary 통신시간 공식 각 칩은 reduce-scatter/all-gather에서 각각 ble shape(비분할)의 입출력을 주고받는다. 유도 결과 $t_{comm} = \\frac{2ble}{\\text{network bandwidth}}$ — 칩 수(n_chips)가 분모에 없다는 게 핵심: 칩을 늘려도 통신시간이 줄지 않아 결국 병목이 된다. in this 1d weight-stationary partitioning strategy, each chip gets inputs and outputs of shape ble in the reduce-scatter and all-gather respectively."},{"id":"node_013","lx":550,"ly":810,"children":[],"template":"method","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":810,"searchText":"2d weight-stationary: x=0.5√n, yz=2√n 최적 분할 가중치를 e_x f_yz로 분할, x×y×z=n_chips 제약에서 통신시간을 최소화하는 값은 x=0.5√n_chips, yz=2√n_chips(d_ff=4d_model 가정). 결과 통신시간 $t_{comm} = \\frac{8ble}{\\sqrt{n_{chips}}}$ — 분모에 √n_chips가 있어 칩을 늘릴수록 통신시간이 계속 줄어든다(1d와 대비되는 핵심 장점). we have a free choice of x, y and z subject to available tpu v4 slice shapes and x × y × z = nchips. assuming dff = 4 × dmodel, we achieve the minimum communication time with x = 0.5 × √nchips and y z = 2 × √nchips."},{"id":"node_014","lx":550,"ly":960,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":960,"searchText":"weight-gathered는 배치가 커지면 √bl로만 증가 (fig.3) weight-stationary 계열의 통신시간은 배치 토큰수(bl)에 선형으로 비례하지만, weight-gathered 계열은 √bl에만 비례한다. 그래서 배치와 prefill 시퀀스 길이가 충분히 커지면 weight-gathered가 더 싸진다 — figure 3은 토큰수가 커질수록 최적 레이아웃이 2d weight-stationary에서 x→xy→xyz weight-gathered로 순차적으로 전환됨을 보여준다. the communication time for the weight-stationary layout is linear in bl, while the communication time for the weight-gathered layout is linear in √bl. therefore, the weight-gathered layout becomes cheaper when the batch size and prefill sequence length are sufficiently large."},{"id":"node_015","lx":550,"ly":1110,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1110,"searchText":"table 1: 최적화된 multiquery는 컨텍스트 길이 32-64배 확장 attention variant별 64칩에서 지원 가능한 최대 컨텍스트 길이(총 메모리의 30%를 kv cache에 할당한다고 가정): multihead(d_head=128)는 배치128에서 1320, 배치512에서 330. baseline multiquery(head축 샤딩, d_head=256)는 660/165로 오히려 더 나쁘다(head당 크기를 키웠는데 복제 손실이 더 큼). 반면 batch축으로 샤딩한 optimized multiquery는 43,000/10,700 — multihead 대비 최대 32-64배. table 1 shows that the optimized multiquery layout can fit up to 32–64 times longer context lengths than the multihead and baseline multiquery variant."},{"id":"node_016","lx":550,"ly":1260,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1260,"searchText":"핵심 주장: batch 샤딩이 칩당 kv cache 메모리비용을 n_chips배 줄인다 q/k/v를 batch 축으로 n_chips개 파티션에 나누는 제안 레이아웃(fig.4c)에서, 각 칩은 자기 몫 시퀀스의 k/v만 로드하면 되므로 칩당 kv cache 로딩에 드는 memory time이 정확히 n_chips분의 1로 줄어든다는 것이 이 논문의 핵심 주장이다. 이는 head 축 샤딩(fig.4b, k/v head를 각 칩에 복제해야 함)과 근본적으로 다른 절감 메커니즘이다. we instead propose a partitioning strategy for the multiquery attention where the q, k, and v matrices are partitioned over the batch b dimension into nchips partitions. figure 4(c) shows that this reduces the memory cost of loading the kv cache per chip by a factor of nchips, thereby reducing the memory time by the same factor."},{"id":"node_017","lx":950,"ly":1100,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1100,"searchText":"fig.8: multiquery면 attention이 전체 런타임의 8-31%에 불과 8-layer palm 540b에서 optimized multiquery 레이아웃을 쓰면 컨텍스트 길이 8192(배치512)~32,768(배치128)까지도 attention이 차지하는 비중이 전체 런타임의 8~31%에 그친다 — 대부분의 시간이 여전히 feedforward 연산에 쓰이고, attention/kv-cache가 병목이 되는 시점을 크게 뒤로 미룬다는 뜻. multiquery attention scales up to sequence lengths of 8192–32,768 tokens (batch sizes 512 and 128 respectively) with attention taking only 8–31% of total runtime."},{"id":"node_018","lx":550,"ly":1360,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1360,"searchText":"aqt int8: 품질저하 없이 weight 메모리비용 절감 aqt(accurate quantized training) 라이브러리로 16비트 가중치를 int8로 변환해 눈에 띄는 품질 저하 없이 메모리비용을 줄인다. 이는 특히 저배치 구간(weight-loading이 지배적인 구간)에서 도움이 크고, weight-gathered 레이아웃의 통신량도 줄인다. activation quantization은 이 논문에서는 구현하지 않았지만, 향후 compute time과 통신량을 추가로 줄일 수 있을 것으로 기대한다고 언급. we use the aqt library (lew et al., 2022) to reduce the memory cost of 16-bit weights by converting them to int8 without noticeable quality loss."},{"id":"node_019","lx":550,"ly":1500,"children":[],"template":"claim","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1500,"searchText":"실증: parallel formulation이 직렬 대비 decode 지연 14% 감소 2d weight-stationary, 64칩, 배치512 조건에서 직렬(serial) attention/ffn 구성은 병렬(parallel) 구성 대비 스텝당 inference latency가 14% 더 높다 — activation 통신시간이 늘기 때문이다. prefill 단계에서는 weight-gathered 레이아웃이 activation 통신을 덜 필요로 하므로 이 차이가 줄어든다. the serial formulation incurs 14% higher inference latency per step than the parallel version because of the increased communication time for activations."},{"id":"node_020","lx":550,"ly":1680,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1680,"searchText":"실제 최소 latency: int8에서 28.5ms/token (bf16 대비 약 2배 비용 개선) figure 1(left)의 파레토 프론티어에서 얻어지는 구체적 수치: palm 540b, 배치64에서 int8 가중치로 28.5ms/token, bfloat16 가중치로는 36.9ms/token. 저지연 목표에서는 비용이 weight-loading 시간에 지배되므로 양자화가 비용을 약 2배 개선하지만, 대배치(비용이 compute-time에 지배)에서는 int8과 bfloat16의 비용 차이가 훨씬 작아진다(matmul 자체는 여전히 bfloat16 연산). we observe that int8 weight quantization achieves the minimum latency in figure 1 (left): for example, we achieve 28.5ms/token with int8 weights at batch size 64 on palm 540b, while we achieve 36.9ms/token with bfloat16 weights."},{"id":"node_021","lx":550,"ly":1980,"children":[],"template":"result","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1980,"searchText":"fastertransformer의 32-way tp는 33% mfu에서 정체 — 통신 병목 fastertransformer는 8/16/32-way tensor parallelism 결과를 보고하는데, 32-way에서 최대 33% mfu에 그친다(16-way의 46% mfu보다 오히려 낮음 — tp를 더 늘리면 통신 병목으로 역효과). 반면 이 논문의 2d weight-stationary 파티셔닝은 64-way tensor parallelism까지 확장해도 44% mfu를 유지한다 — tpu v4의 더 빠른 인터커넥트 도메인과 √n_chips 스케일링 통신 공식 덕분이라고 해석. in contrast, our implementation is able to scale up to 64-way tensor parallelism while still achieving 44% mfu, suggesting superior scalability of our 2d weight-stationary partitioning strategy on tpu v4's larger high-speed interconnect domains."},{"id":"node_022","lx":950,"ly":1280,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1280,"searchText":"kv cache가 cxl 같은 느리지만 큰 메모리 티어로 spill한다면? 이 논문의 메모리-절감 논증(multiquery로 kv cache를 n_heads배, batch 샤딩으로 다시 n_chips배 줄이는 것)은 철저히 '어느 칩의 hbm에 몇 바이트가 있는가'를 조정하는 compute-side 샤딩 문제다 — 메모리 계층(tiering) 자체는 건드리지 않는다.\n\n만약 kv cache 일부를 cxl 같은 disaggregated, 용량은 크지만 대역폭/지연이 hbm보다 못한 티어로 흘려보낼 수 있다면 어떻게 될까? 두 가능성이 있다: (1) 직교(orthogonal) 가설 — 이 논문의 통신 비용 모델(network bandwidth 한 항으로 뭉뚱그려진 t_comm 공식들)에 cxl 티어의 별도 대역폭/지연 항만 추가하면 되고, 샤딩 전략 자체는 그대로 재사용 가능하다. (2) 비직교 가설 — capacity가 사실상 무제한(pooled cxl)이 되면 애초에 '칩당 kv cache 메모리비용을 n_chips배로 나누는' 동기 자체가 약해진다(table 1의 컨텍스트 길이 제약이 사라지므로), 대신 문제가 대역폭/latency 쪽으로 완전히 옮겨간다. 이 논문은 이 축을 전혀 다루지 않는다. "},{"id":"node_023","lx":950,"ly":480,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":480,"searchText":"이 통신비용 모델은 tpu v4 3d torus를 벗어나도 성립하는가? appendix a.1의 all-gather/reduce-scatter 비용 공식은 논문이 '대부분의 실제 네트워크 토폴로지에 대해 성립하는 일반적 모델'이라고 주장하지만, 최적 x/y/z 분할(예: 2d weight-stationary의 x=0.5√n, yz=2√n)은 명시적으로 tpu v4의 3d torus 축 구조를 전제로 유도됐다. nvlink 스위치 패브릭(모든 gpu 쌍이 균일 대역폭)이나 cxl 스위치 토폴로지처럼 '축'이라는 개념 자체가 없는 인터커넥트에서는 이 x/y/z 인수분해가 어떻게 재정의돼야 하는지 논문은 다루지 않는다. "},{"id":"node_024","lx":950,"ly":1980,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1980,"searchText":"핵심 비교/인용 대상: megatron-lm · gspmd · alpa · fastertransformer · deepspeed inference 이 논문이 직접 비교하거나 대비하는 파티셔닝 프레임워크들: megatron-lm(shoeybi et al. 2019, tensor parallelism의 원조), gspmd(xu et al. 2021), alpa(zheng et al. 2022, 정수계획법으로 파티셔닝 탐색을 자동화 — 이 논문은 대신 손으로 유도한 해석적 트레이드오프를 쓴다는 점에서 대비됨), deepspeed inference(aminabadi et al. 2022, zero offload로 cpu/nvme 메모리까지 활용), fastertransformer(nvidia, §5의 직접 벤치마크 대상). multiquery attention의 원 출처는 shazeer(2019), palm 아키텍처는 chowdhery et al.(2022). "},{"id":"node_025","lx":950,"ly":1430,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1430,"searchText":"내 연구방향과의 연결: 이 논문의 병목은 '메모리 대역폭', 내 질문은 '메모리 계층' 이 논문 전체의 출발점은 decode 단계가 본질적으로 memory-bandwidth-bound라는 것(§2, kv cache가 파라미터의 3배까지 커짐)이고, 해법은 그 바이트들을 더 많은 칩의 hbm에 나눠 담아 칩당 대역폭 요구량을 낮추는 것(compute-side sharding)이다. 내가 보고 있는 cxl/disaggregation 방향은 반대편에서 같은 병목을 공격한다 — 칩 수를 늘리는 대신 메모리 자체를 계층화(capacity tier ↔ bandwidth tier)해서 문제를 푼다.\n\n흥미로운 지점은 이 두 접근이 서로 배타적이지 않다는 것 — 이 논문의 샤딩 전략은 '한 노드 안에 몇 개의 동질적 hbm 칩이 있는가'를 전제로 하는데, 만약 그 노드 자체가 이미 cxl로 확장된 이종(heterogeneous) 메모리 풀을 갖고 있다면, 샤딩 축(x,y,z)에 '메모리 티어'라는 새 차원을 추가해야 할 수도 있다. 이건 이 논문이 전혀 다루지 않는, 내 박사 연구가 채울 수 있는 빈틈으로 보인다. "}];
+var NODES_DATA = [{"id":"node_001","lx":100,"ly":180,"children":["node_009","node_010"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":180,"title":"추론 비용의 세 축: Latency, Throughput, MFU 트레이드오프","content":"생성형 Transformer 추론의 비용을 재는 세 지표: latency(전체 추론 시간, prefill+decode로 분해), throughput(초당 처리/생성 토큰 수), MFU(model FLOPS utilization, 관측 처리량 대비 이론적 최대 처리량 비율). 저자들은 이 셋 사이의 근본적 트레이드오프를 분석한다.\n\n메모리 비용 관점에서 핵심 관찰: 배치 크기와 시퀀스 길이가 작을 때는 weight를 HBM에서 로드하는 시간이 지배적이고(weight-loading이 병목), 배치·시퀀스 길이가 커지면(예: 2048+ 토큰에 배치 512+) KV cache를 로드하는 시간이 지배적으로 바뀐다. 이 KV cache 로딩 동안 칩의 연산 코어는 사실상 idle 상태다 — 즉 decode 단계는 본질적으로 memory-bandwidth-bound다.","originalTitle":"","originalText":"At small batch sizes and sequence lengths, the time to load weights dominates. At larger batch sizes and sequence lengths (e.g. 2048+ tokens with batch size 512+), the time to load the KV cache dominates.","toggles":[]},{"id":"node_002","lx":100,"ly":480,"children":["node_011"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":480,"title":"파티셔닝 표기법과 통신 collective (BLE, all-gather/reduce-scatter/all-to-all)","content":"저자들은 텐서 shape를 B(batch)·L(sequence)·E(model/embed dim)·F(feedforward dim)·H(heads)로 표기하고, 아래첨자로 TPU v4 3D torus의 X/Y/Z 축 중 어디에 분할됐는지 표시한다(예: BLE_xyz는 E를 X×Y×Z개 조각으로 분할). 축이 표기에서 생략되면 그 축은 복제(replicated)된 것이고, 'partialsum-x'는 x축에 대해 아직 합산 전인 부분합임을 뜻한다.\n\n세 가지 핵심 통신 collective: all-gather(x)는 x축을 따라 텐서를 모아 x배 큰 복제 텐서로 만들고, reduce-scatter(x)는 x축에 대해 부분합을 리듀스하면서 동시에 샤딩하며, all-reduce(x)는 이 둘을 합친 것(리듀스+브로드캐스트)이다. all-to-all은 한 텐서 차원의 샤딩을 다른 차원으로 옮긴다(예: BLH_xQ → B_xLHQ).","originalTitle":"","originalText":"We use several communication collectives originating from MPI (Clarke et al., 1994). The all-reduce(x) primitive sums a partialsum tensor such as BLEyz(partialsum-x) across sets of chips in the x axis of the torus and broadcasts the sum back to all the involved chips, returning BLEyz.","toggles":[]},{"id":"node_003","lx":100,"ly":780,"children":["node_012","node_013","node_014"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":780,"title":"Feedforward 파티셔닝: 1D/2D Weight-Stationary vs Weight-Gathered","content":"FFN 가중치를 칩에 분산하는 세 가지 레이아웃. (1) 1D weight-stationary: E×F 가중치를 d_model 또는 d_ff 한 축으로만 나눠 각 칩에 고정하고, activation을 all-gather/reduce-scatter로 주고받는다. 통신시간이 칩 수에 무관하게 거의 일정해서 칩이 늘수록 병목이 된다. (2) 2D weight-stationary: 가중치를 E와 F 두 축 모두로 나눠(E_x F_yz) 통신량을 O(1/√n_chips)로 줄인다 — √n_chips > d_ff/d_model(보통 n_chips>16)일 때 1D보다 효율적. (3) weight-gathered: activation을 고정하고 가중치를 칩 간에 통째로 옮기는 방식으로, 배치가 매우 클 때(활성값이 가중치보다 커질 때) 더 경제적이다.","originalTitle":"","originalText":"2D weight-stationary becomes more communication-efficient when √nchips > dff/dmodel. Since typically dff = 4dmodel, this occurs when nchips > 16.","toggles":[{"id":"toggle_001","title":"FFN 파티셔닝 전략별 통신 비용 공식","content":"| 전략 | 통신 시간 |\n|---|---|\n| 1D weight-stationary | $\\frac{2BLE}{\\text{bw}}$ |\n| 2D weight-stationary | $\\frac{8BLE}{\\sqrt{n_{chips}}\\,\\text{bw}}$ |\n| Weight-gathered (XYZ) | $\\frac{4E\\sqrt{BLF}}{\\sqrt{n_{chips}}\\,\\text{bw}}$ |\n\nweight-stationary 계열은 배치토큰수(BL)에 선형, weight-gathered 계열은 √BL에 비례 — 배치가 커질수록 weight-gathered가 유리해진다."}]},{"id":"node_004","lx":100,"ly":1080,"children":["node_015","node_016","node_017"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1080,"title":"Multiquery Attention: 배치 축으로 샤딩해 KV cache 메모리비용 절감","content":"Multihead attention은 head마다 별도 K/V를 갖지만, multiquery attention(Shazeer 2019; PaLM도 채용)은 Q는 그대로 n_heads개를 두되 K/V는 단 하나의 head만 두고 모든 query head가 공유한다. 이것만으로 KV cache 크기가 n_heads배 줄어든다.\n\n그런데 기존 방식대로 head 축으로 샤딩하면(Fig.4b), K/V head가 하나뿐이라 각 칩에 그대로 복제해야 해서 multiquery의 메모리 절감 효과가 사라진다. 저자들이 제안하는 대안은 Q/K/V를 batch(B) 축으로 n_chips개로 쪼개는 것(Fig.4c) — 이러면 각 칩은 자기 몫의 시퀀스에 대한 K만 있으면 되므로 칩당 KV cache 메모리비용이 n_chips배 줄어든다. 대가는 activation을 재정렬하기 위한 all-to-all 통신이 추가된다는 것.","originalTitle":"","originalText":"An alternative approach, called multiquery attention (Shazeer, 2019; Chowdhery et al., 2022), still emits nheads for the query tensor, but only a single head for the key and value tensors. This key and value head is shared across the nheads query heads. This reduces the size of the KV cache tensors by a factor of nheads and hence the memory time spent loading them.","toggles":[]},{"id":"node_005","lx":100,"ly":1380,"children":["node_018","node_019"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1380,"title":"Parallel formulation + Looped CollectiveEinsum + int8 양자화","content":"세 가지 저수준 최적화. (1) Parallel attention/FFN: layernorm된 입력에서 attention과 FFN을 각각 독립으로 계산해 더한다(직렬 대신 병렬). layernorm이 레이어당 1번으로 줄고, FFN의 입력 행렬을 attention의 W_Q와, W_K/W_V를 서로, W_O와 FFN 출력행렬을 각각 fuse할 수 있어 더 큰 GEMM으로 뭉쳐진다. 무엇보다 d_ff/n_heads 파티셔닝에 필요한 all-reduce 2번 중 1번이 아예 없어져서 통신시간이 절반으로 준다.\n\n(2) Looped CollectiveEinsum: 통신(reduce-scatter/all-gather)을 계산과 동시에 진행되도록 겹치는 기법(Wang et al. 2023). reduce-scatter를 batch/sequence 축이 아니라 hidden 축(E 또는 F)으로 하도록 선택해 이 겹침 기회를 늘렸다.\n\n(3) AQT 라이브러리로 16비트 가중치를 int8로 양자화 — 품질 저하 없이 weight-loading 메모리시간과 weight-gathered 레이아웃의 통신량을 줄인다.","originalTitle":"","originalText":"The benefits from the parallel formulation are as follows. First, there is only one layernorm per layer instead of two, which reduces latency at small batch sizes.","toggles":[]},{"id":"node_006","lx":100,"ly":1680,"children":["node_020"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1680,"title":"PaLM 540B 사례 연구: 저지연 29ms/token, 고처리량 76% MFU","content":"PaLM 계열(8B/62B/540B, bfloat16 또는 int8)에 걸쳐 효율-지연 파레토 프론티어를 구했다. 540B, 64 TPU v4 칩 기준: 저배치(생성) 구간에서 int8 가중치로 28.5ms/token(bfloat16은 36.9ms/token), 대배치(prefill) 구간에서 76% MFU를 달성 — 이는 2048 토큰 컨텍스트를 지원하면서 나온 수치다. 비용은 chip-seconds per token = n_chips × time / (B×L)로 정의되며, MFU에 반비례한다. 배치512 근처가 최소 비용 지점이고, 배치를 줄이면 지연은 개선되지만 토큰당 비용은 늘어난다(최소 지연은 배치512 대비 3배 낮다).","originalTitle":"","originalText":"Finally, we achieve a low-batch-size latency of 29ms per token during generation (using int8 weight quantization) and a 76% MFU during large-batch-size processing of input tokens, while supporting a long context length of 2048 tokens on the PaLM 540B parameter model.","toggles":[{"id":"toggle_003","title":"Table 2: PaLM 540B 예시 구성 (저지연 vs 고처리량, 64칩)","content":"| | Low-latency Prefill | Low-latency Decode | High-throughput Prefill | High-throughput Decode |\n|---|---|---|---|---|\n| Chips | 64 | 64 | 64 | 64 |\n| Batch | 1 | 64 | 512 | 512 |\n| FFN layout | WS 2D | WS 2D | WG XYZ | WS 2D |\n| Attention sharding | Head | Batch | Batch | Batch |\n| Weights | int8 | int8 | bfloat16 | bfloat16 |\n| MFU | 43% | 14% | 76% | 33% |\n| Latency | 0.29s | 1.82s | 85.2s | 6.0s |\n\n(Table 2, p.10)"}]},{"id":"node_007","lx":100,"ly":1980,"children":["node_021"],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":1980,"title":"FasterTransformer/Megatron 대비: 최대 64-way TP에서도 44% MFU 유지","content":"60-input/20-output 토큰 벤치마크에서 NVIDIA A100 16~32장 기반 FasterTransformer(Megatron-530B 등)와 비교. 절대 latency와 MFU 모두에서 이 논문 구현이 대부분의 지연 목표에서 최고 MFU를 기록했고, PaLM 구현은 parallel attention/ffn 레이어 덕에 자체 Megatron 구현보다 최대 10%p MFU가 높다. multiquery attention의 이점은 이 벤치마크의 컨텍스트 길이가 짧아 두드러지지 않았다.","originalTitle":"","originalText":"Our PaLM implementation outperforms our Megatron implementation by up to 10% MFU in this benchmark primarily because of the parallel attention/ffn layers.","toggles":[]},{"id":"node_008","lx":100,"ly":2280,"children":[],"template":"main_topic","contentExpanded":true,"isMain":true,"nodeHeight":null,"naturalY":2280,"title":"결론: FLOP·통신량이 근본 한계, sparsity/MoE가 향후 방향","content":"이 논문은 500B+ 파라미터 모델을 64+ 칩으로 확장하는 실전 파티셔닝 원칙을 제시했다고 요약한다. 다만 저자들 스스로 인정하듯, dense Transformer의 FLOP 수와 통신량 자체가 성능의 근본 한계다. task-based mixture-of-experts 같은 sparsity 기법이나, 입력·생성 스텝마다 계산량을 다르게 배정하는 adaptive computation 기법이 토큰당 FLOP을 줄여줄 잠재력이 있다고 언급하며 향후 연구로 남긴다.","originalTitle":"","originalText":"we observe that FLOP count and communication volume can fundamentally limit performance of dense Transformer models. Sparsity techniques, such as task-based mixture of expert architectures... and adaptive computation techniques that allocate different amounts of compute per input and generation timestep... promise to reduce FLOPs per token of Transformer models.","toggles":[]},{"id":"node_009","lx":550,"ly":100,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":100,"title":"예시: 챗봇 시나리오, 64칩에서 1.9초 응답","content":"int8 weight의 PaLM 540B를 64 TPU v4 칩에 올렸을 때: 사용자 입력 64토큰을 처리하고, 캐시된 대화 이력 1920토큰을 참조하고, 64토큰 응답을 생성하는 전체 과정이 1.9초에 끝난다. 오프라인 throughput 시나리오에서는 입력 1984토큰+출력 64토큰 처리에서 전체 FLOPS 효율 73%를 달성한다.","originalTitle":"","originalText":"For an interactive application such as a chatbot running on PaLM 540B with int8 weights, our implementation on 64 TPU v4 chips can process 64 tokens of text from a user, consult a cached conversation history of 1920 tokens, and generate a 64-token response in a total of 1.9 seconds.","toggles":[]},{"id":"node_010","lx":550,"ly":280,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":280,"title":"KV cache가 파라미터보다 3배 커지는 지점","content":"배치 512, 컨텍스트 길이 2048에서 KV cache 총량은 3TB로, 모델 파라미터 크기의 3배에 달한다. 이 KV cache를 생성되는 토큰마다 매번 off-chip 메모리에서 새로 로드해야 하고, 그동안 칩의 연산 코어는 사실상 놀고 있다 — decode 단계에서 메모리 대역폭이 병목이 되는 물리적 근거다.","originalTitle":"","originalText":"cache grows large: for batch size 512 and context length 2048, the KV cache totals 3TB, which is 3 times the size of the model's parameters. The on-chip memory needs to load this KV cache from off-chip memory once for every token generated during which the computational core of the chip is essentially idle.","toggles":[]},{"id":"node_011","lx":550,"ly":480,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":480,"title":"Appendix A.1: all-gather/reduce-scatter 통신시간 공식","content":"K개 파티션에 대한 all-gather에서, 각 칩이 크기 D의 출력을 만든다면 통신 패턴은 (K-1)/K 비율의 데이터를 (K-1)개 링크에 걸쳐 전송해야 한다. 따라서 $T_{comm(all-gather)} = \\frac{D}{bw} \\times \\frac{K-1}{K}$. reduce-scatter도 같은 공식이되 D가 더 큰 입력 버퍼 크기가 된다. all-reduce는 이 둘을 합친 것이므로 $T_{comm(all-reduce)} = 2 \\times T_{comm(all-gather)}$. K≫1로 가정하면 (K-1)/K ≈ 1로 근사해서 계산을 단순화한다.","originalTitle":"","originalText":"For an all-gather over K partitions, where each chip produces an output of size D, the communication pattern requires chunks of size D/K to be transferred over (K − 1) interconnect links in the process of getting copied to (K − 1) chips.","toggles":[]},{"id":"node_012","lx":550,"ly":660,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":660,"title":"1D weight-stationary 통신시간 공식","content":"각 칩은 reduce-scatter/all-gather에서 각각 BLE shape(비분할)의 입출력을 주고받는다. 유도 결과 $T_{comm} = \\frac{2BLE}{\\text{network bandwidth}}$ — 칩 수(n_chips)가 분모에 없다는 게 핵심: 칩을 늘려도 통신시간이 줄지 않아 결국 병목이 된다.","originalTitle":"","originalText":"In this 1D weight-stationary partitioning strategy, each chip gets inputs and outputs of shape BLE in the reduce-scatter and all-gather respectively.","toggles":[]},{"id":"node_013","lx":550,"ly":810,"children":[],"template":"method","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":810,"title":"2D weight-stationary: X=0.5√n, YZ=2√n 최적 분할","content":"가중치를 E_x F_yz로 분할, X×Y×Z=n_chips 제약에서 통신시간을 최소화하는 값은 X=0.5√n_chips, YZ=2√n_chips(d_ff=4d_model 가정). 결과 통신시간 $T_{comm} = \\frac{8BLE}{\\sqrt{n_{chips}}}$ — 분모에 √n_chips가 있어 칩을 늘릴수록 통신시간이 계속 줄어든다(1D와 대비되는 핵심 장점).","originalTitle":"","originalText":"We have a free choice of X, Y and Z subject to available TPU v4 slice shapes and X × Y × Z = nchips. Assuming dff = 4 × dmodel, we achieve the minimum communication time with X = 0.5 × √nchips and Y Z = 2 × √nchips.","toggles":[]},{"id":"node_014","lx":550,"ly":960,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":960,"title":"Weight-gathered는 배치가 커지면 √BL로만 증가 (Fig.3)","content":"weight-stationary 계열의 통신시간은 배치 토큰수(BL)에 선형으로 비례하지만, weight-gathered 계열은 √BL에만 비례한다. 그래서 배치와 prefill 시퀀스 길이가 충분히 커지면 weight-gathered가 더 싸진다 — Figure 3은 토큰수가 커질수록 최적 레이아웃이 2D weight-stationary에서 X→XY→XYZ weight-gathered로 순차적으로 전환됨을 보여준다.","originalTitle":"","originalText":"The communication time for the weight-stationary layout is linear in BL, while the communication time for the weight-gathered layout is linear in √BL. Therefore, the weight-gathered layout becomes cheaper when the batch size and prefill sequence length are sufficiently large.","toggles":[]},{"id":"node_015","lx":550,"ly":1110,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1110,"title":"Table 1: 최적화된 multiquery는 컨텍스트 길이 32-64배 확장","content":"attention variant별 64칩에서 지원 가능한 최대 컨텍스트 길이(총 메모리의 30%를 KV cache에 할당한다고 가정): multihead(d_head=128)는 배치128에서 1320, 배치512에서 330. baseline multiquery(head축 샤딩, d_head=256)는 660/165로 오히려 더 나쁘다(head당 크기를 키웠는데 복제 손실이 더 큼). 반면 batch축으로 샤딩한 optimized multiquery는 43,000/10,700 — multihead 대비 최대 32-64배.","originalTitle":"","originalText":"Table 1 shows that the optimized multiquery layout can fit up to 32–64 times longer context lengths than the multihead and baseline multiquery variant.","toggles":[{"id":"toggle_002","title":"Table 1: attention variant별 최대 컨텍스트 길이 (64칩)","content":"| Model variant | d_head | Max context (batch=128) | Max context (batch=512) |\n|---|---|---|---|\n| Multihead | 128 | 1320 | 330 |\n| Baseline multiquery | 256 | 660 | 165 |\n| Optimized multiquery | 256 | 43000 | 10700 |"}]},{"id":"node_016","lx":550,"ly":1260,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1260,"title":"핵심 주장: batch 샤딩이 칩당 KV cache 메모리비용을 n_chips배 줄인다","content":"Q/K/V를 batch 축으로 n_chips개 파티션에 나누는 제안 레이아웃(Fig.4c)에서, 각 칩은 자기 몫 시퀀스의 K/V만 로드하면 되므로 칩당 KV cache 로딩에 드는 memory time이 정확히 n_chips분의 1로 줄어든다는 것이 이 논문의 핵심 주장이다. 이는 head 축 샤딩(Fig.4b, K/V head를 각 칩에 복제해야 함)과 근본적으로 다른 절감 메커니즘이다.","originalTitle":"","originalText":"We instead propose a partitioning strategy for the multiquery attention where the Q, K, and V matrices are partitioned over the batch B dimension into nchips partitions. Figure 4(c) shows that this reduces the memory cost of loading the KV cache per chip by a factor of nchips, thereby reducing the memory time by the same factor.","toggles":[]},{"id":"node_017","lx":950,"ly":1100,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1100,"title":"Fig.8: multiquery면 attention이 전체 런타임의 8-31%에 불과","content":"8-layer PaLM 540B에서 optimized multiquery 레이아웃을 쓰면 컨텍스트 길이 8192(배치512)~32,768(배치128)까지도 attention이 차지하는 비중이 전체 런타임의 8~31%에 그친다 — 대부분의 시간이 여전히 feedforward 연산에 쓰이고, attention/KV-cache가 병목이 되는 시점을 크게 뒤로 미룬다는 뜻.","originalTitle":"","originalText":"Multiquery attention scales up to sequence lengths of 8192–32,768 tokens (batch sizes 512 and 128 respectively) with attention taking only 8–31% of total runtime.","toggles":[]},{"id":"node_018","lx":550,"ly":1360,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1360,"title":"AQT int8: 품질저하 없이 weight 메모리비용 절감","content":"AQT(Accurate Quantized Training) 라이브러리로 16비트 가중치를 int8로 변환해 눈에 띄는 품질 저하 없이 메모리비용을 줄인다. 이는 특히 저배치 구간(weight-loading이 지배적인 구간)에서 도움이 크고, weight-gathered 레이아웃의 통신량도 줄인다. activation quantization은 이 논문에서는 구현하지 않았지만, 향후 compute time과 통신량을 추가로 줄일 수 있을 것으로 기대한다고 언급.","originalTitle":"","originalText":"We use the AQT library (Lew et al., 2022) to reduce the memory cost of 16-bit weights by converting them to int8 without noticeable quality loss.","toggles":[]},{"id":"node_019","lx":550,"ly":1500,"children":[],"template":"claim","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1500,"title":"실증: parallel formulation이 직렬 대비 decode 지연 14% 감소","content":"2D weight-stationary, 64칩, 배치512 조건에서 직렬(serial) attention/FFN 구성은 병렬(parallel) 구성 대비 스텝당 inference latency가 14% 더 높다 — activation 통신시간이 늘기 때문이다. prefill 단계에서는 weight-gathered 레이아웃이 activation 통신을 덜 필요로 하므로 이 차이가 줄어든다.","originalTitle":"","originalText":"The serial formulation incurs 14% higher inference latency per step than the parallel version because of the increased communication time for activations.","toggles":[]},{"id":"node_020","lx":550,"ly":1680,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1680,"title":"실제 최소 latency: int8에서 28.5ms/token (bf16 대비 약 2배 비용 개선)","content":"Figure 1(left)의 파레토 프론티어에서 얻어지는 구체적 수치: PaLM 540B, 배치64에서 int8 가중치로 28.5ms/token, bfloat16 가중치로는 36.9ms/token. 저지연 목표에서는 비용이 weight-loading 시간에 지배되므로 양자화가 비용을 약 2배 개선하지만, 대배치(비용이 compute-time에 지배)에서는 int8과 bfloat16의 비용 차이가 훨씬 작아진다(matmul 자체는 여전히 bfloat16 연산).","originalTitle":"","originalText":"We observe that int8 weight quantization achieves the minimum latency in Figure 1 (left): for example, we achieve 28.5ms/token with int8 weights at batch size 64 on PaLM 540B, while we achieve 36.9ms/token with bfloat16 weights.","toggles":[]},{"id":"node_021","lx":550,"ly":1980,"children":[],"template":"result","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1980,"title":"FasterTransformer의 32-way TP는 33% MFU에서 정체 — 통신 병목","content":"FasterTransformer는 8/16/32-way tensor parallelism 결과를 보고하는데, 32-way에서 최대 33% MFU에 그친다(16-way의 46% MFU보다 오히려 낮음 — TP를 더 늘리면 통신 병목으로 역효과). 반면 이 논문의 2D weight-stationary 파티셔닝은 64-way tensor parallelism까지 확장해도 44% MFU를 유지한다 — TPU v4의 더 빠른 인터커넥트 도메인과 √n_chips 스케일링 통신 공식 덕분이라고 해석.","originalTitle":"","originalText":"In contrast, our implementation is able to scale up to 64-way tensor parallelism while still achieving 44% MFU, suggesting superior scalability of our 2D weight-stationary partitioning strategy on TPU v4's larger high-speed interconnect domains.","toggles":[]},{"id":"node_022","lx":950,"ly":1280,"children":[],"template":"gap","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1280,"title":"KV cache가 CXL 같은 느리지만 큰 메모리 티어로 spill한다면?","content":"이 논문의 메모리-절감 논증(multiquery로 KV cache를 n_heads배, batch 샤딩으로 다시 n_chips배 줄이는 것)은 철저히 '어느 칩의 HBM에 몇 바이트가 있는가'를 조정하는 compute-side 샤딩 문제다 — 메모리 계층(tiering) 자체는 건드리지 않는다.\n\n만약 KV cache 일부를 CXL 같은 disaggregated, 용량은 크지만 대역폭/지연이 HBM보다 못한 티어로 흘려보낼 수 있다면 어떻게 될까? 두 가능성이 있다: (1) 직교(orthogonal) 가설 — 이 논문의 통신 비용 모델(network bandwidth 한 항으로 뭉뚱그려진 T_comm 공식들)에 CXL 티어의 별도 대역폭/지연 항만 추가하면 되고, 샤딩 전략 자체는 그대로 재사용 가능하다. (2) 비직교 가설 — capacity가 사실상 무제한(pooled CXL)이 되면 애초에 '칩당 KV cache 메모리비용을 n_chips배로 나누는' 동기 자체가 약해진다(Table 1의 컨텍스트 길이 제약이 사라지므로), 대신 문제가 대역폭/latency 쪽으로 완전히 옮겨간다. 이 논문은 이 축을 전혀 다루지 않는다.","originalTitle":"","originalText":"","toggles":[]},{"id":"node_023","lx":950,"ly":480,"children":[],"template":"question","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":480,"title":"이 통신비용 모델은 TPU v4 3D torus를 벗어나도 성립하는가?","content":"Appendix A.1의 all-gather/reduce-scatter 비용 공식은 논문이 '대부분의 실제 네트워크 토폴로지에 대해 성립하는 일반적 모델'이라고 주장하지만, 최적 X/Y/Z 분할(예: 2D weight-stationary의 X=0.5√n, YZ=2√n)은 명시적으로 TPU v4의 3D torus 축 구조를 전제로 유도됐다. NVLink 스위치 패브릭(모든 GPU 쌍이 균일 대역폭)이나 CXL 스위치 토폴로지처럼 '축'이라는 개념 자체가 없는 인터커넥트에서는 이 X/Y/Z 인수분해가 어떻게 재정의돼야 하는지 논문은 다루지 않는다.","originalTitle":"","originalText":"","toggles":[]},{"id":"node_024","lx":950,"ly":1980,"children":[],"template":"reference","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1980,"title":"핵심 비교/인용 대상: Megatron-LM · GSPMD · Alpa · FasterTransformer · DeepSpeed Inference","content":"이 논문이 직접 비교하거나 대비하는 파티셔닝 프레임워크들: Megatron-LM(Shoeybi et al. 2019, tensor parallelism의 원조), GSPMD(Xu et al. 2021), Alpa(Zheng et al. 2022, 정수계획법으로 파티셔닝 탐색을 자동화 — 이 논문은 대신 손으로 유도한 해석적 트레이드오프를 쓴다는 점에서 대비됨), DeepSpeed Inference(Aminabadi et al. 2022, ZeRO offload로 CPU/NVMe 메모리까지 활용), FasterTransformer(NVIDIA, §5의 직접 벤치마크 대상). multiquery attention의 원 출처는 Shazeer(2019), PaLM 아키텍처는 Chowdhery et al.(2022).","originalTitle":"","originalText":"","toggles":[]},{"id":"node_025","lx":950,"ly":1430,"children":[],"template":"memo","contentExpanded":true,"isMain":false,"nodeHeight":null,"naturalY":1430,"title":"내 연구방향과의 연결: 이 논문의 병목은 '메모리 대역폭', 내 질문은 '메모리 계층'","content":"이 논문 전체의 출발점은 decode 단계가 본질적으로 memory-bandwidth-bound라는 것(§2, KV cache가 파라미터의 3배까지 커짐)이고, 해법은 그 바이트들을 더 많은 칩의 HBM에 나눠 담아 칩당 대역폭 요구량을 낮추는 것(compute-side sharding)이다. 내가 보고 있는 CXL/disaggregation 방향은 반대편에서 같은 병목을 공격한다 — 칩 수를 늘리는 대신 메모리 자체를 계층화(capacity tier ↔ bandwidth tier)해서 문제를 푼다.\n\n흥미로운 지점은 이 두 접근이 서로 배타적이지 않다는 것 — 이 논문의 샤딩 전략은 '한 노드 안에 몇 개의 동질적 HBM 칩이 있는가'를 전제로 하는데, 만약 그 노드 자체가 이미 CXL로 확장된 이종(heterogeneous) 메모리 풀을 갖고 있다면, 샤딩 축(X,Y,Z)에 '메모리 티어'라는 새 차원을 추가해야 할 수도 있다. 이건 이 논문이 전혀 다루지 않는, 내 박사 연구가 채울 수 있는 빈틈으로 보인다.","originalTitle":"","originalText":"","toggles":[]}];
 var EDGES = [{"source":"node_001","target":"node_002","type":"arrow","label":""},{"source":"node_002","target":"node_003","type":"arrow","label":""},{"source":"node_003","target":"node_004","type":"arrow","label":""},{"source":"node_004","target":"node_005","type":"arrow","label":""},{"source":"node_005","target":"node_006","type":"arrow","label":""},{"source":"node_006","target":"node_007","type":"arrow","label":""},{"source":"node_007","target":"node_008","type":"arrow","label":""},{"source":"node_001","target":"node_009","type":"line","label":""},{"source":"node_001","target":"node_010","type":"line","label":""},{"source":"node_002","target":"node_011","type":"line","label":""},{"source":"node_003","target":"node_012","type":"line","label":""},{"source":"node_003","target":"node_013","type":"line","label":""},{"source":"node_003","target":"node_014","type":"line","label":""},{"source":"node_004","target":"node_015","type":"line","label":""},{"source":"node_004","target":"node_016","type":"line","label":""},{"source":"node_004","target":"node_017","type":"line","label":""},{"source":"node_005","target":"node_018","type":"line","label":""},{"source":"node_005","target":"node_019","type":"line","label":""},{"source":"node_006","target":"node_020","type":"line","label":""},{"source":"node_007","target":"node_021","type":"line","label":""},{"source":"node_004","target":"node_022","type":"line","label":"gap"},{"source":"node_002","target":"node_023","type":"line","label":"question"},{"source":"node_007","target":"node_024","type":"line","label":"참고"},{"source":"node_004","target":"node_025","type":"line","label":"내 연구"}];
+var NODE_TEMPLATES = {"main_topic":"Main topic","method":"Method","result":"Result","claim":"Claim","question":"Question","gap":"Gap / Idea","reference":"Reference","memo":"Memo"};
 var HEADER_H = 36;
+
+// Collapse/Expand 라벨 필터 드롭다운 채우기 (에디터의 라벨 필터와 동일한 옵션/동작)
+(function populateFilterSelect() {
+  var sel = document.getElementById('tb-filter');
+  var noneOpt = document.createElement('option');
+  noneOpt.value = ''; noneOpt.textContent = 'None';
+  sel.appendChild(noneOpt);
+  Object.keys(NODE_TEMPLATES).forEach(function(key) {
+    var opt = document.createElement('option');
+    opt.value = key; opt.textContent = NODE_TEMPLATES[key];
+    sel.appendChild(opt);
+  });
+})();
 
 var vp = document.getElementById('viewport');
 var canvas = document.getElementById('canvas');
@@ -370,6 +396,7 @@ window.addEventListener('resize', function() {
     tx = r.width / 2 - cxw * scale;
     ty = r.height / 2 - cyw * scale;
     applyTransform();
+    updateZoomLineWeights();
   }
   lastVW = r.width; lastVH = r.height;
 });
@@ -385,6 +412,7 @@ vp.addEventListener('wheel', function(e) {
   ty = my - (my - ty) * (ns / scale);
   scale = ns;
   applyTransform();
+  updateZoomLineWeights();
 }, { passive: false });
 
 // Canvas pan
@@ -482,6 +510,9 @@ function onTitleClick(e, titleEl) {
   for (var i = 0; i < NODES_DATA.length; i++) {
     if (NODES_DATA[i].id === nodeId) { NODES_DATA[i].contentExpanded = expanding; break; }
   }
+  // 접혀 있는 동안엔 .ng-content가 display:none이라 측정이 전부 0으로 나와 More
+  // 버튼이 필요없다고 잘못 판단되므로, 다시 보이게 될 때 이 노드만 재측정
+  if (expanding) applyContentCaps(nodeEl);
   setTimeout(recomputePositions, 0);
   // 검색 드롭다운이 열려있으면 search input 포커스 복원 (화살표 키 유지)
   if (document.getElementById('search-wrap').classList.contains('open') && searchSelectedId === null) {
@@ -549,7 +580,7 @@ function syncMinHeight(el, expand) {
   el.style.minHeight = (expand && minH) ? minH + 'px' : '';
 }
 
-function applyFold(nodeIds, expand) {
+function applyFold(nodeIds, expand, after) {
   nodeIds.forEach(function(id) {
     var el = document.getElementById('node-' + id);
     if (!el) return;
@@ -562,7 +593,7 @@ function applyFold(nodeIds, expand) {
       if (NODES_DATA[i].id === id) { NODES_DATA[i].contentExpanded = expand; break; }
     }
   });
-  setTimeout(recomputePositions, 0);
+  setTimeout(function() { recomputePositions(); if (after) after(); }, 0);
 }
 
 // Recompute positions when <details> toggles change node height.
@@ -572,7 +603,17 @@ canvas.addEventListener('toggle', function() {
 }, true);
 
 // Toolbar: context-aware expand/collapse
+// 라벨 필터: None이면 기존 동작 그대로. 특정 타입이면 Collapse는 항상 전체 접음,
+// Expand는 그 타입 노드만 펼치고 나머지는 강제로 접음 (부모/자식 관계 무시, 에디터와 동일 규칙)
 function doExpand() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    var matching = [], rest = [];
+    NODES_DATA.forEach(function(n) { (n.template === filter ? matching : rest).push(n.id); });
+    applyFold(rest, false);
+    applyFold(matching, true);
+    return;
+  }
   if (selectedNodeId) {
     applyFold(getExpandDescendants(selectedNodeId, true), true);
   } else {
@@ -585,12 +626,81 @@ function doExpand() {
     applyFold(toExpand, true);
   }
 }
+// 전체 collapse(선택 없이, 또는 필터가 걸려 있어도 결국 전체)일 때만 자동으로
+// Fit View — 선택 서브트리만 접을 땐 사용자가 보던 영역을 유지해야 하므로 대상에서
+// 제외 (에디터와 동일 규칙).
 function doCollapse() {
+  var filter = document.getElementById('tb-filter').value;
+  if (filter) {
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
+    return;
+  }
   if (selectedNodeId) {
     applyFold([selectedNodeId].concat(getAllDescendants(selectedNodeId)), false);
   } else {
-    applyFold(NODES_DATA.map(function(n){return n.id;}), false);
+    applyFold(NODES_DATA.map(function(n){return n.id;}), false, fitView);
   }
+}
+
+// 드롭된 노드의 raw 위치(lx/ly)를 형제들 사이에서 실제로 어디 떨어졌는지에 맞춰 다시
+// 계산한다. onUp이 그냥 "드롭된 렌더 좌표를 그대로 저장"하면, 그 렌더 좌표는 raw 좌표와
+// 전혀 다른 좌표계(레이아웃 알고리즘이 raw를 대폭 재배치하는 게 이 알고리즘의 존재
+// 이유)라 형제들의 raw ly 범위를 완전히 벗어나는 경우가 흔하고, 그 결과 다음 재배치 때
+// 항상 맨 위/맨 아래로 튕기는 것처럼 보인다(에디터에서도 같은 버그가 있었음). 드롭 시점의
+// DOM 위치(형제들은 이 드래그 동안 한 번도 안 움직였으므로 여전히 정확한 배치 상태를
+// 반영함)를 기준으로 어느 두 형제 사이에 놓였는지 찾아 그 사이 값으로 raw ly를 맞춘다.
+function reconcileDroppedPosition(nodeId, nodeDatum) {
+  var nodeMap = {};
+  NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
+  var tree = buildHopTreeJs();
+  var parentId = tree.parentOf[nodeId];
+  if (!parentId) return;
+
+  function findRootId(fromId) {
+    var cur = fromId, visited = {};
+    while (!visited[cur]) {
+      visited[cur] = true;
+      var n = nodeMap[cur];
+      if (!n) return cur;
+      if (n.isMain) return cur;
+      var p = tree.parentOf[cur];
+      if (!p) return cur;
+      cur = p;
+    }
+    return cur;
+  }
+  var root = nodeMap[findRootId(nodeId)];
+  function sideOfNode(n) { return (root && n.lx >= root.lx) ? 1 : -1; }
+  var draggedSide = sideOfNode(nodeDatum);
+
+  var sameSideSiblings = [];
+  NODES_DATA.forEach(function(n) {
+    if (n.id === nodeId) return;
+    if (tree.parentOf[n.id] === parentId && sideOfNode(n) === draggedSide) sameSideSiblings.push(n.id);
+  });
+  if (sameSideSiblings.length === 0) return;
+
+  var draggedRenderY = nodeDatum.ly;
+  var ordered = sameSideSiblings.map(function(sid) {
+    var el = document.getElementById('node-' + sid);
+    var ry = el ? (parseFloat(el.style.top) || 0) : nodeMap[sid].ly;
+    return { id: sid, renderY: ry };
+  }).sort(function(a, b) { return a.renderY - b.renderY; });
+
+  var belowIdx = -1;
+  for (var i = 0; i < ordered.length; i++) {
+    if (ordered[i].renderY > draggedRenderY) { belowIdx = i; break; }
+  }
+  var newY;
+  if (belowIdx === -1) newY = nodeMap[ordered[ordered.length - 1].id].ly + 1;
+  else if (belowIdx === 0) newY = nodeMap[ordered[0].id].ly - 1;
+  else newY = (nodeMap[ordered[belowIdx - 1].id].ly + nodeMap[ordered[belowIdx].id].ly) / 2;
+
+  // lx도 드래그 중 렌더 좌표가 raw에 섞여 들어가 오염됐을 수 있으므로, 같은 side 형제의
+  // raw lx를 빌려 바로잡는다(side 전환처럼 형제가 없는 경우는 건드리지 않음).
+  nodeDatum.lx = nodeMap[sameSideSiblings[0]].lx;
+  nodeDatum.ly = newY;
+  nodeDatum.naturalY = newY;
 }
 
 // Tag drag handle
@@ -622,192 +732,285 @@ function onNodeTagMousedown(e, nodeEl) {
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
     nodeEl.classList.remove('ng-dragging');
-    // 드롭된 렌더 좌표를 그대로 저장 — 밀려있던 노드에 delta를 더하면 드롭 위치와 어긋남
-    if (moved) { lastWasDrag = true; if (nodeDatum) { nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly; } setTimeout(recomputePositions, 0); }
+    // 드롭된 렌더 좌표를 일단 그대로 저장한 뒤, 형제들 사이 실제 위치에 맞춰 raw로
+    // 재해석한다(reconcileDroppedPosition — 위 참고, 렌더 좌표를 raw에 그대로 쓰면 안
+    // 되는 이유).
+    if (moved) {
+      lastWasDrag = true;
+      if (nodeDatum) {
+        nodeDatum.lx = left0 + finalDX; nodeDatum.ly = top0 + finalDY; nodeDatum.naturalY = nodeDatum.ly;
+        reconcileDroppedPosition(nodeId, nodeDatum);
+      }
+      setTimeout(recomputePositions, 0);
+    }
   }
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
 }
 
+// Canvas.tsx의 computeRenderPositions와 완전히 동일한 hop-tree bottom-up/top-down
+// 알고리즘의 vanilla JS 이식 — 예전엔 X 겹침 기준 union-find 컬럼 + 그리디 Y-패킹이라는
+// 완전히 다른(더 오래된) 알고리즘을 썼는데, 그 방식은 hop depth 개념이 없어서 브랜치마다
+// hop-1/hop-2가 서로 다른 X에서 시작하는 문제가 있었음(사용자가 Grid 오버레이로 직접
+// 확인해서 발견 — "hop1과 hop2 가로 시작 위치가 동일하지 않아서"). 에디터와 정확히 같은
+// 결과가 나오도록 알고리즘 자체를 교체.
 function recomputePositions() {
-  // Canvas.tsx의 computeRenderPositions와 동일한 알고리즘 (vanilla JS 버전)
-  // main/sub 구분 없이 X 컬럼 단위로 묶어 그리디 패킹 → unfold 시 push-down, fold 시 pull-up
-
   var nodeMap = {};
   NODES_DATA.forEach(function(n) { nodeMap[n.id] = n; });
 
   function getH(n) {
     var el = document.getElementById('node-' + n.id);
     if (el) return el.offsetHeight;
-    // DOM 미존재 fallback: 접힌 노드는 항상 헤더 높이
     return n.contentExpanded ? (n.nodeHeight || HEADER_H) : HEADER_H;
   }
   function getW(n) {
     var el = document.getElementById('node-' + n.id);
     return el ? el.offsetWidth : (n.nodeWidth || 432);
   }
-  function isConn(aId, bId) {
-    var a = nodeMap[aId], b = nodeMap[bId];
-    if (!a || !b) return false;
-    if ((a.children && a.children.indexOf(bId) !== -1) || (b.children && b.children.indexOf(aId) !== -1)) return true;
-    return EDGES.some(function(e) {
-      return (e.source === aId && e.target === bId) || (e.source === bId && e.target === aId);
+
+  var tree = buildHopTreeJs();
+
+  // main topic(백본) 기준 좌/우 — 세로 배치(아래)와 가로 정렬(Pass 4) 양쪽에서 왼쪽/오른쪽
+  // 자식을 독립적으로 다루기 위해 먼저 계산해둔다.
+  var sideOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) { sideOf[n.id] = 0; return; }
+    var root = nodeMap[tree.rootOf[n.id]];
+    sideOf[n.id] = n.lx >= root.lx ? 1 : -1;
+  });
+
+  // 각 부모의 자식들을 저장된 상대 Y(디자인 의도상 순서) 기준으로 정렬
+  var childrenOf = {};
+  NODES_DATA.forEach(function(n) {
+    var p = tree.parentOf[n.id];
+    if (!p) return;
+    (childrenOf[p] = childrenOf[p] || []).push(n.id);
+  });
+  Object.keys(childrenOf).forEach(function(pid) {
+    var parent = nodeMap[pid];
+    childrenOf[pid].sort(function(a, b) {
+      return (nodeMap[a].ly - parent.ly) - (nodeMap[b].ly - parent.ly);
+    });
+  });
+
+  // 형제 그룹을 부모의 원래 Y 기준 위/아래로, 그리고 좌/우(side)로 분리한다. 왼쪽/오른쪽
+  // 자식은 서로 다른 X에 그려져 세로 공간을 절대 공유하지 않으므로 독립적으로 계산해야
+  // 한쪽이 커질 때 반대쪽 분기점까지 같이 밀리는 걸 막는다. above 배열은 reverse해서
+  // "부모와 가장 가까운 것부터" 순서로 맞춘다 — kids는 상대 Y 오름차순 정렬이라 below
+  // 그룹(부모에서 멀어지는 방향으로 순서대로 진행)엔 그대로 맞지만, above 그룹은 같은
+  // 진행 방향(위로 멀어짐)인데 오름차순이면 가장 먼 자식이 배열 맨 앞이라 오히려 부모와
+  // 가장 가깝게 배치되고 그다음이 더 멀리 밀리는 식으로 시각적 순서가 뒤집힌다.
+  function splitByOriginalSide(parentId, side) {
+    var parent = nodeMap[parentId];
+    var kids = (childrenOf[parentId] || []).filter(function(k) { return sideOf[k] === side; });
+    var above = kids.filter(function(k) { return nodeMap[k].ly < parent.ly; }).reverse();
+    return {
+      below: kids.filter(function(k) { return nodeMap[k].ly >= parent.ly; }),
+      above: above,
+    };
+  }
+
+  // main topic끼리(백본)만 20px 기준, 그 외(hop 자식)는 항상 30px 기준
+  function gapFor(a, b) {
+    var base = (a.isMain && b.isMain) ? 20 : 30;
+    return (getH(a) > HEADER_H || getH(b) > HEADER_H) ? 48 : base;
+  }
+
+  // ── bottom-up: 각 서브트리가 자기 중심 기준 위/아래로 필요한 공간 ──
+  var infoCache = {};
+  function stackSize(group, parentNode) {
+    if (!group.length) return 0;
+    var total = 0;
+    for (var i = 0; i < group.length; i++) {
+      var kid = nodeMap[group[i]];
+      var prev = i === 0 ? parentNode : nodeMap[group[i - 1]];
+      total += gapFor(prev, kid);
+      var kInfo = layoutInfo(group[i]);
+      total += kInfo.above + kInfo.below;
+    }
+    return total;
+  }
+
+  // above+below 블록을 부모 중심에 맞추기 위한 분기점 이동량(shift). 이상적으로는
+  // (belowSize-aboveSize)/2만큼 옮기면 블록 전체가 정확히 부모 중심에 오지만, 양쪽에 다
+  // 형제가 있는 상태에서 두 그룹 크기 차이가 크면(예: 3:1 이상) 그 이동량이 큰 쪽 그룹의
+  // "부모와 가장 가까운 자식"을 부모 중심 반대편으로 밀어버린다(below의 첫 자식이 부모
+  // 보다 위에 렌더되는 등, 자식이 부모를 시각적으로 뛰어넘는 버그). 두 그룹이 다 있을
+  // 때만, "더 큰 쪽의 첫 자식이 부모 중심을 넘지 않는 한도"로 이동량을 clamp한다.
+  function splitShift(id, side) {
+    var node = nodeMap[id];
+    var split = splitByOriginalSide(id, side);
+    var above = split.above, below = split.below;
+    var belowSize = stackSize(below, node);
+    var aboveSize = stackSize(above, node);
+    var shift = (belowSize - aboveSize) / 2;
+    if (above.length > 0 && below.length > 0) {
+      if (shift > 0) {
+        var firstBelow = nodeMap[below[0]];
+        var firstBelowInfo = layoutInfo(below[0]);
+        shift = Math.min(shift, gapFor(node, firstBelow) + firstBelowInfo.above);
+      } else if (shift < 0) {
+        var firstAbove = nodeMap[above[0]];
+        var firstAboveInfo = layoutInfo(above[0]);
+        shift = Math.max(shift, -(gapFor(node, firstAbove) + firstAboveInfo.below));
+      }
+    }
+    return { above: above, below: below, belowSize: belowSize, aboveSize: aboveSize, shift: shift };
+  }
+
+  function layoutInfo(id) {
+    if (infoCache[id]) return infoCache[id];
+    var node = nodeMap[id];
+    var ownHalf = getH(node) / 2;
+    // side별로 독립적으로 above+below 블록을 재센터링하므로, 이 노드가 자기 부모에게
+    // 보고하는 "필요 공간"도 side별로 따로 구해서(왼쪽·오른쪽은 세로 공간을 안 겹치므로
+    // 더하지 않고 더 많이 필요한 쪽 기준) splitShift가 clamp한 실제 shift를 반영한다 —
+    // 안 그러면 assign()이 실제로 만드는 위치와 어긋나 다른 클러스터와 겹칠 수 있다.
+    var aboveReach = 0, belowReach = 0;
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      aboveReach = Math.max(aboveReach, s.aboveSize + s.shift);
+      belowReach = Math.max(belowReach, s.belowSize - s.shift);
+    });
+    var info = { above: Math.max(ownHalf, aboveReach), below: Math.max(ownHalf, belowReach) };
+    infoCache[id] = info;
+    return info;
+  }
+
+  // ── top-down: center Y 확정 ──
+  var centerY = {};
+  function assign(id, cy) {
+    var node = nodeMap[id];
+    centerY[id] = cy;
+    // 왼쪽/오른쪽을 완전히 독립적으로 배치한다 — stackSize가 같은 side의 형제끼리만
+    // 더해지므로 한쪽 크기가 반대쪽 분기점에 영향을 주지 않는다.
+    [1, -1].forEach(function(side) {
+      var s = splitShift(id, side);
+      var below = s.below, above = s.above;
+      var split = cy - s.shift;
+
+      var cursor = split;
+      for (var i = 0; i < below.length; i++) {
+        var kid = nodeMap[below[i]];
+        var kInfo = layoutInfo(below[i]);
+        var prev = i === 0 ? node : nodeMap[below[i - 1]];
+        cursor += gapFor(prev, kid) + kInfo.above;
+        assign(below[i], cursor);
+        cursor += kInfo.below;
+      }
+      cursor = split;
+      for (var j = 0; j < above.length; j++) {
+        var kid2 = nodeMap[above[j]];
+        var kInfo2 = layoutInfo(above[j]);
+        var prev2 = j === 0 ? node : nodeMap[above[j - 1]];
+        cursor -= gapFor(prev2, kid2) + kInfo2.below;
+        assign(above[j], cursor);
+        cursor -= kInfo2.above;
+      }
     });
   }
 
-  // union-find: X 범위가 겹치는 노드끼리 같은 컬럼으로 묶기
-  var par = {};
-  NODES_DATA.forEach(function(n) { par[n.id] = n.id; });
-  function find(id) { if (par[id] !== id) par[id] = find(par[id]); return par[id]; }
-  for (var i = 0; i < NODES_DATA.length; i++) {
-    for (var j = i + 1; j < NODES_DATA.length; j++) {
-      var a = NODES_DATA[i], b = NODES_DATA[j];
+  // ── 루트 시퀀싱: X 범위가 겹치는 루트끼리만 그룹으로 묶어 원래 순서(Y)대로 배치 ──
+  var roots = NODES_DATA.filter(function(n) { return tree.isRoot[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rootFind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rootFind(p); rootPar[id] = r; return r;
+  }
+  for (var ri = 0; ri < roots.length; ri++) {
+    for (var rj = ri + 1; rj < roots.length; rj++) {
+      var a = roots[ri], b = roots[rj];
       if (a.lx < b.lx + getW(b) && b.lx < a.lx + getW(a)) {
-        var ra = find(a.id), rb = find(b.id);
-        if (ra !== rb) par[ra] = rb;
+        var fa = rootFind(a.id), fb = rootFind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
       }
     }
   }
-  var colMap = {};
-  NODES_DATA.forEach(function(n) {
-    var root = find(n.id);
-    if (!colMap[root]) colMap[root] = [];
-    colMap[root].push(n);
+  var rootGroups = {};
+  roots.forEach(function(r) {
+    var g = rootFind(r.id);
+    (rootGroups[g] = rootGroups[g] || []).push(r);
   });
-
-  // 컬럼을 min X 오름차순(왼→오)으로 정렬
-  var columns = Object.keys(colMap).map(function(k) { return colMap[k]; }).sort(function(a, b) {
-    var minXA = Math.min.apply(null, a.map(function(n) { return n.lx; }));
-    var minXB = Math.min.apply(null, b.map(function(n) { return n.lx; }));
-    return minXA - minXB;
+  Object.keys(rootGroups).forEach(function(gk) {
+    var group = rootGroups[gk];
+    group.sort(function(a, b) { return (a.ly - b.ly) || (a.lx - b.lx); });
+    var cursorBottom = -Infinity;
+    for (var i = 0; i < group.length; i++) {
+      var root = group[i];
+      var info = layoutInfo(root.id);
+      var naturalCenter = root.ly + getH(root) / 2;
+      var gap = i === 0 ? 0 : gapFor(group[i - 1], root);
+      var cy = i === 0 ? naturalCenter : Math.max(naturalCenter, cursorBottom + gap + info.above);
+      assign(root.id, cy);
+      cursorBottom = (centerY[root.id] !== undefined ? centerY[root.id] : cy) + info.below;
+    }
   });
 
   var renderY = {};
-
-  // 이미 팩킹된 왼쪽 컬럼의 연결 노드 기준으로 effectiveOriginY 계산
-  function getEffY(node) {
-    var effY = node.ly;
-    NODES_DATA.forEach(function(other) {
-      if (renderY[other.id] === undefined) return;
-      if (!isConn(node.id, other.id)) return;
-      var otherRY = renderY[other.id];
-      var otherH = getH(other);
-      var otherBottom = otherRY + otherH;
-      var otherPush = Math.max(0, otherRY - other.ly);
-      if (otherH > HEADER_H && otherBottom > node.ly) {
-        // 확장된 노드가 이 노드 위치를 덮음 → bottom 아래로 (펼침 여백 48px)
-        effY = Math.max(effY, otherBottom + 48);
-      } else {
-        // 접힌 상태: Y 이동 delta만 전파
-        effY = Math.max(effY, node.ly + otherPush);
-      }
-    });
-    return effY;
-  }
-
-  // 컬럼별 그리디 패킹 (왼→오)
-  columns.forEach(function(col) {
-    // effectiveOriginY를 팩킹 전에 모두 계산 (팩킹 중 renderY 변경 영향 차단)
-    var effYMap = {};
-    col.forEach(function(n) { effYMap[n.id] = getEffY(n); });
-
-    // effectiveOriginY 오름차순 정렬, 동률이면 originalY 기준
-    col.sort(function(a, b) {
-      var ea = effYMap[a.id], eb = effYMap[b.id];
-      return ea !== eb ? ea - eb : a.ly - b.ly;
-    });
-
-    // gap 규칙은 실제 X범위가 겹치는(pairwise) 노드끼리만 적용
-    // — 체인으로만 같은 컬럼에 묶인 먼 노드가 밀어내지 않도록
-    // 적응형 gap: 둘 다 접힘 → 촘촘(20/30), 한쪽이라도 펼침 → 48px (가독성)
-    var placed = [];
-    col.forEach(function(node) {
-      var h = getH(node);
-      var baseGap = node.isMain ? 20 : 30;
-      var y = effYMap[node.id];
-      var moved = true;
-      while (moved) {
-        moved = false;
-        for (var pi = 0; pi < placed.length; pi++) {
-          var p = placed[pi];
-          var overlapX = node.lx < p.node.lx + getW(p.node) && p.node.lx < node.lx + getW(node);
-          if (!overlapX) continue;
-          var gap = (h > HEADER_H || p.h > HEADER_H) ? 48 : baseGap;
-          if (y < p.y + p.h + gap && y + h + gap > p.y) {
-            y = p.y + p.h + gap;
-            moved = true;
-          }
-        }
-      }
-      renderY[node.id] = y;
-      placed.push({ node: node, y: y, h: h });
-    });
+  NODES_DATA.forEach(function(n) {
+    var cy = centerY[n.id] !== undefined ? centerY[n.id] : (n.ly + getH(n) / 2);
+    renderY[n.id] = cy - getH(n) / 2;
   });
 
-  // Pass 3: line 엣지 버스 그룹 Y 정규화 (gap 30px)
-  var lineBySource = {};
-  EDGES.forEach(function(e) {
-    if (e.type !== 'line') return;
-    if (!lineBySource[e.source]) lineBySource[e.source] = [];
-    lineBySource[e.source].push(e.target);
-  });
-  Object.keys(lineBySource).forEach(function(srcId) {
-    var targetIds = lineBySource[srcId].filter(function(id) { return nodeMap[id]; });
-    if (targetIds.length < 2) return;
-    var xGroups = [];
-    targetIds.forEach(function(id) {
-      var el = document.getElementById('node-' + id);
-      var nx = nodeMap[id].lx; var nw = el ? el.offsetWidth : 300;
-      var placed = false;
-      for (var gi = 0; gi < xGroups.length; gi++) {
-        var firstId = xGroups[gi][0];
-        var fEl = document.getElementById('node-' + firstId);
-        var fx = nodeMap[firstId].lx; var fw = fEl ? fEl.offsetWidth : 300;
-        if (nx < fx + fw && fx < nx + nw) { xGroups[gi].push(id); placed = true; break; }
-      }
-      if (!placed) xGroups.push([id]);
-    });
-    xGroups.forEach(function(grp) {
-      if (grp.length < 2) return;
-      var grpSorted = grp.map(function(id) {
-        var el = document.getElementById('node-' + id);
-        return { id: id, y: renderY[id] !== undefined ? renderY[id] : nodeMap[id].ly, h: el ? el.offsetHeight : HEADER_H };
-      }).sort(function(a, b) { return a.y - b.y; });
-      for (var i = 1; i < grpSorted.length; i++) {
-        var minY = grpSorted[i-1].y + grpSorted[i-1].h + 30;
-        var newY = Math.max(grpSorted[i].y, minY);
-        grpSorted[i].y = newY;
-        renderY[grpSorted[i].id] = newY;
-      }
-    });
-  });
+  // ── hop tier(깊이)별 X 정렬 — 같은 depth의 모든 노드가 항상 같은 X에서 시작 ──
+  var MIN_HOP_GAP = 750, COL_PAD = 60;
+  // main topic(백본)도 hop1/hop2처럼 하나의 세로줄로 자동 정렬 — depth 0 노드는 raw
+  // 좌표를 그대로 쓰지 않고, main topic들 중 가장 왼쪽(raw x 최소값)으로 전부 통일한다.
+  // depth 0에는 main topic 외에 연결 끊긴 고아 노드도 섞이므로 n.isMain으로 필터링
+  // (고아 노드는 원래 자유 좌표 유지).
+  var mainTopicAnchorX = 0;
+  var mainTopicXs = NODES_DATA.filter(function(n) { return n.isMain; }).map(function(n) { return n.lx; });
+  if (mainTopicXs.length > 0) mainTopicAnchorX = Math.min.apply(null, mainTopicXs);
 
-  // Pass 4: 가로 간격 확보 — 노드 단위 X-패킹 (Y-패킹을 90° 회전한 그리디)
-  // 세로로 겹치는 두 노드가 가로로 H_GAP 이내로 붙으면 오른쪽 노드를 밀어냄
-  var H_GAP = 60;
-  var renderX = {};
-  var byX = NODES_DATA.slice().sort(function(a, b) { return a.lx - b.lx; });
-  byX.forEach(function(node) {
-    var ny = renderY[node.id] !== undefined ? renderY[node.id] : node.ly;
-    var nH = getH(node);
-    var nW = getW(node);
-    var x = node.lx;
-    var moved = true;
-    while (moved) {
-      moved = false;
-      for (var oi = 0; oi < byX.length; oi++) {
-        var other = byX[oi];
-        var ox = renderX[other.id];  // 이미 배치된(왼쪽부터 처리) 노드만 존재
-        if (ox === undefined || other.id === node.id) continue;
-        var oy = renderY[other.id] !== undefined ? renderY[other.id] : other.ly;
-        if (!(ny < oy + getH(other) && oy < ny + nH)) continue;
-        if (x < ox + getW(other) + H_GAP && ox < x + nW + H_GAP) {
-          x = ox + getW(other) + H_GAP;
-          moved = true;
-        }
-      }
+  var maxDepth = 0;
+  NODES_DATA.forEach(function(n) { maxDepth = Math.max(maxDepth, tree.depthOf[n.id] || 0); });
+  // 전역에서 가장 넓은 main topic 폭 — 어느 main topic 하나가 표 등으로 넓어지면, 그
+  // main topic 자신의 왼쪽·오른쪽 hop1 간격이 똑같이 유지되는 것은 물론(오른쪽 변만
+  // 넓어지므로 오른쪽 계산에만 필요), 다른(안 넓어진) main topic들의 hop1도 전부 같은
+  // 만큼 같이 밀려서 hop1 열이 문서 전체에서 계속 나란히 정렬돼야 한다. "이 브랜치 자신의
+  // 폭"이 아니라 "전역에서 제일 넓은 main topic의 폭"을 모든 브랜치의 오른쪽 오프셋에
+  // 똑같이 더한다 — 표가 없는 보통 상황(모든 main topic 폭이 같음)에서는 이 값이 곧 자기
+  // 폭과 같아서 좌우 간격이 정확히 MIN_HOP_GAP으로 대칭이다. 왼쪽은 main topic이 아무리
+  // 넓어져도 왼쪽 변 자체는 움직이지 않으므로 항상 고정 MIN_HOP_GAP.
+  var globalWidestMainTopic = 0;
+  NODES_DATA.forEach(function(n) {
+    if (tree.depthOf[n.id] === 0) globalWidestMainTopic = Math.max(globalWidestMainTopic, getW(n));
+  });
+  var colOffset = {};
+  [1, -1].forEach(function(side) {
+    var offset = side === 1 ? globalWidestMainTopic + MIN_HOP_GAP : MIN_HOP_GAP;
+    var prevMaxWidth = 0;
+    for (var d = 1; d <= maxDepth; d++) {
+      if (d > 1) offset += Math.max(MIN_HOP_GAP, prevMaxWidth + COL_PAD);
+      colOffset[d + ':' + side] = offset;
+      var widest = 0;
+      NODES_DATA.forEach(function(n) {
+        if (tree.depthOf[n.id] === d && sideOf[n.id] === side) widest = Math.max(widest, getW(n));
+      });
+      prevMaxWidth = widest;
     }
-    renderX[node.id] = x;
+  });
+  var renderX = {};
+  NODES_DATA.forEach(function(n) {
+    var depth = tree.depthOf[n.id] || 0;
+    if (depth === 0) { renderX[n.id] = n.isMain ? mainTopicAnchorX : n.lx; return; }
+    var side = sideOf[n.id] || 1;
+    var root = nodeMap[tree.rootOf[n.id]];
+    // root가 main topic이면(항상 그렇진 않음 — 연결 끊긴 고아 노드도 자기 자손의 root가
+    // 될 수 있음) raw 좌표가 아니라 위에서 통일한 mainTopicAnchorX를 기준 삼아야, main
+    // topic 자신의 렌더 위치와 그 hop 자식들의 렌더 위치가 서로 어긋나지 않는다.
+    var rootX = root.isMain ? mainTopicAnchorX : root.lx;
+    var offset = colOffset[depth + ':' + side];
+    if (offset === undefined) offset = depth * MIN_HOP_GAP;
+    // offset은 "root와 가장 가까운 쪽 모서리"까지의 거리다. side=1(오른쪽)은 그 모서리가
+    // 곧 CSS left(카드의 왼쪽 변)라 그대로 쓰면 되지만, side=-1(왼쪽)은 root와 가장 가까운
+    // 모서리가 카드의 오른쪽 변이므로, CSS left를 구하려면 거기서 카드 너비만큼 더 빼야
+    // 한다(왼쪽 형제들의 "왼쪽 변"만 정렬되고 main topic과 가까운 "오른쪽 변"은 카드
+    // 너비에 따라 들쭉날쭉해지는 걸 막기 위함).
+    var nearRootEdge = rootX + side * offset;
+    renderX[n.id] = side === 1 ? nearRootEdge : nearRootEdge - getW(n);
   });
 
   NODES_DATA.forEach(function(n) {
@@ -820,6 +1023,177 @@ function recomputePositions() {
   routesDirty=true;
   drawEdges(true);
   scheduleEdgeRefine();
+  drawGrid();
+}
+
+// ── main topic(백본) 기준 hop 트리 — Canvas.tsx의 buildHopTree와 동일한 규칙
+// (main_topic은 항상 루트, 그 외는 children[]/edge로 찾은 부모에 귀속, 부모를 못
+// 찾으면 독립 루트). 디버그 격자와 Ctrl+F 검색의 BFS 정렬 둘 다 이 트리를 공유한다
+// (레이아웃 재구현마다 두 곳이 서로 다른 로직으로 어긋나는 것을 피하기 위함 — 에디터
+// 쪽에서 layoutInfo/assign이 따로 놀아서 겹침 버그가 났던 것과 같은 종류의 실수를
+// 여기서도 반복하지 않기 위함).
+function buildHopTreeJs() {
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  function parentIdOf(nodeId) {
+    var byChildren = null;
+    NODES_DATA.forEach(function(n) {
+      if (!byChildren && (n.children || []).indexOf(nodeId) !== -1) byChildren = n.id;
+    });
+    if (byChildren) return byChildren;
+    var byEdge = null;
+    EDGES.forEach(function(e) { if (!byEdge && e.target === nodeId) byEdge = e.source; });
+    if (byEdge) return byEdge;
+    // 포트를 반대 방향(새 노드 → 기존 노드)으로 끌어 만든 엣지는 source/target이 뒤바뀐
+    // 채로 저장돼 있을 수 있다(source=이 노드, target=main topic) — Canvas.tsx의
+    // buildHopTree와 동일하게, 이런 기존 데이터도 여기서 인식해줘야 에디터와 같은
+    // 트리 구조가 나온다(안 그러면 이 노드가 잘못 독립 루트로 취급됨).
+    var reversedToMain = null;
+    EDGES.forEach(function(e) {
+      if (!reversedToMain && e.source === nodeId && nodeById[e.target] && nodeById[e.target].isMain) reversedToMain = e.target;
+    });
+    return reversedToMain;
+  }
+  var isRoot = {}, parentOf = {};
+  NODES_DATA.forEach(function(n) {
+    if (n.isMain) { isRoot[n.id] = true; return; }
+    var p = parentIdOf(n.id);
+    if (p && nodeById[p]) parentOf[n.id] = p; else isRoot[n.id] = true;
+  });
+  var depthOf = {}, rootOf = {};
+  function computeDepth(id) {
+    if (depthOf[id] !== undefined) return;
+    if (isRoot[id]) { depthOf[id] = 0; rootOf[id] = id; return; }
+    computeDepth(parentOf[id]);
+    depthOf[id] = depthOf[parentOf[id]] + 1;
+    rootOf[id] = rootOf[parentOf[id]];
+  }
+  NODES_DATA.forEach(function(n) { computeDepth(n.id); });
+  return { isRoot: isRoot, parentOf: parentOf, depthOf: depthOf, rootOf: rootOf };
+}
+
+// ── 디버그 격자 — Canvas.tsx의 computeGridLines와 동일한 규칙(가로선: main topic
+// 클러스터 경계, 세로선: hop depth별 X 경계). recomputePositions()가 이제 에디터와
+// 동일한 hop-tree 레이아웃 알고리즘을 쓰지만, 격자 자체는 그 계산 결과에 의존하지
+// 않고 현재 DOM에 실제로 그려진 위치(el.style.left/top + offsetWidth/offsetHeight)를
+// 그대로 읽어서 계산하므로 어떤 배치 알고리즘을 쓰든 항상 실제 렌더 결과와 일치한다.
+var showGrid = false;
+function computeGridLinesJs() {
+  var tree = buildHopTreeJs();
+  var nodeById = {};
+  NODES_DATA.forEach(function(n) { nodeById[n.id] = n; });
+  var rectById = {};
+  NODES_DATA.forEach(function(n) {
+    var el = document.getElementById('node-' + n.id);
+    if (el) rectById[n.id] = { x: parseFloat(el.style.left) || 0, y: parseFloat(el.style.top) || 0, w: el.offsetWidth, h: el.offsetHeight };
+  });
+  function rootIsMain(id) {
+    var r = nodeById[tree.rootOf[id]];
+    return !!(r && r.isMain);
+  }
+
+  // 가로선: main topic 클러스터(자신+hop 자손 전체)의 Y 범위 경계
+  var clusterYRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var root = tree.rootOf[n.id];
+    var top = rect.y, bottom = rect.y + rect.h;
+    if (!clusterYRange[root]) clusterYRange[root] = { min: top, max: bottom };
+    else { clusterYRange[root].min = Math.min(clusterYRange[root].min, top); clusterYRange[root].max = Math.max(clusterYRange[root].max, bottom); }
+  });
+  var roots = NODES_DATA.filter(function(n) { return tree.depthOf[n.id] === 0 && clusterYRange[n.id]; });
+  var rootPar = {};
+  roots.forEach(function(r) { rootPar[r.id] = r.id; });
+  function rfind(id) {
+    var p = rootPar[id];
+    if (p === id) return id;
+    var r = rfind(p); rootPar[id] = r; return r;
+  }
+  for (var i = 0; i < roots.length; i++) {
+    for (var j = i + 1; j < roots.length; j++) {
+      var a = roots[i], b = roots[j];
+      var ra = rectById[a.id], rb = rectById[b.id];
+      if (!ra || !rb) continue;
+      if (ra.x < rb.x + rb.w && rb.x < ra.x + ra.w) {
+        var fa = rfind(a.id), fb = rfind(b.id);
+        if (fa !== fb) rootPar[fa] = fb;
+      }
+    }
+  }
+  var groups = {};
+  roots.forEach(function(r) {
+    var g = rfind(r.id);
+    (groups[g] = groups[g] || []).push(r);
+  });
+  var hLines = [];
+  Object.keys(groups).forEach(function(gk) {
+    var group = groups[gk];
+    group.sort(function(a, b) { return (rectById[a.id] ? rectById[a.id].y : 0) - (rectById[b.id] ? rectById[b.id].y : 0); });
+    for (var k = 1; k < group.length; k++) {
+      var prevR = clusterYRange[group[k - 1].id], curR = clusterYRange[group[k].id];
+      hLines.push((prevR.max + curR.min) / 2);
+    }
+  });
+
+  // 세로선: hop depth별 X 범위 경계 (main topic 기준 좌/우 방향 분리)
+  var depthSideXRange = {};
+  NODES_DATA.forEach(function(n) {
+    if (!rootIsMain(n.id)) return;
+    var rect = rectById[n.id];
+    if (!rect) return;
+    var d = tree.depthOf[n.id];
+    var rootRect = rectById[tree.rootOf[n.id]];
+    var side = d === 0 ? 0 : (rootRect && rect.x >= rootRect.x ? 1 : -1);
+    var key = d + ':' + side;
+    var left = rect.x, right = rect.x + rect.w;
+    if (!depthSideXRange[key]) depthSideXRange[key] = { min: left, max: right };
+    else { depthSideXRange[key].min = Math.min(depthSideXRange[key].min, left); depthSideXRange[key].max = Math.max(depthSideXRange[key].max, right); }
+  });
+  var vLines = [];
+  var mainRange = depthSideXRange['0:0'];
+  if (mainRange) {
+    [1, -1].forEach(function(side) {
+      var prev = mainRange, d = 1;
+      while (depthSideXRange[d + ':' + side]) {
+        var cur = depthSideXRange[d + ':' + side];
+        if (side === 1 && cur.min > prev.max) vLines.push((prev.max + cur.min) / 2);
+        else if (side === -1 && prev.min > cur.max) vLines.push((cur.max + prev.min) / 2);
+        prev = cur; d++;
+      }
+    });
+  }
+  return { hLines: hLines, vLines: vLines };
+}
+// data-base-sw/-dash: 확대/축소해도 화면상 두께가 유지되도록(에디터의 WireLayer
+// zoom 보정과 동일 규칙) zoom=1 기준 값을 기록해두고, updateZoomLineWeights()가
+// 현재 scale에 맞춰 실제 stroke-width/dasharray를 매번 다시 계산한다.
+function svgGridLine(x1, y1, x2, y2, stroke) {
+  var l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+  l.setAttribute('stroke', stroke);
+  l.setAttribute('data-base-sw', '1.5');
+  l.setAttribute('data-base-dash', '6 4');
+  l.setAttribute('opacity', '0.55');
+  return l;
+}
+function drawGrid() {
+  var svg = document.getElementById('grid-svg');
+  svg.innerHTML = '';
+  if (!showGrid) { svg.style.display = 'none'; return; }
+  svg.style.display = '';
+  var lines = computeGridLinesJs();
+  lines.vLines.forEach(function(x) { svg.appendChild(svgGridLine(x, 0, x, 10000, '#22c55e')); });
+  lines.hLines.forEach(function(y) { svg.appendChild(svgGridLine(0, y, 10000, y, '#f97316')); });
+  updateZoomLineWeights();
+}
+function toggleGrid() {
+  showGrid = !showGrid;
+  var btn = document.getElementById('tb-grid-btn');
+  if (showGrid) { btn.style.background = '#2563eb'; btn.style.color = '#fff'; btn.style.borderColor = '#1d4ed8'; }
+  else { btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }
+  drawGrid();
 }
 
 // Edge drawing
@@ -1030,66 +1404,24 @@ function routeEdgesGrid(reqs,rects){
   });
   return out;
 }
-function svgLine(x1,y1,x2,y2,stroke,sw){var l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',sw);return l;}
-function svgCirc(cx,cy,r,fill){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill',fill);return c;}
+// 확대(zoom>=100%)면 기본 두께, 축소(zoom<100%)면 화면상 두께가 유지되도록 반비례로
+// 키움(에디터의 WireLayer.tsx의 zc = zoom<1 ? 1/zoom : 1 과 동일 규칙). 레이아웃이
+// 안 바뀌는 순수 줌 조작(wheel)에서는 경로를 다시 그리지 않고 이미 그려진 요소들의
+// stroke-width/dasharray만 갱신 — 가볍고, wheel마다 A* 재계산할 필요가 없음.
+function updateZoomLineWeights() {
+  var zc = scale < 1 ? 1 / scale : 1;
+  document.querySelectorAll('[data-base-sw]').forEach(function(el) {
+    var base = parseFloat(el.getAttribute('data-base-sw'));
+    el.setAttribute('stroke-width', String(base * zc));
+  });
+  document.querySelectorAll('[data-base-dash]').forEach(function(el) {
+    var parts = el.getAttribute('data-base-dash').split(' ').map(Number);
+    el.setAttribute('stroke-dasharray', parts.map(function(p) { return p * zc; }).join(' '));
+  });
+}
 function drawEdges(fast) {
   var svg=document.getElementById('wire-svg');
   svg.querySelectorAll('.ng-eg').forEach(function(el){el.remove();});
-
-  // Group line edges by source for bus routing
-  var lineBySource={};
-  EDGES.forEach(function(e){
-    if(e.type!=='line') return;
-    if(!lineBySource[e.source]) lineBySource[e.source]=[];
-    lineBySource[e.source].push(e);
-  });
-
-  var busDrawn={};
-
-  // Bus routing: one source → multiple line targets all on the same side (right)
-  Object.keys(lineBySource).forEach(function(srcId){
-    var group=lineBySource[srcId];
-    if(group.length<2) return;
-    var srcEl=document.getElementById('node-'+srcId);
-    if(!srcEl) return;
-    var sr=getNodeRect(srcEl);
-    var targets=[];
-    group.forEach(function(e){
-      var tEl=document.getElementById('node-'+e.target);
-      if(!tEl) return;
-      targets.push({e:e,r:getNodeRect(tEl)});
-    });
-    if(targets.length<2) return;
-    // 모든 타겟의 왼쪽 끝이 source 오른쪽 끝 + 40px 이상일 때만 bus (에디터와 조건 통일)
-    var allRight=targets.every(function(t){return t.r.x>sr.x+sr.w+40;});
-    if(!allRight) return;
-
-    var busX=sr.x+sr.w+Math.min.apply(null,targets.map(function(t){return t.r.x-(sr.x+sr.w);})) * 0.5;
-    var srcAnchorY=sr.cy;
-    var minTY=Math.min.apply(null,targets.map(function(t){return t.r.cy;}));
-    var maxTY=Math.max.apply(null,targets.map(function(t){return t.r.cy;}));
-    var busMinY=Math.min(srcAnchorY,minTY);
-    var busMaxY=Math.max(srcAnchorY,maxTY);
-
-    // 세대 하이라이트: 루트가 source거나 타겟 중 하나면 트렁크(공용 구간)도 빨간색
-    var srcSel=srcId===genRootId;
-    var groupHl=srcSel||targets.some(function(t){return t.e.target===genRootId;});
-    var trunkColor=groupHl?'#ef4444':'#888', trunkW=groupHl?'2.5':'1.5';
-
-    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','ng-eg');
-    g.appendChild(svgLine(sr.x+sr.w,srcAnchorY,busX,srcAnchorY,trunkColor,trunkW));
-    g.appendChild(svgLine(busX,busMinY,busX,busMaxY,trunkColor,trunkW));
-    g.appendChild(svgCirc(sr.x+sr.w,srcAnchorY,4,trunkColor));
-    targets.forEach(function(t){
-      var tHl=srcSel||t.e.target===genRootId;
-      var branchColor=tHl?'#ef4444':'#888';
-      g.appendChild(svgLine(busX,t.r.cy,t.r.x,t.r.cy,branchColor,tHl?'2.5':'1.5'));
-      g.appendChild(svgCirc(t.r.x,t.r.cy,4,branchColor));
-      busDrawn[t.e.source+'-'+t.e.target]=true;
-    });
-    svg.appendChild(g);
-  });
 
   // 노드 rect 캐시 (엣지 라우팅 장애물 검사용 — drawEdges 1회당 1회만 DOM 조회)
   var rectById={};
@@ -1098,12 +1430,32 @@ function drawEdges(fast) {
     if(el) rectById[n.id]=getNodeRect(el);
   });
 
-  // 같은 source에서 나가거나 같은 target으로 모이는 비-버스 엣지 분산 오프셋 (합산)
+  // hop 자식(line) 엣지: 버스 라우팅도, A*/커브 라우팅도 없이 그냥 평범한 직선
+  // (에디터 WireLayer.tsx와 동일 — 예전엔 "같은 source에서 나가는 line 엣지 여럿을
+  // 세로 트렁크로 묶는 버스 라우팅"이 있었는데, 에디터가 이미 그걸 버리고 순수 직선으로
+  // 바꾼 지 오래라 여기만 안 따라와 있었음). 포트는 항상 좌/우만 강제 — getBestPorts처럼
+  // top/bottom까지 유클리드 최솟값으로 고르면, 타겟이 부모 중심에서 수직으로 많이
+  // 떨어진 형제 하나만 포트가 top/bottom으로 뒤집혀 다른 형제 선을 가로질러 지나가
+  // 버리는 문제가 있었다(사용자가 export html 스크린샷으로 재지적: "선이 왜 깔끔하게
+  // 정리되지 않은 거지" — 첫 main topic만 깔끔하고 나머지는 선이 교차해 보임).
+  function horizontalPorts(sr,tr){
+    var scx=sr.x+sr.w/2, tcx=tr.x+tr.w/2;
+    return tcx>=scx ? {sp:'right',tp:'left'} : {sp:'left',tp:'right'};
+  }
+  function portXY(r,name){
+    if(name==='right') return [r.x+r.w,r.cy];
+    if(name==='left') return [r.x,r.cy];
+    if(name==='bottom') return [r.cx,r.y+r.h];
+    return [r.cx,r.y];
+  }
+
+  // 같은 source에서 나가거나 같은 target으로 모이는 백본(arrow) 엣지 분산 오프셋(합산).
+  // hop 자식(line)은 이제 라우팅 없는 고정 직선이라 분산이 필요 없음(에디터와 동일 이유).
   var spreadByIdx={};
   (function(){
     var bySrc={},byTgt={};
     EDGES.forEach(function(e,idx){
-      if(busDrawn[e.source+'-'+e.target]) return;
+      if(e.type!=='arrow') return;
       if(!rectById[e.source]||!rectById[e.target]) return;
       (bySrc[e.source]=bySrc[e.source]||[]).push(idx);
       (byTgt[e.target]=byTgt[e.target]||[]).push(idx);
@@ -1120,14 +1472,15 @@ function drawEdges(fast) {
     add(byTgt,function(i){return rectById[EDGES[i].source].cy;});
   })();
 
-  // 그리드 A* 전역 라우팅 — 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
+  // 그리드 A* 전역 라우팅 — main topic 백본(arrow) 엣지만 대상(hop 자식은 고정 직선이라
+  // 라우팅 대상 아님, 에디터와 동일). 드래그 중(fast)에는 스킵하고 경량 휴리스틱 사용.
   // 레이아웃이 바뀌지 않은 재호출(하이라이트 색만 변경 등)은 캐시를 재사용해 즉시 처리
   var gridRoutes=null;
   if(!fast){
     if(routesDirty||!cachedRoutes){
       var reqs=[];
       EDGES.forEach(function(e,idx){
-        if(busDrawn[e.source+'-'+e.target]) return;
+        if(e.type!=='arrow') return;
         var sr3=rectById[e.source],tr3=rectById[e.target];
         if(!sr3||!tr3) return;
         var ports3=getBestPorts(sr3,tr3);
@@ -1144,57 +1497,65 @@ function drawEdges(fast) {
     gridRoutes=cachedRoutes;
   }
 
-  // Remaining edges: obstacle-avoiding curves
   EDGES.forEach(function(edge,edgeIdx){
-    if(busDrawn[edge.source+'-'+edge.target]) return;
     var sr2=rectById[edge.source], tr2=rectById[edge.target];
     if(!sr2||!tr2) return;
-    var ports=getBestPorts(sr2,tr2);
-    if(!ports) return;
-    var sp=ports.sp.p,spD=DIR[ports.sp.name],tp=ports.tp.p,tpD=DIR[ports.tp.name];
-    var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
-    var ddl=dlen(srcP,tgtP)||1;
-    var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
-    var spread=spreadByIdx[edgeIdx]||0;
-    var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
-    var d;
-    if(gridPts&&gridPts.length>2){
-      // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
-      d=ptsToPath(spreadPts(gridPts,spread));
-    } else if(gridPts){
-      // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
-      var bend=Math.min(ddl*.45,150);
-      var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
-      var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
-      d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
+
+    var d, sp, tp, strokeColor;
+    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
+    strokeColor=hl?'#ef4444':'#666';
+
+    if(edge.type!=='arrow'){
+      // hop 자식: 라우팅/커브 없이 좌/우 포트 사이 직선 그대로
+      var hp=horizontalPorts(sr2,tr2);
+      sp=portXY(sr2,hp.sp); tp=portXY(tr2,hp.tp);
+      d='M'+sp[0]+','+sp[1]+' L'+tp[0]+','+tp[1];
     } else {
-      // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
-      var obstacles=[];
-      Object.keys(rectById).forEach(function(nid){
-        if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
-      });
-      var pts=routeAround(srcP,tgtP,obstacles);
-      if(pts.length===2){
-        var bend2=Math.min(ddl*.45,150);
-        var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
-        var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
-        d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+      var ports=getBestPorts(sr2,tr2);
+      if(!ports) return;
+      sp=ports.sp.p; var spD=DIR[ports.sp.name]; tp=ports.tp.p; var tpD=DIR[ports.tp.name];
+      var srcP={x:sp[0],y:sp[1]},tgtP={x:tp[0],y:tp[1]};
+      var ddl=dlen(srcP,tgtP)||1;
+      var nx=-(tgtP.y-srcP.y)/ddl, nyv=(tgtP.x-srcP.x)/ddl;
+      var spread=spreadByIdx[edgeIdx]||0;
+      var gridPts=gridRoutes?gridRoutes[String(edgeIdx)]:null;
+      if(gridPts&&gridPts.length>2){
+        // 그리드 A* 경로 (노드 회피 + congestion 분산) + 같은 소스/타겟 묶음 분산
+        d=ptsToPath(spreadPts(gridPts,spread));
+      } else if(gridPts){
+        // 직선 경로: 기존 bezier 모양 유지 (spread만큼 제어점을 법선 방향 이동)
+        var bend=Math.min(ddl*.45,150);
+        var cx1=sp[0]+spD[0]*bend+nx*spread,cy1=sp[1]+spD[1]*bend+nyv*spread;
+        var cx2=tp[0]+tpD[0]*bend+nx*spread,cy2=tp[1]+tpD[1]*bend+nyv*spread;
+        d='M'+sp[0]+','+sp[1]+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tp[0]+','+tp[1];
       } else {
-        d=ptsToPath(spreadPts(pts,spread));
+        // 드래그 중(fast) 또는 A* 실패: 경량 우회 휴리스틱
+        var obstacles=[];
+        Object.keys(rectById).forEach(function(nid){
+          if(nid!==edge.source&&nid!==edge.target) obstacles.push(rectById[nid]);
+        });
+        var pts=routeAround(srcP,tgtP,obstacles);
+        if(pts.length===2){
+          var bend2=Math.min(ddl*.45,150);
+          var bx1=sp[0]+spD[0]*bend2+nx*spread,by1=sp[1]+spD[1]*bend2+nyv*spread;
+          var bx2=tp[0]+tpD[0]*bend2+nx*spread,by2=tp[1]+tpD[1]*bend2+nyv*spread;
+          d='M'+sp[0]+','+sp[1]+' C'+bx1+','+by1+' '+bx2+','+by2+' '+tp[0]+','+tp[1];
+        } else {
+          d=ptsToPath(spreadPts(pts,spread));
+        }
       }
     }
-    // 세대 하이라이트: 루트 노드와 직접 연결된 wire는 빨간색
-    var hl=genRootId&&(edge.source===genRootId||edge.target===genRootId);
-    var strokeColor=hl?'#ef4444':'#666';
+
     var g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','ng-eg');
     var path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('stroke-width',hl?'2.5':'1.5');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke',strokeColor);path.setAttribute('data-base-sw',hl?'2.5':'1.5');
     if(edge.type==='arrow') path.setAttribute('marker-end',hl?'url(#arrow-hl)':'url(#arrow)');
     g.appendChild(path);
     if(edge.type==='line'){[sp,tp].forEach(function(pt){var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',pt[0]);c.setAttribute('cy',pt[1]);c.setAttribute('r','4');c.setAttribute('fill',strokeColor);g.appendChild(c);});}
     svg.appendChild(g);
   });
+  updateZoomLineWeights();
 }
 
 // Fit view
@@ -1209,6 +1570,7 @@ function fitView() {
   tx=(W-cw*scale)/2-(minX-40)*scale;
   ty=(H-ch*scale)/2-(minY-40)*scale;
   applyTransform();
+  updateZoomLineWeights();
 }
 
 // Lightbox
@@ -1306,12 +1668,39 @@ function closeDropdown(){
   document.getElementById('search-row').classList.remove('dropdown-open');
   kbIdx=-1;
 }
+// 매치 노드가 toggle 제목/내용 안에 있을 수도 있으므로 단순 concat 문자열이 아니라
+// title/content/original(제목+텍스트)/toggle(제목+내용) 각각을 개별로 확인 (에디터의
+// searchMatchNodes 필터와 동일한 규칙 — 이래야 selectSearchNode에서 어느 섹션을
+// 펼쳐야 하는지도 알 수 있음).
+function nodeMatchesQuery(n, q){
+  if((n.title||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.content||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalText||'').toLowerCase().indexOf(q)!==-1) return true;
+  if((n.originalTitle||'').toLowerCase().indexOf(q)!==-1) return true;
+  return (n.toggles||[]).some(function(t){
+    return (t.title||'').toLowerCase().indexOf(q)!==-1 || (t.content||'').toLowerCase().indexOf(q)!==-1;
+  });
+}
 function doSearch(q){
   clearSearchHighlights();
   searchSelectedId=null;kbIdx=-1;
   var query=q.trim().toLowerCase();
   if(!query){document.getElementById('search-count').textContent='';closeDropdown();searchMatchNodes=[];return;}
-  searchMatchNodes=NODES_DATA.filter(function(n){return n.searchText&&n.searchText.indexOf(query)!==-1;});
+  searchMatchNodes=NODES_DATA.filter(function(n){return nodeMatchesQuery(n,query);});
+  // main topic BFS 순서로 정렬: 한 main topic의 모든 hop1, 모든 hop2, ... 를 다 훑은
+  // 뒤에야 다음 main topic으로 (에디터의 searchMatchNodes 정렬과 동일 규칙)
+  var tree=buildHopTreeJs();
+  var roots=NODES_DATA.filter(function(n){return tree.depthOf[n.id]===0;})
+    .sort(function(a,b){return (a.ly-b.ly)||(a.lx-b.lx);});
+  var rootIndex={};
+  roots.forEach(function(r,i){rootIndex[r.id]=i;});
+  searchMatchNodes.sort(function(a,b){
+    var ra=rootIndex[tree.rootOf[a.id]]||0, rb=rootIndex[tree.rootOf[b.id]]||0;
+    if(ra!==rb) return ra-rb;
+    var da=tree.depthOf[a.id]||0, db=tree.depthOf[b.id]||0;
+    if(da!==db) return da-db;
+    return (a.ly-b.ly)||(a.lx-b.lx);
+  });
   searchMatchNodes.forEach(function(n){var el=document.getElementById('node-'+n.id);if(el) el.classList.add('ng-search-match');});
   updateSearchCount();
   renderDropdown();
@@ -1357,6 +1746,7 @@ function selectSearchNode(id){
   searchSelectedId=id;
   var el=document.getElementById('node-'+id);
   if(el) el.classList.add('ng-search-active');
+  var q=document.getElementById('search-input').value.trim().toLowerCase();
   // Enter 확정: 선택된 노드만 expand, 나머지 매치 노드 collapse
   searchMatchNodes.forEach(function(n){
     var nodeEl=document.getElementById('node-'+n.id);
@@ -1367,7 +1757,19 @@ function selectSearchNode(id){
     for(var i=0;i<NODES_DATA.length;i++){if(NODES_DATA[i].id===n.id){datum=NODES_DATA[i];break;}}
     if(!datum) return;
     if(n.id===id){
-      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;}
+      if(!datum.contentExpanded){body.style.display='';datum.contentExpanded=true;applyContentCaps(nodeEl);}
+      // 매치가 toggle 제목/내용 또는 original 제목/텍스트 안에 있을 수 있으므로,
+      // 접혀 있으면 펼쳐서 실제로 보이게 함 (에디터의 handleSelectSearchNode와 동일)
+      (n.toggles||[]).forEach(function(t){
+        if(q&&((t.title||'').toLowerCase().indexOf(q)!==-1||(t.content||'').toLowerCase().indexOf(q)!==-1)){
+          var togEl=nodeEl.querySelector('details.ng-toggle[data-toggle-id="'+t.id+'"]');
+          if(togEl&&!togEl.open) togEl.open=true;
+        }
+      });
+      if(q&&((n.originalTitle||'').toLowerCase().indexOf(q)!==-1||(n.originalText||'').toLowerCase().indexOf(q)!==-1)){
+        var origEl=nodeEl.querySelector('details.ng-original');
+        if(origEl&&!origEl.open) origEl.open=true;
+      }
     } else {
       if(datum.contentExpanded){body.style.display='none';datum.contentExpanded=false;}
     }
@@ -1440,9 +1842,75 @@ function initKatex() {
   });
 }
 
+// 본문 높이 상한(More/Less) — NodeCard.tsx의 DEFAULT_CONTENT_MAX 로직을 그대로 이식.
+// .ng-content는 node.content 전용 클래스라서(toggle/original은 각각
+// .ng-toggle-body / .ng-orig-text 를 씀) 이 셀렉터만으로 이미 "content만" 범위가
+// 잡힌다 — 에디터와 동일하게 toggle/original에는 캡을 적용하지 않음.
+// scope를 주면 그 안의 .ng-content만 재측정(fold/unfold나 검색으로 처음 보이게
+// 될 때 — display:none 상태에서 측정하면 전부 0으로 나와서 버튼이 필요 없다고
+// 잘못 판단하기 때문에 다시 보이게 된 시점에 재측정이 필요함).
+var DEFAULT_CONTENT_MAX = 500;
+function applyContentCaps(scope) {
+  (scope || document).querySelectorAll('.ng-content').forEach(function(el) {
+    var measure = function() {
+      if (el.getAttribute('data-more-expanded') === '1') return;
+      var elTop = el.getBoundingClientRect().top;
+      var requiredBottom = 0;
+      el.querySelectorAll('table, img').forEach(function(media) {
+        var bottom = media.getBoundingClientRect().bottom - elTop;
+        if (bottom > requiredBottom) requiredBottom = bottom;
+      });
+      var max = Math.max(DEFAULT_CONTENT_MAX, Math.ceil(requiredBottom) + 8);
+      el.setAttribute('data-cap', String(max));
+      var needsBtn = el.scrollHeight > max + 1;
+      el.style.maxHeight = max + 'px';
+      el.style.overflowY = 'auto';
+      el.style.overflowX = 'hidden';
+      var next = el.nextElementSibling;
+      var btn = (next && next.classList.contains('ng-more-btn')) ? next : null;
+      if (needsBtn) {
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.className = 'ng-more-btn';
+          btn.textContent = '▼ More';
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var expanded = el.getAttribute('data-more-expanded') === '1';
+            if (expanded) {
+              el.removeAttribute('data-more-expanded');
+              el.style.maxHeight = el.getAttribute('data-cap') + 'px';
+              el.style.overflowY = 'auto';
+              el.style.overflowX = 'hidden';
+              btn.textContent = '▼ More';
+            } else {
+              el.setAttribute('data-more-expanded', '1');
+              el.style.maxHeight = '';
+              el.style.overflowY = '';
+              el.style.overflowX = '';
+              btn.textContent = '▲ Less';
+            }
+            setTimeout(function() { recomputePositions(); drawEdges(); }, 0);
+          });
+          el.parentNode.insertBefore(btn, el.nextSibling);
+        }
+      } else if (btn) {
+        btn.remove();
+      }
+    };
+    measure();
+    var imgs = Array.from(el.querySelectorAll('img'));
+    var pending = imgs.filter(function(img) { return !img.complete; });
+    pending.forEach(function(img) { img.addEventListener('load', measure); });
+  });
+}
+
 window.addEventListener('load', function() {
   // Render KaTeX first so node heights are accurate
   initKatex();
+  // scale는 아직 초기값 1이라(fitView가 아직 안 돌아서) getBoundingClientRect()
+  // 측정값이 캔버스 local 좌표와 일치함 — fitView 이후로 미루면 축소된 화면 픽셀을
+  // local px로 착각해서 캡 높이가 잘못 계산됨.
+  applyContentCaps();
   recomputePositions();
   drawEdges();
   fitView();
@@ -1452,7 +1920,7 @@ window.addEventListener('load', function() {
   if (pending === 0) return;
   function onImgSettle() {
     pending--;
-    if (pending <= 0) { recomputePositions(); drawEdges(); }
+    if (pending <= 0) { applyContentCaps(); recomputePositions(); drawEdges(); }
   }
   imgs.forEach(function(img) {
     if (!img.complete) {

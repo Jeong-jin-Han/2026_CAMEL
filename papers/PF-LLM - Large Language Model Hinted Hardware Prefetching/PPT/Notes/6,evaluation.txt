@@ -1,0 +1,344 @@
+---------------------
+이 절은 우리가 제안한 프레임워크를 평가한다.
+먼저 PF-LLM 모델의 예측 정확도를 평가한다.
+다음으로, SPEC 2017 벤치마크 스위트에서 LMHint Prefetcher의 end-to-end 성능을 제시한다. 
+그런 다음 성능 향상의 원천을 분석하고, offline 및 runtime 오버헤드에 대한 종합 분석으로 마무리 한다.
+
+---------------------
+# 6.1 PF-LLM 모델 정확도
+우리는 정적 어셈블리 코드로부터 최적 prefetching 정책을 예측하는 PF-LLM 모델의 능력을 평가한다.
+모델은 SPEC 2006 벤치마크 스위트에서 생성된 데이터로 학습된다. Figure 4는 training loss와 validation accuracy 곡선으로 보여준다. loss는 일관되게 감소하고, 
+accuracy는 향상되어, 모델은 held-out 테스트셋에서 최종 예측 정확도 95.0%에 도달한다. 우리는 compute 시간 제약으로 이 지점에서 학습을 중단했으나, 
+더 큰 학습 데이터셋이 있으면 정확도가 더 오르고 최적 정책에 더 가까이 근사할 수 있다고 본다.
+그럼에도 95% 정확도는 이 도메인에서 LLM의 능력을 보여주는 강한 지표이며, 곧 보이듯 유의미한 성능 향상을 얻기에 충분하다.
+
+Figure 5는 모델 예측의 더 상세한 분석을 제공한다. 
+Figure 5(b)의 ground trudth 데이터는 최적 prefetcher 정책이 균일하게 분포하지 않음을 드러낸다. 
+Sandbox[30] prefetchr를 moderate degree를 쓰는 것과 같은 특정 정책이 다른 것들보다 훨씬 자주 최적이다.
+Figure 5(a)의 confusion matrix는 PF-LLm이 이 치우친 분포를 성공적으로 학습 재현함을 보여준다. 
+행렬을 가로지르는 강한 대각선은 높은 정답 예측률을 가리킨다. 결정적으로 오예측 (off diagonal)을 분석하면 
+PF-LLM이 틀릴 때 그 출력이 무작위가 아니라 second-best 선택지일 가능성이 매우 높아, 최적에 가까운 성능을 낸다. -> second best라고 한다면 왜 AMAT를 비교한 분석을 안 보여주는 거지?
+이 발견은 모델이 단일 최적 정책만이 아니라 주어진 코드 컨텍스트에 대한 효과적 prefetching의 일반적 특성까지 학습함을 시사하며,
+하드웨어 perefetcher에 고품질 힌트를 제공하는 능력을 한층 확증한다.
+
+===== Q. 95%는 무엇에 대한 정확도인가? 어떻게 측정했나? =====
+
+[출력은 3필드 = {PF Sel, PF Degree, Filter}. 출력이 여러 개일 때 정확도 재는 법 4가지]
+  같은 데이터라도 방식에 따라 값이 크게 갈림 (예시로 40~90%):
+  ① Exact Match (전체 일치)  : 3필드 전부 맞아야 1점.        가장 엄격 → 낮게 나옴. "policy 전체"
+  ② 필드별 평균              : 각 필드 따로 채점 후 평균.     중간
+  ③ 필드별 개별 보고         : sel/deg/filt 세 숫자 따로.    가장 정직 (어느 필드 약한지 드러남)
+  ④ Token-level             : JSON 출력 토큰의 몇 %가 맞나.  가장 관대. 구조토큰({ " : , 필드명)이 부풀림
+
+[중요: loss 계산 방식 ≠ accuracy 측정 방식 (독립)]
+  - §5.3 loss masking(JSON 출력 토큰에만 loss) = "loss를 어떻게 계산했나"만 말함.
+  - 이건 "95%를 어떻게 쟀나"에 대해 아무것도 보장 안 함. 둘은 논리적으로 무관.
+  - "loss를 토큰에 걸었으니 accuracy도 토큰기반" = 틀린 연결.
+
+[95%가 무엇인지 = 논문 미정의. 증거는 갈림]
+  token-level 쪽 근거:
+    · Figure 4가 "Evaluation Accuracy"를 매끄러운 학습곡선으로 표시 → 자동로깅 지표라야 곡선 (token acc가 대표적)
+    · LLaMA-factory eval 기본이 token accuracy
+  policy/class-level 쪽 근거:
+    · §6.1 "predict the optimal policy with 95% accuracy" → "policy" 문구
+    · Figure 5가 selection 클래스 단위
+    · token이면 구조토큰으로 부풀어 무의미 → 저자가 그걸 자랑할까
+  => 가장 강한 단서(Figure 4 학습곡선)는 token-level 쪽으로 약하게 기움. 단 확증 불가.
+
+[★결론 = 어느 방식이든 안 바뀜]
+  degree·filter 각각의 정확도는 논문에 없음. 있는 건 selection confusion matrix(Fig 5) 하나뿐.
+  - token-level이면 → 3필드가 토큰으로 뭉쳐 개별 분해 불가
+  - exact-match면   → 3필드 묶어서 볼 뿐 개별 분해 없음
+  => "degree 몇% / filter 몇% 맞히나"를 논문이 안 보여줌. (발견 #15)
+
+[정진 관찰 요약]
+  · 95%는 3필드 다 보고, confusion matrix는 selection만 (Fig5="more detailed analysis" = zoom-in) → 방향 맞음
+  · 단 "3필드를 exact하게 95%"로 강하게 읽으면 과할 수 있음 (측정방식 불명, token-level 가능성)
+  · loss 방식이 accuracy 방식을 보장하지 않는다는 지적 = 정확 (독립)
+
+
+---------------------
+# 6.2 LMHint Prefetcher의 성능
+이제 우리는 PF-LLM 모델의 힌트로 안내되는 LMHint Prefetcher의 end-to-end 성능을 memory-intensive SPEC 2017 벤치마크에서 평가한다. 
+각 힌트 유형의 기여를 정량화하기 위해 ablation study를 수행한다. 
+4가지 구성
+
+LMHint-S    : prefetcher selection 힌트만 사용하는 baseline LMHint
+LMHint-SD   : selection 힌트 + degree 힌트
+LMHint-SDF  : selection 힌트 + degree 힌트 + demand request 필터링
+LMHint-SDFR : 세 힌트의 유형을 모두 쓰되, prefetcher ensemble의 HW를 Figure 5(b)d에서 가장 자주 선택된 4개
+sub-prefetcher만 포함하도록 제한한 비용 절감 구성 
+
+Figure 6은 각 벤치마크의 상세 IPC speedup을, Figure 7은 no-prefetch baseline 대비 기하평균 speedup을 요약한다. 
+이 결과들로부터 다음 결론을 도출한다. (4개)
+
+1. 모든 LMHint Prefetcher 구성이 대부분의 벤치마크에서 기존 SOT 단일 perefetcher및 ensemble 방법을 크게 능가한다. 우리의 
+full featured 구성 LMHint-SDF는 최고 성능 단일 prefetcher (Sandbox) 대비 기하평균 IPC 9.8%, 최고 성능 기준 ensemble 방법
+(Alecto) 대비 18.9% 향상을 달성한다. 이는 상당한 세대를 뛰어넘는 성능 이득이다. -> ???
+
+2. ablation study는 각 힌트 유형의 가치를 입증한다. LMHint-S에서 LMHint-SDF로의 진행은 점진적 성능 향상을 보인다.
+prefetch degree 제어 추가는 selection 단독 대비 평균 0.3% IPC 이득을 주고, 이어 demand request filtering추가는 또 0.3%의 이득을 기여한다.
+prefetcher selection이 가장 큰 이득을 주지만, 이 세밀한 제어가 성능 극대화에 필수적이다. -> ??? 근거 
+
+3. 비용 절감 구성 LMHint-SDFR은 놀랍도록 잘 작동하여, 평균적으로 LMHint-SDF를 0.01% 근소하게 성능을 능가한다. -> 능가한다고 말할 때 평균적인지를 제대로 말하지 않은 점
+11개 대신 4개의 sub-prefetcher만 구현함으로써 성능을 희생하지 않고 하드웨어 복잡도와 면적을 줄일 수 있음을 보여주는 유의미한 결과다. 
+PF-LLM 모델의 재학습 없이 달성된다. 단지 힌트 생성 시점에서 vLLM 추론 엔진이 사용하는 JSON schema를 제약하여, 모델이 선택된 4개의 prefetcher중에서만 고르도록 할 뿐이다.
+-> 평균적으로 많이 쓰는 sub-prefetcher 대상으로 하는 것인가? 근사에 의한 성능 하락?
+
+4. 우리 접근법은 prefetcher ensemble 설계의 알려진 난제를 성공적으로 해결한다. 
+Figure 7에서 보이듯, Alecto[22]와 DOL[19] 같은 기존 온라인 ensemble 방법은 최고 단일 prefetcher보다 성능이 나쁘다. 이 성능 저하는 그런 
+PC-중심 (PC-centric) 온라인 정책이 spatial prefetcher 같은 advanced non PC localized 구성요소를 관리할 때 나타나는 알려진 한계다.
+이런 sub-prefetcher들은 단일 명령 스트림이 아니라 메모리 영역 전체에 걸친 패턴을 추적하여 정교한 상태를 구축하기 대문에, Alecto같은 방법의 PC기반 selection 로직은 무관한
+demand 요청으로 그 training을 오염시키거나 핵심 demand 요청을 filter out함으로써 패턴 감지를 교란한다. LMHint Prefetcher는 정적 context aware 힌트를 사용해 
+이 문제를 피한다. demand 요청을 filter하는 능력이 결정적인데, 이는 이런 advanced prefetcher의 섬세한 상태를 그러한 교란적 training 입력으로부터 보호하기 대문이다.
+이 효과적인 orchestration이 ensemble을 응집력이 있게 작동시켜, 모든 baesline을 능가하는 성능으로 이어진다.
+-> 기존 ensemble 방법이 단일 prefetcher보다 성능이 안 좋게 나왔다면 어떻게 논문으로 나올 수 있었던 것인지?
+-> 필터링을 통해서 상태 교란을 막는다고 했는데 정교한 prefether의 경우에는 오히려 막지 않는다고 해서 그러면 이 논문이 이 부분에서 기여한게 없는데 왜 이것을 자랑하는 거지?
+    (advanced prefetcher와 정교한 prefetcher는 다르기 때문이군 ??? -> 자기모순)
+-> spatial prefetcher 같은 advanced non PC loacalized 구성요소 관리가 무엇을 의미하는 것인지 잘 이해가 가지 않음
+
+---------------------
+# 6.3 실제 웹 서비스 평가 워크로드
+합성 벤치마크를 넘어 우리 접근법의 실용성을 검증하기 위해, 우리는 가장 널리 쓰이는 3 개의 오픈소스 웹 애플리케이션 (-> 4개의 워크로드인데 )
+Apache HTTP server[12], Mysql Database[26], RockDB Key Value Store[10], Xapian Search Engine [34] 의
+실세계 웹 서빙 워크로드에서 LMHint Prefetcher를 평가한다.
+우리는 이 애플리케이션들을 현실적 워크로드 하에서, 앞선 벤치마크와 동일한 방법론으로 trace 시뮬레이션 하되, 한 가지 예외를 둔다. 현대 
+데이터센터의 혼잡한 마이크로서비스 공동 서빙 환경을 더 잘 반영하기 위해 main memory latency를 2배로 늘린다. (-> 근거는??)
+Figure 8의 평가 결과는 LMHint Prefetcher가 이런 실세계 시나리오에서도 여전히 효과적이며, 기존의 모든 단일 prefetcher및 ensembl baseline보다 더 나은 성능을 보여준다
+(-> Pytia와 DOL만 보여주는 이유는 무엇이지?)
+
+그러나 짚어둘 점은, 이 웹 서빙 워크로드의 성능 이득이 SPEC 벤치마크에 비해 더 완만하다는 것이다. 
+완만해 보이는 2가지 이유
+1. 이 애플리케이션들은 대체로 CPU/memory-bound이기보다 I/O-bound라, prefetching 최적화의 잠재적 영향이 제한된다.
+
+2. 이 애플리케이션들은 이미 오랜 세월 광범위한 수작업 최적화를 거쳤고, 다수는 자체 caching prefetching 메커니즘까지 구현하고 있어 
+auto-prefetching으로 개선할 여지가 적다. (-> auto prefetching의 의미는 무엇이지)
+
+---------------------
+# 6.4 성능 향상에 대한 분석
+"Figure 9에서, PF-LLM이 zero runtime adaptation latency로 oracle 수준의 적응을 제공함을 시각적으로 증명하는 것은 
+654.roms_r의 heartbeat IPC trace다. Figure 9를 한눈에 보면, LMHint Prefetcher가 모든 sub-prefetcher의 upper envelope(상단 포락선)를 
+추적하는 반면, 다른 것들은 진동하며 뒤처지는 것을 보여준다. 이는 monolithic prefetcher들이 단일한 고정 정책에 묶여 있어 본질적으로 제한되기 때문이며, 
+이 때문에 프로그램의 변화하는 메모리 접근 패턴에 적응하는 것이 불가능하다. 대조적으로, LMHint Prefetcher는 능동적(proactive)이다. PF-LLM이 오프라인에서 
+생성한 per-PC 힌트를 활용함으로써, LMHint Prefetcher는 어떤 코드 영역에 대해 그것이 실행되기 전에 가장 효과적인 정책을 안다. 프로그램의 제어 흐름이 
+phase 사이를 옮겨갈 때, LMHint Prefetcher는 어떤 런타임 시행착오도 없이 즉각적으로 정책을 전환한다. 이 덕분에 Figure 9(a)의 IPC trace가 자신의 모든 
+구성 sub-prefetcher의 상단 성능 포락선을 바짝 추적할 수 있다. 이 oracle 같은 선택은 영역 ②와 ③에서 뚜렷한데, 여기서 LMHint Prefetcher는 
+그 phase의 최고 성능 prefetcher(각각 MLOP와 Sandbox)의 성능을 즉시 따라잡는다. 더 나아가, LMHint Prefetcher는 어떤 단일 sub-prefetcher보다도 
+우월한 성능을 달성할 수 있다. 영역 ①에서는 프로그램의 메모리 접근 패턴이 너무 다양하여 어떤 개별 prefetcher도 효과적으로 감당하지 못한다. 여기서 
+LMHint Prefetcher의 세밀한(fine-grained) 제어의 이점이 뚜렷해진다. LMHint Prefetcher는 selection·degree·demand request filtering 힌트를 
+사용해 sub-prefetcher들을 개별 load 명령 수준에서 조율(orchestrate)한다. 이는 각 sub-prefetcher가 자신이 설계된 접근 스트림에만 집중하게 하여, 
+무관한 demand 요청으로부터의 간섭을 최소화한다. 결과적으로, ensemble의 성능은 additive(가산적)가 되어, 어떤 단일 구성요소의 최대 성능을 능가한다. 
+이 능동적, per-PC orchestration은 프로그램 실행의 각 phase에 대한 최적 정책을 완벽하고 세밀하게 아는 oracle의 이점을 효과적으로 실현한다."
+
+
+---------------------
+# 6.5 오버헤드 분석
+우리 접근법은 두 가지 주요 오버헤드를 도입한다. 힌트를 생성하는 일회성 offline 추론 비용 
+그리고 힌트 저장을 위한 하드웨어 비용
+
+Offline 추론 비용. 힌트 생성은 프로그램 바이너리의 각 load 명령마다 PF-LLM 추론 한 번을 실행할 것을 요구한다. 
+이것이 비싸게 들릴 수 있으나, 우리 실험은 그 비용이 실용적임을 보여준다. 우리는 PF-LLM 모델을 서빙하기 위해서
+vLLM[20] 프레임워크를 사용한다. Figure 10(a)는 1개의 NVIDIA H20 GPU에서 우리 시스템이 초당 최대 234 requests의 추론 처리량을 달성함을 보여준다.
+이 높은 성능은 세 요인 덕분이다.
+1. PF-LLM 작은 0.5B 파라미터 수
+2. Figure 10 (b)에서 보이듯 입력 컨텍스트 길이가 상대적으로 짧아 대부분의 어셈블리 컨텍스트가 3000 토큰 미만 
+3. binary의 모든 load 명령을 분석하는 우리 방법론이 다수의 독립적 요청을 제공하는 것, vLLM의 배칭 능력을 온전히 활용해 하드웨어 활요도를 극대화할 수 있다.
+높은 처리량은 관리 가능한 총 hinting 시간으로 이어진다.
+Figure 10 (c)에서 보이듯, 총 추론 시간은 binary 크기에 선형으로 비례한다. 이 선형 관계는 예상된 것인데, 필요한 총 추론 횟수가 load 명령 수에 의해 결정되고 
+이느 코드 크기에 직접 비례하기 때문이다. SPEC 2017 스위트 전체에 대해, 모든 벤치마크의 힌트 생성은 우리 8-GPU 시스템에서 38.5분을 요구한다. 이 일회성 비용은 
+16 코어 머신에서 스위트를 컴파일 하는데 필요한 25.4분에 필적하며, 전형적인 소프트웨어 개발 배포 파이프라인에서 충분히 수용 가능한 범위에 놓인다.
+
+Runtime 저장 비용.
+생성된 힌트는 main memory의 Prefetch hint Table에 저장된다. PHT의 각 엔트리는 48bit virtual PC (x86-64 아키텍처 기준)와 우리의 8bit hint를 저장하여, 
+load 명령당 총 56비트 (7B)다. 우리는 SPEC 2017 binary를 분석하여 실행 코드 메가바이트당 평균 10.62K개의 load 명령을 발견했다. 이는 binary
+MB당 74.34KB의 PHT 저장 오버헤드, 즉 정적 프로그램 풋프린트의 7.26% 증가로 환산된다. (-> 10.62 * 7 = 74.34. 74.34KB/1024KB )
+
+우리는 우리 접근법의 offline 추론 및 저장 오버헤드가, 그것이 제공하는 상당한 10 ~ 20 % IPC 향상에 대한 정당한 trade-off라고 주장한다.
+코어 확장, 파이프라인 심화, 캐시 확대 같은 전통적 하드웨어 개선으로 유사한 성능 향상을 달성하려면, 훨씬 더 큰 면적, 전력, 설계 복잡도 오버헤드가 든다.
+
+
+=================
+Figure 9.
+speedup trace 
+
+
+Q. confusion matrix가 무엇인지 
+    A.
+    ampm이라는 정답이 있을 때 예측으로는 sandbox나 ampm으로 1:3정도로 나뉜 경향이 있음
+
+Q. 정확도가 무엇에 대한 정확도인가? 
+    A.
+        Q. 논문에서 언급을 했는가?
+        아마 sub prefetcher selection에 있어서 언급한 것 같음 
+        그런데 이해가 가지 않는 점이 한 개 이상의 sub prefetcher를 선택하는 것처럼 말했는데 
+        ground truth에서는 선택된게 한 개인 것처럼 보여주는 이유가 무엇이지?
+            A. 
+                Q1: 95%가 무엇에 대한 정확도인가? 
+                    A1: 논문이 명확히 안 밝힘
+                    confusion matrix는 selection 축만 있음
+                    degree filter 정확도는 어디에 없음
+
+                Q2: 여럿 선택이라더니 ground truth는 왜 하나인가? 
+                    A2:
+                    Sec2.1 : one ore more sub-prefetchers 
+                    Sec4.1 : an integer index 
+
+                    min ATMT는 가장 좋은 것 하나만 고르기 때문에 PC당 prefetcher 하나 
+
+                    issue하는 건 하나이지만 training 입력 관리하는 것은 여러 개 
+                    selection은 단일화했지만, filtering으로 여러 prefetcher의 상태를 여전히 통제함
+
+
+
+Q. Sandbox[30] prefetchr를 moderate degree를 쓰는 것과 같은 특정 정책이 다른 것들보다 훨씬 자주 최적이다. 
+    이 말에서 Figure 5(b)를 보게 되면 Sandbox는 moderate가 아니라 conservative를 더 많이 하는 것 같은데 그렇지 않는 이유가 무엇인지?
+    
+    A. 맞다
+    막대그래프가 아닌 이유 그렇게 되면 항상 aggressive가 됨, 일단 논문에서 언급한 moderate가 된다는 설명도 안 통함
+    따라서 conservative로 생각해야 함
+
+Q. 2nd best에 대한 근거가 부족함, AMAT로 비교분석한 평가 부제
+
+Q. skew 정확도를 제공했다고 말했지만 기존 것 대비에 대한 비교는 SOTA로 충분한가?
+
+Q. Figure 6로부터 도출된 결론에서 이상한 점
+    Sandbox가 과연 SOTA인가 Figure 6를 보게 되면 실제로 그렇지 않은 벤치마크도 존재하는 것 같은데?? SOTA의 기준을 제대로 설명하진 않은 것 같음
+    그리고 그림에서 legend로 SW Prefetch에 대해서는 언급했지만 실제로 그림을 그리지 않은 이유가 무엇인지 잘 모르겠어
+    상당한 세대를 뛰어넘는 성능 이득인가?
+
+    A. 일단 화면을 확대해서 보면 SW prefetch가 나오게 됨
+
+
+Q. sub prefetcher 개수는 무엇인가?
+    N Confusion matrix 클래스 수 != ensemble의 prefetcher 수
+    한번이라도 optimal이었던 것에 대해서 
+
+    Next-Line 이 없음 
+    본문 (t is a significant result as it
+        demonstrates that we can reduce the hardware complexity
+        and area by implementing only four sub-prefetchers instead
+        of eleven, without sacrificing performance. )
+
+    Table 에는 12개인데 사용한 것은 11개이고, Figure에서는 10개 일단 ground truth에는 없더라도 prediction에는 있어야 하는 것 아닌가? -> ???
+
+    confusion matrix의 정의에 따르면 행 (ground truth)와 열(predicted) 반드시 같은 라벨 집합이어야 함
+
+        Q. SMS 0.19 + 0.2 +  + 0.76 + 0.2 = 0.99 -> Nextline 은 0.01에 해당하는데
+        논문에서 지금 사용한 글을 보게 되면 가운데 대각이 진하기 때문에 잘 된 것이다라는 주장을 하고 싶은데 
+        애초에 Nextline은 거의 선택된 적이 없기에 제외하고 confusion matrix를 그린 것 같음 
+            A. 틀린 판단
+            데이터셋을 만드는 과정에 있어서 
+            Next line이 ground truth로 선택된 적이 애초에 아예 없으니 행을 그릴 수 없기 때문에 
+
+            그 외적으로
+            SMS 0.99
+            Pythia 1.01
+            이러한 값이 나오는데 이 차이는 반올림 차이로 판단함 
+
+            따라서 11개의 prefetcher를 사용했지만 -> 1개는 전혀 도움이 되지 않음
+
+
+
+Q. 
+    -> 기존 ensemble 방법이 단일 prefetcher보다 성능이 안 좋게 나왔다면 어떻게 논문으로 나올 수 있었던 것인지?
+    -> 필터링을 통해서 상태 교란을 막는다고 했는데 정교한 prefether의 경우에는 오히려 막지 않는다고 해서 그러면 이 논문이 이 부분에서 기여한게 없는데 왜 이것을 자랑하는 거지?
+    -> spatial prefetcher 같은 advanced non PC loacalized 구성요소 관리가 무엇을 의미하는 것인지 잘 이해가 가지 않음
+
+    A1.
+        -1. 최고 단일 prefetcher는 사후 지식
+        -2. 베이스라인, 워크로드가 다름
+        -3. related work는 원래 편파적
+ 
+    A2. 
+    정교한 prefetcher는 필터링을 안 하는데, 어떻게 필터링이 걔들을 보호하나?
+    선택적 필터링의 기여 
+    
+    advanced prefetcher와 정교한 prefetchere가 달라서 그런 것인가? -> advanced와 정교한 prefetcher는 같은 것을 지칭하는 것 같음
+    (Pythia, Bingo, DSPatch, Sandbox, SMS)
+
+    자기모순적 문장
+
+
+    A3. non-PC localized
+    Prefetcher의 종류를 PC localized, non PC localized
+    명령 (PC) 하나당 별도 상태
+    메모리 영역당 상태, 여러 PC에 걸침
+
+    SMS (spatial prefetcher)
+    
+
+
+Q. 왜 speedup에서는 기하평균을 사용해야 할까? 산술평균이 아니라
+    A. 
+    speedup
+    산술 평균 (10 + 0.1) /2 = 5.05
+    기하 평균 sqrt(10 * 0.1) = 1
+
+Q. 마이크로서비스가 무엇을 의미하는 것이지? latency를 2배로 한 근거는 왜 설명되지 않은 것인가? 생략될 만한가?
+    A.
+    [microservice = 큰 앱을 작은 독립 서비스 여러 개로 쪼갠 아키텍처]
+    - Monolith(한 덩어리에 모든 기능) ↔ Microservice([로그인][결제][검색]... 각자 독립 프로세스, 네트워크로 통신)
+    - §6.3 문맥의 핵심 = "co-serving": 데이터센터 서버 1대에 여러 microservice가 함께 올라가
+      캐시·메모리 대역폭을 서로 경쟁 → "crowded"(혼잡). 서로 캐시 evict(pollution) + 대역폭 경쟁 + 컨텍스트 스위치 빈번.
+
+    [논문의 트릭 - latency 2×]
+    - co-serving 경합(스위치·캐시오염·대역폭경쟁)을 실제로 시뮬레이션 안 함.
+    - 단일코어 ChampSim(§4,§5.2)인데, 그 경합 효과를 memory latency 2×라는 스칼라 하나로 대체.
+    - 즉 멀티태스킹 환경을 컨텍스트 스위치 없는 단일코어로 흉내 → 발견 #39(PHB stale/스위치 미고려)와 직결.
+
+    [2×의 근거 - 왜 설명 안 됐나 / 생략될 만한가]
+    - 근거: [14](Giallorenzo, virtualization costs) 인용만, "왜 하필 2배"는 정당화 없음.
+    - 생략될 만한가? → N. 이건 결과를 좌우하는 가정임.
+      · §6.3은 "실세계 검증"이라는 주장의 근거인데, 그 실세계성이 전부 "2×" 이 숫자 하나에 실려 있음.
+      · 1.5×나 3×면 결론이 달라질 수 있는데 왜 2인지 불명 → 측정 아닌 설정한 가정(single-cycle PHB와 같은 계열).
+    - 정직한 평가: §6.3 결과(웹 워크로드에서 gain 미미, Apache~3.6% MySQL/Xapian~0.5%)는
+      오히려 "auto-prefetch가 이미 최적화된 실세계에선 여지 적음"을 정직히 인정한 부분(미덕).
+      다만 그 실세계성의 근거(2×)가 얇다는 게 문제. → 결론: 생략하면 안 되는 가정인데 근거가 부실.
+
+
+Q. 3개의 웹 애플리케이션이 아니라 4개 아닌가?
+    we evaluate LMHint Prefetcher on real-world
+    web serving workloads from three of the mostly widely-used
+    open-source web applications: Apache HTTP Server [12],
+    MySQL Database [26], RocksDB Key-Value Store [10] and
+    Xapian Search Engine [34]. 
+
+    A. 4개로 수정되어야 함
+
+Q. prefetching에서 auto prefetching과 manual prefetching이 무엇인지
+
+    A. 프로그래머가 코드에 명시에 한 것이 manual prefetching
+    auto-prefetching 시스템이 자동으로 
+
+    manual <-> auto : 누가 결정하나
+    SW <-> HW : 어떻게 발행되나
+    
+Q. 성능향상에 대한 분석은 왜 654.roms_r을 한 이유는 무엇이며, 654.roms_r이 무엇을 의미하는 것인지 궁금함
+    
+    A. 무엇인가: SPEC CPU2017의 부동소수점 벤치마크입니다. 
+    ROMS = Regional Ocean Modeling System — 해양 순환을 시뮬레이션하는 과학계산 코드예요. 격자 기반 편미분방정식을 푸는, 메모리 집약적이고 phase가 뚜렷한 워크로드입니다.
+    SPEC CPU2017은 두 스위트로 나뉩니다:
+    - speed 스위트 → 6xx 번호 + _s 접미사 → 654.roms_s
+    - rate 스위트 → 5xx 번호 + _r 접미사 → 554.roms_r
+
+    "654.roms_r"은 존재하지 않는 이름입니다 — speed 번호(654)에 rate 접미사(_r)를 붙였어요. 
+    그리고 정진님이 본 Figure 6·7의 x축은 전부 _s(gcc_s, lbm_s, ..., roms_s)입니다. 
+    즉 논문의 주 평가는 **654.roms_s(speed)**로 돌았고, §6.4 본문만 "654.roms_r"로 잘못 적었습니다. 654.roms_s가 맞습니다.
+
+Q. baseline에 있어서 기존의 prefetcher들은 다 종료하고, 제한한 prefetcher나 다른 SOTA prefetcher에 대해서 적용한 것인지 궁금하고
+     ChampSim에서 데이터를 만들 때도 기존의 prefetcher를 다 무시한 상황에서 한 것인지 궁금함
+
+    A. 실제 CPU에서 실험을 진행하지는 않음
+    ChampSim 시뮬레이터 기반으로 실험을 진행해서
+    default prefetcher라는 것이 존재하지 않음
+
+Q. 정적 프로그램의 풋프린트란 무엇인가?
+    A.
+    static footprint  실행 전
+    dynamic footprint 실행 중
+
+    실행전 PHT가 바이너리 파일에 붙어 -> 디스크에 저장
+
+    OS 로더가 PHT를 DRAM으로 적재 -> main memory에 상주
+
+    같은 PHT가 두 곳에 순차적으로 존재

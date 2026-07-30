@@ -1,0 +1,82 @@
+
+
+
+
+
+one or more; 단일 sub-prefetcher -> 둘 다 단일로 통일해야 함
+
+-------------
+background
+
+논문에서는 "정교한"/"고급" prefetcher가 5개라고 언급하다가 실제로 Table 2에서 표시한 것은 3개, 일단 표에 틀린 부분이 있으니 5개라고 생각하고 넘어감
+
+그리고 PFF는 prefetcher가 아니라 filtering에 prefetcher로 추가함
+
+그냥 근거가 부족함 
+논문에서 경험적으로 말하고 
+
+-------------
+eval
+
+3개의 오픈 소스 -> 4개의 오픈 소스 
+
+
+어떤 accuracy인지에 대해서도 밝히지도 않음
+
+
+prefetcher에 대한 성능에 대해서 언급하지도 않음 기존 metric을 가지고 설명할 수 있는데 하지 않았음
+
+
+-------------------------------
+
+기존 ensemble은 PC-localized기반이라고 하는데 PF-LLM도 결과적으로 PC-localized hint를 사용하기에 자기 모순적인 문장을 사용한 것 같음
+
+정교한 prefetcher는 막지 않는다고 해놓고서 evaluation은 막는다고 하니 자기모순 
+
+정교한 prefetcher가 filtering에 성능 저하가 생기는 것이라고 했는데 그것에 대한 근거가 부족함, 정교함에 대한 기준에 대해서 명확한 설명이 없음 
+
+멀티 코어와 동일하게 하기 위해서 2배 latency라고 했는데 왜 2배를 했는지 설명한 부분이 없음 
+
+Prefetcher가 아닌데 Prefetcher라고 언급함
+
+실험했던 실험 개수가 중간에 바뀌고 
+
+처음에는 selection one or more라고 했는데 실질적으로는 한 개만 고르는 거였고
+
+동기에 double은 8B인데 4B로 작성하고, padding에 대해서는 고려하지 않고, padding을 고려하지 않더라도 stride는 11이어야 하는데 9를 작성함 
+
+정확도를 언급하는데 정확도를 어떻게 계산했는지 
+토큰 정확도면 기존 형식에 의해서 점수 부풀리기가 가능함 
+
+
+SOTA와 비교를 하는데 IPC의 평균을 내서 비교를 한 것인지에 대한 설명이 없고 <- 내 실수, 기하 평균 기반으로 함  
+
+2nd라고 주장은 하는데 AMAT에 대한 정보로 비교한게 업음 
+
+그래프에 대한 설명으로 moderate가 아니라 conservative를 더 많이 했는데 그래프 해석을 잘못함 
+
+Minimum이 아니라 maximum이어야 하는 것 아닌가?
+
+동적 메모리 동작을 준 적이 없는데 policy만 알려주었는데 이 부분에 있어 표현이 부정확함
+
+적절한 위치 소주제와 맞지 않은 문장을 작성함 Automated Heuristic Discovery를 말하면 HW ensemble에 대해서는 비판을 하지 말아야 하는 것 아닌가?
+
+
+orchestration layer에서의 자기 모순적 발언
+
+
+Power7의 겨우 SW+HW에 대한 것인데 어떤식으로 HW만 따로 HW sub prefetcher로 만들었는지에 대해서 설명이 없다는 점이 문제야
+
+
+어떻게 fine tune을 했는지 알려주지는 않았지만 모델 사이즈가 작기 때문에 full fine tuning을 사용했다는 것을 유추할 수 있음
+
+
+2비트를 demand request filtering 정책 -> "stream이 어떻게 2bit이 될 수 있는 거지"
+ -------------------------------------------
+
+여기서 사소한 에러 말하고
+자기 모순적인 에러에 대해서만 생각해보자 
+
+기존 ensemble 방법과의 비교 이 부분은 중요할듯
+
+

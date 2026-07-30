@@ -15,7 +15,7 @@ tags:
 ---
 
 ## 🧭 방법론 (Methodology) — 논문을 읽는 렌즈
-- [[Design Principles]] — 논문을 읽는 **고정 렌즈**(Amdahl·Locality·Parallelism·Hierarchy+Trade-off + 비-성능 렌즈). 원칙은 고정, 인스턴스만 바뀜.
+- [[Design Principles]] — 논문을 읽는 **고정 렌즈**. 뼈대 = Patterson & Hennessy **8 Great Ideas**(Moore·Abstraction·Common-case·Parallelism·Pipelining·Prediction·Hierarchy·Dependability) + 추가 렌즈(Cost·Correct-by-construction 등). 8개 아이콘 이미지 포함. "규칙을 만들고 적용" 미학의 정전.
 
 ## 🔌 CXL — 메모리 시스템 아키텍처 (내 연구 축)
 - 기초: [[CXL Overview]] · [[CXL Glossary]] · [[CXL SOTA & Roadmap]]
