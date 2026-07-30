@@ -1,2 +1,14 @@
 tmp/
 workflow/
+flow/
+
+# PF-LLM PPT (추적 제외)
+papers/PF-LLM - Large Language Model Hinted Hardware Prefetching/PPT/
+
+# Smart-Infinity 작업 파일 (추적 제외)
+papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/refs/
+papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/figure별-speedup수치.md
+papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/발표-슬라이드-내용.md
+papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/논문-그림표-분석.md
+papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/test.nodegraph.json
+papers/Smart-Infinity - Fast Large Language Model Training using Near-Storage Processing on a Real System/test.html
